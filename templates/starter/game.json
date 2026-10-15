@@ -1,0 +1,24 @@
+{
+  "id": "starter",
+  "title": "Cave Drone",
+  "tagline": "The starter game every new Glyphite game is copied from",
+  "description": "Fly a small drone through a dark cave, blast the rock and catch the glowing gems that fly out. Small on purpose: it shows each engine feature once (materials, world generation, a rigid body drawn from a sprite, lights without a sun, projectiles and explosions, custom particles, HUD, tunables).",
+  "order": 99,
+  "listed": false,
+  "status": "draft",
+  "thumbnail": "thumb.png",
+  "parts": ["world.js", "drone.js", "main.js"],
+  "controls": [
+    ["W / Up", "thrust"],
+    ["A D / Left Right", "rotate"],
+    ["Space or click", "fire a bolt (aim with the mouse)"],
+    ["Enter", "start / continue"]
+  ],
+  "tunables": {
+    "gravity": { "label": "Gravity", "unit": "m/s²", "value": 3, "min": 0, "max": 9.81, "step": 0.1, "live": true, "help": "Downward pull on everything that falls." },
+    "thrust": { "label": "Thrust", "unit": "× gravity", "value": 2.2, "min": 1, "max": 5, "step": 0.1, "live": true, "help": "Drone lift at full power, as a multiple of gravity (at zero gravity: of 3 m/s²)." },
+    "blastRadius": { "label": "Blast radius", "unit": "base units", "value": 5, "min": 2, "max": 14, "step": 0.5, "live": true, "help": "How much rock a bolt carves out." },
+    "gemsToWin": { "label": "Gems to collect", "unit": "per cave", "value": 12, "min": 1, "max": 60, "step": 1, "live": false, "help": "Gems needed to clear a cave." }
+  },
+  "smoke": { "keys": ["ArrowUp", "ArrowLeft", "Space"] }
+}

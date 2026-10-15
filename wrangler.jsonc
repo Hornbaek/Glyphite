@@ -1,0 +1,51 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // The Glyphite site at https://glyphite.hornbaek.org: a Worker with static assets. Cloudflare serves
+  // the built dist/ (the game list, the games, the editor), and worker/index.js runs first on every
+  // request to check the Cloudflare Access sign-in (worker/auth.js), so nothing is served without it.
+  //
+  // Cloudflare pulls this repo through Workers Builds, like horn-dev and hornbaek-site: nothing here or
+  // in GitHub holds a deploy token. On every push to main it runs (dashboard → the Worker → Settings →
+  // Builds):
+  //   Build command:  npm run build:cloudflare   (the tests, then the build)
+  //   Deploy command: npx wrangler deploy        (the default)
+  // The build command is a package.json script because Workers Builds ignores wrangler's build
+  // settings, and a script can be changed in a pull request where a dashboard field cannot.
+
+  // Must match the Worker's name in the Cloudflare dashboard, or the build fails.
+  "name": "glyphite",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-10-01",
+
+  // Attached by the deploy itself: the hornbaek.org zone is on the same account.
+  "routes": [{ "pattern": "glyphite.hornbaek.org", "custom_domain": true }],
+  // Only the custom domain (behind Access) serves production: no workers.dev or version URLs.
+  "workers_dev": false,
+  "preview_urls": false,
+
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
+  },
+
+  "vars": {
+    // From the Cloudflare Access application that protects glyphite.hornbaek.org (Zero Trust →
+    // Access → Applications): the team domain and the application's audience (AUD) tag. Neither is
+    // secret. While ACCESS_AUD is empty the Worker turns every request away (docs/DEPLOY.md).
+    "ACCESS_TEAM_DOMAIN": "https://round-smoke-a734.cloudflareaccess.com",
+    "ACCESS_AUD": ""
+  },
+  // Keeps variables set in the dashboard (the optional ALLOWED_EMAILS) across deploys. A var that is
+  // also in this file is overwritten by the next deploy: change those here.
+  "keep_vars": true,
+
+  // Pull requests build a Preview (`npx wrangler preview` in Workers Builds), which refuses to run
+  // without this block. Previews get none of the vars above, so they answer "not set up" to everyone:
+  // the build is checked, the site stays closed. docs/DEPLOY.md says how to open them to you alone.
+  "previews": {},
+
+  "observability": { "enabled": true }
+}

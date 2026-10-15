@@ -1,0 +1,24 @@
+{
+  "name": "glyphite",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Glyphite: an AI-first ASCII game engine, its games, and the site that serves them.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node tools/glyphite.mjs build",
+    "build:cloudflare": "npm test && node tools/glyphite.mjs build",
+    "list": "node tools/glyphite.mjs list",
+    "new": "node tools/glyphite.mjs new",
+    "serve": "node tools/glyphite.mjs build && node tools/glyphite.mjs serve",
+    "test": "node --test \"tests/node/*.test.mjs\"",
+    "smoke": "python3 tests/smoke.py --all",
+    "dev": "node tools/glyphite.mjs build && wrangler dev --local-upstream localhost:8787",
+    "deploy": "node tools/glyphite.mjs build && wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.151.0"
+  }
+}

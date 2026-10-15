@@ -1,0 +1,2 @@
+CodeMirror 5.65.16 (MIT, see LICENSE), vendored so the editor needs no CDN.
+Bundle: lib/codemirror.js + modes javascript, xml, css, htmlmixed + addon/edit/matchbrackets.js, minified with esbuild.

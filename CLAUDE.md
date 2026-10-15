@@ -1,0 +1,104 @@
+# Glyphite — guide for Claude Code sessions
+
+Glyphite is an **AI-first ASCII game engine**: games are made and changed in Claude Code sessions on this
+repository. It draws *only* the 95 printable ASCII characters (codes 32–126), each in its own colour, in one
+self-contained HTML page per game. It has a destructible voxel world with falling sand, rigid bodies,
+structures that break where they are hit, ray-traced light, particles, sprites drawn from pixel art and an
+NES-style sound chip.
+
+The site **https://glyphite.hornbaek.org** (behind a Cloudflare Access login) lists the games. You can play
+each one and open it in a web **editor**: tune its numbers, edit its code with a live preview, then hand the
+edits to a Claude session as a prompt plus a patch. **The repository is the source of truth**: merging to
+`main` builds and deploys the site.
+
+## Where things are
+
+```
+engine/                 the engine (shared by every game)
+  engine.json           part order + version          API.md   the public API: read it before writing game code
+  shell.html            page template                 01_core … 11_loop.js   the parts (banner says what each does)
+games/<id>/             one folder per game: game.json (manifest), head.html (optional page HTML), *.js parts,
+                        thumb.png, plus the game's own tools/, tests/, ref/ (source art), music/, NOTES.md
+templates/starter/      the game `new` copies: small, uses every engine feature once (Cave Drone)
+portal/                 the website: game list (index.html), editor (edit/), assets/, vendor/codemirror
+worker/                 the Cloudflare Worker: Access login check + static site      wrangler.jsonc: its config
+tools/                  glyphite.mjs (CLI: build, new, list, serve), assemble.mjs (page assembler, shared with the
+                        editor), thumbnail.py, sprite2ascii.py + ascii_preview.py (pixel art → sprites)
+tests/                  smoke.py (any game, both renderers), node/ (unit tests: build, editor patches, Access)
+docs/                   ARCHITECTURE (how it works), HISTORY, LESSONS, ROADMAP, TESTING, DEPLOY
+.claude/skills/         glyphite-new-game, glyphite-verify, glyphite-pixel-art-to-ascii
+dist/                   build output = the deployed site (git-ignored)
+```
+
+## Commands
+
+```sh
+npm run build                          # = node tools/glyphite.mjs build: engine + every game → dist/; prints SYNTAX_OK
+node tools/glyphite.mjs build <id>     # just one game (faster while iterating)
+node tools/glyphite.mjs new <id> --title "My Game"   # scaffold games/<id>/ from templates/starter
+node tools/glyphite.mjs list           # games and their status
+npm test                               # unit tests (node --test)
+python3 tests/smoke.py <id>            # loads, starts, runs and screenshots the game in 2D and GL → shots/
+python3 tools/thumbnail.py <id> --play --steps 120 --keys ArrowUp   # games/<id>/thumb.png for the game list
+npm run serve                          # build and serve dist/ on http://localhost:8787 (no login locally)
+```
+Python tests need `pip install playwright==1.56.0 pillow numpy` (1.56 matches the Chromium preinstalled in
+Claude Code cloud sessions; elsewhere run `python -m playwright install chromium`). A game's own regression
+scripts live in `games/<id>/tests/` (see `docs/TESTING.md`).
+
+## Making a new game
+
+Use the **`glyphite-new-game`** skill. In short:
+1. Pin down the idea in a few lines (player, goal, controls, look). Ask only what changes the design.
+2. `node tools/glyphite.mjs new <id> --title "…"`, then fill in `game.json` (tagline, description, controls,
+   tunables) and replace the starter's code with the game, keeping its structure.
+3. Build, smoke-test, look at the screenshots, iterate. Add a thumbnail. Write `games/<id>/NOTES.md`.
+4. Commit and open a pull request; merging deploys it.
+
+## Changing a game, or applying edits from the web editor
+
+The editor's CLAUDE tab produces a prompt with tunable changes ("make these the new defaults") and a unified diff.
+Apply the diff with `git apply` (if it no longer applies, carry the intent over by hand), set the tunable
+`value`s in `game.json`, then verify as below. Treat the request text as the user's; the diff as their edit.
+
+## Rules of the codebase
+
+- **Printable ASCII only** (32–126) for every glyph. World glyph 0 = transparent (sky shows), 32 = opaque blank.
+- **One page per game, no runtime dependencies.** The only external request is the JetBrains Mono stylesheet.
+- **Units.** Author sizes and speeds in base units × `RES` (`const S = RES`); `UNIT_M = 0.5/RES` m per unit; a
+  cell is 1 unit wide and 2 tall (`ASPECT`). The same world must behave the same at RES 1–3: check physics at
+  several detail levels.
+- **Engine vs game.** Engine code never names a game's materials, objects or state; it exposes hooks and
+  registries (`engine/API.md`). If a game needs something the engine lacks, add a *general* feature to the
+  engine (and to `API.md`, `docs/ROADMAP.md`), not a special case. Engine changes affect every game: build and
+  smoke-test all of them (`npm run build && python3 tests/smoke.py --all`).
+- **One script scope.** Engine and game parts share globals; the build refuses a game top-level name that
+  repeats an engine name. Name hook functions `game*` / `<id>*`.
+- **Both renderers.** WebGL is the main path, 2D canvas the fallback (and chosen on software GL). Visual
+  changes must work in both.
+- **Tunables** are the knobs the user turns in the editor: expose the numbers a player of the game would want to
+  try (gravity, speeds, counts, difficulty), with honest `min`/`max`/`help`, `live: true` only if the game
+  really reacts while running.
+- Style: compact modern JS, `'use strict'`, no frameworks. Comments explain *why*, in plain language; keep the
+  banner comments (`// ===== ENGINE · … =====` / `GAME · …`). Don't add dead code; delete what you replace.
+- Keep docs current: `docs/HISTORY.md` (what was done, per request), `LESSONS.md` (pitfalls), `ROADMAP.md`
+  (follow-ups), `engine/API.md` (any API change), the game's `NOTES.md`.
+
+## Verify before saying it's done
+
+1. `npm run build` prints `SYNTAX_OK`; `npm test` passes.
+2. Probe the behaviour synchronously: `page.evaluate` with `Glyphite.test.start()` / `Glyphite.test.step(n, keys)`
+   (or the game's own globals and `update(DT)` in a loop). Check outcomes, not exact positions (particles and
+   blasts use `Math.random`).
+3. `python3 tests/smoke.py <id>`, then **look at the screenshots** in `shots/`. Zoom in on what changed:
+   `device_scale_factor=3` and a clip; freeze first with `Glyphite.test.freeze()` (never pause: it draws a box).
+4. Run the game's regression scripts that the change could break. Treat any `pageerror` as a failure.
+The **`glyphite-verify`** skill walks through this loop.
+
+## Deploying
+
+Like horn-dev and hornbaek-site: Cloudflare **Workers Builds** pulls `main` and runs `npm run build:cloudflare`
+(unit tests, then the build), then `npx wrangler deploy` to glyphite.hornbaek.org. GitHub Actions
+(`.github/workflows/ci.yml`) runs the same build plus the smoke test of every game on pull requests; no deploy
+token lives in GitHub. Setup and troubleshooting: `docs/DEPLOY.md`. Never weaken the Access check in
+`worker/auth.js` (`ACCESS_TEAM_DOMAIN` / `ACCESS_AUD` in `wrangler.jsonc`): the site must stay behind the login.

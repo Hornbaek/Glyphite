@@ -1,0 +1,9 @@
+shots/
+__pycache__/
+*.pyc
+*.wav
+.DS_Store
+dist/
+node_modules/
+.wrangler/
+.dev.vars

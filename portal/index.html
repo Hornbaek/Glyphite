@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glyphite Games</title>
+<meta name="description" content="Games built on Glyphite, an AI-first ASCII game engine.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+<pre class="logo" role="img" aria-label="Glyphite"> ###   #      #   #  ####   #   #  ###  #####  #####
+#      #       # #   #   #  #   #   #     #    #
+# ##   #        #    ####   #####   #     #    ####
+#   #  #        #    #      #   #   #     #    #
+ ###   #####    #    #      #   #  ###    #    #####</pre>
+      <p class="sub">An AI-first ASCII game engine · <b id="engineVer">…</b> · <span id="count">loading games</span></p>
+    </div>
+  </header>
+
+  <main>
+    <section class="games" id="games" aria-live="polite"></section>
+
+    <section class="howto" aria-labelledby="howto-h">
+      <h2 id="howto-h">Make or change a game with Claude</h2>
+      <p class="muted">Games are made in Claude Code sessions on the <code>hornbaek/glyphite</code> repository. Each session builds,
+        checks and opens a pull request; merging it to <code>main</code> deploys it here.</p>
+      <ol>
+        <li>Open a Claude Code session on the repository.</li>
+        <li>Describe the game. Paste the prompt below and fill in your idea, or use a game's <b>EDIT</b> page to tune it and
+          hand your changes to Claude.</li>
+        <li>Review the pull request and merge it. The site updates after the deploy.</li>
+      </ol>
+      <div class="prompt" id="newPrompt">Make a new Glyphite game: &lt;describe the idea: genre, the player, the goal, the controls, the look&gt;.
+Follow the glyphite-new-game skill: scaffold it, build it, verify it with the smoke test and screenshots, add a thumbnail, and open a pull request.</div>
+      <p style="margin:10px 0 0;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" type="button" id="copyNew">[ COPY PROMPT ]</button>
+        <a class="btn" href="https://claude.ai/code" target="_blank" rel="noopener">[ OPEN CLAUDE CODE ↗ ]</a>
+      </p>
+    </section>
+  </main>
+  <p class="foot" id="foot"></p>
+</div>
+<script type="module" src="/assets/portal.js"></script>
+</body>
+</html>

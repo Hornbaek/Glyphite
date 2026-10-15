@@ -1,0 +1,51 @@
+# Runs the same steps as Cloudflare's build on every pull request, plus a browser smoke test of every
+# game, so a red suite is visible before the merge rather than after it.
+#
+# The deploy is Cloudflare's (as in horn-dev and hornbaek-site): Workers Builds pulls main and runs
+# `npm run build:cloudflare` (the tests, then the build), then `npx wrangler deploy`. That is a guard
+# too, but it runs on code that has already merged: a failure there is a site stuck on the previous
+# version. No Cloudflare token lives in GitHub.
+name: CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One run per branch: pushing a fix to a PR makes the previous run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # the game list shows each game's last-change date from git
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # Exactly what Cloudflare runs before it deploys: the unit tests, then the build.
+      - run: npm run build:cloudflare
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Playwright
+        run: |
+          pip install playwright==1.56.0 pillow numpy
+          python -m playwright install --with-deps chromium
+      - name: Smoke-test every game in both renderers
+        run: python3 tests/smoke.py --all
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-screenshots
+          path: shots/
+          if-no-files-found: ignore
