@@ -1,0 +1,259 @@
+# History: how Glyphite and Regolith Lander were built
+
+All of this was built in one long working session on 14 October 2026, between Sebastian (the user)
+and Claude, in the Claude app's cloud workspace. The game was published as a private claude.ai
+artifact called "Regolith Lander", versions 1 to 7. The project then moved to Claude Code with this
+archive. The user's requests are quoted, followed by what was built and the key decisions. Bugs and
+their fixes are summarised here; `docs/LESSONS.md` has them in full.
+
+---
+
+## 1. The engine and the game
+
+> "Make a small very simple game and physics engine that only renders in pure ASCII. Focus on physics
+> and lighting. It should only be 2D. It should be playable in the browser. Make a simple game with it,
+> it should be a moon lander game with voxel environment that reacts to collisions, rockets from the
+> moon lander and more."
+
+**Engine (first called REGOLITH, now Glyphite):**
+- A single HTML page. Hitting the output-token limit while writing one big file led to splitting the
+  source into `src/` parts that `build.sh` concatenates.
+- A voxel world of materials, each with an albedo, a glyph ramp, a toughness, a shininess and a
+  granular flag:
+  - regolith (granular), basalt, bedrock (indestructible),
+  - water ice, pad metal (indestructible), rubble (granular),
+  - He-3 crystal (glows), impact glass.
+  - The lamp-mast steel material came later.
+- A granular cellular automaton that only runs in "awake" 16×16 chunks. It moves sand and rubble
+  that has no support.
+- A heat field: blasts and exhaust heat rock, which glows and cools.
+- Rigid bodies (`Body`) with impulse contacts against the grid. Hull points come in three kinds:
+  structure, foot and strut.
+- Lighting:
+  - Exact sun shadows from a column sweep.
+  - Ambient occlusion and normals from summed-area tables.
+  - Point lights by ray casting.
+  - Ambient sky colour, then a tone map.
+- The renderer turns each cell into one ASCII glyph plus a colour, chosen by material, light and
+  surface normal: `/ \ | ~` on slopes and luminance ramps on flat ground.
+
+**Game (Regolith Lander):**
+- The lander has a throttleable descent engine, RCS rotation with attitude hold, fuel, and rockets
+  that recoil.
+- Eight landing sites named after real lunar sites, with a different sun elevation and amount of ice
+  at each. Each site has craters, mesas, caves (from site 3), x1/x2/x3 pads and meteor showers
+  (from site 2).
+- Exhaust gas scours regolith and sublimates ice. Rockets and meteoroids carve craters.
+- Scoring: pad multiplier, fuel bonus and soft-landing bonus. Three lives.
+- HUD styled after the Apollo DSKY caution lamps: ALT, VEL, ATT, FUEL, CONTACT, 1202 (slow
+  frame rate) and METEOR.
+
+Notable fixes: contact skin for resting contacts, because landings never registered at first; no
+lander self-shadowing; no "dust mote" halos, because there is no air to scatter light.
+
+## 2. Particles and VFX
+
+> "It should also have particle and VFX effects"
+
+- A struct-of-arrays particle system with ten types: grain, gas, fire, spark, smoke, vapor, debris,
+  pickup, wreck and dust. Grains and debris turn back into voxels when they stop, so no mass is lost.
+- `explode()` carves voxels with noise and per-material toughness. It heats the crater rim and can
+  fuse it to glass. It throws ejecta and adds a fireball, sparks, smoke, a shock ring, a light flash,
+  screen shake and slow motion.
+- Optional bloom (G key). Heat shimmer that jiggles glyphs over hot gas.
+
+## 3. Higher resolution
+
+> "Can we start adjusting the 'resolution' to be more detailed. So I guess lower the font size of the ASCII?"
+
+- Added the detail scale `RES` ∈ {1, 1.5, 2, 2.5, 3}. Every physical quantity is authored in base
+  units and multiplied by RES, so a finer grid shows **more detail of the same world** instead of
+  zooming out.
+- Levels are generated in base units, so every detail level builds the same landscape.
+- Detail controls: the DETAIL button, the `-`/`+` keys, a default chosen from screen width, a
+  setting saved in localStorage, and a "running slow, press -" hint.
+- The renderer moved to WebGL: one full-screen pass samples a glyph atlas. There is a 2D-canvas
+  fallback, and WebGL that is software-emulated (SwiftShader, llvmpipe) falls back to 2D.
+- The HUD got its own coarser grid, so text stays readable at any detail level.
+
+## 4. Spotlights
+
+> "Add some downward spotlights to light up the ground."
+
+- Lamp masts beside each pad, ceiling lamps under the x3 overhang, and survey lamps across the plain
+  (more of them at dark polar sites).
+- Cone lights with a soft window `(1-(d/r)²)²` and smooth edges. Light soaks a little way into the
+  ground (`soakLen`), so pools of light read on the regolith.
+- The lander has a floodlight and two landing lights, which L toggles.
+- Fixes: the x2/x3 pads were narrower than the lander, so pads were widened. At high detail only a
+  thin band of ground was lit, so a sun-soak table (LSSAT) was added.
+
+## 5. 8-bit music from MIDI
+
+> "Build an addition to the engine. It should be able to play 8-bit music, using midi as inputs"
+
+The **Chip** is a fantasy NES 2A03 rendered sample by sample:
+- Pulse channels with 12.5/25/50/75% duty, a 32-step triangle, and 15-bit LFSR noise.
+- The console's non-linear DAC, plus 37 Hz high-pass and 14 kHz low-pass filters.
+
+It reads Standard MIDI Files (format 0/1, with a tempo map):
+- One chip lane per MIDI channel.
+- Chords become 60 Hz arpeggios.
+- Channel 10 becomes noise drums through a General MIDI drum map.
+
+Playback renders audio in short blocks scheduled just ahead of the play head, so no AudioWorklet is
+needed. There is live **MIDI IN** through Web MIDI, a **LOAD MIDI** button and drag-and-drop.
+
+An original soundtrack was written as code (`tools/compose.py`): a title theme, the in-game descent
+loop, and touchdown and loss jingles.
+
+The **music director** switches pieces by game state. Beacon lights blink on the beat. The V key
+shows sound-chip meters.
+
+Fixes: a stop/play race, solved with a token; `busy()` never going idle; a drum-routing typo; meter
+text spacing.
+
+## 6. Object physics: breakable structures and damped legs
+
+> "Add some physics to object. E.g when I send a rocket at a light post, it should break of from where
+> it was hit and fall off. Such things should be implemented. The landers legs should also function as
+> dampeners."
+
+**Breakable structures** (`src/09c_chunks.js`):
+
+*How a piece breaks off:*
+- After a blast, `structuralCheck` flood-fills support in a region around it. Anchors are the
+  region's border plus indestructible materials.
+- Every solid island left without support becomes a **chunk**. A chunk is a rigid body that carries
+  its own voxel grid; its centre of mass and inertia come from per-material density.
+- Crumbs of two cells or fewer fall as grains. Islands of pure sand are left to the sand simulation.
+  Islands bigger than 2600·RES² cells stay put.
+
+*What a falling piece does:*
+- Chunks collide like the lander. Hard impacts chip off the cells nearest the contact if the
+  material is brittle. Steel bends rather than chips.
+- A chunk turns back into voxels after resting for 0.6 s, or after 20 s at most. A lamp riding on
+  it is re-mounted on the frozen cells, or dies.
+
+*How blasts push pieces:*
+- Pressure acts only on cell faces that look toward the blast, along the face normals.
+- For rockets and meteors, the push is centred a little behind the impact, along the flight path.
+- Spin is clamped.
+- So a post cut near its foot is kicked at the cut and topples, while a small fragment flies off.
+
+*Lamps:*
+- A lamp whose mount is on a chunk rides along, still shining.
+- It only breaks if *its own end* hits the ground hard.
+
+*Follow-ups:*
+- A delayed recheck 0.9 s after each blast catches structures undermined by sliding regolith.
+
+**Spring-damper legs** (`legForces` in `src/09_game_sim.js`):
+- Each leg is a strut from a knuckle to a footpad. Three rays per leg run down the strut to find the
+  ground. They are marched, then **bisected**, so compression is smooth.
+- Force is `k·x + c·ẋ`, where `ẋ` is the pad's closing speed taken from the body's motion, not from
+  a finite difference. The pad has Coulomb friction.
+- Once the stroke is used up, rigid "bottom-out" hull points take the load. They sit just inside the
+  contact skin, so behaviour is the same at every RES.
+- Outcomes:
+  - Under 1 m/s: soft-landing bonus.
+  - Up to about 3.5 m/s: survivable. Past 85% of the stroke you get "HARD LANDING".
+  - About 4.5 m/s and up: "GEAR COLLAPSED — TOUCHDOWN x M/S".
+- The CONTACT lamp now lights from the struts.
+
+**Bugs found while testing:**
+- *Hovering masts.* Several lamp masts were hovering: the regolith under them slid away during
+  level settling. Masts now have a **footing** driven into rock.
+- *Floating terrain.* The new support check revealed islands left floating by level generation:
+  cave roofs cut loose by tunnels, and ice crusts. They would have collapsed at the first nearby
+  blast. `settleIslands` now drops them straight down, lowest first, ignoring gaps inside an island.
+  Anything still floating gets a basalt column. Ice is placed after settling, and caves stay away
+  from the x3 roof.
+- *Missing roof.* The x3 pad's **roof had never existed**: clearing the pad's airspace erased it.
+  It is now built after the pads.
+- *Unbreakable posts.* Lamp-mast toughness was 1.25, too high for a rocket (power 1.15) to cut.
+  It is now 0.8.
+
+## 7. Choppy stars
+
+> "Is there a reason the moon surface move smoothly, but the stars and the background is very choppy?"
+
+- **Cause:** stars and the Earth were drawn into the world grid. That grid scrolls by sub-cell
+  amounts, but the stars' own slow parallax was rounded to whole cells. They rode along with the
+  ground for a cell, then snapped back: a sawtooth jitter.
+- **Fix:** a separate **sky layer** with its own sub-cell offset, drifting at 5% of the camera speed
+  (`SKY_PAR`). It is rebuilt only when it moves a whole cell.
+  - Empty world cells now carry glyph 0 (transparent). The sky shows through those, per pixel in
+    WebGL and through an occupancy mask in 2D. Glyph 32 is an opaque blank.
+- The title-screen rule text was also corrected after the leg change: "Land on a pad. Under 1 m/s
+  pays extra."
+
+## 8. The lander from pixel art
+
+> "Make the lander look like this" (a pixel-art Apollo-style lunar module, now `ref/lander_ref.png`)
+
+**Turning the image into a sprite:**
+- The reference was resampled onto its 48×50 pixel grid by sampling block centres, so the
+  anti-aliased seams between blocks are ignored.
+- Each pixel was snapped to a curated 15-colour palette (`tools/art.py` → `src/10a_lander_data.js`).
+  Two of the colours are outline colours.
+
+**Drawing it as ASCII** (`src/10a_lander_art.js`):
+- Every cell takes 3×6 samples of the sprite in the lander's own frame, so the drawing rotates with
+  the body.
+- Solid cells get a dense glyph per material: hull `#`, bright metal and the window `@`, foil `%`.
+- Silhouette cells get the best-matching symbol from `.,'`-_=:;|/\()[]<>^v+~"!*`. The match is
+  against glyph masks rendered from the game font. Letters are excluded because they read as noise.
+- Black outline on the silhouette becomes dark gaps between characters. Outline inside the body
+  counts as paint and darkens its cell. Cells that are mostly panel line become blanks.
+- A cell's colour is 65% its main paint colour and 35% the average, which keeps thin details crisp.
+  The palette goes through the inverse of the tone curve, and the sprite is lit by the scene with a
+  floor so it never goes black.
+- The drawing is pinned to whole cells horizontally. Vertically, the **soles of the footpads** snap
+  to a row boundary, so a landed lander stands right on the deck.
+- The legs are separate parts of the sprite. Each one slides up its strut by the damper's
+  compression.
+
+**Physics and level changes to match the sprite:**
+- New physics geometry measured from the sprite at 0.28 base units per pixel, origin at pixel
+  (24, 28): knuckles at (±3.92, 1.96), feet at (±5.46, 6.16), pad half-width 1.26.
+- New hull points traced from the silhouette.
+- The lights, exhaust, RCS puffs and rocket launch points moved to match.
+- The x3 roof was raised from 9·S to 10.5·S. The taller lander has 2.5–4.5 base units of clearance
+  under the roof lamps at every detail level.
+
+## 9. The engine gets its name; moving to Claude Code
+
+> "This workflow must be turned into a skill, as many more 2D pixel art image should be converted to ASCII
+> along the way. Evaluate if something might be done more efficient and also add that self evaluation
+> into the skill to always try to improve it. … I want this to become a custom made ASCII game engine in
+> the end. Come up with a name for the engine."
+>
+> "This game engine should work for any 2D game, not just a moon lander game."
+>
+> "I like the name glyphite. Just update the game with the new art for now. We build the complete game
+> engine later :)"
+>
+> "I'll move this session to Claude code. Create a zip with this game … a complete description of what
+> we've done here and what the goal is: to create a complete game engine called Glyphite and we are
+> building a test game moon lander to try it out. The zip should also include the skills you creates."
+
+- The name **Glyphite** was chosen: glyph + graphite, drawing with characters, and it keeps the
+  mineral naming of Regolith. The user approved it.
+- Added `tools/sprite2ascii.py`, a generic pixel-art → sprite converter. It finds the drawing's box
+  from alpha, estimates the grid from flat runs plus anti-aliasing seams, samples block centres, and
+  builds the palette with k-means plus an accent rescue.
+- Wrote the skills `glyphite-pixel-art-to-ascii` (with its efficiency review and self-improvement
+  loop) and `glyphite-verify`.
+- Made all paths in the archive relative to the repo root.
+- The engine/game separation is planned (`docs/ROADMAP.md`) and deliberately not started.
+
+## Published versions (claude.ai artifact "Regolith Lander")
+
+| Version | Content |
+|---|---|
+| 1–3 | Engine + game, particles/VFX, detail levels, WebGL renderer |
+| 4 | Spotlights, Chip music engine with MIDI |
+| 5 | Breakable structures, spring-damper legs, settled levels, x3 roof fix |
+| 6 | Smooth sky layer |
+| 7 | Lander drawn from the pixel-art sprite |

@@ -1,0 +1,6 @@
+shots/
+__pycache__/
+*.pyc
+music/*.wav
+.DS_Store
+dist/
