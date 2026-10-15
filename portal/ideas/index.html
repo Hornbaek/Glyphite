@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glyphite Idea Bank</title>
+<meta name="description" content="Everything the Glyphite engine could have: star ideas and set a status on them.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/ideas.css">
+</head>
+<body class="ideas">
+<header class="ebar">
+  <div class="crumb"><a href="/">GLYPHITE</a> / IDEA BANK</div>
+  <span class="spacer"></span>
+  <a class="btn small" href="/">[ GAMES ]</a>
+</header>
+<div class="wrap">
+  <header class="intro">
+    <h1>Idea bank</h1>
+    <p class="lede">Everything the engine could have, from one-glyph polish to moonshots. <b>Star</b> the ones you like and set a
+      <b>status</b>: a Claude Code session reads the same list, so <em>Planned</em> means "pick this up next" and a session
+      sets <em>Building</em> and <em>Shipped</em> as it works. Changes save at once.</p>
+    <div class="stats" id="stats" aria-live="polite"></div>
+    <p class="banner" id="banner" role="alert" hidden></p>
+  </header>
+
+  <div class="console" id="console" role="search">
+    <div class="row">
+      <label class="lab" for="q">Search</label>
+      <input class="search" id="q" type="search" placeholder="lava, gamepad, Claude, SSH..." autocomplete="off">
+    </div>
+    <div class="row" id="statusRow"><span class="lab">Status</span></div>
+    <div class="row" id="sizeRow"><span class="lab">Size</span></div>
+    <div class="row" id="wildRow"><span class="lab">Wildness</span></div>
+    <div class="catbar" id="catbar" aria-label="Jump to a category"></div>
+    <div class="row">
+      <button class="chip star-chip" id="onlyStarred" type="button" aria-pressed="false">★ Starred only</button>
+      <span class="count" id="count" aria-live="polite"></span>
+    </div>
+  </div>
+
+  <main id="list"><p class="empty">Loading the ideas…</p></main>
+  <footer class="foot">The ideas are <code>docs/ideas.json</code> in the repository (also as <code>docs/IDEAS.md</code>); stars, statuses and notes live in
+    the <code>glyphite</code> Cloudflare D1 database.</footer>
+</div>
+<button class="totop" id="totop" type="button" hidden>^ filters</button>
+<script type="module" src="/assets/ideas.js"></script>
+</body>
+</html>

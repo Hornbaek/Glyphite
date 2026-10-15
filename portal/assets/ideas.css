@@ -1,0 +1,67 @@
+/* The idea bank page. Same palette as the rest of the site (site.css); only what the list needs. */
+body.ideas{--console-h:0px}
+.ebar{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--rim);background:var(--panel)}
+.ebar .crumb{font-weight:700;color:var(--bright)} .ebar .crumb a{color:var(--dim)} .ebar .spacer{flex:1}
+.intro{display:grid;gap:12px;margin-bottom:18px}
+.intro h1{margin:0;font-size:clamp(22px,3.4vw,32px);color:var(--bright);letter-spacing:-.01em}
+.lede{margin:0;max-width:72ch}
+.lede b{color:var(--bright);font-weight:700} .lede em{color:var(--amber);font-style:normal}
+.stats{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--dim);font-size:13px}
+.stats b{color:var(--phosphor);font-weight:700;font-variant-numeric:tabular-nums}
+.banner{margin:0;padding:10px 12px;border:1px solid var(--red);border-radius:2px;color:var(--red);background:var(--panel)}
+
+.console{position:sticky;top:0;z-index:5;background:var(--void);border-bottom:1px solid var(--rim);padding:12px 0;display:grid;gap:10px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row .lab{font:700 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);min-width:74px}
+.search{flex:1 1 260px;min-width:0;background:var(--panel);color:var(--phosphor);border:1px solid var(--rim2);border-radius:2px;padding:9px 11px;font:14px var(--mono)}
+.search::placeholder{color:var(--dim)}
+.chip{font:12px/1 var(--mono);color:var(--dim);background:transparent;border:1px solid var(--rim2);border-radius:2px;padding:7px 9px;cursor:pointer;white-space:nowrap;text-decoration:none}
+.chip:hover{color:var(--phosphor);border-color:var(--dim);text-decoration:none}
+.chip[aria-pressed="true"]{color:var(--void);background:var(--amber);border-color:var(--amber)}
+.chip.star-chip[aria-pressed="true"]{background:var(--cyan);border-color:var(--cyan)}
+.chip .n{font-variant-numeric:tabular-nums;opacity:.8}
+.catbar{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin}
+.catbar .chip{flex:none}
+.count{margin-left:auto;font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+
+section.cat{padding-top:30px;scroll-margin-top:calc(var(--console-h) - 18px)}
+.rule{margin:0 0 14px;font:700 13px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--amber);display:flex;gap:10px;align-items:baseline;min-width:0}
+.rule .fill{flex:1;overflow:hidden;white-space:nowrap;color:var(--rim2)}
+.rule .n{color:var(--dim);font-weight:400;font-variant-numeric:tabular-nums}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));gap:12px}
+.idea{background:var(--panel);border:1px solid var(--rim);border-left-width:3px;border-radius:3px;padding:13px 14px 12px;display:grid;grid-template-rows:auto 1fr auto;gap:8px;min-width:0}
+.idea.starred{border-color:var(--cyan)}
+.idea[data-status="planned"]{border-left-color:var(--amber)} .idea[data-status="building"]{border-left-color:var(--cyan)}
+.idea[data-status="shipped"]{border-left-color:var(--green)} .idea[data-status="parked"]{border-left-color:var(--rim2);opacity:.72}
+.idea h3{margin:0;font:700 14px/1.35 var(--mono);color:var(--bright);display:flex;gap:10px;justify-content:space-between;align-items:flex-start}
+.idea h3 span{min-width:0}
+.idea p{margin:0;min-width:0}
+.idea .hook{color:var(--dim);font-size:13px} .idea .hook::before{content:"> ";color:var(--amber)}
+.idea code{font-size:.9em;background:var(--void);border:1px solid var(--rim);border-radius:2px;padding:0 4px;white-space:pre-wrap;overflow-wrap:anywhere}
+.star{flex:none;font:700 13px/1 var(--mono);color:var(--dim);background:none;border:1px solid var(--rim2);border-radius:2px;padding:5px 7px;cursor:pointer}
+.star:hover{color:var(--phosphor);border-color:var(--dim)}
+.star[aria-pressed="true"]{color:var(--void);background:var(--cyan);border-color:var(--cyan)}
+.foot-row{display:grid;gap:8px}
+.tags{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:12px;line-height:1;color:var(--dim)}
+.size b{color:var(--phosphor);font-weight:400;letter-spacing:.05em}
+.wild{padding:4px 6px;border:1px solid currentColor;border-radius:2px}
+.wild.practical{color:var(--green)} .wild.bold{color:var(--amber)} .wild.crazy{color:#ff86d8}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.status{font:12px/1 var(--mono);color:var(--phosphor);background:var(--panel2);border:1px solid var(--rim2);border-radius:2px;padding:6px 8px;cursor:pointer}
+.status:disabled{opacity:.5;cursor:default}
+.idea[data-status="planned"] .status{border-color:var(--amber);color:var(--amber)}
+.idea[data-status="building"] .status{border-color:var(--cyan);color:var(--cyan)}
+.idea[data-status="shipped"] .status{border-color:var(--green);color:var(--green)}
+.note-btn{font:12px/1 var(--mono);color:var(--dim);background:none;border:0;padding:6px 2px;cursor:pointer;text-decoration:underline dotted}
+.note-btn:hover{color:var(--phosphor)}
+.saved{font-size:11px;color:var(--dim);margin-left:auto}
+.saved.err{color:var(--red)}
+.note-text{color:var(--gold);font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+.note-edit{width:100%;min-height:4.2em;resize:vertical;background:var(--void);color:var(--phosphor);border:1px solid var(--rim2);border-radius:2px;padding:7px 9px;font:13px/1.45 var(--mono)}
+.note-actions{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--dim)}
+.totop{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:6;font:700 12px/1 var(--mono);letter-spacing:.06em;color:var(--void);background:var(--amber);border:0;border-radius:2px;padding:11px 13px;cursor:pointer;box-shadow:0 2px 12px rgb(0 0 0 / .45)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:560px){.row .lab{min-width:0;width:100%}.count{margin-left:0}}
+/* a sticky console would cover half a phone screen: let it scroll away (the button brings it back) */
+@media (max-width:700px),(max-height:600px){.console{position:static}section.cat{scroll-margin-top:0}}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}

@@ -26,6 +26,12 @@ test('every game builds into a page and is listed', () => {
   assert.ok(listing.games.some(g => g.id === 'regolith' && g.listed));
 });
 
+test('the idea bank page, its data and the button that opens it are in the site', () => {
+  assert.equal(read('docs/ideas.json'), readFileSync(join(DIST, 'ideas', 'ideas.json'), 'utf8'));
+  assert.match(readFileSync(join(DIST, 'ideas', 'index.html'), 'utf8'), /\/assets\/ideas\.js/);
+  assert.match(readFileSync(join(DIST, 'index.html'), 'utf8'), /href="\/ideas\/"/);
+});
+
 test('the browser assembler reproduces the built page', () => {
   const engine = JSON.parse(read('engine/engine.json'));
   for (const g of listing.games) {

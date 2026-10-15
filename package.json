@@ -15,7 +15,7 @@
     "serve": "node tools/glyphite.mjs build && node tools/glyphite.mjs serve",
     "test": "node --test \"tests/node/*.test.mjs\"",
     "smoke": "python3 tests/smoke.py --all",
-    "dev": "node tools/glyphite.mjs build && wrangler dev --local-upstream localhost:8787",
+    "dev": "node tools/glyphite.mjs build && wrangler d1 migrations apply glyphite --local && wrangler dev --local-upstream localhost:8787",
     "deploy": "node tools/glyphite.mjs build && wrangler deploy"
   },
   "devDependencies": {
