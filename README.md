@@ -1,79 +1,64 @@
-# Glyphite + Regolith Lander
+# Glyphite
 
-**Glyphite** is a 2D game engine for the browser that draws everything with the 95 printable ASCII
-characters, each with its own colour. It started as a moon-lander experiment and is growing into a
-complete, reusable engine for any 2D game. **Regolith Lander** is the test game built on it.
+**Glyphite** is an AI-first game engine for the browser that draws everything with the 95 printable ASCII
+characters, each in its own colour. Games are made and changed in Claude Code sessions on this repository, and
+live at **glyphite.hornbaek.org** (behind a Cloudflare Access login). There you can see the list of games, play
+them, and open any of them in a web editor.
 
-![Title screen](docs/images/title_screen.png)
+![Regolith Lander](docs/images/title_screen.png)
 
-## What the engine does today
+## The games
 
-- **Voxel world.** A grid of materials (regolith, basalt, bedrock, ice, steel, crystals...) where
-  every cell can be blasted, heated, scoured or fused. Loose regolith and rubble fall and slide in a
-  cellular-automaton sand simulation.
-- **Rigid bodies** that collide with the grid using impulse contacts and friction. The lander uses
-  spring-damper landing legs; boulders and broken structures use the same solver.
-- **Structures break where they are hit.** After every blast, anything left without support breaks
-  off as a rigid piece. It falls and tumbles, chips apart if it is brittle, and settles back into
-  the grid. Lamp posts topple with their lamp still shining, and the x3 pad's roof collapses when
-  its pillar is shot away.
-- **Lighting.** Exact sun shadows, ambient occlusion and surface normals from summed-area tables,
-  point and cone lights with shadows, light that soaks into the ground, emissive heat and crystals,
-  and a tone map with vignette and optional bloom.
-- **Particles and VFX.** Grains that go back into the world when they land, exhaust that scours
-  the ground, fire, sparks, smoke, vapour, debris, shock rings, flashes, screen shake and slow
-  motion.
-- **ASCII rendering.**
-  - A WebGL glyph-atlas shader in one pass, with a 2D-canvas fallback.
-  - A smoothly scrolling world layer and a separate sky layer with parallax.
-  - A fixed, readable HUD grid.
-  - Detail levels from 1x to 3x characters per metre.
-- **Sprites.** Pixel art is converted into a palette sprite, then drawn as glyphs that match its
-  shapes, rotated and lit. The tools are `tools/sprite2ascii.py` (image → sprite data) and
-  `tools/ascii_preview.py` (instant ASCII preview); the workflow is the
-  `glyphite-pixel-art-to-ascii` skill.
-- **Chip.** An NES 2A03-style sound chip:
-  - pulse, triangle and noise channels, played from Standard MIDI Files;
-  - live input from a MIDI keyboard through Web MIDI;
-  - an original soundtrack, plus drag-and-drop of your own `.mid` files.
-
-## The test game: Regolith Lander
-
-Land on the pads at eight lunar sites. The x2 and x3 pads pay double and triple; the x3 pad sits
-under a rock overhang. Watch your fuel. Use rockets to blast rock, free glowing He-3 crystals,
-topple lamp posts or bring the roof down. Meteor showers arrive on later sites. Touch down under
-1 m/s for a bonus. Above about 4 m/s the legs collapse.
-
-Controls:
-- W / Up: burn the engine.
-- A D / Left Right: rotate.
-- Space or click: fire a rocket (aim with the mouse).
-- L: lights. G: bloom.
-- `-` / `+`: detail level.
-- P / Esc: pause.
-- M: sound. N: music. V: sound-chip meters.
-- Enter: continue. R: retry after a crash.
-- Touch screens get on-screen buttons.
-
-| | |
+| Game | |
 |---|---|
-| ![Lander reference vs ASCII](docs/images/lander_reference_vs_ascii.png) | ![Roof collapse](docs/images/x3_roof_collapse.png) |
+| [Regolith Lander](games/regolith/) | Land on the pads at eight lunar sites, blast rock for He-3, bring structures down. The engine's first and reference game. |
 
-## Build and run
+New games start from `templates/starter/` (Cave Drone): `node tools/glyphite.mjs new <id> --title "…"`.
+
+## What the engine does
+
+- **Voxel world** of game-defined materials. Every cell can be blasted, heated, scoured or fused, and sand
+  falls and slides in a cellular-automaton simulation.
+- **Rigid bodies** that collide with the grid using impulse contacts and friction.
+- **Structures break where they are hit.** Anything left without support breaks off as a rigid chunk that
+  falls, tumbles, chips and settles back into the grid, carrying the objects mounted on it.
+- **Lighting**: exact sun shadows (or no sun at all), ambient occlusion, surface normals, point and cone lights
+  with shadows, light that soaks into the ground, emissive materials, bloom.
+- **Particles and VFX**: grains that become terrain again, exhaust that scours the ground, fire, sparks, smoke,
+  shock rings, flashes, shake, slow motion, and game-defined particle types.
+- **ASCII rendering**: a WebGL glyph-atlas shader (2D canvas fallback), a smooth-scrolling world layer, a
+  parallax sky layer the game can paint, a readable HUD grid, and detail levels from 1x to 3x characters per metre.
+- **Sprites**: pixel art drawn as glyphs that match its shapes, rotated and lit, with moving parts
+  (`tools/sprite2ascii.py` converts images).
+- **Chip**: an NES 2A03-style sound chip that plays Standard MIDI Files, plus procedural sound effects.
+- **Made for AI sessions**: one documented API (`engine/API.md`), a starter game, a scaffold command, tunables
+  the web editor exposes, a probe/test API (`Glyphite.test`) and a smoke test that works for any game.
+
+## Use it
 
 ```sh
-./build.sh                 # concatenates src/ -> dist/regolith.html (and dist/test.html)
-open dist/regolith.html    # or any browser; append #2d or #gl to force a renderer
+npm install              # Worker dependencies; the engine and games need none
+npm run build            # → dist/: the site, every game as one HTML file, editor sources
+npm run serve            # http://localhost:8787 (open dist/games/<id>/index.html directly works too)
+npm test                 # unit tests; python3 tests/smoke.py --all for every game in a browser
 ```
-No dependencies at runtime. Building needs `sh` and Node (for a syntax check). The tests need
-Python 3, Playwright (`pip install playwright pillow numpy && playwright install chromium`).
+
+## The web editor
+
+Every game has an **EDIT** page with three tabs:
+- **Tune**: sliders for the numbers the game exposes (gravity, thrust, fuel…). Live ones change the running
+  preview at once.
+- **Code**: the game's and the engine's source, editable, rebuilt into the preview in the browser (Ctrl/Cmd+S).
+  Errors point at the source file and line.
+- **Claude**: turns your edits into a prompt plus a `git apply` patch for a Claude Code session, which commits
+  them through a pull request. Edits stay in your browser until then.
 
 ## Documentation
 
-- [CLAUDE.md](CLAUDE.md): working guide for Claude Code (layout, commands, rules, verification).
-- [docs/HISTORY.md](docs/HISTORY.md): how the project was built, request by request.
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): deep dive into every subsystem.
-- [docs/LESSONS.md](docs/LESSONS.md): bugs, decisions and pitfalls worth remembering.
-- [docs/ROADMAP.md](docs/ROADMAP.md): the plan to make Glyphite a game-agnostic engine, plus the backlog.
-- [docs/TESTING.md](docs/TESTING.md): the test and probe scripts.
-- `.claude/skills/`: `glyphite-pixel-art-to-ascii` and `glyphite-verify`.
+- [CLAUDE.md](CLAUDE.md): the working guide for Claude Code (layout, commands, rules, verification).
+- [engine/API.md](engine/API.md): the engine API.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how every subsystem works.
+- [docs/DEPLOY.md](docs/DEPLOY.md): Cloudflare setup (Worker, custom domain, Access login, CI deploy).
+- [docs/HISTORY.md](docs/HISTORY.md), [docs/LESSONS.md](docs/LESSONS.md), [docs/ROADMAP.md](docs/ROADMAP.md),
+  [docs/TESTING.md](docs/TESTING.md).
+- Skills in `.claude/skills/`: `glyphite-new-game`, `glyphite-verify`, `glyphite-pixel-art-to-ascii`.

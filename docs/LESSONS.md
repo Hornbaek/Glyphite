@@ -7,8 +7,8 @@ way.
 ## Process
 
 - **Split the source.** One big HTML file hit the output limit while it was being written. The
-  source now lives in `src/` parts concatenated by `build.sh`. Keep parts small enough to edit
-  comfortably, and keep each banner comment saying whether the part is ENGINE or GAME.
+  source lives in parts (`engine/*.js`, `games/<id>/*.js`) concatenated by the build. Keep parts small
+  enough to edit comfortably, and keep each banner comment saying whether the part is ENGINE or GAME.
 - **Test with synchronous stepping.** In headless Chromium, WebGL runs on SwiftShader at about
   65–75 ms per frame, so wall-clock waits barely advance the simulation. Instead, call
   `page.evaluate(() => { for (...) update(DT) })` to step the sim deterministically, then read the
@@ -20,13 +20,33 @@ way.
 - **Headless WebGL flags:** `--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader`,
   plus `#gl` in the URL. Without `#gl` the game detects SwiftShader and uses 2D. That is right for
   real users and wrong for testing the GL path. For the 2D path use `--disable-gpu` and `#2d`.
-- **Phone layouts need the viewport meta.** `dist/test.html` adds it; without it phone screenshots
-  render tiny.
+- **Phone layouts need the viewport meta.** The page shell (`engine/shell.html`) has it; without it
+  phone screenshots render tiny.
 - **Most randomness is not seeded.** Levels use `mulberry32`, but particles, explosions and blast
   noise use `Math.random`. Physics tests should tolerate small variance and check outcomes, not
   exact positions. Run a flaky-looking test several times before concluding anything.
 - **Measure features with a column ruler.** When reading coordinates off a printed character map,
   print column indices above it. Without them we misread positions by two pixels once.
+
+- **One script scope, so names can clash silently.** The engine's `gatherLights` was replaced by a game
+  function of the same name (duplicate `function` declarations are legal), and the frame loop called the
+  wrong one. The build now lists every top-level name in the engine and refuses a game that repeats one;
+  game hook functions are named `game*` or `<id>*`.
+- **One assembler for the build and the editor.** The editor rebuilds the preview in the browser with
+  `tools/assemble.mjs`, the same module the Node build uses, and a unit test checks they produce the same
+  page byte for byte. A second implementation would drift.
+- **Map errors back to sources.** The assembled script marks each part with `// ----- path -----`; build
+  syntax errors and editor runtime errors are reported as `file:line` of the source, not of the page. The
+  editor injects its error reporter on the `<head>` line so no line numbers shift.
+- **Playwright must match the preinstalled Chromium.** Claude Code cloud sessions ship Chromium for
+  Playwright 1.56; a newer `pip install playwright` looks for a browser that isn't there. Pin 1.56.
+- **The agent proxy and localhost.** Through the sandbox's HTTPS proxy, Chromium sent `http://localhost`
+  requests to the proxy. Use `127.0.0.1` and `bypass: '<-loopback>,localhost,127.0.0.1'`, or `file://`.
+  cdnjs is blocked there too, which is one reason the editor vendors CodeMirror.
+- **`"type": "module"` in package.json** turns every `.js` that Node runs into an ES module; the one
+  CommonJS tool became `render_songs.cjs`. Game and engine `.js` parts are never run by Node directly.
+- **`wrangler dev` rewrites the request URL to the custom domain** (it infers the origin from routes), so
+  a "localhost only" check sees glyphite.hornbaek.org. `npm run dev` passes `--local-upstream localhost:8787`.
 
 ## Rendering
 

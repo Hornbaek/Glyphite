@@ -18,27 +18,30 @@ fewer.**
 
 - Work in the Glyphite repo; `CLAUDE.md` describes the layout. The tools used here live in `tools/`:
   `sprite2ascii.py` (image → sprite data) and `ascii_preview.py` (sprite → ASCII preview, offline).
-- The reference implementation of in-game sprite drawing is `src/10a_lander_art.js`, with its data
-  in `src/10a_lander_data.js`. It is lander-specific for now (`LM_*` constants, leg rules).
+- The engine draws sprites: `defineSprite` / `drawSprite` / `markSpriteDyn` / `spriteHull` in
+  `engine/10_sprite.js` (documented in `engine/API.md`, "Sprites"). The reference use is the lander:
+  data in `games/regolith/lander_sprite.js`, setup (legs as parts, footpad soles) in
+  `games/regolith/lander_art.js`. A small one: the drone in `templates/starter/drone.js`.
 - Ask only what changes the outcome:
   - What the object is.
   - Its real size in game terms (metres, or relative to the lander).
   - Which parts move (legs, doors, turrets, wheels).
   - Where it touches the ground.
   Take everything else from the image.
-- Copy the image into `ref/<name>.png`. Never edit the user's original.
+- Copy the image into `games/<id>/ref/<name>.png`. Never edit the user's original.
 
 ## Workflow
 
 ### 1. Generate the sprite data (one command)
 
 ```sh
-python3 tools/sprite2ascii.py ref/<name>.png --name <name>              # auto grid + auto palette
-python3 tools/sprite2ascii.py ref/<name>.png --name <name> --grid 48x50 # exact grid when you know it
+python3 tools/sprite2ascii.py games/<id>/ref/<name>.png --name <name> --out games/<id>              # auto grid + palette
+python3 tools/sprite2ascii.py games/<id>/ref/<name>.png --name <name> --out games/<id> --grid 48x50  # exact grid
 ```
 
 It writes:
-- `src/<name>_sprite.js`: `const SPRITE_<NAME> = { w, h, pal: [[r,g,b,ink,glyph],...], rows: [...] }`.
+- `games/<id>/<name>_sprite.js`: `const SPRITE_<NAME> = { w, h, pal: [[r,g,b,ink,glyph],...], rows: [...] }`.
+  Add it to the game's `game.json` "parts" before the code that uses it.
 - `shots/<name>_preview.png`: the resampled sprite, enlarged.
 - A character map with a column ruler, printed to the terminal.
 
@@ -56,7 +59,7 @@ How it works:
   is harmless but a little blurrier.
 - A missing small colour (an eye, a lamp) means a palette problem. Pass `--palette pal.json` with a
   curated list `[[r,g,b,ink,glyph], ...]`. Name colours by role in a comment; the lander's curated
-  palette is in `tools/art.py`.
+  palette is in `games/regolith/tools/art.py`.
 
 Then set each palette entry's **dense glyph** (the 5th field) by material:
 
@@ -86,7 +89,7 @@ Then set each palette entry's **dense glyph** (the 5th field) by material:
 ### 3. Preview offline before touching the game (seconds, not minutes)
 
 ```sh
-python3 tools/ascii_preview.py src/<name>_sprite.js --k <k> --res 1,2,3 --origin <ox>,<oy> [--angle 0.4]
+python3 tools/ascii_preview.py games/<id>/<name>_sprite.js --k <k> --res 1,2,3 --origin <ox>,<oy> [--angle 0.4]
 ```
 This prints the glyph grid and writes `shots/<name>_sprite_ascii_<scale>.png`. Iterate here on `k`,
 the palette, the dense glyphs and the grid until it reads well at RES 2 (the default) and 3. RES 1
@@ -97,10 +100,17 @@ truth.
 
 ### 4. Draw it in the game
 
-If the project already has a generic sprite module (`defineSprite` / `drawSprite`, see
-`docs/ROADMAP.md`, phase 3), use it. Otherwise follow `src/10a_lander_art.js`. Generalise it into an
-engine sprite module the first time a *second* sprite needs it, instead of copying it. The renderer
-defaults below came out of the lander's iterations, and each one fixed a visible problem:
+```js
+const ROBOT = defineSprite(SPRITE_ROBOT, { k: .3, ox: 12, oy: 20,
+  part: (c, r) => r >= 30 && c < 12 ? 1 : r >= 30 ? 2 : 0,      // moving parts (legs, doors), from the character map
+  paint: (c, r, p) => p && r >= SPRITE_ROBOT.h - 2 });            // contact-line pixels count as paint
+// GAME.draw:    drawSprite(ROBOT, b.x, b.y, b.a, { shift: [dxL, dyL, dxR, dyR], foot: 6 * RES });
+// GAME.markDyn: return markSpriteDyn(ROBOT, b.x, b.y, b.a, sameOptions);
+```
+`foot` is the distance in units from the origin down to the contact line; it snaps to a row boundary. The
+engine renderer implements the defaults below; they came out of the lander's iterations, and each one fixed a
+visible problem. Change a default in `engine/10_sprite.js` only if it is wrong for every sprite, and then
+check the lander too:
 
 | Setting | Value | Why |
 |---|---|---|
@@ -119,25 +129,26 @@ defaults below came out of the lander's iterations, and each one fixed a visible
 | Dynamic marking | the same sampler at cell centres → `dyn` cells | The object casts shadows and blocks the sun like other bodies. |
 
 Physics from the same art:
-- Hull points: trace the silhouette from the character map with `x = (c - ox)·k`, `y = (r - oy)·k`
-  (use pixel edges). Space them about 1–2 base units apart, and mark feet, sides and so on with the
-  right `kind`.
+- Hull points: `spriteHull(spr, step)` gives silhouette points in base units (multiply by RES) as a start.
+  For a craft whose contacts matter, trace them from the character map with `x = (c - ox)·k`,
+  `y = (r - oy)·k` (use pixel edges), about 1–2 base units apart, and mark feet, sides and so on with the
+  right `kind` (see `LANDER_HULL0` in `games/regolith/lander.js`).
 - Move every emitter (lights, exhaust, muzzle) to the art's actual features.
 
 ### 5. Verify (one pass)
 
-- `./build.sh` must print SYNTAX_OK.
-- Render at RES 1/2/3 in both renderers, zoomed: start from `tests/test18.py`, freeze the loop with
-  `window.update = () => {}`, use `device_scale_factor=3`, and clip around the object.
+- `node tools/glyphite.mjs build <id>` must print SYNTAX_OK.
+- Render at RES 1/2/3 in both renderers, zoomed: start from `games/regolith/tests/test18.py`, freeze the
+  loop with `Glyphite.test.freeze()`, use `device_scale_factor=3`, and clip around the object.
 - Put the reference next to the RES 2 and RES 3 renders with Pillow, and look at them. Ask:
   - Are the main colour regions in the same places?
   - Are the signature details (window, emblem, eyes) visible at RES 3?
   - Is the silhouette clean?
   - Does it stand on the ground?
-- Check timing (`tests/perf_lander_sprite.py` pattern). The lander costs about 1.6 ms per frame at
-  RES 3 headless; keep a sprite well under 2 ms.
+- Check timing (`games/regolith/tests/perf_lander_sprite.py` pattern). The lander costs about 1.6 ms per
+  frame at RES 3 headless; keep a sprite well under 2 ms.
 - Rerun the physics probes that depend on the object's geometry (for the lander:
-  `tests/dbg_legs.py 1|2|3`, `tests/check_x3_clearance.py`).
+  `games/regolith/tests/dbg_legs.py 1|2|3`, `check_x3_clearance.py`), and `python3 tests/smoke.py <id>`.
 
 ### 6. Self-review (always; this is how the skill improves)
 
@@ -165,8 +176,8 @@ edit it directly and mention the change. In the Claude app, propose the updated 
 | Read feature coordinates from a map without a column ruler and misplaced them by 2 px | 1 round | The map always prints a ruler |
 | Glyph style took six in-browser iterations (letters, dense threshold, outline rule, colour weighting, brightness, floating feet) | about 6 × 60–90 s builds plus headless screenshots | Defaults table + offline `ascii_preview.py` (about 0.2 s per preview) |
 | Screenshots showed a PAUSED box | 1 round | Freeze `window.update` instead of pausing |
-| A hand-tuned generator script per sprite (`tools/art.py`) | Manual work | Generic `sprite2ascii.py` |
-| Lander-specific drawing code | Will repeat for every sprite | Generalise into an engine sprite module on the second sprite (ROADMAP phase 3) |
+| A hand-tuned generator script per sprite (`games/regolith/tools/art.py`) | Manual work | Generic `sprite2ascii.py` |
+| Lander-specific drawing code | Would repeat for every sprite | Done: the engine sprite module (`engine/10_sprite.js`), 2026-10-15 |
 
 ## Lessons log
 
@@ -174,3 +185,6 @@ edit it directly and mention the change. In the Claude app, propose the updated 
   along their struts). Taller than the old lander, so the x3 roof was raised by 1.5·RES rows.
   Landed sprites floated one row up until the contact line snapped to a row boundary and the soles'
   outline counted as paint.
+- 2026-10-15: The lander renderer became the engine's `defineSprite` / `drawSprite` (pixel-identical
+  output; the dense glyph now comes from each palette entry's 5th field). Second sprite: the starter's
+  drone (16×8, k = 0.5, drawn with the defaults, no iterations).

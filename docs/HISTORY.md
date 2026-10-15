@@ -6,6 +6,9 @@ artifact called "Regolith Lander", versions 1 to 7. The project then moved to Cl
 archive. The user's requests are quoted, followed by what was built and the key decisions. Bugs and
 their fixes are summarised here; `docs/LESSONS.md` has them in full.
 
+Sections 1–9 use the file names of that time (`src/NN_*.js`, `build.sh`). Section 10 moved everything
+into `engine/` and `games/regolith/`; the banner comment at the top of each part still matches.
+
 ---
 
 ## 1. The engine and the game
@@ -247,6 +250,42 @@ text spacing.
   loop) and `glyphite-verify`.
 - Made all paths in the archive relative to the repo root.
 - The engine/game separation is planned (`docs/ROADMAP.md`) and deliberately not started.
+
+## 10. Installed in the repository; the engine becomes an engine (Claude Code, 2026-10-15)
+
+> "Unpack and "install" this project in the repo. Start converting it into a game engine. It should be
+> accessed behind Cloudflare login and live on glyphite.hornbaek.org. I want to be able to see a list of
+> games there, the first one being the moon lander and I want to be able to edit them..the engine should
+> be an AI first engine, where I run sessions here to create the games. Do the conversion to game engine
+> now after install"
+
+- **Install.** The archive went into `hornbaek/glyphite` verbatim as one commit, then moved into the new
+  layout: `engine/` (11 parts, `engine.json`, `shell.html`, `API.md`), `games/regolith/` (its parts, art,
+  music, tools and tests), `templates/starter/`, `portal/`, `worker/`, `tools/`, `tests/`.
+- **The engine conversion** (roadmap phases 1 and 2, most of 3):
+  - The engine no longer reads any game global. `Glyphite.run({...hooks})` boots a game; the engine owns the
+    loop, camera, detail levels, built-in keys, touch buttons (declared by the game) and states.
+  - Registries replace hard-coded game content: `defineMaterial` (every material-specific branch became a
+    property: anchors, creep, fusing, vapour, glyph styles, glow, blast callbacks), `defineParticle`
+    (Regolith's He-3 shards), `addMount` (Regolith's lamps riding falling masts), `defineSprite` (the lander
+    renderer, generalised), sky hooks (Regolith's Earth), `setSun(null)`, `setAmbient`, `setGravity`.
+  - Tunables: numbers a game exposes in `game.json`, read from `TUNE`, changed live by the editor.
+  - `Glyphite.test` (start, step with keys, press, freeze, render, probe) for tests and AI sessions.
+- **Regolith Lander** moved onto the API with identical behaviour: landing sweeps at RES 1/2/3, tilted and
+  drifting landings and the x3 clearance give the same numbers as before; no floating islands at any level
+  or detail; the roof and lamp-post collapses still work; the lander sprite renders pixel-identically.
+- **The starter game, Cave Drone** (`templates/starter/`): a drone in a sunless cave at 3 m/s², its own
+  materials, sprite, particle type and tunables. `node tools/glyphite.mjs new <id>` copies it.
+- **The site** (`portal/`): the game list, the games, and a web editor per game with three tabs: TUNE
+  (sliders, live), CODE (engine and game sources in CodeMirror, rebuilt in the browser with the same
+  assembler as the build, errors mapped to source lines), CLAUDE (a prompt plus a `git apply` patch for a
+  Claude Code session; edits stay in the browser until then).
+- **Cloudflare.** A Worker (`worker/`) serves the site on glyphite.hornbaek.org behind Cloudflare Access and
+  verifies the Access token itself, with the same variables as the user's other Workers (`TEAM_DOMAIN`,
+  `POLICY_AUD`, `ALLOWED_EMAIL`); it fails closed. GitHub Actions builds, unit-tests and smoke-tests every
+  game on each pull request and deploys `main` (`docs/DEPLOY.md`).
+- **AI-first docs:** a new `CLAUDE.md`, `engine/API.md`, the `glyphite-new-game` skill, updated
+  `glyphite-verify` and `glyphite-pixel-art-to-ascii` skills, per-game `NOTES.md`.
 
 ## Published versions (claude.ai artifact "Regolith Lander")
 
