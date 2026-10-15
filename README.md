@@ -59,6 +59,7 @@ Every game has an **EDIT** page with three tabs:
 - [engine/API.md](engine/API.md): the engine API.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how every subsystem works.
 - [docs/DEPLOY.md](docs/DEPLOY.md): Cloudflare setup (Worker, custom domain, Access login, CI deploy).
+- [docs/IDEAS.md](docs/IDEAS.md): the idea bank, every feature the engine could have (inspiration, not a plan).
 - [docs/HISTORY.md](docs/HISTORY.md), [docs/LESSONS.md](docs/LESSONS.md), [docs/ROADMAP.md](docs/ROADMAP.md),
   [docs/TESTING.md](docs/TESTING.md).
 - Skills in `.claude/skills/`: `glyphite-new-game`, `glyphite-verify`, `glyphite-pixel-art-to-ascii`.

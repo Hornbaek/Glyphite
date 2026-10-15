@@ -25,7 +25,8 @@ worker/                 the Cloudflare Worker: Access login check + static site 
 tools/                  glyphite.mjs (CLI: build, new, list, serve), assemble.mjs (page assembler, shared with the
                         editor), thumbnail.py, sprite2ascii.py + ascii_preview.py (pixel art → sprites)
 tests/                  smoke.py (any game, both renderers), node/ (unit tests: build, editor patches, Access)
-docs/                   ARCHITECTURE (how it works), HISTORY, LESSONS, ROADMAP, TESTING, DEPLOY
+docs/                   ARCHITECTURE (how it works), HISTORY, LESSONS, ROADMAP (the plan), IDEAS (the idea bank),
+                        TESTING, DEPLOY
 .claude/skills/         glyphite-new-game, glyphite-verify, glyphite-pixel-art-to-ascii
 dist/                   build output = the deployed site (git-ignored)
 ```
