@@ -36,7 +36,7 @@
     // Access → Applications): the team domain and the application's audience (AUD) tag. Neither is
     // secret. While ACCESS_AUD is empty the Worker turns every request away (docs/DEPLOY.md).
     "ACCESS_TEAM_DOMAIN": "https://round-smoke-a734.cloudflareaccess.com",
-    "ACCESS_AUD": ""
+    "ACCESS_AUD": "23c01d60be029980377bcd734701e19e66fe2a05526d4f036fc3ec19dc93918d"
   },
   // Keeps variables set in the dashboard (the optional ALLOWED_EMAILS) across deploys. A var that is
   // also in this file is overwritten by the next deploy: change those here.
