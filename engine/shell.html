@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{TITLE}}</title>
+<meta name="description" content="{{DESCRIPTION}}">
+<meta name="generator" content="Glyphite {{ENGINE_VERSION}}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+/* Layout: one full-viewport ASCII terminal; on touch screens the game's control pads float over the bottom edge. */
+:root{
+  --void:#05070c;      /* deep space behind every glyph */
+  --phosphor:#cdd6e2;  /* default text */
+  --amber:#ffb340;     /* DSKY caution lamp */
+  --dim:#4e5b6d;
+  --rim:#1d2634;
+  --mono:"JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%;background:var(--void);color:var(--phosphor)}
+body{margin:0;overflow:hidden;font-family:var(--mono)}
+#app{position:relative;box-sizing:border-box;height:100%;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+#stage{position:relative;width:100%;height:100%;overflow:hidden}
+#screen{position:absolute;left:0;top:0;display:block;touch-action:none;outline:none;cursor:crosshair}
+#screen:focus-visible{outline:1px dashed var(--dim);outline-offset:-1px}
+#touch{position:absolute;left:0;right:0;bottom:max(10px,env(safe-area-inset-bottom,0px));
+  display:flex;justify-content:space-between;align-items:flex-end;gap:10px;pointer-events:none}
+#touch .grp{display:flex;gap:10px;pointer-events:auto}
+#touch button{font:700 15px/1 var(--mono);color:var(--phosphor);background:rgba(5,7,12,.55);
+  border:1px solid var(--rim);border-radius:2px;padding:14px 10px;min-width:58px;min-height:54px;
+  letter-spacing:.04em;white-space:nowrap;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+#touch button.on{color:var(--void);background:var(--amber);border-color:var(--amber)}
+#touch button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+#titleBar{position:absolute;left:0;right:0;bottom:max(16px,calc(env(safe-area-inset-bottom,0px) + 12px));
+  display:flex;flex-wrap:wrap;justify-content:center;gap:8px;pointer-events:none}
+#titleBar button{pointer-events:auto;font:700 13px/1 var(--mono);color:var(--phosphor);background:rgba(5,7,12,.7);border:1px solid var(--rim);
+  border-radius:2px;padding:10px 12px;letter-spacing:.06em;white-space:nowrap;cursor:pointer}
+#titleBar button:hover{border-color:var(--dim)}
+#titleBar button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+@media (hover: none) and (pointer: coarse){ #titleBar{bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 72px)} }
+@media (max-width: 440px){ #touch .grp{gap:8px} #touch button{font-size:14px;padding:14px 8px;min-width:52px} }
+@media (prefers-reduced-motion: reduce){ #touch button{transition:none} }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="screen" tabindex="0" role="img" aria-label="{{ARIA}}"></canvas>
+{{HTML}}
+    <div id="touch" hidden></div>
+  </div>
+</div>
+<script>
+'use strict';
+{{SCRIPT}}
+</script>
+</body>
+</html>

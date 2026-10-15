@@ -1,6 +1,9 @@
 shots/
 __pycache__/
 *.pyc
-music/*.wav
+*.wav
 .DS_Store
 dist/
+node_modules/
+.wrangler/
+.dev.vars

@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 """ascii_preview.py - see how a sprite will look as Glyphite ASCII, in a second, without a browser.
 
-  python3 tools/ascii_preview.py src/robot_sprite.js --scale 0.56 [--angle 0.3] [--font path.ttf]
-  python3 tools/ascii_preview.py src/10a_lander_data.js --k 0.28 --res 1,2,3
+  python3 tools/ascii_preview.py games/<id>/robot_sprite.js --scale 0.56 [--angle 0.3] [--font path.ttf]
+  python3 tools/ascii_preview.py games/regolith/lander_sprite.js --k 0.28 --res 1,2,3
 
 --scale is world units per sprite pixel (k * RES; a character cell is 1 unit wide and 2 tall).
 --k with --res previews several detail levels at once. Writes shots/<name>_ascii_<scale>.png (coloured
 glyphs on the game background) and prints the glyph grid. This re-implements the in-game sprite
-renderer (src/10a_lander_art.js) without scene lighting: use it to iterate on scale, palette and glyph
+renderer (engine/10_sprite.js, drawSprite) without scene lighting: use it to iterate on scale, palette and glyph
 choices, then confirm in the game, which stays the source of truth.
 
-Accepts the generic format written by tools/sprite2ascii.py (pal: [[r,g,b,ink,glyph]], rows: [...])
-and the lander's LM_PAL / LM_ROWS.
+Accepts the engine's sprite format, as written by tools/sprite2ascii.py (pal: [[r,g,b,ink,glyph]], rows: [...]).
 """
 import argparse, math, os, re
 import numpy as np

@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """sprite2ascii.py - turn a pixel-art image into a palette-indexed sprite for a Glyphite game.
 
-  python3 tools/sprite2ascii.py ref/robot.png --name robot [--grid 48x50] [--colors 12]
-                                [--palette pal.json] [--outline-lum 45] [--out src]
+  python3 tools/sprite2ascii.py games/<id>/ref/robot.png --name robot --out games/<id>
+                                [--grid 48x50] [--colors 12] [--palette pal.json] [--outline-lum 45]
 
 Run it from the repo root. Writes
         <out>/<name>_sprite.js   const SPRITE_<NAME> = { w, h, pal: [[r,g,b,ink,glyph],...], rows: [...] }
-                                 (add the file to build.sh before the code that draws it)
+                                 (add it to the game's game.json "parts" before the code that draws it,
+                                 then defineSprite(SPRITE_<NAME>, { k, ox, oy }) and drawSprite: engine/API.md)
         shots/<name>_preview.png the resampled sprite, enlarged, for a quick visual check
 and prints a character map with a column ruler (for locating parts and hull points).
 
@@ -27,7 +28,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument('src'); ap.add_argument('--name', required=True)
 ap.add_argument('--grid'); ap.add_argument('--colors', type=int, default=12)
 ap.add_argument('--palette'); ap.add_argument('--outline-lum', type=float, default=45)
-ap.add_argument('--out', default='src'); ap.add_argument('--alpha', type=float, default=128)
+ap.add_argument('--out', default='.'); ap.add_argument('--alpha', type=float, default=128)
 a = ap.parse_args()
 
 img = np.array(Image.open(a.src).convert('RGBA')).astype(float)

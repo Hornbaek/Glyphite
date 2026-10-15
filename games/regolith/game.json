@@ -1,0 +1,44 @@
+{
+  "id": "regolith",
+  "title": "Regolith Lander",
+  "tagline": "A lunar descent in 95 printable characters",
+  "description": "Land on the pads at eight lunar sites. Blast basalt with rockets to free glowing He-3 crystals, topple lamp posts or bring the x3 roof down. Touch down under 1 m/s for a bonus; above about 4 m/s the legs collapse.",
+  "order": 1,
+  "listed": true,
+  "status": "playable",
+  "thumbnail": "thumb.png",
+  "head": "head.html",
+  "parts": [
+    "materials.js",
+    "songs.js",
+    "level.js",
+    "lander.js",
+    "boulders.js",
+    "lamps.js",
+    "view.js",
+    "lander_sprite.js",
+    "lander_art.js",
+    "music.js",
+    "main.js"
+  ],
+  "controls": [
+    ["W / Up", "burn the descent engine"],
+    ["A D / Left Right", "rotate"],
+    ["Space or click", "fire a rocket (aim with the mouse)"],
+    ["L", "lights"],
+    ["N / V", "music / sound-chip meters"],
+    ["- / +", "detail level"],
+    ["P / Esc", "pause"],
+    ["Enter / R", "continue / retry"]
+  ],
+  "tunables": {
+    "gravity": { "label": "Gravity", "unit": "m/s²", "value": 1.62, "min": 0.4, "max": 9.81, "step": 0.01, "live": true, "help": "Lunar gravity is 1.62. Everything falls with it: the lander, grains, debris and boulders." },
+    "thrust": { "label": "Engine thrust", "unit": "× gravity", "value": 2.7, "min": 1.2, "max": 6, "step": 0.1, "live": true, "help": "Descent engine acceleration at full throttle, as a multiple of gravity." },
+    "fuelSeconds": { "label": "Fuel", "unit": "s at full burn", "value": 30, "min": 10, "max": 120, "step": 1, "live": false, "help": "Seconds of full-throttle burn on the first site (later sites get up to 10 s less)." },
+    "rockets": { "label": "Rockets", "unit": "per site", "value": 5, "min": 0, "max": 30, "step": 1, "live": false, "help": "Rockets at the start of a site (later sites add up to 5)." },
+    "blastRadius": { "label": "Rocket blast radius", "unit": "base units", "value": 6.5, "min": 2, "max": 20, "step": 0.5, "live": true, "help": "How much rock a rocket carves out (1 base unit = 0.5 m)." },
+    "meteors": { "label": "Meteor showers", "unit": "× rate", "value": 1, "min": 0, "max": 5, "step": 0.1, "live": false, "help": "Multiplier on the meteor rate from site 2 on; 0 turns showers off." },
+    "lives": { "label": "Landers", "unit": "per mission", "value": 3, "min": 1, "max": 9, "step": 1, "live": false, "help": "Landers per mission." },
+    "startSite": { "label": "Start at site", "unit": "1-8", "value": 1, "min": 1, "max": 8, "step": 1, "live": false, "help": "Site a new mission starts on." }
+  }
+}
