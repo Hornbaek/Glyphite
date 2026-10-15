@@ -308,6 +308,9 @@ text spacing.
 - `docs/IDEAS.md` holds them; `ROADMAP.md` stays the plan and links it. A browsable version (search, filters,
   stars, "copy starred as a prompt" for a session) was published as a claude.ai artifact, "Glyphite Idea Bank".
 
+- **Access goes live (2026-10-15).** The Access application for glyphite.hornbaek.org exists; its AUD tag is
+  in `wrangler.jsonc` (`vars.ACCESS_AUD`), so the Worker now accepts sign-ins instead of answering 503.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |
