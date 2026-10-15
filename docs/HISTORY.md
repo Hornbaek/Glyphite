@@ -295,6 +295,19 @@ text spacing.
 - **AI-first docs:** a new `CLAUDE.md`, `engine/API.md`, the `glyphite-new-game` skill, updated
   `glyphite-verify` and `glyphite-pixel-art-to-ascii` skills, per-game `NOTES.md`.
 
+## 11. The idea bank (Claude Code, 2026-10-15)
+
+> "Meanwhile, try to imagine all features this engine could/should have. No idea is to crazy or to small. I
+> want them all as inspiration."
+
+- A multi-agent brainstorm: 14 agents each took one angle (rendering, light, physics, world, gameplay, genres,
+  audio, AI-first authoring, runtime AI, editor, platform, input and accessibility, wild experiments,
+  architecture) for 1,184 raw ideas. Curators merged duplicates per category group, three critics added what
+  was still missing (completeness, personas, small delights and moonshots), and a last pass removed ideas
+  that turned up in two categories. Result: **1,133 ideas** in 17 categories, each with a size and a wildness.
+- `docs/IDEAS.md` holds them; `ROADMAP.md` stays the plan and links it. A browsable version (search, filters,
+  stars, "copy starred as a prompt" for a session) was published as a claude.ai artifact, "Glyphite Idea Bank".
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

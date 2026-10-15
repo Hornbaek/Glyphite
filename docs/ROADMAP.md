@@ -8,6 +8,9 @@ Cloudflare login, playable and editable there. Regolith Lander stays the referen
 **Status (2026-10-15):** phases 1 and 2 are done, phase 3 is partly done, and the site, editor and
 deployment exist. Next: prove the engine with a second real game (phase 4).
 
+This file is the plan. [`IDEAS.md`](IDEAS.md) is the idea bank: a large brainstorm of everything the engine
+could have, to pick from when planning. Move an idea here when it is chosen.
+
 ## Principles to keep
 
 - Printable ASCII only (32–126) for everything drawn, and one colour per cell.
