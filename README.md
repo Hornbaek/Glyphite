@@ -37,7 +37,7 @@ New games start from `templates/starter/` (Cave Drone): `node tools/glyphite.mjs
 ## Use it
 
 ```sh
-npm install              # Worker dependencies; the engine and games need none
+npm install              # wrangler, for the Worker; the engine and games need nothing
 npm run build            # → dist/: the site, every game as one HTML file, editor sources
 npm run serve            # http://localhost:8787 (open dist/games/<id>/index.html directly works too)
 npm test                 # unit tests; python3 tests/smoke.py --all for every game in a browser

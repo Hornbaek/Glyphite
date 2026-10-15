@@ -1,70 +1,99 @@
 # Deploying glyphite.hornbaek.org
 
-The site is a Cloudflare Worker named `glyphite` with static assets (`wrangler.jsonc`, `worker/`). It serves
-`dist/` (what `npm run build` writes) on the custom domain **glyphite.hornbaek.org**. Nothing is public:
+Set up the same way as horn-dev and hornbaek-site. The site is a Cloudflare Worker named `glyphite` with
+static assets (`wrangler.jsonc`, `worker/`), serving what `npm run build` writes to `dist/` on the custom
+domain **glyphite.hornbaek.org**.
 
-1. **Cloudflare Access** (Zero Trust) sits in front of the hostname and asks for a login.
-2. The Worker also verifies the Access token (`Cf-Access-Jwt-Assertion`) and the allowed email on every
-   request (`worker/auth.js`). The variables are the same as the other hornbaek.org Workers use:
-   `TEAM_DOMAIN`, `POLICY_AUD` and `ALLOWED_EMAIL`. Until all three are set, the Worker answers
-   **503 "not open yet"** to everyone; it never falls back to serving the site openly.
-3. `workers_dev` and `preview_urls` are off, so no `*.workers.dev` address serves the site.
+- **Cloudflare Workers Builds deploys it.** Cloudflare pulls `main`, runs `npm run build:cloudflare` (the
+  unit tests, then the build) and `npx wrangler deploy`. No deploy token lives in GitHub; the GitHub workflow
+  only checks pull requests (the same build plus a smoke test of every game).
+- **Nothing is public.**
+  1. A Cloudflare Access application in front of the hostname asks for the login.
+  2. The Worker checks the Access token itself on every request (`worker/auth.js`, the same check as
+     hornbaek-site's admin): signature, this application's AUD tag, expiry, and optionally the email.
+     `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` are in `wrangler.jsonc` (neither is secret). While `ACCESS_AUD`
+     is empty, the Worker answers **503 "not open yet"** to everyone.
+  3. `workers_dev` and `preview_urls` are off; PR Previews get none of the Access vars, so they are closed too.
 
 ## One-time setup
 
-### 1. The Access application (do this first)
+### 1. The Access application
 
-Cloudflare dashboard → **Zero Trust** → **Access** → **Applications** → **Add an application** → **Self-hosted**:
+Zero Trust → **Access** → **Applications** → **Add an application** → **Self-hosted**:
 - Application domain: `glyphite.hornbaek.org`.
-- Policy: **Allow**, include **Emails** → your email address.
-- Save. Open the application again and copy its **Application Audience (AUD) Tag**.
-- Your team domain is in Zero Trust → **Settings** → **Custom Pages** (or the existing Workers' `TEAM_DOMAIN`):
-  `https://<team>.cloudflareaccess.com`.
+- Policy: **Allow**, include **Emails** → your address (as for hornbaek.org/admin).
+- Save, open it again, and copy the **Application Audience (AUD) Tag**.
 
-### 2. Deploy from GitHub (recommended)
+Put the tag in `wrangler.jsonc` → `vars.ACCESS_AUD` and merge it (or tell a Claude session "the Glyphite AUD
+is …"). The team domain is already there: `https://round-smoke-a734.cloudflareaccess.com`, the same team as
+hornbaek-site.
 
-The workflow `.github/workflows/ci.yml` checks every pull request (build, unit tests, smoke tests of every game
-in both renderers) and, on every push to `main`, deploys with `wrangler deploy`. In the GitHub repository
-(**Settings** → **Secrets and variables** → **Actions**) add:
+### 2. Workers Builds
 
-| Kind | Name | Value |
+Cloudflare dashboard → **Workers & Pages** → **Create** → **Import a repository** → `Hornbaek/Glyphite`:
+
+| Setting | Value |
+|---|---|
+| Worker name | `glyphite` (must match `name` in `wrangler.jsonc`) |
+| Production branch | `main` |
+| Build command | `npm run build:cloudflare` |
+| Deploy command | `npx wrangler deploy` (the default) |
+| Root directory | `/` |
+| Preview builds | on, if you want PR builds checked by Cloudflare too (the Previews stay closed; see below) |
+
+The first build on `main` creates the Worker and attaches `glyphite.hornbaek.org` from the `routes` entry
+(the zone is on the same account). Node comes from `.nvmrc` (22).
+
+### 3. Optional: who may use it
+
+Access already decides who can sign in. To narrow it further in the Worker, set `ALLOWED_EMAILS`
+(comma-separated) under the Worker → **Settings** → **Variables and Secrets**; `keep_vars` keeps it across
+deploys. Vars that are in `wrangler.jsonc` are overwritten by every deploy: change those in the file.
+
+## Where things show up
+
+| What | Where |
+|---|---|
+| Did this commit deploy? | GitHub: the "Workers Builds: glyphite" check on the commit. |
+| Why did it fail? | Dashboard → Workers & Pages → `glyphite` → **Deployments** → **View build history** → the build log. |
+| What is live? | The same **Deployments** tab: the active deployment and its commit. |
+
+**A failed build changes nothing**: the site keeps serving the previous version.
+
+| Symptom | Likely cause | What to do |
 |---|---|---|
-| Secret | `CLOUDFLARE_API_TOKEN` | An API token from the **Edit Cloudflare Workers** template, scoped to your account and to the `hornbaek.org` zone (the custom domain needs *Zone → Workers Routes → Edit*; creating the Worker the first time needs account-level Workers access). |
-| Secret | `CLOUDFLARE_ACCOUNT_ID` | Your account ID (dashboard → Workers & Pages, right-hand column). |
-| Variable | `TEAM_DOMAIN` | `https://<team>.cloudflareaccess.com` |
-| Variable | `POLICY_AUD` | The AUD tag from step 1. |
-| Variable | `ALLOWED_EMAIL` | Your email (comma-separate several people). |
+| The build fails in `npm test` or the build | The code; CI runs the same steps on the PR, so it should have been red there first. | Fix it in a PR. |
+| It fails installing dependencies | `package-lock.json` disagrees with `package.json`. | `npm install`, commit the lockfile. |
+| Name mismatch | The dashboard Worker isn't called `glyphite`. | Rename one to match; don't merge a PR Cloudflare offers that renames `wrangler.jsonc`. |
+| The PR check fails at `npx wrangler preview` | The `previews` block is missing from `wrangler.jsonc`. | Restore `"previews": {}`. |
+| The site says **503 … not open yet** | `ACCESS_AUD` is still empty in `wrangler.jsonc`. | Step 1. |
+| **401 "not valid"** after signing in | The AUD tag or team domain doesn't match the Access application. | Copy the AUD again. |
+| **403** after signing in | Your email isn't in `ALLOWED_EMAILS`. | Fix the variable in the dashboard. |
+| `glyphite.hornbaek.org` doesn't answer | The custom domain didn't attach. | The Worker → **Settings** → **Domains & Routes**. |
 
-Then merge to `main` (or re-run the workflow). The first deploy creates the Worker, the DNS record and the
-certificate for `glyphite.hornbaek.org`; it can take a minute before the hostname answers. Without the token
-secret, the deploy step only prints a warning, so CI stays green until you set it up.
+Roll back from **Deployments** (promote the previous one), then fix forward.
 
-### Alternative: Cloudflare Workers Builds
+## Previews
 
-Dashboard → **Workers & Pages** → **Create** → **Import a repository** → `hornbaek/glyphite`, build command
-`npm ci && npm run build`, deploy command `npx wrangler deploy`. Set `TEAM_DOMAIN`, `POLICY_AUD` and
-`ALLOWED_EMAIL` under the Worker's **Settings** → **Variables and Secrets** (`keep_vars` keeps them across
-deploys). Use one deploy path, not both: leave the GitHub `CLOUDFLARE_API_TOKEN` secret unset if Workers Builds deploys.
+Preview builds run `npx wrangler preview` and serve the branch on its own workers.dev URL. Previews get none
+of the top-level vars, so this Worker answers every request there with 503: the build is checked and nothing
+leaks. To open Previews to yourself, protect them with Access (the Worker → **Settings** → **Domains & Routes**
+→ enable Cloudflare Access for Preview URLs) and give them that application's values in `wrangler.jsonc`:
+`"previews": { "vars": { "ACCESS_TEAM_DOMAIN": "…", "ACCESS_AUD": "<the Preview Access app's AUD>" } }`.
 
-### Alternative: from a terminal
+## By hand
 
 ```sh
 npx wrangler login
-npm run deploy                         # builds, then wrangler deploy (the Access variables stay as set on the Worker)
+npm run deploy                         # builds, then wrangler deploy
 ```
-
-## Checking it
-
-- `https://glyphite.hornbaek.org/` → the Access login, then the game list.
-- In a private window without logging in, you only ever see the Access login page.
-- If you see **"GLYPHITE · 503 … not open yet"**: one of the three variables is missing on the Worker.
-- If you see **401 / 403** from the Worker after logging in: the AUD tag or team domain doesn't match the Access
-  application, or your email isn't in `ALLOWED_EMAIL`.
 
 ## Local development
 
 ```sh
 npm run serve                          # plain static server for dist/ on :8787, no login (quickest)
-echo 'DEV_USER=you@example.com' > .dev.vars && npm run dev   # the real Worker in wrangler dev
+echo 'DEV_EMAIL=you@example.com' > .dev.vars && npm run dev   # the real Worker in wrangler dev
 ```
-`DEV_USER` skips the Access check only when the request is for localhost; `.dev.vars` is git-ignored.
+`DEV_EMAIL` skips the Access check only for requests to localhost (`npm run dev` passes
+`--local-upstream localhost:8787`, because wrangler dev otherwise presents requests as the custom domain).
+`.dev.vars` is git-ignored.

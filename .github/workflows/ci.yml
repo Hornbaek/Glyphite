@@ -1,13 +1,26 @@
-# Build and check every game on each pull request; on main, also deploy the site to Cloudflare.
+# Runs the same steps as Cloudflare's build on every pull request, plus a browser smoke test of every
+# game, so a red suite is visible before the merge rather than after it.
+#
+# The deploy is Cloudflare's (as in horn-dev and hornbaek-site): Workers Builds pulls main and runs
+# `npm run build:cloudflare` (the tests, then the build), then `npx wrangler deploy`. That is a guard
+# too, but it runs on code that has already merged: a failure there is a site stuck on the previous
+# version. No Cloudflare token lives in GitHub.
 name: CI
+
 on:
-  push:
-    branches: [main]
   pull_request:
+  workflow_dispatch:
+
 permissions:
   contents: read
+
+# One run per branch: pushing a fix to a PR makes the previous run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  check:
+  test:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -16,13 +29,11 @@ jobs:
           fetch-depth: 0          # the game list shows each game's last-change date from git
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - name: Build the site (engine + every game)
-        run: npm run build
-      - name: Unit tests (build, editor patches, Access check)
-        run: npm test
+      # Exactly what Cloudflare runs before it deploys: the unit tests, then the build.
+      - run: npm run build:cloudflare
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -38,38 +49,3 @@ jobs:
           name: smoke-screenshots
           path: shots/
           if-no-files-found: ignore
-
-  deploy:
-    needs: check
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    concurrency: deploy-production
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - name: Deploy to glyphite.hornbaek.org
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          TEAM_DOMAIN: ${{ vars.TEAM_DOMAIN }}
-          POLICY_AUD: ${{ vars.POLICY_AUD }}
-          ALLOWED_EMAIL: ${{ vars.ALLOWED_EMAIL }}
-        run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
-            echo "::warning::No CLOUDFLARE_API_TOKEN secret: skipping the deploy. See docs/DEPLOY.md."
-            exit 0
-          fi
-          # Access settings come from repository variables when set; otherwise the values already on
-          # the Worker are kept (wrangler.jsonc has keep_vars).
-          args=()
-          for v in TEAM_DOMAIN POLICY_AUD ALLOWED_EMAIL; do
-            if [ -n "${!v}" ]; then args+=(--var "$v:${!v}"); fi
-          done
-          npx wrangler deploy "${args[@]}"

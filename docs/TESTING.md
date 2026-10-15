@@ -15,7 +15,7 @@ go to `shots/` (created on demand; not committed).
 ## Setup
 
 ```sh
-npm ci                             # the Worker's dependencies (jose, wrangler)
+npm ci                             # wrangler (the only dependency, for the Worker)
 pip install playwright==1.56.0 pillow numpy
 python -m playwright install chromium   # not needed in Claude Code cloud sessions: Chromium is preinstalled for 1.56
 npm run build                      # must print SYNTAX_OK

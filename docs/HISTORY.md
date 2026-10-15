@@ -281,9 +281,17 @@ text spacing.
   assembler as the build, errors mapped to source lines), CLAUDE (a prompt plus a `git apply` patch for a
   Claude Code session; edits stay in the browser until then).
 - **Cloudflare.** A Worker (`worker/`) serves the site on glyphite.hornbaek.org behind Cloudflare Access and
-  verifies the Access token itself, with the same variables as the user's other Workers (`TEAM_DOMAIN`,
-  `POLICY_AUD`, `ALLOWED_EMAIL`); it fails closed. GitHub Actions builds, unit-tests and smoke-tests every
-  game on each pull request and deploys `main` (`docs/DEPLOY.md`).
+  verifies the Access token itself; it fails closed. GitHub Actions builds, unit-tests and smoke-tests every
+  game on each pull request (`docs/DEPLOY.md`).
+
+> "The Cloudflare thing, look at horn-dev repo or hornbaek-site how we done it before."
+
+- Matched to those repos: Cloudflare Workers Builds deploys `main` (`npm run build:cloudflare`, then
+  `npx wrangler deploy`), no deploy token or deploy job in GitHub, CI on pull requests only, `.nvmrc`, an
+  empty `previews` block. The Access check now follows hornbaek-site's admin: `ACCESS_TEAM_DOMAIN` and
+  `ACCESS_AUD` in `wrangler.jsonc` (the same team, `round-smoke-a734`), an optional `ALLOWED_EMAILS`
+  dashboard variable, a localhost-only `DEV_EMAIL`, the token from the header or the `CF_Authorization`
+  cookie, verified with WebCrypto (no `jose` dependency).
 - **AI-first docs:** a new `CLAUDE.md`, `engine/API.md`, the `glyphite-new-game` skill, updated
   `glyphite-verify` and `glyphite-pixel-art-to-ascii` skills, per-game `NOTES.md`.
 

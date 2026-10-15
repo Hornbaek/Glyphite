@@ -1,6 +1,6 @@
 // The Glyphite site Worker: checks the Cloudflare Access login, then serves the static site that
 // `npm run build` writes to dist/ (the game list, the games, the editor and its sources).
-import { authenticate } from './auth.js';
+import { requireUser, AuthError } from './auth.js';
 
 const SECURITY = {
   'X-Content-Type-Options': 'nosniff',
@@ -18,12 +18,13 @@ function page(status, title, text) {
 
 export default {
   async fetch(request, env) {
-    const auth = await authenticate(request, env);
-    if (auth.error) {
-      const msg = auth.status === 503
-        ? 'This site is not open yet: Cloudflare Access is not configured for it. See docs/DEPLOY.md in the repository.'
-        : `You need to sign in through Cloudflare Access to see this site. (${auth.error})`;
-      return page(auth.status, 'Glyphite', msg);
+    try { await requireUser(request, env); }
+    catch (err) {
+      if (!(err instanceof AuthError)) { console.error('sign-in check failed', err); return page(500, 'Glyphite', 'Something went wrong.'); }
+      const msg = err.status === 503 && /not set up/.test(err.message)
+        ? 'This site is not open yet: Cloudflare Access is not set up for it. See docs/DEPLOY.md in the repository.'
+        : err.message;
+      return page(err.status, 'Glyphite', msg);
     }
     const res = await env.ASSETS.fetch(request);
     const out = new Response(res.body, res);

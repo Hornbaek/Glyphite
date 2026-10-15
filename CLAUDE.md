@@ -97,6 +97,8 @@ The **`glyphite-verify`** skill walks through this loop.
 
 ## Deploying
 
-Pushing to `main` runs `.github/workflows/ci.yml`: build, unit tests, smoke tests, then `wrangler deploy` to
-glyphite.hornbaek.org. Setup (API token, Access application, variables) is in `docs/DEPLOY.md`. Never weaken the
-Access check in `worker/auth.js`: the site must stay behind the login.
+Like horn-dev and hornbaek-site: Cloudflare **Workers Builds** pulls `main` and runs `npm run build:cloudflare`
+(unit tests, then the build), then `npx wrangler deploy` to glyphite.hornbaek.org. GitHub Actions
+(`.github/workflows/ci.yml`) runs the same build plus the smoke test of every game on pull requests; no deploy
+token lives in GitHub. Setup and troubleshooting: `docs/DEPLOY.md`. Never weaken the Access check in
+`worker/auth.js` (`ACCESS_TEAM_DOMAIN` / `ACCESS_AUD` in `wrangler.jsonc`): the site must stay behind the login.

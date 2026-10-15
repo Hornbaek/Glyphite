@@ -47,6 +47,9 @@ way.
   CommonJS tool became `render_songs.cjs`. Game and engine `.js` parts are never run by Node directly.
 - **`wrangler dev` rewrites the request URL to the custom domain** (it infers the origin from routes), so
   a "localhost only" check sees glyphite.hornbaek.org. `npm run dev` passes `--local-upstream localhost:8787`.
+- **Follow the house setup for deploys.** The first version used a GitHub deploy job with a Cloudflare token
+  and its own variable names; the user's other sites deploy through Workers Builds with the Access values
+  in `wrangler.jsonc`. Look at an existing repo (hornbaek-site, horn-dev) before inventing a deploy path.
 
 ## Rendering
 

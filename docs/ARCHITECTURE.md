@@ -483,5 +483,6 @@ a unified diff (`assets/diff.mjs`) for a Claude Code session. CodeMirror 5 is ve
 
 **Worker** (`worker/`, `wrangler.jsonc`): a Cloudflare Worker with static assets serving `dist/` on the
 custom domain glyphite.hornbaek.org, with `run_worker_first` so every request passes `authenticate`
-(`worker/auth.js`): it verifies the Cloudflare Access JWT (team domain, AUD tag, allowed email) and fails
-closed when unconfigured. Deployment: `docs/DEPLOY.md` and `.github/workflows/ci.yml`.
+(`worker/auth.js`): it verifies the Cloudflare Access JWT (team domain, AUD tag, optional allowed emails) and fails
+closed when unconfigured. Cloudflare Workers Builds deploys `main`; GitHub Actions checks pull requests
+(`docs/DEPLOY.md`, `.github/workflows/ci.yml`).
