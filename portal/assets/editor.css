@@ -1,0 +1,23 @@
+/* CodeMirror in the Glyphite palette */
+.CodeMirror{color:var(--phosphor);background:var(--void);font-variant-ligatures:none}
+.CodeMirror-gutters{background:var(--panel);border-right:1px solid var(--rim)}
+.CodeMirror-linenumber{color:#3b4659}
+.CodeMirror-cursor{border-left:2px solid var(--amber)}
+.CodeMirror-selected,.CodeMirror-focused .CodeMirror-selected{background:#1f2a3c}
+.CodeMirror-activeline-background{background:#0c121c}
+.CodeMirror-matchingbracket{color:var(--gold)!important;text-decoration:underline}
+.cm-s-default .cm-keyword{color:#c792ea}
+.cm-s-default .cm-def{color:var(--cyan)}
+.cm-s-default .cm-variable{color:var(--phosphor)}
+.cm-s-default .cm-variable-2{color:#b9c6d6}
+.cm-s-default .cm-variable-3,.cm-s-default .cm-type{color:var(--cyan)}
+.cm-s-default .cm-property{color:#9fc4e8}
+.cm-s-default .cm-number{color:var(--amber)}
+.cm-s-default .cm-string,.cm-s-default .cm-string-2{color:var(--green)}
+.cm-s-default .cm-comment{color:#5d6b80;font-style:italic}
+.cm-s-default .cm-operator{color:#9aa7b8}
+.cm-s-default .cm-atom{color:var(--amber)}
+.cm-s-default .cm-tag{color:var(--cyan)}
+.cm-s-default .cm-attribute{color:var(--gold)}
+.cm-s-default .cm-bracket{color:var(--dim)}
+.cm-errline{background:rgba(255,96,72,.15)}

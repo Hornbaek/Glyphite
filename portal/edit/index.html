@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glyphite Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="/vendor/codemirror/codemirror.min.css">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/editor.css">
+<script defer src="/vendor/codemirror/codemirror.min.js"></script>
+</head>
+<body class="editor">
+<header class="ebar">
+  <div class="crumb"><a href="/">GLYPHITE</a> / <span id="gameTitle">…</span> / EDIT</div>
+  <span class="spacer"></span>
+  <span class="muted" id="draftNote"></span>
+  <button class="btn small" type="button" id="discardAll">[ DISCARD EDITS ]</button>
+  <a class="btn small" id="playLink" href="/">[ PLAY ↗ ]</a>
+</header>
+
+<div class="emain">
+  <section class="side" aria-label="Edit the game">
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-tune" aria-controls="pane-tune" aria-selected="true">TUNE</button>
+      <button role="tab" id="tab-code" aria-controls="pane-code" aria-selected="false">CODE</button>
+      <button role="tab" id="tab-claude" aria-controls="pane-claude" aria-selected="false">CLAUDE</button>
+    </div>
+
+    <div class="pane" id="pane-tune" role="tabpanel" aria-labelledby="tab-tune">
+      <p class="note">Numbers the game exposes in its <code>game.json</code>. <b>live</b> ones change the running game at once; the others rebuild the preview.
+        Edits stay in this browser until you hand them to Claude.</p>
+      <div id="tunables"></div>
+      <p style="margin-top:14px"><button class="btn small" type="button" id="resetTune">[ RESET TO DEFAULTS ]</button></p>
+    </div>
+
+    <div class="pane code" id="pane-code" role="tabpanel" aria-labelledby="tab-code" hidden>
+      <div class="files" id="files"></div>
+      <div class="codebar">
+        <span id="fileName">…</span><span id="fileWarn" class="muted"></span>
+        <span class="spacer"></span>
+        <button class="btn small" type="button" id="revertFile">[ REVERT FILE ]</button>
+        <button class="btn small primary" type="button" id="runBtn" title="Ctrl/Cmd + S">[ RUN ]</button>
+      </div>
+      <div class="codehost" id="codehost"></div>
+    </div>
+
+    <div class="pane handoff" id="pane-claude" role="tabpanel" aria-labelledby="tab-claude" hidden>
+      <h3>Hand your edits to Claude</h3>
+      <p class="muted">Claude applies them in the repository, checks the game still works, and opens a pull request. Merging it deploys the change here.</p>
+      <label for="ask"><b>What should Claude do?</b> <span class="muted">(optional)</span></label>
+      <textarea id="ask" placeholder="e.g. Make these the new defaults, and add a fuel pickup that floats above each pad."></textarea>
+      <div class="changes" id="changes"></div>
+      <div class="row">
+        <button class="btn primary" type="button" id="copyPrompt">[ COPY PROMPT ]</button>
+        <button class="btn" type="button" id="downloadPatch">[ DOWNLOAD .PATCH ]</button>
+        <a class="btn" href="https://claude.ai/code" target="_blank" rel="noopener">[ OPEN CLAUDE CODE ↗ ]</a>
+      </div>
+      <pre id="promptPreview" aria-label="Prompt preview"></pre>
+    </div>
+  </section>
+
+  <section class="view" aria-label="Preview">
+    <div class="vbar">
+      <span class="seg" role="group" aria-label="Renderer">
+        <button type="button" data-r="" aria-pressed="true">AUTO</button>
+        <button type="button" data-r="gl" aria-pressed="false">GL</button>
+        <button type="button" data-r="2d" aria-pressed="false">2D</button>
+      </span>
+      <button class="btn small" type="button" id="rebuild">[ RESTART ]</button>
+      <span class="status" id="status" role="status">loading…</span>
+    </div>
+    <div class="frame"><iframe id="preview" title="Game preview" allow="midi; autoplay; fullscreen"></iframe></div>
+    <div class="console" id="console" aria-live="polite" hidden></div>
+  </section>
+</div>
+<script type="module" src="/assets/editor.js"></script>
+</body>
+</html>

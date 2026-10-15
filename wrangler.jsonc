@@ -1,0 +1,23 @@
+{
+  // The Glyphite site: a Worker that checks the Cloudflare Access login and serves dist/.
+  // Deploy: `npm run deploy` (builds first), or the GitHub workflow on every push to main.
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "glyphite",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-10-01",
+  "routes": [{ "pattern": "glyphite.hornbaek.org", "custom_domain": true }],
+  // only the custom domain (which Access protects) serves the site: no workers.dev or preview URLs
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
+  },
+  // TEAM_DOMAIN, POLICY_AUD and ALLOWED_EMAIL are set on the Worker (dashboard or the deploy
+  // workflow), not here; keep_vars stops a deploy from wiping them. See docs/DEPLOY.md.
+  "keep_vars": true,
+  "observability": { "enabled": true }
+}
