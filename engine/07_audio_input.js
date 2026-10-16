@@ -1,5 +1,10 @@
 // ===================== ENGINE · audio (synthesised, starts on first input) and input =====================
 // Sfx: procedural one-shots plus a filtered-noise "thrust hum" loop (engine(throttle) 0..1).
+// Sound that travels through air. In a vacuum (setAtmosphere 0, the default) a sound is heard at once at full volume, as if felt
+// through the ground. With an atmosphere it arrives distance / 343 m/s later, and the farther it is the quieter and duller it
+// is, so a flash can be followed by thunder you can count. Sfx.heard(x, y) says how a sound at (x, y) is heard; pass the result
+// as the last argument of burst() / boom(). The listener is the camera's centre unless GAME.listener() returns [x, y].
+const HEARD_NOW = { delay: 0, gain: 1, muffle: 1, m: 0 };
 const Sfx = {
   ctx: null, master: null, noiseBuf: null, engGain: null, engFilt: null, muted: false,
   init() {
@@ -24,8 +29,15 @@ const Sfx = {
     if (!this.ctx) return; const t = this.ctx.currentTime;
     this.engGain.gain.setTargetAtTime(th * .55, t, .05); this.engFilt.frequency.setTargetAtTime(160 + th * 520, t, .05);
   },
-  burst(dur, f0, f1, vol, type = 'lowpass', q = 1) {
-    if (!this.ctx) return; const c = this.ctx, t = c.currentTime;
+  heard(x, y) {
+    if (!(ATMOS > 0)) return HEARD_NOW;
+    const l = (GAME.listener && GAME.listener()) || [cam.x + R.cols / 2, cam.y + R.rows * ASPECT / 2];
+    const m = Math.hypot(x - l[0], y - l[1]) * UNIT_M;   // metres
+    return { delay: m / 343, gain: 1 / (1 + m / 120), muffle: Math.max(.2, 1 / (1 + m / 250)), m };
+  },
+  burst(dur, f0, f1, vol, type = 'lowpass', q = 1, at = HEARD_NOW) {
+    if (!this.ctx) return; const c = this.ctx, t = c.currentTime + at.delay;
+    vol *= at.gain; f0 *= at.muffle; f1 *= at.muffle;
     const s = c.createBufferSource(); s.buffer = this.noiseBuf; s.playbackRate.value = .7 + Math.random() * .4;
     const f = c.createBiquadFilter(); f.type = type; f.Q.value = q; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
     const g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
@@ -37,7 +49,10 @@ const Sfx = {
     const g = c.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
     o.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + .02);
   },
-  boom(p) { this.burst(1.2 + p * .4, 900, 40, Math.min(1, .45 + p * .35)); this.burst(.25, 3000, 400, .25, 'bandpass', .7); },
+  boom(p, at = HEARD_NOW) {
+    this.burst(1.2 + p * .4, 900, 40, Math.min(1, .45 + p * .35), 'lowpass', 1, at); this.burst(.25, 3000, 400, .25, 'bandpass', .7, at);
+    if (at.m > 100) this.burst(1.4 + p * .5 + at.m / 150, 300, 28, .45, 'lowpass', 1, at);   // far away: a long low rumble, thunder
+  },
   launch() { this.burst(.45, 2200, 300, .35, 'bandpass', 1.2); },
   thud(v) { this.burst(.25, 300, 60, Math.min(.6, v * .06)); },
   pickup() { this.tone(1320, .12, .12, 'sine'); this.tone(1760, .18, .1, 'sine', .07); },

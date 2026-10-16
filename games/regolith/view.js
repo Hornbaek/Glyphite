@@ -32,7 +32,7 @@ function regolithLights(t, out) {
   }
   for (const r of rockets) out.push({ x: r.x, y: r.y, r: 20 * S, c: [1, .7, .35], I: 1.1, shadow: true });
   for (const m of meteors) out.push({ x: m.x, y: m.y, r: 24 * S, c: [1, .55, .25], I: 1.3, shadow: true });
-  if (beaconOn(t)) for (const p of LEVEL.pads) for (const [bx, by, col] of beaconSpots(p)) out.push({ x: bx + .5, y: (by + .5) * ASPECT, r: 13 * S, c: col, I: .9, shadow: true });
+  if (Beat.blink(t)) for (const p of LEVEL.pads) for (const [bx, by, col] of beaconSpots(p)) out.push({ x: bx + .5, y: (by + .5) * ASPECT, r: 13 * S, c: col, I: .9 * (1 + .8 * Beat.pulse()), shadow: true });   // the beacons follow the beat, and flare on a drum hit
   const vx0 = cam.x - 25 * S, vx1 = cam.x + R.cols + 25 * S;
   for (const c of LEVEL.crystals) {
     if (c.dead || c.x < vx0 || c.x > vx1) continue;
@@ -49,7 +49,7 @@ function regolithLights(t, out) {
 
 // beacons, lamps, boulders, rockets, meteors and the lander (the engine has drawn the falling chunks)
 function drawWorld(t) {
-  const on = beaconOn(t);
+  const on = Beat.blink(t);
   for (const p of LEVEL.pads) for (const [bx, by, col] of beaconSpots(p)) for (let q = 0; q < p.pw; q++) putEmit(Math.round(bx - (p.pw - 1) / 2) + q, by, on ? 42 : 46, on ? col[0] * 1.6 : .3, on ? col[1] * 1.6 : .2, on ? col[2] * 1.6 : .15);
   for (const lp of LEVEL.lamps) {
     if (lp.hx < cam.x - 10 * RES || lp.hx > cam.x + R.cols + 10 * RES) continue;

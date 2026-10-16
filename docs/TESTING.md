@@ -10,6 +10,9 @@ Three layers:
 4. **Engine feature probes** in `tests/` (not tied to one game): `engine_light.py [2d|gl ...]` checks `sunAt` / `isLitBy`, the
    sun's colour from an atmosphere or a blackbody, star twinkle and lamp glare, and eye adaptation, in both renderers. It
    uses Regolith as the host game and asserts properties (redder, dimmer, steady vs. varying), not exact pixels.
+   `engine_audio.py [2d|gl ...]` checks sound through air (delay, volume and dullness with distance, only with an atmosphere;
+   `explode()` passing it on; the listener hook) by spying on `Sfx.burst`, and the beat (drum-hit edges from a faked chip
+   meter, `blink`, material `beatGlow` and the bloom swell measured in pixels).
 
 All browser tests drive headless Chromium with Playwright against the built pages in `dist/games/<id>/`
 (build first). Scripts find the repo root from their own path, so they run from any directory. Screenshots

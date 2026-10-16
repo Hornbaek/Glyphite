@@ -45,10 +45,6 @@ const Music = {
   }
 };
 
-// beacons and other lights can follow the beat of whatever is playing
-function musicBeat() { const m = Music.on && Chip.playing ? Chip.meter() : null; return m && m.beat >= 0 ? m.beat : -1; }
-function beaconOn(t) { const b = musicBeat(); return b >= 0 ? (b % 1) < .45 : ((t * 1.6) | 0) % 2 === 0; }
-
 // ASCII sound-test panel: one row per chip lane in use, volume as a 15-step bar
 function drawChipMeters(c0, r0, boxed) {
   const m = Chip.meter(); if (!m || !Chip.song) return 0;

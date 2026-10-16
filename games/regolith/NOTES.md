@@ -24,6 +24,12 @@ stepping from shadow into sun dazzles for a moment; 0 = fixed exposure). Stars n
 dimmed by their light. The warning row has two new lights: **[SUN]** (the sun reaches the lander, `sunAt`) and **[LAMP]**
 (a floodlamp's beam is on it, `isLitBy`).
 
+## Audio and beat features to try (engine 0.4.0)
+**Beat pulse** (tunable, 0.7 by default, live): with music playing (N), He-3 veins flash on the drum hits, the pad beacons
+flare and the bloom swells. **Atmosphere (test)** above 0 also makes blasts thunder: you see the flash and hear the boom after
+distance ÷ 343 m/s, duller and quieter the farther it is, with a long rumble from far away (fire a rocket and watch a meteor
+impact across the map). In the vacuum (0) sound is heard at once, as before.
+
 ## Physics to keep
 Touchdowns up to 3.5 m/s land, from 4.5 m/s the gear collapses (`tests/dbg_legs.py 1|2|3`); the lander fits under
 the x3 roof at every detail level (`tests/check_x3_clearance.py`); generated levels have no floating islands

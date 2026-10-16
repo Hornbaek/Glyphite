@@ -190,7 +190,7 @@ function explode(x, y, R, power, quiet) {
   addRing(x, y, R * 3.5, .45 + .15 * power);
   FX.shake = Math.min(1.4, FX.shake + .35 * power);
   FX.flash = Math.min(.9, FX.flash + .22 * power);
-  if (!quiet) Sfx.boom(power);
+  if (!quiet) Sfx.boom(power, Sfx.heard(x, y));
   blastStructures(x, y, R, power);
   if (GAME.onBlast) GAME.onBlast(x, y, R, power, quiet);
 }

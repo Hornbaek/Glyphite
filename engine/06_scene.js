@@ -51,6 +51,8 @@ function renderScene(ox, oy, time, drawExtras) {
     for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) { const u = i / RW * 2 - 1, v = j / RH * 2 - 1; vig[j * RW + i] = 1 - .42 * (u * u * .55 + v * v * .8); }
   }
   SH.fill(0);
+  Beat.step(time);
+  const bp = Beat.pulse();   // 0..1: how hard the music is hitting right now (0 when the pulse is off)
   // 1) emissive particles and hot rock pour light into the buffers
   for (let p = 0; p < P.n; p++) {
     const t = P.t[p], ct = t >= PT_CUSTOM ? PTYPES[t - PT_CUSTOM] : null;
@@ -71,7 +73,10 @@ function renderScene(ox, oy, time, drawExtras) {
       const cx = ox + i; if (cx < 0 || cx >= W) continue;
       const h = heat[cy * W + cx];
       if (h > .25) splatLight(cx, cy, h * .22 * hk, h * h * .07 * hk, 0, 2);
-      else { const gl = MAT_GLOWS[cells[cy * W + cx]]; if (gl && (cx * 7 + cy * 13) % cmod === 0) splatLight(cx, cy, gl[0], gl[1], gl[2], gl[3]); }   // emissive materials glow from scattered cells
+      else {   // emissive materials glow from scattered cells (and brighter on the beat)
+        const mm = cells[cy * W + cx], gl = MAT_GLOWS[mm];
+        if (gl && (cx * 7 + cy * 13) % cmod === 0) { const f = 1 + MAT_BEATGLOW[mm] * bp * 2; splatLight(cx, cy, gl[0] * f, gl[1] * f, gl[2] * f, gl[3]); }
+      }
     }
   }
 
@@ -92,6 +97,7 @@ function renderScene(ox, oy, time, drawExtras) {
       else { r = alb[0] * lr; g = alb[1] * lg; b = alb[2] * lb; }
       const tv = .86 + (v & 31) / 31 * .28; r *= tv; g *= tv; b *= tv;
       if (h > .02) { r += h * 1.35; g += h * h * .6; b += h * h * h * .3; }
+      if (bp > 0 && MAT_BEATGLOW[m]) { const q = MAT_BEATGLOW[m] * bp * .9; r += alb[0] * q; g += alb[1] * q; b += alb[2] * q; }   // flashes in its own colour on the beat
       const lum = .3 * r + .59 * g + .11 * b, ramp = RAMP_CODES[m], rl = ramp.length;
       if (st === 1) glyph = s === 2 && LNY[k] < -.5 ? (lum < .16 ? 45 : 61) : (v & 1 ? 35 : 72);   // deck: = - on top, # H in the body
       else if (st === 2) { const vt = getC(cx, cy - 1) === m || getC(cx, cy + 1) === m, hz = getC(cx - 1, cy) === m || getC(cx + 1, cy) === m; glyph = vt && hz ? 43 : hz ? 61 : 124; }
@@ -161,11 +167,12 @@ function renderScene(ox, oy, time, drawExtras) {
   // 6) tone map + vignette → bytes (and optional bloom bright-pass)
   adaptEye(G, n, time);
   const D = R.wPix, BL = R.bloomPix, bloom = R.bloom, glA = R.mode === 'gl', OC = R.occPix, E = EYE.e;
+  const bt = .62 - .1 * bp, bg = 460 * (1 + 1.2 * bp);   // the bloom bright-pass: on a drum hit its threshold drops and its gain rises
   for (let k = 0; k < n; k++) {
     const vv = vig[k], r = tone(cR[k] * E) * vv, g = tone(cG[k] * E) * vv, b = tone(cB[k] * E) * vv, q = k * 4;
     D[q] = r * 255; D[q + 1] = g * 255; D[q + 2] = b * 255; D[q + 3] = glA ? G[k] : 255;   // GL reads the glyph code from alpha
     if (!glA) { OC[q] = 5; OC[q + 1] = 7; OC[q + 2] = 12; OC[q + 3] = G[k] ? 255 : 0; }  // 2D: occupied cells are opaque
-    if (bloom) { const on = G[k] > 32; BL[q] = on ? Math.max(0, r - .62) * 460 : 0; BL[q + 1] = on ? Math.max(0, g - .62) * 460 : 0; BL[q + 2] = on ? Math.max(0, b - .62) * 460 : 0; BL[q + 3] = 255; }
+    if (bloom) { const on = G[k] > 32; BL[q] = on ? Math.max(0, r - bt) * bg : 0; BL[q + 1] = on ? Math.max(0, g - bt) * bg : 0; BL[q + 2] = on ? Math.max(0, b - bt) * bg : 0; BL[q + 3] = 255; }
   }
   renderSky(time);
 }
