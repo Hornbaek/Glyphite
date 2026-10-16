@@ -42,6 +42,8 @@ function stepMouse(dt) {
     if ((m.stepT -= Math.abs(c.vx) * dt / S) < 0) { m.stepT = 2.2; Sfx.tone(rr(1700, 2300), .02, .018, 'triangle'); }
   } else if (!c.onGround) m.anim = 0;
   if (!wasGround && c.onGround) m.stepT = 0;
+  m.down = inp.down && c.onGround;
+  m.still = c.onGround && Math.abs(c.vx) < RES && !inp.x ? (m.still || 0) + dt : 0;
   eatCheese(dt, inp);
   if (c.ground === RUST) crumbleAt(c);
   const g = gantryUnder(c); if (g) startGantry(g);
@@ -141,10 +143,12 @@ function respawn() {
 }
 
 // ---------- drawing and light ----------
+// the art sheet's frames: a stride is walk, idle (passing), run, idle; standing about, the mouse looks up now and then
 function mouseFrame(c, m) {
-  if (!c.onGround) return c.vy < 0 ? 'jump' : 'fall';
-  if (Math.abs(c.vx) > 3 * RES) return ['run1', 'run2', 'run3', 'run2'][Math.floor(m.anim / 1.5) & 3];
-  return 'stand';
+  if (!c.onGround) return 'jump';
+  if (Math.abs(c.vx) > 3 * RES) return ['walk', 'idle', 'run', 'idle'][Math.floor(m.anim / 1.7) & 3];
+  if (m.down) return 'lookdown';
+  return m.still > 3 && m.still % 5 < 1.4 ? 'lookup' : 'idle';
 }
 function drawMouse() {
   const m = MOUSE; if (!m || !m.alive || (m.safeT > 0 && (m.safeT * 10 | 0) & 1)) return;   // blinks while safe

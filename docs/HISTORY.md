@@ -388,6 +388,25 @@ text spacing.
   through a new `GAME.levels` hook. Space Mouse's search moved from its test into the game (`levelcheck.js`), so the editor and
   `reach.py` share it. CI now runs the editor test and the search on every sector.
 
+## 16. Space Mouse in the art sheet's style (Claude Code, 2026-10-16)
+
+> "Update the graphics of the space mouse with these" (with an art sheet: station layouts, the mouse's animations, cheese,
+> props, tiles with hazard stripes, moss, red cables, cobwebs, amber lamps, a blue planet in the windows)
+
+- **The mouse** is cut from the sheet (`games/spacemouse/ref/art_sheet.png`) by `games/spacemouse/tools/art.py`: six frames
+  (idle, walk, run, jump, look up, look down) found as the drawings in the sheet's mouse row, the dark background flood-filled
+  away, converted with `tools/sprite2ascii.py` and a curated palette (`tools/mouse_palette.json`: one dense glyph per material,
+  and a brighter display colour for the dark helmet glass, which vanished in the gloom), lined up on the helmet. It writes
+  `mouse_sprite.js`; edit the palette or the tool, not that file. Walking alternates the walk and run drawings; standing still
+  looks up now and then; holding Down looks down.
+- **Cheese crumbs** are the sheet's wedge (a single glyph at RES 1 and 1.5). **Ten props** from the sheet (lockers, terminal,
+  potted plant, sofa, barrel, toolbox, wall screen, fan box, B3 sign, gas tank) are new map tiles (`k m p h o t g f b n`),
+  decoration drawn in front of the wall and never solid, placed around the three sectors and in the LEVELS legend.
+- **The station**: decks are worn plates with rust and yellow-black hazard stripes, window frames, amber lamps, grey wall
+  panels that show in the dark, moss on the walls; `decor.js` hangs moss strands and red cable loops under ceilings, grows
+  tufts on floors and spills moss over ledges, and spins cobwebs in corners (worked out from the map, so alike at every
+  detail). The sky is a big blue planet with a bright rim and a small cheese moon.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

@@ -60,6 +60,18 @@ How it works:
 - A missing small colour (an eye, a lamp) means a palette problem. Pass `--palette pal.json` with a
   curated list `[[r,g,b,ink,glyph], ...]`. Name colours by role in a comment; the lander's curated
   palette is in `games/regolith/tools/art.py`.
+- **A small character with many materials** (under about 30 px: fur, suit, glass, skin): start with a
+  curated palette, one entry per material. k-means merges them into muddy greys at that size.
+- **A dark detail that matters** (helmet glass, a visor) vanishes in a dark scene: give its entry a
+  6th field, the colour to draw it in (`[r, g, b, ink, glyph, [R, G, B]]`); it is still matched by the
+  art's own colour.
+
+**An art sheet** (many drawings on one flat background, no alpha, often animation frames in a row):
+write a small `games/<id>/tools/art.py` that cuts each drawing out, flood-fills the background away
+from the box edges (a plain colour key also eats dark outlines inside the drawing), runs
+`sprite2ascii.py` on each with one shared palette, and writes the game's sprite file. Find the frames
+as the column spans of non-background pixels in the row. Line frames up on a stable feature (the
+head), not the box centre, or the character jitters between frames. Example: `games/spacemouse/tools/art.py`.
 
 Then set each palette entry's **dense glyph** (the 5th field) by material:
 
@@ -188,3 +200,7 @@ edit it directly and mention the change. In the Claude app, propose the updated 
 - 2026-10-15: The lander renderer became the engine's `defineSprite` / `drawSprite` (pixel-identical
   output; the dense glyph now comes from each palette entry's 5th field). Second sprite: the starter's
   drone (16×8, k = 0.5, drawn with the defaults, no iterations).
+- 2026-10-16: Space Mouse from an art sheet: six mouse frames (26×28 at k = 0.25, origin under the
+  helmet), a cheese wedge, ten props. Three rounds: k-means made the suit muddy (curated palette by
+  material), then per-material dense glyphs, then the dark helmet glass vanished (display colour,
+  now `sprite2ascii.py`'s 6th palette field). Cutting from the sheet needed a flood fill, not a key.

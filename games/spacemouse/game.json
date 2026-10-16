@@ -11,7 +11,9 @@
     "materials.js",
     "sectors.js",
     "station.js",
+    "decor.js",
     "giveway.js",
+    "mouse_sprite.js",
     "art.js",
     "mouse.js",
     "catbots.js",
@@ -135,7 +137,17 @@
       "S": {"name": "checkpoint", "color": "#3cff7a", "on": "."},
       "L": {"name": "ceiling lamp", "color": "#fffbc8", "on": "."},
       "l": {"name": "dying lamp", "color": "#b9b46a", "on": "."},
-      "A": {"name": "alarm lamp", "color": "#ff6f9a", "on": "."}
+      "A": {"name": "alarm lamp", "color": "#ff6f9a", "on": "."},
+      "k": {"name": "lockers (prop)", "color": "#5d7fa8", "on": "."},
+      "m": {"name": "terminal (prop)", "color": "#3fa9c9", "on": "."},
+      "p": {"name": "potted plant (prop)", "color": "#2e8b57", "on": "."},
+      "h": {"name": "sofa (prop)", "color": "#34508a", "on": "."},
+      "o": {"name": "barrel (prop)", "color": "#7fb3c8", "on": "."},
+      "t": {"name": "red toolbox (prop)", "color": "#c02a2a", "on": "."},
+      "g": {"name": "wall screen (on the wall)", "color": "#52d273", "on": "."},
+      "f": {"name": "fan box (prop)", "color": "#a39a8a", "on": "."},
+      "b": {"name": "B3 sign (on the wall)", "color": "#9b59b6", "on": "."},
+      "n": {"name": "gas tank (prop)", "color": "#c8d6c0", "on": "."}
     },
     "marks": {
       "signs": {"kind": "text", "color": "#ffd278"},

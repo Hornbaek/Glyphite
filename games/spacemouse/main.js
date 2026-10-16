@@ -67,6 +67,7 @@ function buzzLevel(t) {
 function gameLights(t, out) {
   const S = RES;
   for (const lp of SEC.lamps) out.push({ x: lp.x, y: lp.y, r: (lp.kind === 'alarm' ? 64 : 56) * S, c: lp.c, I: lp.kind === 'alarm' ? 1.9 : 1.55, shadow: true, flicker: lp.kind, seed: lp.seed, skip: 1.2 * S });
+  for (const cr of SEC.crumbs) if (!cr.got) out.push({ x: cr.x, y: cr.y, r: 11 * S, c: [1, .78, .32], I: .5, shadow: false });
   for (const cp of SEC.checkpoints) out.push({ x: cp.x, y: cp.y - 5 * S, r: (cp.on ? 22 : 12) * S, c: cp.on ? [.3, 1, .45] : [1, .3, .2], I: cp.on ? .9 : .5, shadow: true });
   mouseLights(out);
   catLights(out);
@@ -76,15 +77,17 @@ function gameLights(t, out) {
 function gameDraw(t) {
   const S = RES;
   for (const i of SEC.signCells) if (cells[i] === EMPTY) putEmit(i % W, (i / W) | 0, 35, .42, .3, .08);
+  drawDecor();
+  for (const p of SEC.props) if (Math.abs(p.x - cam.x - R.cols / 2) < R.cols * .6 + 20 * S) drawSprite(PROP_SPR[p.ch], p.x, p.y, 0);
   for (const lp of SEC.lamps) {   // fixtures under the ceiling, as bright as their light this moment
     const f = flickerAt(lp.kind, t, lp.seed), cx = Math.floor(lp.x), cy = Math.floor(lp.y / ASPECT), w = Math.max(1, Math.round(1.6 * S));
     if (lp.kind === 'alarm') { putEmit(cx - 1, cy, 40, .5, .1, .1); putEmit(cx, cy, 79, 2 * f + .2, .35 * f, .2 * f); putEmit(cx + 1, cy, 41, .5, .1, .1); continue; }
     for (let i = -w; i <= w; i++) putEmit(cx + i, cy, i === -w ? 91 : i === w ? 93 : 61, lp.c[0] * (1.6 * f + .15), lp.c[1] * (1.6 * f + .15), lp.c[2] * (1.6 * f + .15));
   }
-  for (const cr of SEC.crumbs) if (!cr.got) {
-    const y = cr.y + Math.sin(t * 3 + cr.ph) * .8 * S, cx = Math.floor(cr.x), cy = Math.floor(y / ASPECT), q = .85 + .25 * Math.sin(t * 5 + cr.ph);
-    putEmit(cx, cy, S >= 2 ? 64 : 111, 1.5 * q, 1.15 * q, .35 * q);
-    if (S >= 2) { putEmit(cx - 1, cy, 60, 1.2 * q, .9 * q, .25 * q); putEmit(cx + 1, cy, 62, 1.2 * q, .9 * q, .25 * q); }
+  for (const cr of SEC.crumbs) if (!cr.got) {   // a wedge of cheese from the art sheet, bobbing (a single glyph at coarse detail)
+    const y = cr.y + Math.sin(t * 3 + cr.ph) * .8 * S, q = .85 + .25 * Math.sin(t * 5 + cr.ph);
+    if (S >= 2) drawSprite(CHEESE_SPR, cr.x, y, 0, { light: false });
+    else putEmit(Math.floor(cr.x), Math.floor(y / ASPECT), 111, 1.5 * q, 1.15 * q, .35 * q);
   }
   for (const cp of SEC.checkpoints) {   // a post with a lamp on top: red, green once touched
     const cx = Math.floor(cp.x), top = Math.floor((cp.y - 5 * S) / ASPECT), bot = Math.floor((cp.y - .1) / ASPECT);
@@ -148,7 +151,7 @@ Glyphite.run({
     [{ label: '[ v ]', aria: 'Down', hold: 'down' }, { label: '[ JUMP ]', aria: 'Jump', hold: 'jump' }]
   ],
   stars: 1,
-  init() { setGravity(GRAV_BASE * .5 * TUNE.gravity); setEyeAdaptation(.55, { max: 2.2 }); setBackdrop({ dim: .3 }); showTitle(); },
+  init() { setGravity(GRAV_BASE * .5 * TUNE.gravity); setEyeAdaptation(.55, { max: 2.2 }); setBackdrop({ dim: .5 }); showTitle(); },
   regenerate: gameRegenerate,
   update: gameUpdate, onKey: gameKey, lights: gameLights, draw: gameDraw, hud: gameHud, markDyn: gameMarkDyn, afterFrame: gameAfterFrame,
   skyBegin: moonBegin, sky: moonCell,
