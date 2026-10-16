@@ -29,6 +29,12 @@ fewer.**
   - Where it touches the ground.
   Take everything else from the image.
 - Copy the image into `games/<id>/ref/<name>.png`. Never edit the user's original.
+- **Keep every original drawing** (the owner's standing rule): each drawing you cut, trace or crop from the image is
+  saved at its original pixels in `games/<id>/ref/frames/`, including the ones the game does not use yet, and listed in
+  `ref/ref.json` with its box on the sheet and what it is used for (plus `ref/README.md` for GitHub). Do it in the game's
+  `tools/art.py` (copy `save()`, `REFERENCE` and `write_reference()` from `games/spacemouse/tools/art.py`), so a rerun
+  rewrites it. The site's ART page shows it; `tests/node/ref.test.mjs` fails on an unlisted image. A single image used
+  whole needs only its sheet entry in `ref.json` (see `games/regolith/ref/ref.json`).
 
 ## Workflow
 

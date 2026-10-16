@@ -1,0 +1,1506 @@
+{
+ "title": "Space Mouse",
+ "made_by": "games/spacemouse/tools/art.py",
+ "sheets": [
+  {
+   "file": "art_sheet.png",
+   "title": "The first sheet: station layouts, the mouse, cheese, props, tiles and decoration",
+   "source": "ChatGPT",
+   "size": [
+    1536,
+    1024
+   ],
+   "frames": [
+    {
+     "file": "frames/mouse_idle.png",
+     "name": "mouse idle",
+     "box": [
+      28,
+      745,
+      85,
+      828
+     ],
+     "size": [
+      51,
+      55
+     ],
+     "use": "Pip standing",
+     "used": true
+    },
+    {
+     "file": "frames/mouse_walk.png",
+     "name": "mouse walk",
+     "box": [
+      107,
+      745,
+      177,
+      828
+     ],
+     "size": [
+      64,
+      59
+     ],
+     "use": "Pip walking (with run)",
+     "used": true
+    },
+    {
+     "file": "frames/mouse_run.png",
+     "name": "mouse run",
+     "box": [
+      208,
+      745,
+      267,
+      828
+     ],
+     "size": [
+      53,
+      54
+     ],
+     "use": "Pip walking (with walk)",
+     "used": true
+    },
+    {
+     "file": "frames/mouse_jump.png",
+     "name": "mouse jump",
+     "box": [
+      295,
+      745,
+      354,
+      828
+     ],
+     "size": [
+      53,
+      58
+     ],
+     "use": "Pip in the air",
+     "used": true
+    },
+    {
+     "file": "frames/mouse_lookup.png",
+     "name": "mouse lookup",
+     "box": [
+      377,
+      745,
+      434,
+      828
+     ],
+     "size": [
+      51,
+      58
+     ],
+     "use": "Pip looking up, standing still",
+     "used": true
+    },
+    {
+     "file": "frames/mouse_lookdown.png",
+     "name": "mouse lookdown",
+     "box": [
+      461,
+      745,
+      520,
+      828
+     ],
+     "size": [
+      53,
+      41
+     ],
+     "use": "Pip looking down (holding Down)",
+     "used": true
+    },
+    {
+     "file": "frames/cheese.png",
+     "name": "cheese",
+     "box": [
+      22,
+      900,
+      80,
+      972
+     ],
+     "size": [
+      46,
+      49
+     ],
+     "use": "cheese crumbs",
+     "used": true
+    },
+    {
+     "file": "frames/prop_lockers.png",
+     "name": "prop lockers",
+     "box": [
+      566,
+      820,
+      650,
+      904
+     ],
+     "size": [
+      79,
+      84
+     ],
+     "use": "prop: map tile \"k\"",
+     "used": true
+    },
+    {
+     "file": "frames/prop_terminal.png",
+     "name": "prop terminal",
+     "box": [
+      641,
+      815,
+      696,
+      894
+     ],
+     "size": [
+      48,
+      74
+     ],
+     "use": "prop: map tile \"m\"",
+     "used": true
+    },
+    {
+     "file": "frames/prop_plant.png",
+     "name": "prop plant",
+     "box": [
+      709,
+      838,
+      745,
+      899
+     ],
+     "size": [
+      31,
+      49
+     ],
+     "use": "prop: map tile \"p\"",
+     "used": true
+    },
+    {
+     "file": "frames/prop_sofa.png",
+     "name": "prop sofa",
+     "box": [
+      753,
+      833,
+      851,
+      897
+     ],
+     "size": [
+      91,
+      43
+     ],
+     "use": "prop: map tile \"h\"",
+     "used": true
+    },
+    {
+     "file": "frames/prop_barrel.png",
+     "name": "prop barrel",
+     "box": [
+      646,
+      905,
+      690,
+      965
+     ],
+     "size": [
+      36,
+      53
+     ],
+     "use": "prop: map tile \"o\"",
+     "used": true
+    },
+    {
+     "file": "frames/prop_toolbox.png",
+     "name": "prop toolbox",
+     "box": [
+      567,
+      910,
+      638,
+      960
+     ],
+     "size": [
+      64,
+      41
+     ],
+     "use": "prop: map tile \"t\"",
+     "used": true
+    },
+    {
+     "file": "frames/prop_wall_screen.png",
+     "name": "prop wall screen",
+     "box": [
+      698,
+      902,
+      761,
+      965
+     ],
+     "size": [
+      56,
+      55
+     ],
+     "use": "prop: map tile \"g\"",
+     "used": true
+    },
+    {
+     "file": "frames/prop_fan_box.png",
+     "name": "prop fan box",
+     "box": [
+      927,
+      832,
+      993,
+      908
+     ],
+     "size": [
+      59,
+      74
+     ],
+     "use": "prop: map tile \"f\"",
+     "used": true
+    },
+    {
+     "file": "frames/prop_B3_sign.png",
+     "name": "prop B3 sign",
+     "box": [
+      658,
+      757,
+      700,
+      808
+     ],
+     "size": [
+      35,
+      42
+     ],
+     "use": "prop: map tile \"b\"",
+     "used": true
+    },
+    {
+     "file": "frames/prop_gas_tank.png",
+     "name": "prop gas tank",
+     "box": [
+      946,
+      756,
+      990,
+      824
+     ],
+     "size": [
+      37,
+      62
+     ],
+     "use": "prop: map tile \"n\"",
+     "used": true
+    },
+    {
+     "file": "frames/station_A.png",
+     "name": "station A",
+     "box": [
+      0,
+      8,
+      1510,
+      408
+     ],
+     "size": [
+      1486,
+      386
+     ],
+     "use": "the station's look: layout A",
+     "used": false
+    },
+    {
+     "file": "frames/station_B.png",
+     "name": "station B",
+     "box": [
+      10,
+      425,
+      762,
+      703
+     ],
+     "size": [
+      721,
+      270
+     ],
+     "use": "the station's look: layout B",
+     "used": false
+    },
+    {
+     "file": "frames/station_C.png",
+     "name": "station C",
+     "box": [
+      778,
+      425,
+      1530,
+      703
+     ],
+     "size": [
+      716,
+      262
+     ],
+     "use": "the station's look: layout C",
+     "used": false
+    },
+    {
+     "file": "frames/cheese_2.png",
+     "name": "cheese 2",
+     "box": [
+      88,
+      913,
+      145,
+      965
+     ],
+     "size": [
+      45,
+      40
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/cheese_3.png",
+     "name": "cheese 3",
+     "box": [
+      152,
+      907,
+      202,
+      969
+     ],
+     "size": [
+      38,
+      50
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/crumb.png",
+     "name": "crumb",
+     "box": [
+      204,
+      943,
+      233,
+      969
+     ],
+     "size": [
+      17,
+      14
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/cheese_pickup.png",
+     "name": "cheese pickup",
+     "box": [
+      272,
+      905,
+      344,
+      978
+     ],
+     "size": [
+      60,
+      61
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/crate.png",
+     "name": "crate",
+     "box": [
+      364,
+      905,
+      435,
+      971
+     ],
+     "size": [
+      59,
+      54
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/door_with_red_light.png",
+     "name": "door with red light",
+     "box": [
+      447,
+      889,
+      523,
+      982
+     ],
+     "size": [
+      57,
+      81
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/wall_cabinet.png",
+     "name": "wall cabinet",
+     "box": [
+      566,
+      754,
+      651,
+      822
+     ],
+     "size": [
+      73,
+      56
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/B3_sign_grey.png",
+     "name": "B3 sign grey",
+     "box": [
+      707,
+      757,
+      755,
+      811
+     ],
+     "size": [
+      36,
+      42
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/B3_warning_sign.png",
+     "name": "B3 warning sign",
+     "box": [
+      757,
+      753,
+      826,
+      831
+     ],
+     "size": [
+      57,
+      66
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/broken_machine.png",
+     "name": "broken machine",
+     "box": [
+      827,
+      761,
+      938,
+      822
+     ],
+     "size": [
+      99,
+      49
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/vent_panel_and_claw.png",
+     "name": "vent panel and claw",
+     "box": [
+      856,
+      824,
+      990,
+      980
+     ],
+     "size": [
+      125,
+      147
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/little_robot.png",
+     "name": "little robot",
+     "box": [
+      767,
+      904,
+      857,
+      967
+     ],
+     "size": [
+      78,
+      51
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/platform_long.png",
+     "name": "platform long",
+     "box": [
+      1024,
+      761,
+      1152,
+      808
+     ],
+     "size": [
+      116,
+      35
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/platforms_short.png",
+     "name": "platforms short",
+     "box": [
+      1025,
+      821,
+      1152,
+      866
+     ],
+     "size": [
+      115,
+      33
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/post.png",
+     "name": "post",
+     "box": [
+      1157,
+      761,
+      1191,
+      878
+     ],
+     "size": [
+      22,
+      105
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/ladder_tall.png",
+     "name": "ladder tall",
+     "box": [
+      1193,
+      758,
+      1233,
+      889
+     ],
+     "size": [
+      28,
+      119
+     ],
+     "use": "not used yet: needs climbing",
+     "used": false
+    },
+    {
+     "file": "frames/wall_corner.png",
+     "name": "wall corner",
+     "box": [
+      1029,
+      882,
+      1124,
+      982
+     ],
+     "size": [
+      83,
+      88
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/block.png",
+     "name": "block",
+     "box": [
+      1029,
+      936,
+      1081,
+      981
+     ],
+     "size": [
+      40,
+      33
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/lift_door.png",
+     "name": "lift door",
+     "box": [
+      1141,
+      876,
+      1188,
+      977
+     ],
+     "size": [
+      35,
+      89
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/ladder_short.png",
+     "name": "ladder short",
+     "box": [
+      1194,
+      886,
+      1241,
+      991
+     ],
+     "size": [
+      35,
+      93
+     ],
+     "use": "not used yet: needs climbing",
+     "used": false
+    },
+    {
+     "file": "frames/monitor.png",
+     "name": "monitor",
+     "box": [
+      1288,
+      751,
+      1355,
+      814
+     ],
+     "size": [
+      55,
+      51
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/cobweb.png",
+     "name": "cobweb",
+     "box": [
+      1360,
+      752,
+      1413,
+      813
+     ],
+     "size": [
+      42,
+      49
+     ],
+     "use": "drawn by decor.js instead (cobwebs)",
+     "used": false
+    },
+    {
+     "file": "frames/moss_and_red_cable.png",
+     "name": "moss and red cable",
+     "box": [
+      1417,
+      751,
+      1511,
+      845
+     ],
+     "size": [
+      82,
+      83
+     ],
+     "use": "drawn by decor.js instead (moss strands, cable loops)",
+     "used": false
+    },
+    {
+     "file": "frames/vent_box.png",
+     "name": "vent box",
+     "box": [
+      1287,
+      819,
+      1359,
+      864
+     ],
+     "size": [
+      60,
+      33
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/hanging_lamp.png",
+     "name": "hanging lamp",
+     "box": [
+      1362,
+      818,
+      1428,
+      928
+     ],
+     "size": [
+      55,
+      97
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/fan_unit.png",
+     "name": "fan unit",
+     "box": [
+      1287,
+      871,
+      1362,
+      964
+     ],
+     "size": [
+      63,
+      79
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/broken_panel.png",
+     "name": "broken panel",
+     "box": [
+      1430,
+      845,
+      1516,
+      907
+     ],
+     "size": [
+      74,
+      50
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/rubble.png",
+     "name": "rubble",
+     "box": [
+      1365,
+      941,
+      1408,
+      977
+     ],
+     "size": [
+      36,
+      26
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/window.png",
+     "name": "window",
+     "box": [
+      1428,
+      914,
+      1515,
+      980
+     ],
+     "size": [
+      75,
+      54
+     ],
+     "use": "the windows are drawn from the map (:)",
+     "used": false
+    }
+   ]
+  },
+  {
+   "file": "mouse_actions_sheet.jpg",
+   "title": "More of Pip's moves: wall slide, falling, landing, eating, zapped, victory",
+   "source": "Gemini",
+   "size": [
+    1264,
+    843
+   ],
+   "frames": [
+    {
+     "file": "frames/mouse_wall1.png",
+     "name": "mouse wall1",
+     "box": [
+      30,
+      105,
+      160,
+      286
+     ],
+     "size": [
+      102,
+      115
+     ],
+     "use": "Pip sliding down a wall",
+     "used": true
+    },
+    {
+     "file": "frames/mouse_wall2.png",
+     "name": "mouse wall2",
+     "box": [
+      420,
+      105,
+      532,
+      286
+     ],
+     "size": [
+      94,
+      125
+     ],
+     "use": "Pip sliding down a wall",
+     "used": true
+    },
+    {
+     "file": "frames/mouse_fall1.png",
+     "name": "mouse fall1",
+     "box": [
+      640,
+      118,
+      766,
+      238
+     ],
+     "size": [
+      104,
+      91
+     ],
+     "use": "Pip tumbling on a long fall",
+     "used": true
+    },
+    {
+     "file": "frames/mouse_fall2.png",
+     "name": "mouse fall2",
+     "box": [
+      786,
+      138,
+      916,
+      250
+     ],
+     "size": [
+      105,
+      91
+     ],
+     "use": "Pip tumbling on a long fall",
+     "used": true
+    },
+    {
+     "file": "frames/mouse_fall3.png",
+     "name": "mouse fall3",
+     "box": [
+      938,
+      164,
+      1072,
+      272
+     ],
+     "size": [
+      111,
+      89
+     ],
+     "use": "Pip tumbling on a long fall",
+     "used": true
+    },
+    {
+     "file": "frames/mouse_fall4.png",
+     "name": "mouse fall4",
+     "box": [
+      1090,
+      176,
+      1216,
+      285
+     ],
+     "size": [
+      107,
+      91
+     ],
+     "use": "Pip tumbling on a long fall",
+     "used": true
+    },
+    {
+     "file": "frames/mouse_land1.png",
+     "name": "mouse land1",
+     "box": [
+      440,
+      403,
+      565,
+      551
+     ],
+     "size": [
+      118,
+      91
+     ],
+     "use": "Pip after a hard landing (squash)",
+     "used": true
+    },
+    {
+     "file": "frames/mouse_land2.png",
+     "name": "mouse land2",
+     "box": [
+      640,
+      403,
+      765,
+      551
+     ],
+     "size": [
+      116,
+      108
+     ],
+     "use": "Pip after a hard landing (getting up)",
+     "used": true
+    },
+    {
+     "file": "frames/mouse_eat1.png",
+     "name": "mouse eat1",
+     "box": [
+      12,
+      650,
+      180,
+      799
+     ],
+     "size": [
+      120,
+      131
+     ],
+     "use": "Pip chewing",
+     "used": true
+    },
+    {
+     "file": "frames/mouse_eat2.png",
+     "name": "mouse eat2",
+     "box": [
+      222,
+      650,
+      372,
+      799
+     ],
+     "size": [
+      118,
+      131
+     ],
+     "use": "Pip chewing",
+     "used": true
+    },
+    {
+     "file": "frames/mouse_zap1.png",
+     "name": "mouse zap1",
+     "box": [
+      505,
+      638,
+      690,
+      799
+     ],
+     "size": [
+      148,
+      154
+     ],
+     "use": "Pip zapped by a cable",
+     "used": true
+    },
+    {
+     "file": "frames/mouse_zap2.png",
+     "name": "mouse zap2",
+     "box": [
+      695,
+      638,
+      850,
+      799
+     ],
+     "size": [
+      145,
+      149
+     ],
+     "use": "Pip zapped: the skeleton flash",
+     "used": true
+    },
+    {
+     "file": "frames/mouse_win.png",
+     "name": "mouse win",
+     "box": [
+      1050,
+      628,
+      1190,
+      799
+     ],
+     "size": [
+      112,
+      164
+     ],
+     "use": "Pip clearing a sector",
+     "used": true
+    },
+    {
+     "file": "frames/mouse_wall_slide_middle.png",
+     "name": "mouse wall slide middle",
+     "box": [
+      250,
+      105,
+      345,
+      286
+     ],
+     "size": [
+      80,
+      166
+     ],
+     "use": "not used yet (the two others are)",
+     "used": false
+    },
+    {
+     "file": "frames/mouse_landing_in_the_air.png",
+     "name": "mouse landing in the air",
+     "box": [
+      218,
+      403,
+      354,
+      551
+     ],
+     "size": [
+      117,
+      126
+     ],
+     "use": "not used yet",
+     "used": false
+    },
+    {
+     "file": "frames/mouse_landing_standing.png",
+     "name": "mouse landing standing",
+     "box": [
+      860,
+      403,
+      995,
+      551
+     ],
+     "size": [
+      122,
+      112
+     ],
+     "use": "not used yet",
+     "used": false
+    }
+   ]
+  },
+  {
+   "file": "catbot_sheet.png",
+   "title": "The cat-bot: patrol walk, alert, chase run, shorted out",
+   "source": "ChatGPT",
+   "size": [
+    1536,
+    1024
+   ],
+   "frames": [
+    {
+     "file": "frames/cat_walk1.png",
+     "name": "cat walk1",
+     "box": [
+      200,
+      62,
+      440,
+      230
+     ],
+     "size": [
+      218,
+      144
+     ],
+     "use": "cat-bot on patrol",
+     "used": true
+    },
+    {
+     "file": "frames/cat_walk2.png",
+     "name": "cat walk2",
+     "box": [
+      500,
+      62,
+      735,
+      230
+     ],
+     "size": [
+      214,
+      145
+     ],
+     "use": "cat-bot on patrol",
+     "used": true
+    },
+    {
+     "file": "frames/cat_walk3.png",
+     "name": "cat walk3",
+     "box": [
+      790,
+      62,
+      1040,
+      232
+     ],
+     "size": [
+      229,
+      149
+     ],
+     "use": "cat-bot on patrol",
+     "used": true
+    },
+    {
+     "file": "frames/cat_walk4.png",
+     "name": "cat walk4",
+     "box": [
+      1092,
+      60,
+      1348,
+      230
+     ],
+     "size": [
+      236,
+      149
+     ],
+     "use": "cat-bot on patrol",
+     "used": true
+    },
+    {
+     "file": "frames/cat_alert1.png",
+     "name": "cat alert1",
+     "box": [
+      495,
+      292,
+      698,
+      470
+     ],
+     "size": [
+      191,
+      156
+     ],
+     "use": "cat-bot spotting the mouse",
+     "used": true
+    },
+    {
+     "file": "frames/cat_alert2.png",
+     "name": "cat alert2",
+     "box": [
+      806,
+      292,
+      1000,
+      470
+     ],
+     "size": [
+      181,
+      156
+     ],
+     "use": "cat-bot spotting the mouse",
+     "used": true
+    },
+    {
+     "file": "frames/cat_run1.png",
+     "name": "cat run1",
+     "box": [
+      110,
+      535,
+      382,
+      686
+     ],
+     "size": [
+      250,
+      130
+     ],
+     "use": "cat-bot chasing",
+     "used": true
+    },
+    {
+     "file": "frames/cat_run2.png",
+     "name": "cat run2",
+     "box": [
+      444,
+      535,
+      714,
+      676
+     ],
+     "size": [
+      248,
+      118
+     ],
+     "use": "cat-bot chasing",
+     "used": true
+    },
+    {
+     "file": "frames/cat_run3.png",
+     "name": "cat run3",
+     "box": [
+      782,
+      535,
+      1060,
+      688
+     ],
+     "size": [
+      259,
+      129
+     ],
+     "use": "cat-bot chasing",
+     "used": true
+    },
+    {
+     "file": "frames/cat_run4.png",
+     "name": "cat run4",
+     "box": [
+      1138,
+      540,
+      1407,
+      686
+     ],
+     "size": [
+      248,
+      122
+     ],
+     "use": "cat-bot chasing",
+     "used": true
+    },
+    {
+     "file": "frames/cat_down1.png",
+     "name": "cat down1",
+     "box": [
+      470,
+      736,
+      703,
+      924
+     ],
+     "size": [
+      214,
+      168
+     ],
+     "use": "shorted cat-bot, sparking",
+     "used": true
+    },
+    {
+     "file": "frames/cat_down2.png",
+     "name": "cat down2",
+     "box": [
+      766,
+      760,
+      1046,
+      926
+     ],
+     "size": [
+      260,
+      145
+     ],
+     "use": "shorted cat-bot, the wreck",
+     "used": true
+    }
+   ]
+  },
+  {
+   "file": "objects_sheet.jpg",
+   "title": "Objects: checkpoint, the great cheese, lamps, alarm beacon, hatches, ladder, lift",
+   "source": "Gemini",
+   "size": [
+    1264,
+    843
+   ],
+   "frames": [
+    {
+     "file": "frames/check_off.png",
+     "name": "check off",
+     "box": [
+      60,
+      30,
+      200,
+      320
+     ],
+     "size": [
+      126,
+      276
+     ],
+     "use": "checkpoint, not reached yet",
+     "used": true
+    },
+    {
+     "file": "frames/check_on.png",
+     "name": "check on",
+     "box": [
+      240,
+      22,
+      410,
+      320
+     ],
+     "size": [
+      130,
+      274
+     ],
+     "use": "checkpoint, reached",
+     "used": true
+    },
+    {
+     "file": "frames/goal.png",
+     "name": "goal",
+     "box": [
+      495,
+      36,
+      770,
+      330
+     ],
+     "size": [
+      260,
+      278
+     ],
+     "use": "the great cheese (the goal)",
+     "used": true
+    },
+    {
+     "file": "frames/lamp_off.png",
+     "name": "lamp off",
+     "box": [
+      36,
+      412,
+      290,
+      476
+     ],
+     "size": [
+      237,
+      43
+     ],
+     "use": "ceiling lamp, off",
+     "used": true
+    },
+    {
+     "file": "frames/lamp_on.png",
+     "name": "lamp on",
+     "box": [
+      328,
+      400,
+      592,
+      474
+     ],
+     "size": [
+      236,
+      59
+     ],
+     "use": "ceiling lamp, on",
+     "used": true
+    },
+    {
+     "file": "frames/alarm1.png",
+     "name": "alarm1",
+     "box": [
+      730,
+      388,
+      862,
+      546
+     ],
+     "size": [
+      116,
+      141
+     ],
+     "use": "alarm beacon, turning",
+     "used": true
+    },
+    {
+     "file": "frames/alarm2.png",
+     "name": "alarm2",
+     "box": [
+      1025,
+      388,
+      1156,
+      546
+     ],
+     "size": [
+      115,
+      141
+     ],
+     "use": "alarm beacon, turning",
+     "used": true
+    },
+    {
+     "file": "frames/prop_hatch.png",
+     "name": "prop hatch",
+     "box": [
+      40,
+      610,
+      244,
+      816
+     ],
+     "size": [
+      189,
+      191
+     ],
+     "use": "prop: map tile \"d\"",
+     "used": true
+    },
+    {
+     "file": "frames/prop_open_hatch.png",
+     "name": "prop open hatch",
+     "box": [
+      546,
+      610,
+      750,
+      816
+     ],
+     "size": [
+      189,
+      189
+     ],
+     "use": "prop: map tile \"e\"",
+     "used": true
+    },
+    {
+     "file": "frames/lamp_off_2.png",
+     "name": "lamp off 2",
+     "box": [
+      944,
+      64,
+      1202,
+      122
+     ],
+     "size": [
+      244,
+      42
+     ],
+     "use": "not used: the same lamp drawn again",
+     "used": false
+    },
+    {
+     "file": "frames/lamp_on_2.png",
+     "name": "lamp on 2",
+     "box": [
+      942,
+      180,
+      1202,
+      290
+     ],
+     "size": [
+      243,
+      87
+     ],
+     "use": "not used: the same lamp drawn again",
+     "used": false
+    },
+    {
+     "file": "frames/hatch_half_open.png",
+     "name": "hatch half open",
+     "box": [
+      291,
+      613,
+      494,
+      816
+     ],
+     "size": [
+      190,
+      191
+     ],
+     "use": "not used yet: a door that opens needs a switch or a key",
+     "used": false
+    },
+    {
+     "file": "frames/ladder.png",
+     "name": "ladder",
+     "box": [
+      853,
+      613,
+      929,
+      824
+     ],
+     "size": [
+      64,
+      197
+     ],
+     "use": "not used yet: needs climbing",
+     "used": false
+    },
+    {
+     "file": "frames/lift.png",
+     "name": "lift",
+     "box": [
+      990,
+      606,
+      1206,
+      822
+     ],
+     "size": [
+      203,
+      204
+     ],
+     "use": "not used yet: needs moving platforms",
+     "used": false
+    }
+   ]
+  }
+ ]
+}

@@ -427,6 +427,23 @@ text spacing.
   clears the sector (`atGoal`, shared by the game and the reach search). The `GREAT` material is gone.
 - The ladder and the lift wait for climbing and moving platforms in the engine (ROADMAP).
 
+## 18. Reference art: every original kept, and an ART page (Claude Code, 2026-10-16)
+
+> "I want you to save all the "original" frames you processed and traced, so I can see them on the project as reference
+> material. That must be the case for all graphical materials I give you that you process and make ready to convert to ASCII."
+
+- **The rule** (CLAUDE.md, the pixel-art skill): an image the owner gives goes into `games/<id>/ref/` untouched, and every
+  drawing cut, traced or cropped from it is saved at its original pixels in `ref/frames/`, used in the game or not, listed in
+  `ref/ref.json` (the sheet, the drawing's box on it, what the game uses it for) and `ref/README.md`.
+- **Space Mouse**: `tools/art.py` now keeps all 91 drawings on its four sheets, including the 40 the game does not use: the
+  three station layouts, the other cheese wedges, the pickup, crate and door, more props, the tiles and platforms, ladders,
+  decorations, three more mouse poses, a second lamp, the half-open hatch, the ladder and the lift. Regolith's lander image
+  is listed too.
+- **The ART page** (`/art/?game=<id>`, an ART button on the game list and in the editor): each sheet with a box over every
+  drawing (solid: in the game, dashed: not yet; pointing at one lights its drawing), and the drawings at their own pixels with
+  their names, sizes, boxes and uses; filters for all, in the game, not used yet. The build copies `ref/` to the site
+  (`games.json` says how many sheets and drawings each game has). `tests/node/ref.test.mjs` fails if an image is not listed.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

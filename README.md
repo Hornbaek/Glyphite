@@ -62,7 +62,8 @@ Every game has an **EDIT** page with three tabs:
 - [docs/DEPLOY.md](docs/DEPLOY.md): Cloudflare setup (Worker, custom domain, Access login, CI deploy).
 - [docs/IDEAS.md](docs/IDEAS.md): the idea bank, every feature the engine could have (inspiration, not a plan). On the site
   it is the **Idea bank** page, where you star ideas and set a status on each (stored in Cloudflare D1). The
-  **What's new** page (built from [docs/HISTORY.md](docs/HISTORY.md)) lists what changed and when.
+  **What's new** page (built from [docs/HISTORY.md](docs/HISTORY.md)) lists what changed and when, and each game's **ART** page
+  shows the original art its sprites were made from (every image given, every drawing cut from it).
 - [docs/HISTORY.md](docs/HISTORY.md), [docs/LESSONS.md](docs/LESSONS.md), [docs/ROADMAP.md](docs/ROADMAP.md),
   [docs/TESTING.md](docs/TESTING.md).
 - Skills in `.claude/skills/`: `glyphite-new-game`, `glyphite-verify`, `glyphite-pixel-art-to-ascii`.

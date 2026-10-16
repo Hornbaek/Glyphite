@@ -522,7 +522,8 @@ iframe, so a check runs on the editor's thread: the page waits for it (a second 
    line back into a source file and line.
 4. Syntax-checks each script with `vm.Script` and reports errors against the source file.
 5. Writes the site to `dist/`: the portal (`portal/`), `games/<id>/index.html` + `game.json` +
-   `thumb.png`, `src/` (engine and game sources for the editor), `assets/assemble.mjs`, `games.json`
+   `thumb.png`, `ref/` (the game's reference art and its `ref.json`, for the ART page), `src/` (engine and game sources
+   for the editor), `assets/assemble.mjs`, `games.json`
    (the listing, with each game's last git change date), `ideas/ideas.json` (the idea bank) and `changes.json`
    (`tools/changes.mjs`: the numbered sections of `docs/HISTORY.md` — the request quoted, what was done — plus the
    merged pull requests read from `git log --first-parent`, best effort, for the What's new page).
@@ -536,7 +537,9 @@ the sources from `src/`, keeps edits as drafts in `localStorage`, rebuilds the p
 the same `assemble.mjs` (an `iframe` `srcdoc`, with an error reporter injected on the `<head>` line so
 line numbers still map), sends live tunable changes with `postMessage`, and turns edits into a prompt plus
 a unified diff (`assets/diff.mjs`) for a Claude Code session. CodeMirror 5 is vendored in
-`portal/vendor/codemirror/`. `ideas/` is the idea bank page and `whats-new/` the changelog page. The game list marks a
+`portal/vendor/codemirror/`. `ideas/` is the idea bank page and `whats-new/` the changelog page. `art/?game=<id>` shows a
+game's reference art from its `ref/ref.json`: each sheet with a box over every drawing cut from it (solid if the game uses it,
+dashed if not yet), and the drawings at their own pixels, enlarged in whole steps when small. The game list marks a
 game **updated** when its last-change date (`games.json`) is newer than the one remembered for it in `localStorage`
 (remembered the first time it is seen and again when it is opened, so a new visitor sees no badges), and the What's new button
 says **new** until that page has been opened for the latest section.
