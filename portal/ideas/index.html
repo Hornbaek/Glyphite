@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Glyphite Idea Bank</title>
-<meta name="description" content="Everything the Glyphite engine could have: star ideas and set a status on them.">
+<meta name="description" content="Everything the Glyphite engine could have: star ideas, set a status on them, and mark the ones to have explained.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap">
@@ -22,7 +22,8 @@
     <h1>Idea bank</h1>
     <p class="lede">Everything the engine could have, from one-glyph polish to moonshots. <b>Star</b> the ones you like and set a
       <b>status</b>: a Claude Code session reads the same list, so <em>Planned</em> means "pick this up next" and a session
-      sets <em>Building</em> and <em>Shipped</em> as it works. Changes save at once.</p>
+      sets <em>Building</em> and <em>Shipped</em> as it works. Not sure what an idea means? Press its <b>[?]</b>: the next time
+      you ask a session to "explain the marked ideas", it explains each one in the chat and clears the mark. Changes save at once.</p>
     <div class="stats" id="stats" aria-live="polite"></div>
     <p class="banner" id="banner" role="alert" hidden></p>
   </header>
@@ -38,6 +39,7 @@
     <div class="catbar" id="catbar" aria-label="Jump to a category"></div>
     <div class="row">
       <button class="chip star-chip" id="onlyStarred" type="button" aria-pressed="false">★ Starred only</button>
+      <button class="chip ask-chip" id="onlyAsk" type="button" aria-pressed="false">? To explain only</button>
       <span class="count" id="count" aria-live="polite"></span>
     </div>
   </div>

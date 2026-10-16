@@ -66,18 +66,27 @@ Use the **`glyphite-new-game`** skill. In short:
 
 `docs/ideas.json` is a brainstorm of everything the engine could have (1,100+ ideas: id, title, pitch, size, wildness).
 `docs/IDEAS.md` is generated from it: edit the JSON, then `node tools/ideas.mjs` (the unit tests fail if they differ).
-The site's **/ideas/** page shows the ideas and lets the owner **star** them, set a **status** and write a **note**.
-That is stored in Cloudflare D1, database `glyphite` (id `a3675d08-0fe6-43f0-989c-f3a5cdb3db39`), table `idea_state`:
-one row per idea that is starred, has a status other than `idea`, or has a note. Statuses: `idea` (default, no row),
-`planned` (the owner wants it: pick it up), `building`, `shipped`, `parked`.
+The site's **/ideas/** page shows the ideas and lets the owner **star** them, set a **status**, write a **note** and press
+**[?]** to ask a session to explain one (`ask`). That is stored in Cloudflare D1, database `glyphite` (id
+`a3675d08-0fe6-43f0-989c-f3a5cdb3db39`), table `idea_state`: one row per idea that is starred, has a status other than `idea`,
+has a note or is marked [?]. Statuses: `idea` (default, no row), `planned` (the owner wants it: pick it up), `building`,
+`shipped`, `parked`.
 
 - **Read what the owner picked**, with the D1 connector (`d1_database_query`):
-  `SELECT id, starred, status, note FROM idea_state WHERE starred = 1 OR status IN ('planned','building') ORDER BY status;`
+  `SELECT id, starred, status, note, ask FROM idea_state WHERE starred = 1 OR ask = 1 OR status IN ('planned','building') ORDER BY status;`
   then find each idea with `grep '"id": "<id>"' docs/ideas.json` (one idea per line). Ask before building a large or moonshot idea.
 - **Keep the status true as you work.** Set `building` when you start an idea and `shipped` when its pull request is
   merged, with a short note (the PR or what is left), and tell the owner. Never change `parked` or a star yourself.
   `INSERT INTO idea_state (id, status, note, updated_at, updated_by) VALUES (?, 'building', ?, ?, 'claude-session')
   ON CONFLICT(id) DO UPDATE SET status = excluded.status, note = excluded.note, updated_at = excluded.updated_at, updated_by = excluded.updated_by;`
+- **Explain the ideas marked [?]** when the owner asks (e.g. "explain the marked ideas"):
+  `SELECT id, note FROM idea_state WHERE ask = 1;`, find each in `docs/ideas.json`, and explain it in the chat, one by one:
+  what it is in plain words, how it would work in Glyphite (which engine parts, which game it would show off), what it would
+  take (its size), and what could go wrong; answer the owner's note if there is one. Then clear the mark, and the row if
+  nothing else is left in it:
+  `UPDATE idea_state SET ask = 0, updated_at = ?, updated_by = 'claude-session' WHERE id = ?;`
+  `DELETE FROM idea_state WHERE id = ? AND starred = 0 AND status = 'idea' AND note = '' AND ask = 0;`
+  Mention any marked ideas when you start other idea bank work.
 - **Schema changes** are numbered files in `migrations/`. Apply a new one to the real database through the connector (and
   record it: `INSERT INTO d1_migrations (name) VALUES ('0002_x.sql')`), then merge; `npm run dev` applies them to the local one.
 - When an idea becomes real work, also move it into `docs/ROADMAP.md` (the plan) and note it in `docs/HISTORY.md`.

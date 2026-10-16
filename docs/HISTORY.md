@@ -475,6 +475,18 @@ text spacing.
   out the engine as it grows"), each card carries a TEST GAME · WORK IN PROGRESS tag, its controls and a PLAY button, and
   the main buttons point to the games instead of the login (LOG IN stays in the top bar, for the editor and the idea bank).
 
+## 21. Ask Claude to explain an idea (Claude Code, 2026-10-16)
+
+> "Some ideas I feel need more explanation. When I read those, I need to be able to mark them to ask you to elaborate on
+> them here."
+
+- **[?] on every idea** (`/ideas/`): next to the star, it marks the idea for a Claude session to explain. A marked card gets
+  a gold line along its foot, the console has a "? To explain only" filter, and the counts say how many are waiting.
+- **Stored with the rest** in D1: a new `ask` column (`migrations/0002_idea_ask.sql`), read and written by the API like the
+  star (`worker/ideas.js`); an idea that is only marked keeps its row until the mark is cleared.
+- **What a session does** (`CLAUDE.md`, "The idea bank"): asked to explain the marked ideas, it reads them from D1, explains
+  each in the chat (what it is, how it would work in Glyphite, what it would take, what could go wrong) and clears the mark.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |
