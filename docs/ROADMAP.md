@@ -55,9 +55,15 @@ Site batch: *What's-new page built from HISTORY.md* (`tools/changes.mjs`, `/what
 *A Glyphite micro-game as the 404 page* (`games/notfound`, served by the Worker for missing pages) and *Auto-pick the most
 interesting thumbnail frame* (`tools/thumbnail.py --auto`).
 
+Platformer batch (engine 0.5.0, with the second game, Space Mouse): *Platformer character controller kit* (`Character`:
+coyote time, jump buffer, variable height, step-up, wall slide and jump, one-way floors, standing on chunks), *Back wall that
+catches offset shadows* (`backCells`, `setBackdrop`; the shadows use one fixed direction, not each light's), *Light flicker
+and pulse presets* (`flicker` on any light, `flickerAt`, `Sfx.buzz`), plus `drawSprite(..., { flip })` and `checkSupport`.
+
 ## Phase 3, still open: sprites and assets
 
-1. **Animation frames:** several `rows` arrays per sprite, chosen per draw call.
+1. **Animation frames:** done the simple way (one sprite per frame, `flip` for the other direction); a sprite with several
+   frames built in would save the boilerplate.
 2. **Level and map import:** a tool that turns a PNG with a colour key into voxel materials, for
    hand-made levels.
 3. **Sun from any side:** `setSun` only lights from the left (the sweep walks columns left to right);
@@ -77,13 +83,19 @@ interesting thumbnail frame* (`tools/thumbnail.py --auto`).
 ## Phase 4: prove it with more games
 
 Build at least one more small game on the engine to check that it is game-agnostic:
-- a side-view platformer with a walking sprite;
+- ~~a side-view platformer with a walking sprite~~: **Space Mouse** (2026-10-16). It needed, and got, general engine
+  features: `Character`, the back wall, `oneWay`, sprite `flip`, light flicker, `checkSupport`. Follow-ups it exposed:
+  - **Climbable, liquid and hazard flags** (the rest of the idea bank's material-flags idea): ladders, water, spikes as
+    plain materials. Space Mouse keeps its hazards in a game table for now.
+  - **Moving platforms and lifts** (kinematic chunks that carry characters): a Character stands on a falling chunk but is
+    not carried sideways by one.
+  - **Back-wall shadows per light**, instead of one fixed direction.
+  - **A walking-game starter**, or a `--kit platformer` option for `glyphite.mjs new`, so the next platformer starts from
+    Space Mouse's pieces (tile maps, the reach search) rather than the flying starter.
 - a falling-sand sandbox;
 - or a top-down game (gravity 0, no sun).
 
-Each new game should need no engine edits. Every engine edit it forces goes on this roadmap. The
-starter (Cave Drone) already runs without a sun, at a different gravity, with its own materials,
-sprite and particle type; a full game is the real test.
+Each new game should need no engine edits. Every engine edit it forces goes on this roadmap.
 
 ## Phase 5: quality and performance
 

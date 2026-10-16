@@ -86,7 +86,9 @@ function gatherLights(t) {
   _lights.length = 0;
   if (GAME.lights) GAME.lights(t, _lights);
   const S = RES;
-  for (const l of FX.lights) { const u = l.age / l.life; _lights.push({ x: l.x, y: l.y, r: Math.min(48 * S, l.r), c: l.c, I: l.I * (1 - u) * (1 - u), shadow: l.shadow }); }
+  for (const l of FX.lights) { const u = l.age / l.life; _lights.push({ x: l.x, y: l.y, r: Math.min(48 * S, l.r), c: l.c, I: l.I * (1 - u) * (1 - u), shadow: l.shadow, flicker: l.flicker, seed: l.seed }); }
+  // flickering lights get a copy with this moment's intensity (games may push the same object every frame)
+  for (let i = 0; i < _lights.length; i++) { const L = _lights[i]; if (L.flicker) _lights[i] = { ...L, I: L.I * flickerAt(L.flicker, t, L.seed || 0), flicker: null }; }
   return _lights;
 }
 function drawToast() {
@@ -182,7 +184,7 @@ function boot(data) {
 // ---------- the public object: run a game, and drive it from tests ----------
 const _engineUpdate = update;
 const Glyphite = {
-  version: '0.4.0',
+  version: '0.5.0',
   run(game) {
     GAME = game;
     window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});

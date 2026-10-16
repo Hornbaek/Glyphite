@@ -12,6 +12,7 @@ them, and open any of them in a web editor.
 | Game | |
 |---|---|
 | [Regolith Lander](games/regolith/) | Land on the pads at eight lunar sites, blast rock for He-3, bring structures down. The engine's first and reference game. |
+| [Space Mouse](games/spacemouse/) | A platformer: a mouse in a space suit crosses a dark, abandoned station looking for cheese. Eat through cheese, stomp cat-bots, ride a falling gantry, spacewalk in low gravity. The walking reference (engine `Character`, back walls). |
 
 New games start from `templates/starter/` (Cave Drone): `node tools/glyphite.mjs new <id> --title "…"`.
 

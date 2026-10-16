@@ -21,7 +21,14 @@ pick sensible defaults for the rest and say which.
 Map it onto the engine before writing code:
 - **World** → materials (`defineMaterial`) + a generator that fills `cells` (`worldInit`, noise helpers,
   `settleIslands`). Do things fall and break? (`granular`, `STRUCTURES`, `anchor`, `worldMaterials`).
-- **Actors** → `Body` with a hull (from `spriteHull` or traced), drawn with `drawSprite` or glyph by glyph.
+- **Actors** → `Body` with a hull (from `spriteHull` or traced) for things that fly, tumble and crash; a `Character` for
+  anything that walks and jumps (platformer heroes, patrolling enemies: coyote time, jump buffer, step-up, wall jumps,
+  one-way floors are built in). Draw them with `drawSprite` (`flip` for facing left, one sprite per animation frame) or
+  glyph by glyph. `games/spacemouse/` is the walking reference.
+- **Hand-made levels** → a tile map in a JS string (one character per 4 × 4 base-unit tile, the smallest square that is whole
+  rows at every RES), built into cells and the back wall (`backCells`) per detail level, like `games/spacemouse/station.js`.
+  Prove every map can be finished with a search over standing spots using the real controller (copy
+  `games/spacemouse/tests/reach.py`): it finds the jumps that are a tile too far before a player does.
 - **Effects** → `explode`, built-in particles, `defineParticle` for pickups and the like, lights.
 - **Gravity / sun** → `setGravity` (0 for top-down), `setSun(null)` for caves or indoors, `setAmbient`.
 - **Anything the engine lacks** → add it to the engine as a *general* feature (with API.md and ROADMAP

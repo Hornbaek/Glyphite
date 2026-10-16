@@ -20,6 +20,7 @@
 //   shift  [dx1, dy1, dx2, dy2, ...]: each part's offset in units, in the sprite's frame
 //   foot   units below the origin that snap to a row boundary (feet stand right on the ground)
 //   light  false: fixed colours; default: lit by the scene, but never dark
+//   flip   true: mirrored left to right in its own frame (a character facing the other way)
 // markSpriteDyn(spr, x, y, a, o) → top row; marks the covered cells as dynamic shadow casters.
 const SPR_SX = 3, SPR_SY = 6, SPR_N = SPR_SX * SPR_SY;
 const SPR_EDGE = ".,'`-_=:;|/\\()[]<>^v+~\"!*", SPR_DENSE = 10;   // edge glyphs; from this many painted samples a cell is solid
@@ -92,13 +93,13 @@ function spriteBox(spr, x, y, o) {
 const _sprL = [0, 0, 0];
 function drawSprite(spr, x, y, a, o = {}) {
   if (!SPR_SHAPES) SPR_SHAPES = spriteShapes();
-  const sh = o.shift || _sprNoShift, [bx, by, x0, y0, x1, y1] = spriteBox(spr, x, y, o), c = Math.cos(a), s = Math.sin(a);
+  const sh = o.shift || _sprNoShift, [bx, by, x0, y0, x1, y1] = spriteBox(spr, x, y, o), c = Math.cos(a), s = Math.sin(a), fl = o.flip ? -1 : 1;
   const V = spr.V, hist = spr.hist, shapes = SPR_SHAPES, inkPal = spr.inkPal, outPal = spr.outlinePal, lit = o.light !== false;
   for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {
     let occ = 0, ink = 0, r = 0, g = 0, bl = 0; hist.fill(0);
     for (let j = 0; j < SPR_SY; j++) for (let i = 0; i < SPR_SX; i++) {
       const k = j * SPR_SX + i, wx = cx + (i + .5) / SPR_SX - bx, wy = (cy + (j + .5) / SPR_SY) * ASPECT - by;
-      const px = spritePixel(spr, wx * c + wy * s, -wx * s + wy * c, sh);
+      const px = spritePixel(spr, (wx * c + wy * s) * fl, -wx * s + wy * c, sh);
       V[k] = 0; if (px < 0) continue;
       occ++; if (!spr.paint[px]) continue;
       const p = spr.idx[px]; V[k] = 1; ink++; hist[p]++; const q = spr.lin[p]; r += q[0]; g += q[1]; bl += q[2];
@@ -129,10 +130,10 @@ function drawSprite(spr, x, y, a, o = {}) {
 
 // cells the sprite covers, for shadows and lighting
 function markSpriteDyn(spr, x, y, a, o = {}) {
-  const sh = o.shift || _sprNoShift, [bx, by, x0, y0, x1, y1] = spriteBox(spr, x, y, o), c = Math.cos(a), s = Math.sin(a); let top = 1e9;
+  const sh = o.shift || _sprNoShift, [bx, by, x0, y0, x1, y1] = spriteBox(spr, x, y, o), c = Math.cos(a), s = Math.sin(a), fl = o.flip ? -1 : 1; let top = 1e9;
   for (let cy = Math.max(0, y0); cy <= Math.min(H - 1, y1); cy++) for (let cx = Math.max(0, x0); cx <= Math.min(W - 1, x1); cx++) {
     const wx = cx + .5 - bx, wy = (cy + .5) * ASPECT - by;
-    if (spritePixel(spr, wx * c + wy * s, -wx * s + wy * c, sh) < 0) continue;
+    if (spritePixel(spr, (wx * c + wy * s) * fl, -wx * s + wy * c, sh) < 0) continue;
     markDynCell(cy * W + cx); if (cy < top) top = cy;
   }
   return top;

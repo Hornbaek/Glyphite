@@ -153,3 +153,25 @@ way.
 - **Drum routing typo.** It sent channel 10 to the wrong lane.
 - **Block scheduling** (2048 samples, 0.16 s ahead) avoids AudioWorklet and works everywhere. Use
   smaller blocks while MIDI IN is active, for latency.
+- **Music leaks into beat tests.** Once a test starts the audio, the game's music plays, and `Beat.step` fires on its real
+  drum hits between the frames being compared. Set `Chip.playing = false` while measuring anything beat-driven.
+
+## Platformers (Space Mouse)
+
+- **Prove the levels with a search, not by eye.** `games/spacemouse/tests/reach.py` runs the real controller from every
+  standing spot. On the first pass it found five mistakes in three sectors: catwalks 4–7 tiles apart when a jump is 3.6, a
+  cable jump that bumped a low ceiling and fell short, a crate wall in front of the goal. Run it after every map edit.
+- **Model running jumps.** A search that only jumps from a standstill under-reaches; players run up to a gap.
+- **Tiles must be whole rows at every detail level.** A cell is 2 units tall, so a square tile of T base units is T·RES/2
+  rows: T = 4 is the smallest that is a whole number at RES 1, 1.5, 2, 2.5 and 3.
+- **Anything floating breaks off at the next structural check.** Catwalks hanging in mid-room fell the first time a gantry
+  collapsed nearby (any `explode()` or `checkSupport()` checks a wide region). Things that are bolted in place are `anchor`.
+- **A gantry is everything joined to its brackets.** The game finds gantry decks by flood-filling deck tiles from the `B`
+  brackets; deck touching other deck would fall with it, so keep gantries separate in the map.
+- **Tests that step past a death hide it.** After 1.3 s the mouse respawns at a checkpoint, alive again; a test stepping two
+  seconds saw "alive". Stop stepping when the state changes.
+- **The back wall is dark on purpose, so signs must glow.** Painted letters on the back wall were unreadable in the gloom; the
+  game draws them as glow-in-the-dark paint (`putEmit`), and the hull uses the `deck` style so floors and walls read as solid
+  plating against the dimmer back wall.
+- **The camera trails long falls.** The engine eases the camera at a fixed rate, so a fast fall left the mouse at the bottom
+  edge; leading the target by about 0.3 s of the fall speed keeps it on screen.

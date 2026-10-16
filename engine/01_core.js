@@ -46,7 +46,7 @@ const MAT_GRAN = new Uint8Array(MAT_MAX), MAT_CREEP = new Uint8Array(MAT_MAX), M
 const MAT_SHINY = new Float32Array(MAT_MAX), MAT_FRIC = new Float32Array(MAT_MAX), MAT_DENS = new Float32Array(MAT_MAX);
 const MAT_BRITTLE = new Uint8Array(MAT_MAX), MAT_ANCHOR = new Uint8Array(MAT_MAX), MAT_STYLE = new Uint8Array(MAT_MAX);
 const MAT_DEBRIS = new Uint8Array(MAT_MAX), MAT_SUBL = new Float32Array(MAT_MAX), MAT_VAPOR = new Uint8Array(MAT_MAX);
-const MAT_FUSE = new Uint8Array(MAT_MAX), MAT_FUSEP = new Float32Array(MAT_MAX), MAT_EJECT = new Uint8Array(MAT_MAX);
+const MAT_FUSE = new Uint8Array(MAT_MAX), MAT_FUSEP = new Float32Array(MAT_MAX), MAT_EJECT = new Uint8Array(MAT_MAX), MAT_ONEWAY = new Uint8Array(MAT_MAX);
 const STYLE = { terrain: 0, deck: 1, mast: 2, crystal: 3, flat: 4 };
 const MAT_DEFAULTS = {
   albedo: [.6, .6, .6],     // surface colour under white light
@@ -59,6 +59,8 @@ const MAT_DEFAULTS = {
   density: 1,               // relative density when part of a falling chunk
   brittle: true,            // chips apart on hard impacts (false: bends and bounces, like steel)
   anchor: false,            // never falls: supports any structure touching it
+  oneWay: false,            // characters land on it from above, jump up through it and drop down through it (Character);
+                            // to everything else (sand, particles, light, chunks) it is solid
   style: 'terrain',         // 'terrain' | 'deck' | 'mast' | 'crystal' | 'flat' (see renderScene)
   grainGlyphs: ".,'`:",     // glyphs for its flying grains
   debris: false,            // its grains fly as heavier, bouncier debris
@@ -85,7 +87,7 @@ function applyMaterial(m) {
   MAT_GLOWS[id] = m.glow; MAT_PULSE[id] = m.pulse || [.2, .9, .75]; MAT_BEATGLOW[id] = m.beatGlow;
   RAMP_CODES[id] = Array.from(m.ramp, c => c.charCodeAt(0));
   MAT_GRAN[id] = m.granular ? 1 : 0; MAT_CREEP[id] = m.creep ? 1 : 0; MAT_TOUGH[id] = m.tough; MAT_SHINY[id] = m.shiny;
-  MAT_FRIC[id] = m.friction; MAT_DENS[id] = m.density; MAT_BRITTLE[id] = m.brittle ? 1 : 0; MAT_ANCHOR[id] = m.anchor ? 1 : 0;
+  MAT_FRIC[id] = m.friction; MAT_DENS[id] = m.density; MAT_BRITTLE[id] = m.brittle ? 1 : 0; MAT_ANCHOR[id] = m.anchor ? 1 : 0; MAT_ONEWAY[id] = m.oneWay ? 1 : 0;
   MAT_STYLE[id] = STYLE[m.style]; MAT_DEBRIS[id] = m.debris ? 1 : 0; MAT_SUBL[id] = m.sublimate; MAT_VAPOR[id] = m.vaporize ? 1 : 0;
   MAT_FUSE[id] = m.fuseTo; MAT_FUSEP[id] = m.fuseChance; MAT_EJECT[id] = m.ejecta || (m.granular ? id : 0);
 }
@@ -97,10 +99,11 @@ const ejectaOf = m => MAT_EJECT[m] || RUBBLE_MAT;
 const crumbOf = m => MAT_GRAN[m] ? m : RUBBLE_MAT;
 
 // ---------- world grid ----------
-let W = 0, H = 0, cells = null, heat = null, vari = null, dyn = null, awake = null;
+let W = 0, H = 0, cells = null, heat = null, vari = null, dyn = null, awake = null, backCells = null;
 const CS = 16; let CWn = 0, CHn = 0, frameNo = 0;
 function worldInit(w, h) {
   W = w; H = h; cells = new Uint8Array(w * h); heat = new Float32Array(w * h); vari = new Uint8Array(w * h); dyn = new Uint8Array(w * h);
+  backCells = new Uint8Array(w * h);
   for (let i = 0; i < w * h; i++) vari[i] = (Math.random() * 256) | 0;
   CWn = Math.ceil(w / CS); CHn = Math.ceil(h / CS); awake = new Uint8Array(CWn * CHn);
   // a new world starts clean: no flying particles, effects, falling chunks or mounted objects
@@ -121,6 +124,19 @@ function markDynCell(i) { if (!dyn[i]) { dyn[i] = 1; dynList.push(i); } }
 function clearDyn() { for (const i of dynList) dyn[i] = 0; dynList.length = 0; }
 function setC(x, y, m) { if (x < 0 || y < 0 || x >= W || y >= H) return; const i = y * W + x; if (cells[i] === m) return; cells[i] = m; wakeAt(x, y); }
 const solidU = (xu, yu) => getC(Math.floor(xu), Math.floor(yu / ASPECT)) !== EMPTY;
+
+// ---------- the back wall: a second grid behind the world ----------
+// Walls, panels and pipes behind the rooms of a station, a house, a cave. Never solid: nothing collides with it, sand and
+// light pass it by. It is drawn wherever the world cell in front is empty, darker than the world and lit by the same light,
+// with a drop shadow where world cells stand between it and the light (setBackdrop), so rooms read as rooms. Where it is 0
+// the sky shows through: windows, hull breaches, the outdoors. Materials are the same registry as the world's; 'mast' style
+// draws seams and pipes (| = +) from its back-wall neighbours, every other style uses its ramp.
+const BACK = { dim: .42, shadow: .6, dir: [.6, .8], depth: 2.2 };
+// dim: brightness against the world; shadow: how dark the drop shadow is (0..1); dir: the way shadows fall (x, y in units,
+// default down and to the right); depth: how far they reach (base units)
+function setBackdrop(o) { Object.assign(BACK, o); }
+const getBack = (x, y) => x < 0 || y < 0 || x >= W || y >= H ? EMPTY : backCells[y * W + x];
+function setBack(x, y, m) { if (x >= 0 && y >= 0 && x < W && y < H) backCells[y * W + x] = m; }
 const matU = (xu, yu) => getC(Math.floor(xu), Math.floor(yu / ASPECT));
 
 // surface normal from local occupancy (isotropic units)

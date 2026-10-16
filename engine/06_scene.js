@@ -21,6 +21,17 @@ function adaptEye(G, n, time) {
   EYE.e += (target - EYE.e) * (1 - Math.exp(-dt / (target > EYE.e ? EYE.up : EYE.down)));
 }
 let cR, cG, cB, vig;
+// cells (dx, dy) toward the light from a back-wall cell, nearest first: a world cell there shades it
+const BK_OFF = new Int16Array(64);
+function backShadowOffsets() {
+  const d = BACK.dir, l = Math.hypot(d[0], d[1]) || 1, reach = BACK.depth * RES;
+  let n = 0, px = 0, py = 0;
+  for (let t = .7; t <= reach && n < 32; t += .7) {
+    const dx = Math.round(d[0] / l * t), dy = Math.round(d[1] / l * t / ASPECT);
+    if ((dx || dy) && (dx !== px || dy !== py)) { BK_OFF[2 * n] = dx; BK_OFF[2 * n + 1] = dy; n++; px = dx; py = dy; }
+  }
+  return n;
+}
 const _fc = [0, 0, 0], _pc = [0, 0, 0];
 // direction → line glyph: - \ | /
 function slopeGlyph(dx, dy) { let a = Math.atan2(dy, dx) * 180 / Math.PI; if (a < 0) a += 180; return a < 22.5 || a >= 157.5 ? 45 : a < 67.5 ? 92 : a < 112.5 ? 124 : 47; }
@@ -51,6 +62,7 @@ function renderScene(ox, oy, time, drawExtras) {
     for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) { const u = i / RW * 2 - 1, v = j / RH * 2 - 1; vig[j * RW + i] = 1 - .42 * (u * u * .55 + v * v * .8); }
   }
   SH.fill(0);
+  const bkN = backShadowOffsets();
   Beat.step(time);
   const bp = Beat.pulse();   // 0..1: how hard the music is hitting right now (0 when the pulse is off)
   // 1) emissive particles and hot rock pour light into the buffers
@@ -85,8 +97,18 @@ function renderScene(ox, oy, time, drawExtras) {
     const k = j * RW + i, cx = ox + i, cy = oy + j; let m = getC(cx, cy);
     const lr = LR[k], lg = LG[k], lb = LB[k];
     let glyph = 0, r = 0, g = 0, b = 0;
-    if (m === EMPTY) Z[k] = 0;
-    else {
+    if (m === EMPTY) {
+      Z[k] = 0;   // particles and rings always draw over the back wall
+      const bm = cx >= 0 && cx < W && cy >= 0 && cy < H ? backCells[cy * W + cx] : 0;
+      if (bm) {   // the back wall: the light in the air in front of it, dimmer, with a drop shadow from the world cells
+        let f = BACK.dim;
+        for (let s = 0; s < bkN; s++) if (getC(cx - BK_OFF[2 * s], cy - BK_OFF[2 * s + 1]) !== EMPTY) { f *= 1 - BACK.shadow * (1 - s / bkN); break; }
+        const alb = MAT_ALB[bm], v = vari[cy * W + cx], tv = (.86 + (v & 31) / 31 * .28) * f;
+        r = alb[0] * lr * tv; g = alb[1] * lg * tv; b = alb[2] * lb * tv;
+        if (MAT_STYLE[bm] === 2) { const vt = getBack(cx, cy - 1) === bm || getBack(cx, cy + 1) === bm, hz = getBack(cx - 1, cy) === bm || getBack(cx + 1, cy) === bm; glyph = vt && hz ? 43 : hz ? 61 : 124; }
+        else { const ramp = RAMP_CODES[bm], rl = ramp.length; glyph = ramp[clamp(((.3 * r + .59 * g + .11 * b) * rl * 1.2 + ((v & 15) / 15 - .5) * .9) | 0, 0, rl - 1)]; }
+      }
+    } else {
       if (MAT_STYLE[m] === 2 && LSURF[k] === 1) {   // buried mast footings look like the ground they're in
         const a = getC(cx - 1, cy), c = getC(cx + 1, cy), d = getC(cx, cy + 1), ok = q => q !== EMPTY && MAT_STYLE[q] !== 2;
         m = ok(a) ? a : ok(c) ? c : ok(d) ? d : m;

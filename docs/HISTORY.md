@@ -353,6 +353,26 @@ text spacing.
   candidate frames (lit area, contrast, colour, highlights, motion, particles) and keeps the best, with a contact sheet of the
   top six. Tests: `tests/node/changes.test.mjs`, `tests/node/notfound.test.mjs`, `tests/notfound.py`, `tests/thumbnail_pick.py`.
 
+## 14. Space Mouse, the second game (Claude Code, 2026-10-16)
+
+> "Go ahead with the platformer. You should play as a space mouse in an abandoned space station looking for cheese"
+
+- **The game** (`games/spacemouse`): Pip, a mouse in a space suit, crosses three sectors of a dark, abandoned station
+  (Cargo Bay, Hydroponics, Observation Deck) looking for the great cheese at the end of each. Run, variable-height jumps,
+  wall slides and wall jumps; eat through cheese walls (and cheese floors), collect crumbs, light checkpoints; stomp the
+  patrolling cat-bots (their blast cracks walls open); rusted panels crumble under the mouse, a gantry falls with it, live
+  cables and broken glass kill; a low-gravity spacewalk on the outer hull; a cheese moon in every window. The sectors are
+  hand-drawn tile maps (`sectors.js`, one character per 4 × 4 base-unit tile), so they build the same at every detail level.
+  Tunables: gravity, jump height, run speed, air control, wall jumps, cat-bot speed, station light.
+- **Engine 0.5.0**, general features the game needed, from the idea bank: the `Character` controller (*Platformer character
+  controller kit*), the back wall (*Back wall that catches offset shadows*), light `flicker` presets and `Sfx.buzz` (*Light
+  flicker and pulse presets*), material `oneWay`, `drawSprite` `flip`, `checkSupport`.
+- **Tests:** `games/spacemouse/tests/mechanics.py` (jump height and run speed match the tunables at RES 1–3, eating, rust,
+  catwalks, stomp and side catch, cables, the goal) and `games/spacemouse/tests/reach.py`, a search with the real controller
+  over every place the mouse can stand, which proves each sector can be finished with every crumb and checkpoint reachable.
+  It caught five level-design mistakes on the way (catwalks too far apart, a cable jump too tight under a low ceiling).
+  `tests/engine_audio.py` stops the music while it measures the beat glow (real drum hits made it flaky).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

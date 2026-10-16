@@ -6,7 +6,7 @@
 // as the last argument of burst() / boom(). The listener is the camera's centre unless GAME.listener() returns [x, y].
 const HEARD_NOW = { delay: 0, gain: 1, muffle: 1, m: 0 };
 const Sfx = {
-  ctx: null, master: null, noiseBuf: null, engGain: null, engFilt: null, muted: false,
+  ctx: null, master: null, noiseBuf: null, engGain: null, engFilt: null, buzzGain: null, muted: false,
   init() {
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
     try {
@@ -20,6 +20,11 @@ const Sfx = {
       this.engFilt = c.createBiquadFilter(); this.engFilt.type = 'lowpass'; this.engFilt.frequency.value = 200;
       this.engGain = c.createGain(); this.engGain.gain.value = 0;
       src.connect(this.engFilt); this.engFilt.connect(this.engGain); this.engGain.connect(this.master); src.start();
+      // mains hum for buzzing lamps and live wires: a 100 Hz sawtooth, filtered (buzz(level))
+      const hum = c.createOscillator(); hum.type = 'sawtooth'; hum.frequency.value = 100;
+      const hf = c.createBiquadFilter(); hf.type = 'bandpass'; hf.frequency.value = 400; hf.Q.value = .8;
+      this.buzzGain = c.createGain(); this.buzzGain.gain.value = 0;
+      hum.connect(hf); hf.connect(this.buzzGain); this.buzzGain.connect(this.master); hum.start();
       Chip.init(c, this.master);
       document.addEventListener('visibilitychange', () => { if (document.hidden) c.suspend(); else c.resume(); });
     } catch (e) { this.ctx = null; }
@@ -29,6 +34,8 @@ const Sfx = {
     if (!this.ctx) return; const t = this.ctx.currentTime;
     this.engGain.gain.setTargetAtTime(th * .55, t, .05); this.engFilt.frequency.setTargetAtTime(160 + th * 520, t, .05);
   },
+  // electrical buzz 0..1 (a dying tube, a live cable); set it every frame, e.g. from flickerAt() times how near it is
+  buzz(level) { if (this.buzzGain) this.buzzGain.gain.setTargetAtTime(clamp(level, 0, 1) * .09, this.ctx.currentTime, .015); },
   heard(x, y) {
     if (!(ATMOS > 0)) return HEARD_NOW;
     const l = (GAME.listener && GAME.listener()) || [cam.x + R.cols / 2, cam.y + R.rows * ASPECT / 2];
