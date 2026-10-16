@@ -60,6 +60,7 @@ Glyphite.run({
   ],
   init(data) {
     setGravity(TUNE.gravity);
+    setEyeAdaptation(TUNE.eyeAdaptation);
     setupMusicInput();
     score = data.score | 0; lives = data.lives > 0 ? data.lives : TUNE.lives;
     genLevel(data.level > 0 ? data.level : TUNE.startSite);
@@ -82,7 +83,7 @@ Glyphite.run({
   },
   skyBegin: earthBegin,
   sky: earthCell,
-  onTune(key, v) { if (key === 'gravity') setGravity(v); },
+  onTune(key, v) { if (key === 'gravity') setGravity(v); else if (key === 'atmosphere') setAtmosphere(v); else if (key === 'eyeAdaptation') setEyeAdaptation(v); },
   start() { if (state === 'title') advance(); },
   snapshot: () => ({ level: LEVEL ? LEVEL.lv : 1, score, lives, state: state === 'title' ? 'title' : 'play' }),
   probe: () => ({

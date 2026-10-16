@@ -327,6 +327,17 @@ text spacing.
 - **Sessions use the same table** through the D1 connector: `CLAUDE.md` ("The idea bank") says how to read what is
   starred or planned and how to set `building` and `shipped` as work goes on.
 
+## 13. Ideas from the idea bank, tried in Regolith Lander (Claude Code, 2026-10-16)
+
+> "I've marked some ideas from the idea bank as planned and I want to test develop them and try them out in the moonlander
+> game. Will you change status on them when you have implemented them so I can test them out?"
+
+- **Batch 1, lighting (engine 0.3.0).** From the planned ideas: *Light visibility queries for gameplay* (`sunAt`, `isLitBy`),
+  *Sun colour from airmass or kelvin* (`setSun(el, { kelvin })`, `setAtmosphere`), *Stars twinkle through air, fade near
+  lamps* and *Auto-exposure eye adaptation* (`setEyeAdaptation`). Regolith gets the tunables **Atmosphere (test)** and **Eye
+  adaptation** and `[SUN]` / `[LAMP]` warning lights. `tests/engine_light.py` checks them in both renderers. Statuses in the
+  idea bank are set to *Building* when work starts and *Shipped* when the pull request is merged and deployed.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

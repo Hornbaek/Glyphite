@@ -7,6 +7,9 @@ Three layers:
 2. **The smoke test** (`tests/smoke.py`): any game, in both renderers: loads, starts, steps with keys, survives
    detail changes, no page errors, a screenshot per renderer in `shots/`. CI runs it for every game.
 3. **Each game's own probes** in `games/<id>/tests/` (Regolith's are below).
+4. **Engine feature probes** in `tests/` (not tied to one game): `engine_light.py [2d|gl ...]` checks `sunAt` / `isLitBy`, the
+   sun's colour from an atmosphere or a blackbody, star twinkle and lamp glare, and eye adaptation, in both renderers. It
+   uses Regolith as the host game and asserts properties (redder, dimmer, steady vs. varying), not exact pixels.
 
 All browser tests drive headless Chromium with Playwright against the built pages in `dist/games/<id>/`
 (build first). Scripts find the repo root from their own path, so they run from any directory. Screenshots

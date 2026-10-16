@@ -39,6 +39,8 @@
     "blastRadius": { "label": "Rocket blast radius", "unit": "base units", "value": 6.5, "min": 2, "max": 20, "step": 0.5, "live": true, "help": "How much rock a rocket carves out (1 base unit = 0.5 m)." },
     "meteors": { "label": "Meteor showers", "unit": "× rate", "value": 1, "min": 0, "max": 5, "step": 0.1, "live": false, "help": "Multiplier on the meteor rate from site 2 on; 0 turns showers off." },
     "lives": { "label": "Landers", "unit": "per mission", "value": 3, "min": 1, "max": 9, "step": 1, "live": false, "help": "Landers per mission." },
+    "atmosphere": { "label": "Atmosphere (test)", "unit": "× Earth", "value": 0, "min": 0, "max": 1.5, "step": 0.05, "live": true, "help": "The Moon has none (0). Above 0 the stars twinkle and a low sun turns orange, as through air; the lower the sun (later sites), the redder." },
+    "eyeAdaptation": { "label": "Eye adaptation", "unit": "strength", "value": 0.5, "min": 0, "max": 1, "step": 0.05, "live": true, "help": "How far the exposure follows the scene: dark places slowly become readable, and stepping from shadow into sun dazzles for a moment. 0 = fixed exposure." },
     "startSite": { "label": "Start at site", "unit": "1-8", "value": 1, "min": 1, "max": 8, "step": 1, "live": false, "help": "Site a new mission starts on." }
   }
 }

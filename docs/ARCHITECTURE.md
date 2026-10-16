@@ -226,8 +226,9 @@ Steps in `computeLighting(ox, oy, lights, dynTop)`:
      terrain, 2 means only a dynamic body.
    - Dynamic cells (lander, boulders, chunks) stay lit behind each other but still cast shadows.
    - `SUN_L` is the direction sunlight travels; `setSun(elevationDeg)` sets it (Regolith per site) and
-     `setSun(null)` turns the sun off (caves). Colours: `SUN_C = [1.15, 1.1, 1.0]`,
-     `AMB_C = [.095, .115, .17]` (`setAmbient`).
+     `setSun(null)` turns the sun off (caves). Colours: `SUN_C` (the sun: a base colour `SUN_BASE`, dimmed per channel
+     by `exp(-AIR_TAU × ATMOS × (airmass(elevation) - 1))` when `setAtmosphere` > 0 and the colour is not pinned; the base
+     can come from `kelvinColor`), `AMB_C = [.095, .115, .17]` (`setAmbient`).
 3. **Shading:**
    - Empty cells get `AMB·0.7 + sun`.
    - Surface cells get ambient × (0.55 + 2·AO) plus sun × (0.12 + 0.88·N·L).
@@ -243,6 +244,10 @@ Steps in `computeLighting(ox, oy, lights, dynTop)`:
 5. **Flash:** a global flash adds `FX.flash`.
 
 `splatLight` adds cheap, unshadowed glow for emissive things: hot rock, fire, crystals, pickups.
+
+**Visibility queries** (`sunAt`, `isLitBy`, same file) march straight lines through `cells` with the lighting's own
+conventions (step 0.6, sun rays that start left of the world or above it are clear, a light's `skip`), so a game can ask
+about any point without reading the lit window. They ignore moving bodies; the lit window and `lightAtCell` still include them.
 
 ## 7. Rendering
 
@@ -302,12 +307,19 @@ path.
 4. Falling chunks (`drawChunks`), then game objects through the game's `draw` hook, which writes with
    `putEmit` (fixed colour), `putLit` (albedo × light) or `drawSprite`.
 5. Shock rings.
-6. Tone map `tone(c) = 1 - exp(-1.7c)` and vignette into bytes, plus the bloom bright-pass. Then
-   `renderSky(time)` rebuilds the sky layer when needed.
+6. Tone map `tone(c × E) = 1 - exp(-1.7·c·E)` and vignette into bytes, plus the bloom bright-pass. `E` is the exposure of
+   the eye adaptation (`adaptEye`): the geometric mean luminance of the visible cells is measured *before* the tone map (so
+   exposure cannot feed back into its own measurement) and `EYE.e` eases toward `key / mean` (to the power of the strength,
+   clamped), faster down than up. Then `renderSky(time)` rebuilds the sky layer when needed.
 
 The sky has stars from a hash (density `GAME.stars`) and whatever the game paints through
 `GAME.skyBegin` / `GAME.sky`. Regolith paints the Earth: an ellipse, lit from the same sun, with
 continents and clouds from fbm noise, turning slowly; its night side hides the stars behind it.
+
+The sky layer is rebuilt when it has scrolled a whole cell, once a second, when the quantised exposure changes, and, when
+something needs it, about 5-8 times a second: stars twinkle (an atmosphere: a per-star sine) and are dimmed by *light
+pollution* (the frame's light minus sun and ambient, from `LR/LG/LB` at the same screen cell; `GAME.starGlare`). A rebuild
+costs about 1 ms at RES 2.
 
 ## 8. Sprites (`engine/10_sprite.js`)
 

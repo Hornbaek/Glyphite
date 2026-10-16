@@ -137,6 +137,11 @@ function drawWorldLabels() {
     hudText(_h[0] - (tx.text.length >> 1), _h[1], tx.text, [tx.c[0] * f, tx.c[1] * f, tx.c[2] * f]);
   }
 }
+// is a floodlamp's beam on this point? (the engine's visibility query, with each lamp's own cone and shadows)
+function lampLit(x, y) {
+  for (const lp of LEVEL.lamps) if (!lp.dead && isLitBy({ x: lp.x, y: lp.y, r: lp.r, I: lp.I, shadow: true, dx: lp.dx, dy: lp.dy, cos: lp.cos }, x, y) > .08) return true;
+  return false;
+}
 function drawHUD(t) {
   if (state === 'title') { drawTitle(t); return; }
   drawWorldLabels();
@@ -163,10 +168,12 @@ function drawHUD(t) {
     ['FUEL', fuel < .2 && blink],
     ['CONTACT', L.alive && (b.feetDown > 0 || L.legs[0].touch || L.legs[1].touch)],
     ['1202', perfAvg > 30],
-    ['METEOR', shower && blink]
+    ['METEOR', shower && blink],
+    ['SUN', L.alive && sunAt(b.x, b.y)],
+    ['LAMP', L.alive && lampLit(b.x, b.y)]
   ];
   let c = 1;
-  for (const [name, lit] of lamps) { const s = `[${name}]`; if (c + s.length > HCOL - 1) { row++; c = 1; } hudText(c, row, s, lit ? (name === 'CONTACT' ? HC.cyan : HC.amber) : HC.dim); c += s.length + 1; }
+  for (const [name, lit] of lamps) { const s = `[${name}]`; if (c + s.length > HCOL - 1) { row++; c = 1; } hudText(c, row, s, lit ? (name === 'CONTACT' || name === 'LAMP' ? HC.cyan : name === 'SUN' ? HC.gold : HC.amber) : HC.dim); c += s.length + 1; }
   row += 2;
   // pads beyond the edge of the screen
   for (const p of LEVEL.pads) {

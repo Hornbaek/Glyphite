@@ -17,6 +17,13 @@ lunar sites; blast basalt for He-3; bring lamp posts and the x3 roof down.
 | `music.js` | the music director, MIDI file loading and MIDI IN, chip meters |
 | `main.js` | states, keys, camera, and the hooks handed to `Glyphite.run` |
 
+## Light features to try (engine 0.3.0)
+Two tunables in the editor, both live: **Atmosphere (test)** (0 = the real Moon; above 0 the stars twinkle and a low sun turns
+orange, redder at the later, lower-sun sites) and **Eye adaptation** (0.5 by default: dark places slowly become readable,
+stepping from shadow into sun dazzles for a moment; 0 = fixed exposure). Stars near a lamp, a beacon or an explosion are
+dimmed by their light. The warning row has two new lights: **[SUN]** (the sun reaches the lander, `sunAt`) and **[LAMP]**
+(a floodlamp's beam is on it, `isLitBy`).
+
 ## Physics to keep
 Touchdowns up to 3.5 m/s land, from 4.5 m/s the gear collapses (`tests/dbg_legs.py 1|2|3`); the lander fits under
 the x3 roof at every detail level (`tests/check_x3_clearance.py`); generated levels have no floating islands

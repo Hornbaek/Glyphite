@@ -182,7 +182,7 @@ function boot(data) {
 // ---------- the public object: run a game, and drive it from tests ----------
 const _engineUpdate = update;
 const Glyphite = {
-  version: '0.2.0',
+  version: '0.3.0',
   run(game) {
     GAME = game;
     window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});

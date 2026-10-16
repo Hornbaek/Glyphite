@@ -7,12 +7,37 @@ const SUN_L = (() => { const x = 1, y = .5, l = Math.hypot(x, y); return [x / l,
 const SUN_C = [1.15, 1.1, 1.0];
 const AMB_C = [.095, .115, .17];
 let SUN_ON = true;
-// elevation in degrees above the horizon, light coming from the left (1..89); null = no sun (caves, indoors)
+// The sun's colour is a base colour dimmed by the air it crosses: with an atmosphere (setAtmosphere) a low sun
+// is orange and then red by itself, from exp(-scatter × airmass) per channel, so no sunset palette is needed.
+// Rayleigh scattering takes blue three times as fast as red.
+let SUN_EL = 45, SUN_BASE = [1.15, 1.1, 1.0], SUN_FIXED = false, ATMOS = 0;
+const AIR_TAU = [.05, .12, .28];   // optical depth per channel looking straight up through an Earth-like atmosphere
+const airmass = el => 1 / (Math.sin(el * Math.PI / 180) + .50572 * Math.pow(el + 6.07995, -1.6364));   // Kasten & Young, el in degrees
+// blackbody colour for a temperature in kelvin (Tanner Helland's fit, 1000..40000 K), scaled so the strongest channel is `peak`
+function kelvinColor(K, peak = 1.15) {
+  const t = clamp(K, 1000, 40000) / 100;
+  const r = t <= 66 ? 255 : 329.698727446 * Math.pow(t - 60, -.1332047592);
+  const g = t <= 66 ? 99.4708025861 * Math.log(t) - 161.1195681661 : 288.1221695283 * Math.pow(t - 60, -.0755148492);
+  const b = t >= 66 ? 255 : t <= 19 ? 0 : 138.5177312231 * Math.log(t - 10) - 305.0447927307;
+  const c = [clamp(r, 0, 255), clamp(g, 0, 255), clamp(b, 0, 255)], m = Math.max(c[0], c[1], c[2]);
+  return c.map(v => v / m * peak);
+}
+function sunTint() {
+  const k = ATMOS > 0 && !SUN_FIXED ? ATMOS * (airmass(SUN_EL) - 1) : 0;   // airmass 1 = sun overhead: the base colour
+  for (let i = 0; i < 3; i++) SUN_C[i] = SUN_BASE[i] * (k ? Math.exp(-AIR_TAU[i] * k) : 1);
+}
+// elevation in degrees above the horizon, light coming from the left (1..89); null = no sun (caves, indoors).
+// colour: [r, g, b] pins the colour; { kelvin, intensity? } sets the base from a blackbody (5772 = our sun); left out, the
+// last base colour stays. Only with an atmosphere does the colour then follow the elevation.
 function setSun(elevationDeg, color) {
   SUN_ON = elevationDeg !== null && elevationDeg !== false;
-  if (SUN_ON) { const el = clamp(elevationDeg, 1, 89) * Math.PI / 180; SUN_L[0] = Math.cos(el); SUN_L[1] = Math.sin(el); }
-  if (color) { SUN_C[0] = color[0]; SUN_C[1] = color[1]; SUN_C[2] = color[2]; }
+  if (SUN_ON) { SUN_EL = clamp(elevationDeg, 1, 89); const el = SUN_EL * Math.PI / 180; SUN_L[0] = Math.cos(el); SUN_L[1] = Math.sin(el); }
+  if (Array.isArray(color)) { SUN_BASE = [color[0], color[1], color[2]]; SUN_FIXED = true; }
+  else if (color && color.kelvin) { SUN_BASE = kelvinColor(color.kelvin, color.intensity); SUN_FIXED = false; }
+  sunTint();
 }
+// 0 = vacuum (the default); 1 = Earth-like. Reddens a low sun, makes stars twinkle, and lets sound travel (game decides).
+function setAtmosphere(thickness) { ATMOS = Math.max(0, +thickness || 0); sunTint(); }
 function setAmbient(color) { AMB_C[0] = color[0]; AMB_C[1] = color[1]; AMB_C[2] = color[2]; }
 let LMX = 8, LMY = 5, L_RW = 0, L_RH = 0, LOW = 0, LOH = 0, L_OX = 0, L_OY = 0;
 let LR, LG, LB, LSURF, LNX, LNY, LSUN, LAO, LAOD, LOCC, LSAT, LSTAMP, LSSAT, colTop, rayBuf = new Uint8Array(4096);
@@ -46,8 +71,9 @@ function occAt(cx, cy) {
   return getC(cx, cy) !== EMPTY ? 1 : 0;
 }
 
+let L_NLIGHTS = 0;
 function computeLighting(ox, oy, lights, dynTop) {
-  L_OX = ox; L_OY = oy;
+  L_OX = ox; L_OY = oy; L_NLIGHTS = lights.length;
   const RW = L_RW, RH = L_RH, OW = LOW, OH = LOH, B = LBOX;
   // 1) occupancy + summed-area table
   for (let j = 0; j < OH; j++) { const cy = oy - LMY + j; for (let i = 0; i < OW; i++) LOCC[j * OW + i] = getC(ox - LMX + i, cy) !== EMPTY ? 1 : 0; }
@@ -170,6 +196,39 @@ function addPointLight(L, ox, oy) {
       if (solid && L.shadow && t > skip) { if (!inWin || s === 1) break; depth = 0; entry = shade(kk, cx, cy, s); }
     }
   }
+}
+// ---------- visibility queries for gameplay ----------
+// Positions are body coordinates (x in cells, y in units: cell row × ASPECT). Both read the world directly, so they work
+// anywhere, not only in the lit window, and they ignore moving bodies (the lander, boulders): terrain and frozen chunks only.
+const solidAt = (cx, cy) => cx >= 0 && cx < W && cy >= 0 && cy < H && cells[cy * W + cx] !== EMPTY;
+// is the straight line from (x0, y0) to (x1, y1) free of terrain, ignoring the first `skip` units and the cell it ends in
+function lineClear(x0, y0, x1, y1, skip) {
+  const dx = x1 - x0, dy = y1 - y0, d = Math.hypot(dx, dy);
+  for (let t = skip; t < d - .7; t += .6) if (solidAt(Math.floor(x0 + dx / d * t), Math.floor((y0 + dy / d * t) / ASPECT))) return false;
+  return true;
+}
+// does the sun reach this point? (false when there is no sun)
+function sunAt(x, y) {
+  if (!SUN_ON) return false;
+  const reach = (y + 4 * ASPECT) / SUN_L[1];   // march toward the sun until above the world
+  for (let t = .6; t < reach; t += .6) {
+    const cx = Math.floor(x - SUN_L[0] * t), cy = Math.floor((y - SUN_L[1] * t) / ASPECT);
+    if (cy < 0 || cx < 0) return true;   // rays that start left of the world or above it are clear, as in the sweep
+    if (solidAt(cx, cy)) return false;
+  }
+  return true;
+}
+// how strongly does this light (an object like the ones GAME.lights pushes) reach the point? 0 = not at all; otherwise its
+// intensity there: the same falloff, cone and shadows the lighting uses (no surface-angle term)
+function isLitBy(L, x, y) {
+  const ux = L.x - x, uy = L.y - y, d = Math.hypot(ux, uy), r = L.r;
+  if (!(L.I > .01) || d >= r) return 0;
+  let att;
+  if (L.cos !== undefined) { const q = d / r; att = 1 - q * q; att *= att; if (d > .5) { const cd = -(ux * L.dx + uy * L.dy) / d; att = cd <= L.cos ? 0 : att * smooth(Math.min(1, (cd - L.cos) / (1 - L.cos) * 4)); } }
+  else { att = 1 - d / r; att *= att; }
+  if (att <= 0) return 0;
+  if (L.shadow && d > .6 && !lineClear(L.x, L.y, x, y, Math.min(d - .6, L.skip || 1.2))) return 0;
+  return att * L.I;
 }
 // cheap unshadowed glow for emissive things (flames, hot rock, crystals); rad in base cells
 function splatLight(cx, cy, r, g, b, rad) {
