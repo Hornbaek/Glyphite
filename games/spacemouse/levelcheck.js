@@ -21,7 +21,7 @@ function checkSector(n) {
     const mx = c.x, my = c.y - c.o.h / 2;
     SEC.crumbs.forEach((cr, i) => { if (!crumbs[i] && Math.abs(cr.x - mx) < 3.2 * S && Math.abs(cr.y - my) < 4.5 * S) crumbs[i] = true; });
     SEC.checkpoints.forEach((cp, i) => { if (!checks[i] && Math.abs(cp.x - c.x) < 3 * S && Math.abs(cp.y - c.y) < 4 * S) checks[i] = true; });
-    if (!goal && touching(c, m => m === GREAT)) goal = true;
+    if (!goal && atGoal(c)) goal = true;
   };
   // one try: hold dir (dir2 after `sw` steps) and jump for `hold` steps, starting at speed v0; it counts if it comes to rest alive
   const sim = (x, y, dir, dir2, sw, hold, maxN, v0 = 0) => {

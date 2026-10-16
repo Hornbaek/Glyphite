@@ -15,7 +15,7 @@ function mouseOpts() {
   };
 }
 function spawnMouse(x, y) {
-  MOUSE = { ch: new Character(x, y, mouseOpts()), alive: true, reason: '', anim: 0, biteT: 0, stepT: 0, look: 0, safeT: 0 };
+  MOUSE = { ch: new Character(x, y, mouseOpts()), alive: true, reason: '', anim: 0, biteT: 0, stepT: 0, look: 0, safeT: 0, airT: 0, top: null, landT: 0, eatT: 0, t: 0 };
   MOUSE.ch.unstick(6 * RES);
 }
 function mouseInput() {
@@ -35,7 +35,13 @@ function stepMouse(dt) {
     puff(c.x - (c.wallJumped ? c.facing * c.o.w / 2 : 0), c.y, 5, c.ground || HULL);
   }
   if (c.landed > 28 * S) { Sfx.thud(Math.min(6, c.landed / S / 12)); puff(c.x, c.y, 4 + c.landed / S / 10, c.ground); }
-  if (c.wall && inp.x === c.wall && c.vy > 0 && Math.random() < .3) spawnP(PT_DUST, c.x + c.wall * c.o.w / 2, c.y - c.o.h * .3, 0, -3 * S, .4, pick(".'"), HULL);
+  m.slide = !!(c.wall && inp.x === c.wall && c.vy > 0);
+  if (m.slide && Math.random() < .3) spawnP(PT_DUST, c.x + c.wall * c.o.w / 2, c.y - c.o.h * .3, 0, -3 * S, .4, pick(".'"), HULL);
+  // what the drawing shows: how far it has fallen from the top of its jump (a long fall tumbles), a squash after a hard
+  // landing, chewing
+  m.t += dt; m.airT = c.onGround ? 0 : m.airT + dt;
+  m.top = c.onGround ? null : m.top === null || c.vy <= 0 ? c.y : m.top;
+  m.landT = c.landed > 85 * S ? .2 : Math.max(0, m.landT - dt); m.eatT = Math.max(0, m.eatT - dt);
   // pitter-patter
   if (c.onGround && Math.abs(c.vx) > 3 * S) {
     m.anim += Math.abs(c.vx) * dt / S;
@@ -53,7 +59,7 @@ function stepMouse(dt) {
   // what the mouse touches
   const hz = touching(c, mm => HAZARD[mm]);
   if (hz) { killMouse(HAZARD[hz]); return; }
-  if (touching(c, mm => mm === GREAT)) { clearSector(); return; }
+  if (atGoal(c)) { clearSector(); return; }
   if (c.y > H * ASPECT + 4 * S) { killMouse('LOST IN THE DARK'); return; }
   const mx = c.x, my = c.y - c.o.h / 2;
   for (const cr of SEC.crumbs) if (!cr.got && Math.abs(cr.x - mx) < 3.2 * S && Math.abs(cr.y - my) < 4.5 * S) {
@@ -73,6 +79,8 @@ function touching(c, test) {
   return 0;
 }
 const nearMat = (c, mat) => touching(c, mm => mm === mat);
+// the mouse has reached the great cheese: its box overlaps the cheese on its pedestal
+const atGoal = c => { const g = SEC.goal; return !!g && Math.abs(c.x - g.x) < (c.o.w + g.w) / 2 && c.y > g.y - g.h && c.y - c.o.h < g.y; };
 
 function puff(x, y, n, mat) {
   const S = RES;
@@ -91,7 +99,7 @@ function eatCheese(dt, inp) {
   else if (inp.down && EDIBLE.has(c.ground)) dir = 3;
   else if (inp.jump && (c.bumped || c.vy === 0) && edibleAbove(c)) dir = 4;
   if (!dir) return;
-  bite(c, dir); m.biteT = .06;
+  bite(c, dir); m.biteT = .06; m.eatT = .25;
 }
 function edibleSide(c, d) {
   const cx = Math.floor(c.x + d * (c.o.w / 2 + .5));
@@ -126,7 +134,7 @@ function bite(c, dir) {
 function killMouse(reason) {
   const m = MOUSE; if (!m.alive) return;
   const c = m.ch, S = RES, x = c.x, y = c.y - c.o.h * .6;
-  m.alive = false; m.reason = reason; deaths++;
+  m.alive = false; m.reason = reason; m.zapped = reason === HAZARD[CABLE]; deaths++;
   for (let k = 0; k < 22 * S; k++) spawnP(PT_SPARK, x, y, rr(-22, 22) * S, rr(-26, 4) * S, rr(.3, .9), pick("*+'"), 0);
   for (let k = 0; k < 8 * S; k++) spawnP(PT_WRECK, x, y, rr(-16, 16) * S, -rr(6, 22) * S, rr(1.5, 3), pick("()'`,"), 0);
   addText(x, y - 4 * S, 'SQUEAK!', [255, 190, 210], 1.3);
@@ -143,21 +151,36 @@ function respawn() {
 }
 
 // ---------- drawing and light ----------
-// the art sheet's frames: a stride is walk, idle (passing), run, idle; standing about, the mouse looks up now and then
+// The art sheets' frames. A stride is walk, idle (passing), run, idle; standing about, the mouse looks up now and then.
+// Sliding down a wall it faces the wall, clinging on; a fall longer than a hop tumbles; a hard landing squashes it.
 function mouseFrame(c, m) {
-  if (!c.onGround) return 'jump';
+  if (state === 'cleared' || state === 'won') return 'win';
+  if (!c.onGround) {
+    if (m.slide) return (m.t * 5 | 0) & 1 ? 'wall2' : 'wall1';
+    return m.top !== null && c.y - m.top > 1.3 * c.o.jump ? 'fall' + (1 + ((m.airT * 7 | 0) & 3)) : 'jump';   // further than a jump falls
+  }
+  if (m.landT > 0) return m.landT > .1 ? 'land1' : 'land2';
+  if (m.eatT > 0) return (m.t * 8 | 0) & 1 ? 'eat2' : 'eat1';
   if (Math.abs(c.vx) > 3 * RES) return ['walk', 'idle', 'run', 'idle'][Math.floor(m.anim / 1.7) & 3];
   if (m.down) return 'lookdown';
   return m.still > 3 && m.still % 5 < 1.4 ? 'lookup' : 'idle';
 }
+const mouseFlip = m => (m.slide && !m.ch.onGround ? m.ch.wall : m.ch.facing) < 0;
 function drawMouse() {
-  const m = MOUSE; if (!m || !m.alive || (m.safeT > 0 && (m.safeT * 10 | 0) & 1)) return;   // blinks while safe
-  const c = m.ch;
-  drawSprite(MOUSE_SPR[mouseFrame(c, m)], c.x, c.y, 0, { flip: c.facing < 0 });
+  const m = MOUSE; if (!m) return;
+  if (!m.alive) {   // zapped by a cable: it shakes, flashing between the mouse and its glowing skeleton
+    if (m.zapped && state === 'dead') {
+      const bone = (stateT * 12 | 0) & 1;
+      drawSprite(MOUSE_SPR[bone ? 'zap2' : 'zap1'], m.ch.x + (bone ? 0 : .3 * RES), m.ch.y, 0, { flip: m.ch.facing < 0, light: !bone });
+    }
+    return;
+  }
+  if (m.safeT > 0 && (m.safeT * 10 | 0) & 1) return;   // blinks while safe
+  drawSprite(MOUSE_SPR[mouseFrame(m.ch, m)], m.ch.x, m.ch.y, 0, { flip: mouseFlip(m) });
 }
 function markMouse() {
   const m = MOUSE; if (!m || !m.alive) return 1e9;
-  return markSpriteDyn(MOUSE_SPR[mouseFrame(m.ch, m)], m.ch.x, m.ch.y, 0, { flip: m.ch.facing < 0 });
+  return markSpriteDyn(MOUSE_SPR[mouseFrame(m.ch, m)], m.ch.x, m.ch.y, 0, { flip: mouseFlip(m) });
 }
 function mouseLights(out) {
   const m = MOUSE; if (!m || !m.alive) return;
