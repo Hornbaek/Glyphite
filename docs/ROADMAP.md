@@ -100,7 +100,17 @@ Build at least one more small game on the engine to check that it is game-agnost
   - **A walking-game starter**, or a `--kit platformer` option for `glyphite.mjs new`, so the next platformer starts from
     Space Mouse's pieces (tile maps, the reach search) rather than the flying starter.
 - a falling-sand sandbox;
-- or a top-down game (gravity 0, no sun).
+- or a top-down game (gravity 0, no sun);
+- **an isometric game: the Viking homestead** (planned 2026-10-16), a peaceful settlement builder inspired by Anno 1404 and
+  The Settlers. The art comes first: two sheets the owner makes from the prompts in
+  `.claude/skills/glyphite-art-prompt/example-viking-homestead.md`. Isometric needs general engine features the
+  side-view games don't:
+  - an **isometric ground grid**: 2:1 diamond tiles mapped onto the 1 × 2 cells, the ground painted from materials,
+    picking a tile from the mouse;
+  - **sprites drawn back to front** by their ground position, so nearer things cover farther ones;
+  - **two-facing animation** (SE and NE, flipped for SW and NW).
+
+  Lamps, particles, sprites and sound carry over; the side-view physics and sun shadows do not.
 
 Each new game should need no engine edits. Every engine edit it forces goes on this roadmap.
 

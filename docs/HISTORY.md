@@ -498,8 +498,14 @@ text spacing.
   background, labels clear of the drawings, a fixed pixel grid, outline-only near-black, no effects, everything facing
   right); follow-up sheets matched to the first; and a check of the sheet before converting it. Each rule names what
   went wrong on the Space Mouse sheets without it.
-- **First use**: the Viking homestead game (a peaceful side-view settlement builder), its prompt and row budget in
-  `example-viking-homestead.md`. The two rendering ideas explained before it (blue-noise dithering, chromatic aberration)
+- **First use**: the Viking homestead game, a peaceful settlement builder. The owner first got a side-view prompt,
+  then chose an isometric view ("I want it to be isometric view"). So the skill also covers isometric:
+  - the 2:1 camera, ground tiles and footprints in tiles;
+  - two facings, flipped for the other two;
+  - a two-sheet split.
+
+  The two prompts and their row budgets are in `example-viking-homestead.md`; the engine work isometric needs is on the
+  roadmap (phase 4). The two rendering ideas explained before it (blue-noise dithering, chromatic aberration)
   wait, with the explanation in their idea bank notes.
 
 ## Published versions (claude.ai artifact "Regolith Lander")

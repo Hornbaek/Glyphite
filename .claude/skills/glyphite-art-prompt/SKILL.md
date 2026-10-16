@@ -16,21 +16,32 @@ below fixes something that went wrong on the four Space Mouse sheets (`games/spa
 - **The art list follows the mechanics.** Work out who acts and what each does: every action is a row of frames. Then
   list what can be built or placed, and what changes state (on and off, growth stages, damage, seasons). Pin the idea
   down with the owner first, as `glyphite-new-game` says; ask only what changes the art.
-- **Side view**, orthographic profile, every item on a ground line. The engine is a side-view world: gravity, falling
-  sand, sun shadows, the sky. Another view throws most of that away. Ask the owner only if the game really needs one.
+- **The view.** Side view (orthographic profile, every item on a ground line) is the engine's home: gravity, falling
+  sand, collapsing structures, sun shadows, the sky.
+
+  **Isometric** works too, and the owner chose it for the Viking homestead. But say what it costs before the prompt:
+  - none of the side-view physics or sun shadows;
+  - the game needs an isometric ground grid and sprites drawn back to front (general engine features);
+  - every moving thing needs two facings.
+
+  Lamps, particles, sprites and sound still work. Use the isometric lines in the fixed block (section 3).
 - **Leave out what the engine draws itself:**
   - terrain: rock, soil, sand, snow and ice are materials (`defineMaterial`, glyph ramps), not art;
   - sky, sun, stars, light and shadow;
   - smoke, fire, sparks, dust and blasts;
   - HUD text.
 
-  At most, ask for a row of colour swatches for the game's materials. There is no water in the engine yet: draw
-  boats without water.
+  At most, ask for a row of colour swatches for the game's materials; in isometric, one flat diamond per ground type,
+  which also fixes the tile size. There is no water in the engine yet: draw boats without water (and, in isometric,
+  water as a ground swatch).
 - **One scale for everything:** the main character's height, A. On screen it is small. 1 m is 2·RES units, and a cell
   is 1 unit wide and 2 tall, so at RES 2 a 1.8 m person is about 4 rows by 2 cells. So:
   - people need strong silhouettes and one clear colour per role;
   - detail pays off on big things (buildings, ships, machines).
-- **Everything that moves faces right.** `drawSprite(..., { flip: true })` mirrors it; never ask for left-facing frames.
+- **Draw one way, flip for the other.** `drawSprite(..., { flip: true })` mirrors a sprite.
+  - Side view: everything faces right.
+  - Isometric: two facings, down-right (towards the viewer, SE) and up-right (away, NE); the flip gives SW and NW.
+  - Never ask for mirrored frames.
 
 ## 2. Budget the sheet
 
@@ -39,7 +50,9 @@ below fixes something that went wrong on the four Space Mouse sheets (`games/spa
   - Gemini often gives a JPEG of about 1264 × 843. The JPEG noise needs a cut tolerance of 24 instead of 13, so ask for
     PNG anyway.
 - **About 50 drawings per sheet.** The first Space Mouse sheet held 49 and converted well. With more, split the list by
-  group into several sheets.
+  group into several sheets. Isometric buildings take about three times the area of side views, so an isometric game
+  usually needs two sheets. Make the ground, buildings and nature first (they fix the tile and the camera), then the
+  people, animals, boats and goods, matched to the first.
 - **Fix the art pixel.** Every art pixel is a 2 × 2 block of image pixels. Use 3 × 3 or 4 × 4 for fewer, bigger
   drawings; the cat-bot sheet used 4. Give sizes in A, and in art and image pixels.
 - **Plan the rows, and check they fit:**
@@ -72,25 +85,45 @@ FORMAT
 STYLE (important: a program converts this art into coloured ASCII characters)
 - True pixel art on a fixed grid: every art pixel is a square block of <2 x 2> image pixels. Flat colours. No
   anti-aliasing, no gradients, no blur, no glow halos, no dithering, no drop shadows.
-- Strictly side view (profile, like a 2D platformer). NOT isometric, NOT top-down. Every item stands on an invisible
-  flat ground line at its bottom edge.
+<VIEW: the side-view or isometric lines below>
 - A 1-art-pixel near-black outline (#1A1410) around every sprite. Use that near-black ONLY for outlines. No fill colour
   may be darker than #40382F: draw dark things (tar, iron, black fur or feathers, shadowed openings) in dark browns and
   greys, never black.
-- Soft light from the upper left, 2-3 shades per material. No cast shadows on the ground, no smoke, no flames, no
+- 2-3 shades per material. No cast shadows on the ground, no smoke, no flames, no
   sparkles, no motion lines, no sweat drops (the game adds its own light, shadow and effects).
 - Windows, glass and visors are opaque colours. Nothing is see-through, and nothing (no wall, no scenery) is drawn
   behind a character.
 - A muted palette of about 32 colours: <the game's materials and clothing colours>. No pink or magenta anywhere in the
   sprites.
 - Thin parts (legs, tails, antennae, handles, ropes) at least 2 art pixels thick.
-- Everything that moves faces RIGHT. The frames of one animation are the same size, side by side in one row, on the
-  same ground line, and identical in colours and proportions.
+- The frames of one animation are the same size, side by side in one row, on the same ground line, and identical in
+  colours and proportions.
 - No text, letters or runes inside the sprites.
 
 SCALE: one scale for the whole sheet. <The main character> (A) is <24> art pixels (<48> image pixels) tall; every
 size below is given in A.
 ```
+
+The view lines. **Side view:**
+```
+- Strictly side view (profile, like a 2D platformer). NOT isometric, NOT top-down. Every item stands on an invisible
+  flat ground line at its bottom edge.
+- Soft light from the upper left.
+- Everything that moves faces RIGHT.
+```
+**Isometric:**
+```
+- Standard 2:1 pixel-art isometric: every edge that runs along the ground steps exactly 2 pixels across for 1 pixel up
+  or down. NOT side view, NOT top-down, no perspective. The same camera corner for every item: we see the top, the
+  left face and the right face.
+- Ground tiles are flat diamonds of <64 x 32> image pixels. Every building and object stands exactly on a diamond
+  footprint of whole tiles, given below as <a x b> tiles.
+- Light from the upper left: tops lightest, left faces middle, right faces darkest, on every item.
+- Everything that moves is drawn facing two ways: down-right (towards the viewer, "SE") and up-right (away from the
+  viewer, "NE"). Never draw the left-facing directions: the game mirrors these.
+```
+On an isometric sheet, size buildings and objects by footprint in tiles and height in A. A footprint of a × b tiles is
+(a + b) × 32 image pixels wide; use that for the row plan.
 
 ## 4. Follow-up sheets
 
@@ -134,4 +167,5 @@ Add a dated line each time a sheet comes back: what the prompt should have said.
 keep the skill short.
 
 - 2026-10-16: written from the four Space Mouse sheets. First prompt written with it: the Viking homestead
-  (`example-viking-homestead.md`).
+  (`example-viking-homestead.md`). The owner then chose an isometric view for it, so the skill gained the isometric lines
+  and the two-sheet split (ground, buildings and nature first, then people, animals, boats and goods).
