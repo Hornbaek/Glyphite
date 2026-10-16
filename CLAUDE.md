@@ -33,7 +33,7 @@ tools/                  glyphite.mjs (CLI: build, new, list, serve), assemble.mj
 tests/                  smoke.py (any game, both renderers), node/ (unit tests: build, editor patches, Access)
 docs/                   ARCHITECTURE (how it works), HISTORY, LESSONS, ROADMAP (the plan), IDEAS (the idea bank),
                         TESTING, DEPLOY
-.claude/skills/         glyphite-new-game, glyphite-verify, glyphite-pixel-art-to-ascii
+.claude/skills/         glyphite-new-game, glyphite-verify, glyphite-art-prompt (the prompt for an art sheet), glyphite-pixel-art-to-ascii
 dist/                   build output = the deployed site (git-ignored)
 ```
 
@@ -57,6 +57,7 @@ scripts live in `games/<id>/tests/` (see `docs/TESTING.md`).
 
 Use the **`glyphite-new-game`** skill. In short:
 1. Pin down the idea in a few lines (player, goal, controls, look). Ask only what changes the design.
+   If it needs drawn art, write the owner a prompt for ChatGPT or Gemini first (**`glyphite-art-prompt`**).
 2. `node tools/glyphite.mjs new <id> --title "…"`, then fill in `game.json` (tagline, description, controls,
    tunables) and replace the starter's code with the game, keeping its structure.
 3. Build, smoke-test, look at the screenshots, iterate. Add a thumbnail. Write `games/<id>/NOTES.md`.

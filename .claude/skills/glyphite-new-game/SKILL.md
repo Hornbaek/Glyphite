@@ -16,7 +16,9 @@ everything at full size.
 Write down, in a few lines: the player (a body? a cursor? several units?), the goal and how it is lost,
 the controls (keyboard, mouse/tap, touch buttons), the world (side view with gravity? top-down with gravity 0?
 cave without sun? sand and blasting?), and the look (palette, light). Ask the user only what changes the design;
-pick sensible defaults for the rest and say which.
+pick sensible defaults for the rest and say which. If the game needs drawn art (characters, buildings, animals), write
+the prompt the owner pastes into ChatGPT or Gemini with the `glyphite-art-prompt` skill before building: the art list
+follows from this design.
 
 Map it onto the engine before writing code:
 - **World** → materials (`defineMaterial`) + a generator that fills `cells` (`worldInit`, noise helpers,

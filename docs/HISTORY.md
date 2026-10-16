@@ -487,6 +487,21 @@ text spacing.
 - **What a session does** (`CLAUDE.md`, "The idea bank"): asked to explain the marked ideas, it reads them from D1, explains
   each in the chat (what it is, how it would work in Glyphite, what it would take, what could go wrong) and clears the mark.
 
+## 22. A skill for art prompts (Claude Code, 2026-10-16)
+
+> "For writing the prompts for art generation, add the experience you get here to a skill, so we can reuse that workflow
+> later :)"
+
+- **`glyphite-art-prompt`** (`.claude/skills/`): how to write the prompt the owner pastes into ChatGPT or Gemini for a
+  game's art sheet. Decide the game and the view first; leave out what the engine draws itself; one scale (the main
+  character's height); about 50 drawings per sheet with a row plan that fits; a fixed rules block (flat magenta
+  background, labels clear of the drawings, a fixed pixel grid, outline-only near-black, no effects, everything facing
+  right); follow-up sheets matched to the first; and a check of the sheet before converting it. Each rule names what
+  went wrong on the Space Mouse sheets without it.
+- **First use**: the Viking homestead game (a peaceful side-view settlement builder), its prompt and row budget in
+  `example-viking-homestead.md`. The two rendering ideas explained before it (blue-noise dithering, chromatic aberration)
+  wait, with the explanation in their idea bank notes.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |
