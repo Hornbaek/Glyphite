@@ -41,7 +41,7 @@ function fbm2(x, y, s, o) { let a = 0, amp = 1, f = 1, n = 0; for (let i = 0; i 
 // property here.
 const EMPTY = 0, MAT_MAX = 256;
 const MATS = [{ id: 0, name: 'empty', albedo: [0, 0, 0], ramp: '' }];
-const MAT_NAME = ['empty'], MAT_ALB = [[0, 0, 0]], MAT_RAMP = [''], RAMP_CODES = [[]], MAT_GRAINS = [''], MAT_GLOWS = [null], MAT_PULSE = [null];
+const MAT_NAME = ['empty'], MAT_ALB = [[0, 0, 0]], MAT_RAMP = [''], RAMP_CODES = [[]], MAT_GRAINS = [''], MAT_GLOWS = [null], MAT_PULSE = [null], MAT_BEATGLOW = [0];
 const MAT_GRAN = new Uint8Array(MAT_MAX), MAT_CREEP = new Uint8Array(MAT_MAX), MAT_TOUGH = new Float32Array(MAT_MAX);
 const MAT_SHINY = new Float32Array(MAT_MAX), MAT_FRIC = new Float32Array(MAT_MAX), MAT_DENS = new Float32Array(MAT_MAX);
 const MAT_BRITTLE = new Uint8Array(MAT_MAX), MAT_ANCHOR = new Uint8Array(MAT_MAX), MAT_STYLE = new Uint8Array(MAT_MAX);
@@ -68,6 +68,7 @@ const MAT_DEFAULTS = {
   ejecta: 0,                // what a blast throws (0: itself if granular, else the world's rubble)
   glow: null,               // [r, g, b, radius]: emits a little light from scattered cells
   pulse: null,              // [r, g, b]: 'crystal' style colour pulse
+  beatGlow: 0,              // 0..1+: how strongly it flashes (its own colour) and glows with the music's drum hits (see setBeatPulse)
   blast: null               // (x, y, vx, vy, how) => void: replaces ejecta ('blast') / adds to chips ('chip')
 };
 function defineMaterial(name, opts = {}) {
@@ -81,7 +82,7 @@ function applyMaterial(m) {
   const id = m.id;
   if (!(m.style in STYLE)) throw new Error(`material ${m.name}: unknown style ${m.style}`);
   MATS[id] = m; MAT_NAME[id] = m.name; MAT_ALB[id] = m.albedo; MAT_RAMP[id] = m.ramp; MAT_GRAINS[id] = m.grainGlyphs;
-  MAT_GLOWS[id] = m.glow; MAT_PULSE[id] = m.pulse || [.2, .9, .75];
+  MAT_GLOWS[id] = m.glow; MAT_PULSE[id] = m.pulse || [.2, .9, .75]; MAT_BEATGLOW[id] = m.beatGlow;
   RAMP_CODES[id] = Array.from(m.ramp, c => c.charCodeAt(0));
   MAT_GRAN[id] = m.granular ? 1 : 0; MAT_CREEP[id] = m.creep ? 1 : 0; MAT_TOUGH[id] = m.tough; MAT_SHINY[id] = m.shiny;
   MAT_FRIC[id] = m.friction; MAT_DENS[id] = m.density; MAT_BRITTLE[id] = m.brittle ? 1 : 0; MAT_ANCHOR[id] = m.anchor ? 1 : 0;

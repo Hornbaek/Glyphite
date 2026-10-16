@@ -11,7 +11,7 @@ const METAL = defineMaterial('pad', { albedo: [.86, .88, .92], ramp: ' .-=#', to
 const RUBBLE = defineMaterial('rubble', { albedo: [.58, .54, .49], ramp: ' .,o%&', granular: true, tough: .2, grainGlyphs: 'o%&', debris: true });
 const CRYST = defineMaterial('He-3 crystal', {
   albedo: [.35, 1.0, .85], ramp: ' .+*', tough: .35, shiny: .7, density: 1.1, style: 'crystal',
-  glow: [.02, .2, .16, 5], pulse: [.2, .9, .75],
+  glow: [.02, .2, .16, 5], pulse: [.2, .9, .75], beatGlow: 1,   // the veins flash with the music's drum hits
   // blasting a vein frees glowing shards that fly to the lander (see PT_PICKUP in lander.js)
   blast(x, y, vx, vy, how) {
     const S = RES;

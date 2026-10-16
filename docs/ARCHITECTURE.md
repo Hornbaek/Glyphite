@@ -358,6 +358,12 @@ The hull points (`LANDER_HULL0`) are traced from the silhouette.
 - `engine(throttle)` is a filtered noise loop.
 - One-shots: `boom`, `launch`, `thud`, `pickup`, `alarm`, `win`.
 - M mutes. Audio is suspended while the page is hidden.
+- `Sfx.heard(x, y)`: sound through air. A vacuum returns `HEARD_NOW` (no delay, full volume, unfiltered): sound is felt
+  through the ground, as always. With `setAtmosphere` > 0 it returns `{ delay: m / 343, gain: 1 / (1 + m / 120), muffle:
+  max(.2, 1 / (1 + m / 250)), m }` for the distance in metres to the listener (`GAME.listener()` or the camera centre).
+  `burst(..., at)` starts the burst `at.delay` later (on the audio clock, so it is sample-accurate), scales its volume by
+  `at.gain` and its filter frequencies by `at.muffle`. `explode()` passes `Sfx.heard(x, y)` to `boom`, which adds a long low
+  rumble when `at.m > 100`.
 
 **Chip** (`07b_chip.js`): the NES 2A03-style synth.
 - Pulse lanes with 12.5/25/50/75% duty, 4-bit volume and 11-bit period quantisation. A 32-step
@@ -370,6 +376,14 @@ The hull points (`LANDER_HULL0`) are traced from the silhouette.
   IN is connected).
 - API: `Chip.init`, `load(buf)`, `play(song, {loop, fadeIn, onEnd})`, `stop`, `setVolume`, `halt`,
   `connectMidi`, `meter()` for UI meters and beat, `beatAt`.
+
+**Beat** (end of `engine/08_chip.js`): `Beat.step(time)` runs once a frame at the top of `renderScene`. It reads
+`Chip.meter()` (the snapshot that matches what the listener hears now) and fires `Beat.v` on a rising edge of the drum
+level (at least 7 and 4 higher than the last frame: kicks, snares and crashes, not most hi-hats), then decays it with a
+0.16 s time constant. `setBeatPulse(k)` scales it into `Beat.pulse()`, which the scene uses three ways: scattered glow
+splats of materials with `beatGlow` are brightened, those materials flash in their own colour (added to the cell colour
+before the glyph is chosen), and the bloom bright-pass threshold drops (0.62 → 0.52) while its gain rises (×2.2).
+`Beat.blink` replaces the per-game "beacons follow the music" logic (Regolith's old `beaconOn`).
 
 **Music director** (Regolith's `games/regolith/music.js`): picks the piece by game state (title, descent loop, touchdown
 jingle, loss jingle). It handles MIDI file loading, drag-and-drop and MIDI IN, and draws the chip

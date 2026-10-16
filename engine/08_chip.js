@@ -298,3 +298,26 @@ const Chip = {
     }
   }
 };
+
+// ---------- beat: a pulse that follows the music, for lights, glow and bloom ----------
+// phase() is the musical position (in beats) of what the chip is playing, -1 when nothing is. blink(t) is true during the first
+// `duty` of every beat, and with no music blinks at `hz` instead, so lights that follow the beat still blink in silence.
+// v jumps to 1 on every drum hit (a rising edge of the noise-drum level, which is what the listener hears now) and eases back
+// to 0; hit(strength) fires it by hand for events of the game's own. pulse() is v scaled by setBeatPulse (0 = off by default).
+let BEAT_K = 0;
+// strength 0..1 scales every material's `beatGlow` and the bloom pulse together
+function setBeatPulse(strength) { BEAT_K = clamp(+strength || 0, 0, 1); }
+const Beat = {
+  v: 0, last: 0, t: -1,
+  phase() { const m = Chip.playing ? Chip.meter() : null; return m && m.beat >= 0 ? m.beat : -1; },
+  blink(t, hz = 1.6, duty = .45) { const b = this.phase(); return b >= 0 ? b % 1 < duty : ((t * hz) | 0) % 2 === 0; },
+  hit(strength = 1) { this.v = Math.max(this.v, clamp(strength, 0, 1)); },
+  pulse() { return this.v * BEAT_K; },
+  step(time) {
+    const dt = this.t < 0 ? 0 : clamp(time - this.t, 0, .1); this.t = time;
+    const m = Chip.playing ? Chip.meter() : null, d = m ? m.drum : 0;
+    if (d >= 7 && d - this.last >= 4) this.hit(d / 14);
+    this.last = d;
+    this.v *= Math.exp(-dt / .16);
+  }
+};

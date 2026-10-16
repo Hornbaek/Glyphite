@@ -337,6 +337,11 @@ text spacing.
   lamps* and *Auto-exposure eye adaptation* (`setEyeAdaptation`). Regolith gets the tunables **Atmosphere (test)** and **Eye
   adaptation** and `[SUN]` / `[LAMP]` warning lights. `tests/engine_light.py` checks them in both renderers. Statuses in the
   idea bank are set to *Building* when work starts and *Shipped* when the pull request is merged and deployed.
+- **Batch 2, audio and beat (engine 0.4.0).** *Thunder delayed by distance* (`Sfx.heard`: with an atmosphere a sound arrives
+  after distance / 343 m/s, quieter and duller, far blasts add a rumble; in a vacuum nothing changes) and *Beat-reactive
+  emissive materials and bloom* (`Beat`, `setBeatPulse`, material `beatGlow`). Regolith: the He-3 veins flash on drum hits,
+  the pad beacons flare, the bloom swells (tunable **Beat pulse**); the beat-synced beacons moved from the game into the
+  engine (`Beat.blink`); `listener` hook so blasts are heard from the lander. `tests/engine_audio.py`.
 
 ## Published versions (claude.ai artifact "Regolith Lander")
 

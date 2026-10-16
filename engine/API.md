@@ -113,6 +113,7 @@ Returns the id (1..255; `EMPTY = 0` is built in). Define materials at load time,
 | `fuseTo`, `fuseChance` | 0 | Blast rims sometimes turn it into another material (regolith → glass). |
 | `ejecta` | itself if granular, else the world's rubble | What a blast throws. |
 | `glow` | null | `[r, g, b, radius]`: emits light from scattered cells. |
+| `beatGlow` | 0 | 0..1+: flashes in its own colour and glows brighter on the music's drum hits (scaled by `setBeatPulse`). |
 | `blast(x, y, vx, vy, how)` | null | Called when a blast carves a cell (`how = 'blast'`, replaces the ejecta) or a chunk chips one off (`'chip'`). Spawn pickups here. |
 
 `worldMaterials({ edge, rubble, fill })`: `edge` is what `getC` returns beyond the sides and bottom (give it an
@@ -264,11 +265,28 @@ aim for 6 s after it moved, else null), `Input.touch.<name>` (on-screen hold but
 ## Sound
 
 `Sfx` (procedural, starts on the first input): `Sfx.engine(throttle 0..1)` (a looping thrust hum), `boom(power)`,
-`launch()`, `thud(v)`, `pickup()`, `alarm()`, `win()`, `tone(freq, dur, vol, type, delay)`, `burst(...)`, `toggle()`.
+`launch()`, `thud(v)`, `pickup()`, `alarm()`, `win()`, `tone(freq, dur, vol, type, delay)`, `burst(...)`, `heard(x, y)`, `toggle()`.
 
 `Chip` (NES-style synth playing MIDI): `Chip.load(arrayBuffer)` → song, `Chip.play(song, { loop, fadeIn, onEnd })`,
 `Chip.stop(fade)`, `Chip.setVolume(v)`, `Chip.meter()` (lanes and beat, for visualisers), `Chip.connectMidi()`.
 Embed songs as base64 (`b64buf`); see `games/regolith/music.js` for a music director.
+
+**Sound through air.** In a vacuum (`setAtmosphere(0)`, the default) every sound is heard at once at full volume, as if felt
+through the ground, exactly as before. With an atmosphere, `Sfx.heard(x, y)` says how a sound at that point (body
+coordinates) reaches the listener: `{ delay: distance / 343 m/s in seconds, gain, muffle, m: metres }`, quieter and duller
+(a lower filter) the farther it is. `explode()` already uses it, so a blast is a flash and then, after the delay, the boom;
+a far one (over 100 m) adds a long low rumble, thunder. Your own one-shots can pass it as the last argument:
+`Sfx.burst(dur, f0, f1, vol, type, q, Sfx.heard(x, y))`, `Sfx.boom(power, Sfx.heard(x, y))`. The listener is the camera's
+centre unless the game gives a `listener: () => [x, y] | null` hook (Regolith: the lander).
+
+**The beat.** `Beat` follows the music for lights, glow and bloom:
+- `Beat.phase()` = the musical position in beats of what is playing (-1 if nothing is). `Beat.blink(t, hz = 1.6, duty = .45)`
+  is true during the first part of each beat, and blinks on a clock when there is no music.
+- `Beat.v` jumps to 1 on every drum hit (a rising edge of the noise-drum level, as heard now) and fades over about 0.16 s;
+  `Beat.hit(strength)` fires it for the game's own events.
+- `setBeatPulse(strength 0..1)` (0 = off, the default) turns the pulse on: it scales every material's `beatGlow` (the
+  material flashes in its own colour and its light grows) and swells the bloom (lower threshold, more gain).
+  `Beat.pulse()` returns the scaled value for the game's own lights, e.g. `I: .9 * (1 + .8 * Beat.pulse())`.
 
 ## Tests and probes: `Glyphite.test`
 
