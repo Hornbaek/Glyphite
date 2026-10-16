@@ -4,7 +4,8 @@ The game: a small, peaceful isometric settlement builder (inspired by Anno 1404 
 Scandinavia. A family lands by ship and builds a homestead on a fjord, with short production chains (logs to planks,
 stone, fish, barley to bread, wool, firewood). The aim is to get through the first winter in balance with nature. There
 is no fighting. The owner first got a side-view prompt, then chose isometric; this is the isometric version, split into
-two sheets because isometric buildings take about three times the area.
+two sheets because isometric buildings take about three times the area. How the sheets came back, and what that
+changed in the rules: the lessons log in `SKILL.md` (2026-10-16).
 
 Scale: a ground tile is a 64 × 32 image-pixel diamond (about 2 × 2 m); an adult (A) is 18 art pixels = 36 image pixels
 tall; every art pixel is 2 × 2 image pixels. A footprint of a × b tiles is (a + b) × 32 px wide.

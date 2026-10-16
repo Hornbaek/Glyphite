@@ -29,7 +29,7 @@ worker/                 the Cloudflare Worker: Access login check + static site 
 tools/                  glyphite.mjs (CLI: build, new, list, serve), assemble.mjs (page assembler, shared with the
                         editor), ideas.mjs (docs/ideas.json → docs/IDEAS.md), changes.mjs (HISTORY.md → What's new), thumbnail.py
                         (--auto picks the best frame), sprite2ascii.py +
-                        ascii_preview.py (pixel art → sprites)
+                        ascii_preview.py (pixel art → sprites), sheetcheck.py (check an AI art sheet before cutting it)
 tests/                  smoke.py (any game, both renderers), node/ (unit tests: build, editor patches, Access)
 docs/                   ARCHITECTURE (how it works), HISTORY, LESSONS, ROADMAP (the plan), IDEAS (the idea bank),
                         TESTING, DEPLOY

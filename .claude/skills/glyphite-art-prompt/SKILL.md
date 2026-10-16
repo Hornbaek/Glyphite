@@ -55,6 +55,10 @@ below fixes something that went wrong on the four Space Mouse sheets (`games/spa
   people, animals, boats and goods, matched to the first.
 - **Fix the art pixel.** Every art pixel is a 2 × 2 block of image pixels. Use 3 × 3 or 4 × 4 for fewer, bigger
   drawings; the cat-bot sheet used 4. Give sizes in A, and in art and image pixels.
+- **Only relative sizes survive.** On the Viking sheets the model ignored the pixel sizes and the grid: people came out
+  120 px tall instead of 36, with no fixed grid. But it kept them in proportion across both sheets: adult to tile came
+  out exactly as asked. Buildings came out far smaller than their footprints. So give every size relative to A and the
+  tile, and expect the game to set each sprite's size itself (`k` per sprite).
 - **Plan the rows, and check they fit:**
   - per row, the widths plus a 24 px gap each must come to about 1450 px or less;
   - the row heights plus labels and gaps must come to about 950 px or less.
@@ -76,8 +80,8 @@ Name characters by role and clothing colour, and reuse those words on every late
 ```
 FORMAT
 - One PNG image, 1536 x 1024, landscape.
-- Background: one flat, solid magenta (#FF00FF) everywhere behind the sprites. No checkerboard, no scenery, no ground
-  strip, no boxes or frames around items, no title, no legend.
+- Background: one flat, solid, bright magenta (#FF00FF, RGB 255 0 255: pink-purple, not raspberry, not red) everywhere
+  behind the sprites. No checkerboard, no scenery, no ground strip, no boxes or frames around items, no title, no legend.
 - Follow the row plan below. Leave at least 24 pixels of empty magenta around every item; no item may touch another
   item or the edge of the image.
 - Under each item, a short label in small plain white text, with a clear gap so it never touches or overlaps the sprite.
@@ -99,6 +103,8 @@ STYLE (important: a program converts this art into coloured ASCII characters)
 - The frames of one animation are the same size, side by side in one row, on the same ground line, and identical in
   colours and proportions.
 - No text, letters or runes inside the sprites.
+- Draw exactly the number of frames asked, each frame as its own separate figure, and nothing that is not on the list
+  (no extra animals, no people inside buildings).
 
 SCALE: one scale for the whole sheet. <The main character> (A) is <24> art pixels (<48> image pixels) tall; every
 size below is given in A.
@@ -119,8 +125,9 @@ The view lines. **Side view:**
 - Ground tiles are flat diamonds of <64 x 32> image pixels. Every building and object stands exactly on a diamond
   footprint of whole tiles, given below as <a x b> tiles.
 - Light from the upper left: tops lightest, left faces middle, right faces darkest, on every item.
-- Everything that moves is drawn facing two ways: down-right (towards the viewer, "SE") and up-right (away from the
-  viewer, "NE"). Never draw the left-facing directions: the game mirrors these.
+- Everything that moves is drawn facing two ways: down-right, towards the viewer ("SE": we see the face), and up-right,
+  away from the viewer ("NE": seen from behind, we see the back of the head and the back, never the face). Never draw
+  the left-facing directions: the game mirrors these.
 ```
 On an isometric sheet, size buildings and objects by footprint in tiles and height in A. A footprint of a × b tiles is
 (a + b) × 32 image pixels wide; use that for the row plan.
@@ -134,9 +141,19 @@ On an isometric sheet, size buildings and objects by footprint in tiles and heig
 
 ## 5. Check the sheet when it comes back, before converting
 
-Save it untouched in `games/<id>/ref/` first (the reference-art rule). Then make a zoomed contact sheet with Pillow and
-look at it:
-- the background is one flat colour (sample the corners and a few gaps), with no checkerboard;
+Save it untouched in `games/<id>/ref/` first (the reference-art rule). Then run the checker and look at its boxes image:
+
+```sh
+python3 tools/sheetcheck.py games/<id>/ref/<sheet>.png shots/<sheet>   # → shots/<sheet>_boxes.png, _drawings.json
+```
+It reports:
+- the background and its noise, and the cut tolerance that stays inside the outlines;
+- labels close to a drawing;
+- drawings that are mostly near-black or white.
+
+`_drawings.json` holds every drawing's box for `tools/art.py`. Then count, item by item against the prompt's list:
+present, missing, extra, wrong frame count, wrong facing. Then check:
+- the background is one flat colour, with no checkerboard;
 - labels sit clear of every drawing, and there is no title;
 - the frames of one animation have the same size and ground line;
 - no black fills (anything below luminance 45 becomes outline), and no pink;
@@ -169,3 +186,18 @@ keep the skill short.
 - 2026-10-16: written from the four Space Mouse sheets. First prompt written with it: the Viking homestead
   (`example-viking-homestead.md`). The owner then chose an isometric view for it, so the skill gained the isometric lines
   and the two-sheet split (ground, buildings and nature first, then people, animals, boats and goods).
+- 2026-10-16, the two Viking sheets came back (Gemini-sized JPEGs, 1264 × 848). Labels were clear and every drawing a
+  separate piece; the iso angle and the colours were right. What went wrong, and what the rules now say:
+  - **Background:** raspberry (187, 21, 98) instead of #FF00FF, only 37–45 colour steps from the red sail and tunics. So
+    the cut tolerance must stay under about 22 (the checker works it out); the rule now spells the colour out.
+  - **Sizes:** absolute sizes and the grid were ignored, but relative sizes held (see section 2).
+  - **"NE" poses:** most came back as front views; only the father's walk was really from behind, and the animals came
+    only in profile. The rule now describes NE as "seen from behind, never the face".
+  - **Frame counts:** walks came as 3 frames instead of 4; two-frame actions came as 1, plus a prop standing in for the
+    second frame. The rule now asks for exactly N separate figures.
+  - **Extras and swaps:** horned rams and a fourth deer nobody asked for; workers drawn into the sawpit; turf roofs
+    became thatch and planks; the meadow tile and the stockfish rack were missing; the small rock merged into
+    "boulders". Hence the item-by-item count in section 5.
+  - **Ravens:** near-black despite the rule; convert them with a lower `--outline-lum`, as the cat-bot was.
+  - **Tiles:** came as thick blocks with sides, not flat diamonds; fine for swatches.
+  - **New tool:** `tools/sheetcheck.py` does the mechanical part of the check in 3 s.
