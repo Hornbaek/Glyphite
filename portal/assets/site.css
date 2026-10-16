@@ -34,7 +34,8 @@ kbd{border:1px solid var(--rim2);border-bottom-width:2px;border-radius:3px;paddi
 .btn.small{padding:6px 9px;font-size:12px}
 .btn[disabled]{opacity:.45;cursor:default}
 .badge{display:inline-block;font:700 11px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:4px 6px;border:1px solid currentColor;border-radius:2px}
-.badge.playable{color:var(--green)} .badge.draft{color:var(--amber)} .badge.template{color:var(--dim)}
+.badge.playable{color:var(--green)} .badge.draft{color:var(--amber)} .badge.template{color:var(--dim)} .badge.fresh{color:var(--void);background:var(--amber);border-color:var(--amber)}
+.sitenav{display:flex;flex-wrap:wrap;gap:10px}
 .muted{color:var(--dim)}
 
 /* ---------- the game list ---------- */

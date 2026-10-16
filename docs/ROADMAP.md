@@ -51,6 +51,10 @@ its warning row.
 Audio batch (0.4.0): thunder delayed by distance (`Sfx.heard`, with an atmosphere) and beat-reactive emissive materials and
 bloom (`Beat`, `setBeatPulse`, material `beatGlow`); Regolith's beat-synced beacons are now the engine's `Beat.blink`.
 
+Site batch: *What's-new page built from HISTORY.md* (`tools/changes.mjs`, `/whats-new/`, UPDATED badges on game cards),
+*A Glyphite micro-game as the 404 page* (`games/notfound`, served by the Worker for missing pages) and *Auto-pick the most
+interesting thumbnail frame* (`tools/thumbnail.py --auto`).
+
 ## Phase 3, still open: sprites and assets
 
 1. **Animation frames:** several `rows` arrays per sprite, chosen per draw call.

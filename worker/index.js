@@ -36,7 +36,17 @@ export default {
         return res;
       } catch (err) { console.error('ideas api failed', err); return new Response('{"error":"Something went wrong."}', { status: 500, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...SECURITY } }); }
     }
-    const res = await env.ASSETS.fetch(request);
+    let res = await env.ASSETS.fetch(request);
+    // a page that is not there: a browser gets the 404 game (still status 404, never cached); files and the API get a plain 404
+    if (res.status === 404 && request.method === 'GET' && !path.startsWith('/api/') && (request.headers.get('Accept') || '').includes('text/html')) {
+      const game = await env.ASSETS.fetch(new Request(new URL('/games/notfound/', request.url), { headers: request.headers }));
+      if (game.ok) {
+        const out = new Response(game.body, { status: 404, headers: game.headers });
+        for (const [k, v] of Object.entries(SECURITY)) out.headers.set(k, v);
+        out.headers.set('Cache-Control', 'no-store');
+        return out;
+      }
+    }
     const out = new Response(res.body, res);
     for (const [k, v] of Object.entries(SECURITY)) out.headers.set(k, v);
     // pages and data change with every deploy; the vendored editor library does not

@@ -493,8 +493,10 @@ on the title screen and leads the lander in flight. `afterFrame` runs the music 
    line back into a source file and line.
 4. Syntax-checks each script with `vm.Script` and reports errors against the source file.
 5. Writes the site to `dist/`: the portal (`portal/`), `games/<id>/index.html` + `game.json` +
-   `thumb.png`, `src/` (engine and game sources for the editor), `assets/assemble.mjs`, and `games.json`
-   (the listing, with each game's last git change date).
+   `thumb.png`, `src/` (engine and game sources for the editor), `assets/assemble.mjs`, `games.json`
+   (the listing, with each game's last git change date), `ideas/ideas.json` (the idea bank) and `changes.json`
+   (`tools/changes.mjs`: the numbered sections of `docs/HISTORY.md` — the request quoted, what was done — plus the
+   merged pull requests read from `git log --first-parent`, best effort, for the What's new page).
 
 The page uses CSS tokens (`--void`, `--phosphor`, `--amber`...), JetBrains Mono from Google Fonts
 with fallbacks, and a `[hidden]{display:none!important}` guard. The canvas has an `aria-label`
@@ -505,7 +507,18 @@ the sources from `src/`, keeps edits as drafts in `localStorage`, rebuilds the p
 the same `assemble.mjs` (an `iframe` `srcdoc`, with an error reporter injected on the `<head>` line so
 line numbers still map), sends live tunable changes with `postMessage`, and turns edits into a prompt plus
 a unified diff (`assets/diff.mjs`) for a Claude Code session. CodeMirror 5 is vendored in
-`portal/vendor/codemirror/`.
+`portal/vendor/codemirror/`. `ideas/` is the idea bank page and `whats-new/` the changelog page. The game list marks a
+game **updated** when its last-change date (`games.json`) is newer than the one remembered for it in `localStorage`
+(remembered the first time it is seen and again when it is opened, so a new visitor sees no badges), and the What's new button
+says **new** until that page has been opened for the latest section.
+
+**The 404 game** (`games/notfound/`, unlisted): for a `GET` that asks for `text/html` and finds nothing (and is not under
+`/api/`), `worker/index.js` serves `/games/notfound/` with status 404 and `no-store`; files and API calls get a plain 404.
+The page reads `location.pathname` (or `?path=` for tests), keeps printable ASCII and the last 11 characters when it is long,
+draws it with the browser's font into a small canvas and builds each lit pixel as a block of `slab` rock (a pixel is 2k cells
+wide and k rows tall, k = round(RES), so it stays square) standing on the ground. A lander (a point mass with a 5 x 2 cell
+footprint, a few seconds of fuel) drops from the top; touching anything above 1.4 m/s calls the engine's `explode()` and the
+letters break like any other terrain.
 
 **Worker** (`worker/`, `wrangler.jsonc`): a Cloudflare Worker with static assets serving `dist/` on the
 custom domain glyphite.hornbaek.org, with `run_worker_first` so every request passes `authenticate`

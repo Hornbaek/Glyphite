@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What's new · Glyphite</title>
+<meta name="description" content="What changed in Glyphite, newest first.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/whatsnew.css">
+</head>
+<body class="whatsnew">
+<header class="ebar">
+  <div class="crumb"><a href="/">GLYPHITE</a> / WHAT'S NEW</div>
+  <span class="spacer"></span>
+  <a class="btn small" href="/ideas/">[ IDEA BANK ]</a>
+  <a class="btn small" href="/">[ GAMES ]</a>
+</header>
+<div class="wrap">
+  <header class="intro">
+    <h1>What's new</h1>
+    <p class="lede">Every request to the engine and its games, newest first: what you asked for, and what was done. Written from
+      <code>docs/HISTORY.md</code> when the site is built.</p>
+  </header>
+  <div class="cols">
+    <main id="log" aria-live="polite"><p class="empty">Loading…</p></main>
+    <aside id="merged" aria-label="Recently merged pull requests" hidden>
+      <h2>Recently merged</h2>
+      <ul id="mergedList"></ul>
+    </aside>
+  </div>
+</div>
+<script type="module" src="/assets/whatsnew.js"></script>
+</body>
+</html>

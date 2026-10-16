@@ -32,6 +32,15 @@ test('the idea bank page, its data and the button that opens it are in the site'
   assert.match(readFileSync(join(DIST, 'index.html'), 'utf8'), /href="\/ideas\/"/);
 });
 
+test('the What\'s new page, its data and the 404 game are in the site', () => {
+  const changes = JSON.parse(readFileSync(join(DIST, 'changes.json'), 'utf8'));
+  assert.ok(changes.sections.length >= 13 && changes.latest === changes.sections[0].n);
+  assert.match(readFileSync(join(DIST, 'whats-new', 'index.html'), 'utf8'), /\/assets\/whatsnew\.js/);
+  assert.match(readFileSync(join(DIST, 'index.html'), 'utf8'), /href="\/whats-new\/"/);
+  assert.ok(existsSync(join(DIST, 'games', 'notfound', 'index.html')), 'the 404 game is built');
+  assert.equal(listing.games.find(g => g.id === 'notfound').listed, false, 'and kept out of the game list');
+});
+
 test('the browser assembler reproduces the built page', () => {
   const engine = JSON.parse(read('engine/engine.json'));
   for (const g of listing.games) {
