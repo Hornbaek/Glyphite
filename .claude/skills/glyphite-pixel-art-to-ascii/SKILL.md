@@ -29,6 +29,8 @@ fewer.**
   - Where it touches the ground.
   Take everything else from the image.
 - Copy the image into `games/<id>/ref/<name>.png`. Never edit the user's original.
+- A whole sheet the owner generated from a prompt: check it first with the `glyphite-art-prompt` skill (step 5). On the
+  flat magenta background that skill asks for, the cut can use a wide tolerance (40–60) without eating into outlines.
 - **Keep every original drawing** (the owner's standing rule): each drawing you cut, trace or crop from the image is
   saved at its original pixels in `games/<id>/ref/frames/`, including the ones the game does not use yet, and listed in
   `ref/ref.json` with its box on the sheet and what it is used for (plus `ref/README.md` for GitHub). Do it in the game's
