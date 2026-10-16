@@ -5,10 +5,12 @@
 // request itself (worker/auth.js) and decides:
 //   /                  signed in: the game list. Not signed in: the public landing page (portal/welcome/).
 //   /welcome/...       the landing page's own files, and /games/showcase/ (the live engine demo on it): public.
+//   /games/<id>/       the page of a game listed on the landing page (welcome/site.json): public, so anyone can play the
+//                      test games. Only the page: the game's game.json, sources and reference art stay private.
 //   /login             Access signs the visitor in on the way here; then back to ?next= (a path on this site) or /.
 //   everything else    signed in only. A browser without a sign-in is sent to /login?next=<where it was going>;
 //                      files and the API get a plain 401.
-// While Access still covers the whole site, everything works the same, the landing just can't be reached signed out.
+// If Access covered the whole hostname again, everything would still work: the public pages would just need the login too.
 import { requireUser, AuthError } from './auth.js';
 import { handleIdeas } from './ideas.js';
 
@@ -29,6 +31,18 @@ const secure = res => { const out = new Response(res.body, res); for (const [k, 
 
 /** the paths anyone may see, signed in or not */
 export const isPublic = path => path === '/welcome' || path.startsWith('/welcome/') || path === '/games/showcase' || path.startsWith('/games/showcase/');
+
+/** a listed game's page, playable without signing in: the games on the landing page, as the build lists them in
+ *  welcome/site.json (so an unlisted game, a template or the 404 game is not). If that list cannot be read, it is not. */
+const GAME_PAGE = /^\/games\/([a-z][a-z0-9-]{1,31})(?:\/|\/index\.html)?$/;
+export async function isPublicGame(path, env, url) {
+  const id = GAME_PAGE.exec(path)?.[1];
+  if (!id) return false;
+  try {
+    const res = await env.ASSETS.fetch(new Request(new URL('/welcome/site.json', url)));
+    return res.ok && (await res.json()).games.some(g => g.id === id);
+  } catch { return false; }
+}
 
 /** where /login sends a signed-in visitor: a path on this site, never another site (//host, /\host, a full URL) */
 export function safeNext(next) {
@@ -57,6 +71,11 @@ export async function handle(request, env, { auth = requireUser } = {}) {
   if (isPublic(path)) {
     const out = secure(await env.ASSETS.fetch(request));
     if (!path.endsWith('.png')) out.headers.set('Cache-Control', 'no-cache');
+    return out;
+  }
+  if (!user && await isPublicGame(path, env, url)) {   // signed in, the same page is served below with everything else
+    const out = secure(await env.ASSETS.fetch(request));
+    out.headers.set('Cache-Control', 'no-cache');
     return out;
   }
   if (path === '/login') {

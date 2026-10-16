@@ -547,8 +547,10 @@ says **new** until that page has been opened for the latest section.
 **Who sees what** (`worker/index.js`): Cloudflare Access only needs to cover `/login`; the Worker checks the Access token on
 every request and decides. `/` serves the game list to the signed in and the public landing page (`portal/welcome/`, with
 `welcome/site.json`, the games' public facts, written by the build) to everyone else, never cached (`Vary: Cookie`).
-`/welcome/…` and `/games/showcase/` (the live demo in the landing page's hero, an unlisted game) are public. Any other
-path needs the sign-in: a browser is redirected to `/login?next=<path>`, which Access guards and which sends the signed-in
+`/welcome/…` and `/games/showcase/` (the live demo in the landing page's hero, an unlisted game) are public, and so is the
+page of every game listed in `welcome/site.json` (`isPublicGame`: `/games/<id>/` only, not its `game.json`, sources or
+reference art; the landing page calls them test games, a work in progress). If that list cannot be read, no game is public.
+Any other path needs the sign-in: a browser is redirected to `/login?next=<path>`, which Access guards and which sends the signed-in
 visitor back (to a path on this site only, `safeNext`); files and the API get a 401. `tests/node/routes.test.mjs`.
 
 **The 404 game** (`games/notfound/`, unlisted): for a `GET` that asks for `text/html` and finds nothing (and is not under

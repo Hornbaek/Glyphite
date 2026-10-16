@@ -462,6 +462,19 @@ text spacing.
 - **To open it**, the owner changes the Glyphite Access application to cover only `/login` (`docs/DEPLOY.md`, section 5).
   Until then nothing changes for visitors: Cloudflare still asks everyone to sign in first.
 
+## 20. Anyone can play the test games (Claude Code, 2026-10-16)
+
+> "I'm okay with the players not being logged in to play the games, but write that they are a work in progress, just
+> test games."
+
+- **The listed games are public** (`worker/index.js`, `isPublicGame`): the page of every game on the landing page
+  (`/games/<id>/`, from the build's `welcome/site.json`) is served without the sign-in. Only the page: its `game.json`,
+  sources and reference art, unlisted games, the editor, the idea bank and the ART pages still need it. If the list cannot
+  be read, no game is public. `tests/node/routes.test.mjs`.
+- **The landing page says so**: the games section opens with a work-in-progress note ("these are test games, made to try
+  out the engine as it grows"), each card carries a TEST GAME · WORK IN PROGRESS tag, its controls and a PLAY button, and
+  the main buttons point to the games instead of the login (LOG IN stays in the top bar, for the editor and the idea bank).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

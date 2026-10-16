@@ -61,6 +61,11 @@ h2 span{color:var(--amber);font-size:.6em;letter-spacing:.1em}
 .game .tag{margin:0;color:var(--gold);font-size:13px}
 .game .desc{margin:0;font-size:13px}
 .game .btn{align-self:flex-start;margin-top:auto}
+.game .wip{margin:0;color:var(--amber);font-size:11px;letter-spacing:.12em}
+.game details{font-size:12.5px;color:var(--dim)} .game summary{cursor:pointer;letter-spacing:.06em} .game summary:hover{color:var(--phosphor)}
+.game dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:8px 0 0} .game dt{color:var(--gold)} .game dd{margin:0;color:var(--phosphor)}
+.note{max-width:78ch;margin:0 0 20px;padding:12px 16px;border:1px solid var(--rim2);border-left:3px solid var(--amber);border-radius:3px;
+  background:var(--panel);font-size:13.5px} .note b{color:var(--amber)}
 
 .goal{max-width:78ch} .goal p{margin:0 0 14px} .goal b{color:var(--gold);font-weight:400}
 .foot{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:clamp(56px,8vw,96px);padding-top:18px;padding-bottom:32px;border-top:1px solid var(--rim);
