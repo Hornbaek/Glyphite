@@ -311,6 +311,22 @@ text spacing.
 - **Access goes live (2026-10-15).** The Access application for glyphite.hornbaek.org exists; its AUD tag is
   in `wrangler.jsonc` (`vars.ACCESS_AUD`), so the Worker now accepts sign-ins instead of answering 503.
 
+## 12. The idea bank on the site (Claude Code, 2026-10-15)
+
+> "Add the idea bank into the site too as a button. I want to be able to highlight ideas and set a status on them
+> so we can work on them from here. Perhaps this should be added into a database on Cloudflare?"
+
+- **Data in the repository.** The 1,133 ideas are `docs/ideas.json` (stable ids); `docs/IDEAS.md` is generated from it by
+  `tools/ideas.mjs`. The build copies the JSON to `dist/ideas/ideas.json`.
+- **A page at `/ideas/`**, opened by an **IDEA BANK** button on the game list: search, filters (status, size, wildness,
+  category, starred), a star, a status and a note on every idea, all saved at once and rolled back with a message if a
+  save fails.
+- **Cloudflare D1.** A new database `glyphite` (binding `DB`, table `idea_state`, `migrations/0001_idea_state.sql`) holds
+  only what we decided. `worker/ideas.js` serves `GET /api/ideas` and `PUT /api/ideas/<id>` behind the Access check;
+  writes need an `X-Glyphite` header and an id that exists in `ideas.json`.
+- **Sessions use the same table** through the D1 connector: `CLAUDE.md` ("The idea bank") says how to read what is
+  starred or planned and how to set `building` and `shipped` as work goes on.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

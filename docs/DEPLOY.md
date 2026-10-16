@@ -44,7 +44,15 @@ Cloudflare dashboard → **Workers & Pages** → **Create** → **Import a repos
 The first build on `main` creates the Worker and attaches `glyphite.hornbaek.org` from the `routes` entry
 (the zone is on the same account). Node comes from `.nvmrc` (22).
 
-### 3. Optional: who may use it
+### 3. The D1 database (the idea bank)
+
+`wrangler.jsonc` binds a D1 database called `glyphite` as `DB` (id in the file; it is not secret). It holds the idea
+bank's stars, statuses and notes (`worker/ideas.js`, schema in `migrations/`). It already exists and has its table; to
+recreate it elsewhere: create a database named `glyphite` (Workers & Pages → D1), put its id in `wrangler.jsonc`, and run
+`npx wrangler d1 migrations apply glyphite --remote` (or paste `migrations/*.sql` into the dashboard's console). Without the
+binding the idea bank page still loads but says it cannot save.
+
+### 4. Optional: who may use it
 
 Access already decides who can sign in. To narrow it further in the Worker, set `ALLOWED_EMAILS`
 (comma-separated) under the Worker → **Settings** → **Variables and Secrets**; `keep_vars` keeps it across
@@ -70,6 +78,7 @@ deploys. Vars that are in `wrangler.jsonc` are overwritten by every deploy: chan
 | **401 "not valid"** after signing in | The AUD tag or team domain doesn't match the Access application. | Copy the AUD again. |
 | **403** after signing in | Your email isn't in `ALLOWED_EMAILS`. | Fix the variable in the dashboard. |
 | `glyphite.hornbaek.org` doesn't answer | The custom domain didn't attach. | The Worker → **Settings** → **Domains & Routes**. |
+| The idea bank says "could not be read" or "not saved" | The `DB` binding or the `idea_state` table is missing. | Section 3 above; the message names the cause. |
 
 Roll back from **Deployments** (promote the previous one), then fix forward.
 

@@ -5,6 +5,10 @@ Generated 2026-10-15 by a multi-agent brainstorm (14 angles, curated, gap-hunted
 promised: `docs/ROADMAP.md` is the plan. Use this as a quarry: pick an idea, check it against `CLAUDE.md`
 (engine vs game, ASCII only, both renderers), and build it in a session.
 
+The data is `docs/ideas.json` and this file is generated from it (`node tools/ideas.mjs`): edit the JSON, not this file.
+On the site, **glyphite.hornbaek.org/ideas/** shows the same ideas with stars, a status and a note for each, kept in
+Cloudflare D1 (see "The idea bank" in `CLAUDE.md` for how a session reads them).
+
 Size: tiny · small · medium · large · moonshot. Wildness: practical · bold · crazy.
 
 ## Categories

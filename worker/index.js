@@ -1,6 +1,7 @@
 // The Glyphite site Worker: checks the Cloudflare Access login, then serves the static site that
 // `npm run build` writes to dist/ (the game list, the games, the editor and its sources).
 import { requireUser, AuthError } from './auth.js';
+import { handleIdeas } from './ideas.js';
 
 const SECURITY = {
   'X-Content-Type-Options': 'nosniff',
@@ -18,7 +19,8 @@ function page(status, title, text) {
 
 export default {
   async fetch(request, env) {
-    try { await requireUser(request, env); }
+    let user;
+    try { user = await requireUser(request, env); }
     catch (err) {
       if (!(err instanceof AuthError)) { console.error('sign-in check failed', err); return page(500, 'Glyphite', 'Something went wrong.'); }
       const msg = err.status === 503 && /not set up/.test(err.message)
@@ -26,11 +28,18 @@ export default {
         : err.message;
       return page(err.status, 'Glyphite', msg);
     }
+    const path = new URL(request.url).pathname;
+    if (path === '/api/ideas' || path.startsWith('/api/ideas/')) {
+      try {
+        const res = await handleIdeas(request, env, user);
+        for (const [k, v] of Object.entries(SECURITY)) res.headers.set(k, v);
+        return res;
+      } catch (err) { console.error('ideas api failed', err); return new Response('{"error":"Something went wrong."}', { status: 500, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...SECURITY } }); }
+    }
     const res = await env.ASSETS.fetch(request);
     const out = new Response(res.body, res);
     for (const [k, v] of Object.entries(SECURITY)) out.headers.set(k, v);
     // pages and data change with every deploy; the vendored editor library does not
-    const path = new URL(request.url).pathname;
     if (!path.startsWith('/vendor/') && !path.endsWith('.png')) out.headers.set('Cache-Control', 'no-cache');
     return out;
   }

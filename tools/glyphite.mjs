@@ -7,7 +7,7 @@
 //   node tools/glyphite.mjs serve [--port 8787]   serve dist/ on http://localhost:8787
 //
 // dist/ layout (served by the Cloudflare Worker in worker/):
-//   index.html, edit/, assets/        the portal (from portal/), the editor, shared scripts
+//   index.html, edit/, ideas/, assets/   the portal (from portal/), the editor, the idea bank (+ ideas/ideas.json), shared scripts
 //   games.json                        every game's listing data
 //   games/<id>/index.html             the playable single-file game
 //   games/<id>/game.json, thumb.png   its manifest and thumbnail
@@ -110,6 +110,8 @@ function build(only) {
   // the portal: static pages and the shared assembler
   if (existsSync(join(ROOT, 'portal'))) cpSync(join(ROOT, 'portal'), DIST, { recursive: true });
   write(join(DIST, 'assets/assemble.mjs'), read('tools/assemble.mjs'));
+  // the idea bank's data (the page and the Worker's API both read it)
+  write(join(DIST, 'ideas/ideas.json'), read('docs/ideas.json'));
   // engine sources for the editor
   write(join(DIST, 'src/engine/engine.json'), read('engine/engine.json'));
   write(join(DIST, `src/engine/${engine.shell}`), engine.shellCode);

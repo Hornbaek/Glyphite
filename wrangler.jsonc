@@ -31,6 +31,12 @@
     "not_found_handling": "none"
   },
 
+  // The idea bank's stars, statuses and notes (worker/ideas.js). The schema is in migrations/: a session applies
+  // a new migration with the Cloudflare D1 connector (or `npx wrangler d1 migrations apply glyphite --remote`).
+  "d1_databases": [
+    { "binding": "DB", "database_name": "glyphite", "database_id": "a3675d08-0fe6-43f0-989c-f3a5cdb3db39", "migrations_dir": "migrations" }
+  ],
+
   "vars": {
     // From the Cloudflare Access application that protects glyphite.hornbaek.org (Zero Trust →
     // Access → Applications): the team domain and the application's audience (AUD) tag. Neither is
