@@ -1,5 +1,5 @@
 // The idea bank page: docs/ideas.json (served as /ideas/ideas.json) plus what we decided about each idea
-// (stars, status, note) from the Worker's D1-backed API (/api/ideas, worker/ideas.js). Every change is
+// (stars, status, note, and [?]: ask a Claude session to explain it) from the Worker's D1-backed API (/api/ideas, worker/ideas.js). Every change is
 // saved at once; the card shows "saving…", "saved" or the error, and goes back to its old value on failure.
 import { STATUSES, NOTE_MAX } from '/assets/ideas-status.mjs';
 
@@ -11,11 +11,12 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 // `code` in the brainstorm's text becomes <code>, unless a lone backtick (an idea about the glyph itself) makes the pairs ambiguous
 const rich = s => { const e = esc(s); return e.split('`').length % 2 ? e.replace(/`([^`]+)`/g, '<code>$1</code>') : e; };
 const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-const blank = () => ({ starred: false, status: 'idea', note: '' });
+const blank = () => ({ starred: false, status: 'idea', note: '', ask: false });
+const keep = r => ({ starred: r.starred, status: r.status, note: r.note, ask: r.ask });
 
-const state = { q: '', sizes: new Set(SIZES), wild: new Set(WILD), statuses: new Set(STATUSES.map(s => s.id)), onlyStarred: false };
+const state = { q: '', sizes: new Set(SIZES), wild: new Set(WILD), statuses: new Set(STATUSES.map(s => s.id)), onlyStarred: false, onlyAsk: false };
 let ideas = [], cats = [];
-const confirmed = new Map();      // idea id → what the server has: { starred, status, note }
+const confirmed = new Map();      // idea id → what the server has: { starred, status, note, ask }
 const pending = new Map();        // idea id → Map(field → { value, n }): changes shown but not yet confirmed
 const chains = new Map();         // idea id → the last save in flight, so saves of one idea stay in order
 
@@ -38,7 +39,8 @@ async function api(path, init) {
 function stats() {
   const n = id => ideas.filter(i => mine(i.id).status === id).length;
   const parts = STATUSES.filter(s => s.id !== 'idea').map(s => `<span><b>${n(s.id)}</b> ${s.label.toLowerCase()}</span>`);
-  $('#stats').innerHTML = `<span><b>${ideas.length}</b> ideas</span><span><b>${ideas.filter(i => mine(i.id).starred).length}</b> starred</span>` + parts.join('');
+  $('#stats').innerHTML = `<span><b>${ideas.length}</b> ideas</span><span><b>${ideas.filter(i => mine(i.id).starred).length}</b> starred</span>` + parts.join('') +
+    `<span><b>${ideas.filter(i => mine(i.id).ask).length}</b> to explain</span>`;
   for (const s of STATUSES) { const el = document.querySelector(`[data-sn="${s.id}"]`); if (el) el.textContent = n(s.id); }
 }
 
@@ -60,6 +62,8 @@ function paint(el) {
   el.classList.toggle('starred', s.starred);
   const star = el.querySelector('.star');
   star.setAttribute('aria-pressed', String(s.starred)); star.textContent = s.starred ? '[*]' : '[+]';
+  el.classList.toggle('asked', s.ask);
+  el.querySelector('.ask').setAttribute('aria-pressed', String(s.ask));
   el.querySelector('.status').value = s.status;
   const note = el.querySelector('.note-text');
   note.textContent = s.note; note.hidden = !s.note;
@@ -78,7 +82,7 @@ function save(el, change) {
   const run = async () => {
     try {
       const r = await api(`/api/ideas/${encodeURIComponent(id)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Glyphite': '1' }, body: JSON.stringify(change) });
-      confirmed.set(id, { starred: r.starred, status: r.status, note: r.note });
+      confirmed.set(id, keep(r));
       mark(el, 'saved'); banner('');
     } catch (e) { mark(el, 'not saved', true); banner(`Could not save: ${e.message}`); }
     finally {
@@ -97,7 +101,7 @@ function render() {
       <h2 class="rule" id="h-${slug(c.name)}"><span>${esc(c.name)}</span><span class="fill" aria-hidden="true">${'='.repeat(200)}</span><span class="n" data-n></span></h2>
       <div class="grid">${c.ideas.map(i => `
         <article class="idea" data-id="${esc(i.id)}">
-          <h3><span>${rich(i.title)}</span><button class="star" type="button" aria-pressed="false" aria-label="Star: ${esc(i.title)}">[+]</button></h3>
+          <h3><span>${rich(i.title)}</span><span class="marks"><button class="ask" type="button" aria-pressed="false" aria-label="Ask Claude to explain: ${esc(i.title)}" title="Ask Claude to explain this idea">[?]</button><button class="star" type="button" aria-pressed="false" aria-label="Star: ${esc(i.title)}">[+]</button></span></h3>
           <div style="display:grid;gap:6px;align-content:start"><p>${rich(i.pitch)}</p>${i.hook ? `<p class="hook">${rich(i.hook)}</p>` : ''}</div>
           <div class="foot-row">
             <div class="tags"><span class="size" title="size: ${i.size}"><b>[${BAR[i.size]}]</b> ${i.size}</span><span class="wild ${i.wildness}">${i.wildness}</span></div>
@@ -115,6 +119,7 @@ function render() {
 
   for (const el of document.querySelectorAll('.idea')) {
     el.querySelector('.star').addEventListener('click', () => save(el, { starred: !mine(el.dataset.id).starred }));
+    el.querySelector('.ask').addEventListener('click', () => save(el, { ask: !mine(el.dataset.id).ask }));
     el.querySelector('.status').addEventListener('change', e => save(el, { status: e.target.value }));
     el.querySelector('.note-btn').addEventListener('click', () => editNote(el));
     paint(el);
@@ -146,7 +151,7 @@ function apply() {
     let n = 0;
     for (const el of sec.querySelectorAll('.idea')) {
       const i = byId.get(el.dataset.id), s = mine(i.id);
-      const ok = state.sizes.has(i.size) && state.wild.has(i.wildness) && state.statuses.has(s.status) && (!state.onlyStarred || s.starred) &&
+      const ok = state.sizes.has(i.size) && state.wild.has(i.wildness) && state.statuses.has(s.status) && (!state.onlyStarred || s.starred) && (!state.onlyAsk || s.ask) &&
         (!q || (i.title + ' ' + i.pitch + ' ' + (i.hook || '') + ' ' + s.note).toLowerCase().includes(q));
       el.hidden = !ok; if (ok) n++;
     }
@@ -165,13 +170,14 @@ async function main() {
   try { items = (await api('/api/ideas')).items; }
   catch (e) { banner(`The idea database could not be read (${e.message}): stars and statuses will not be saved.`); }
   cats = data.categories; ideas = cats.flatMap(c => c.ideas);
-  for (const [id, r] of Object.entries(items)) confirmed.set(id, { starred: r.starred, status: r.status, note: r.note });
+  for (const [id, r] of Object.entries(items)) confirmed.set(id, keep(r));
   chips('#statusRow', STATUSES.map(s => s.id), state.statuses, id => STATUSES.find(s => s.id === id).label, id => STATUSES.find(s => s.id === id).help);
   chips('#sizeRow', SIZES, state.sizes, v => v);
   chips('#wildRow', WILD, state.wild, v => v);
   render(); stats(); apply();
   $('#q').addEventListener('input', e => { state.q = e.target.value; apply(); });
   $('#onlyStarred').addEventListener('click', e => { state.onlyStarred = !state.onlyStarred; e.currentTarget.setAttribute('aria-pressed', String(state.onlyStarred)); apply(); });
+  $('#onlyAsk').addEventListener('click', e => { state.onlyAsk = !state.onlyAsk; e.currentTarget.setAttribute('aria-pressed', String(state.onlyAsk)); apply(); });
   // category jumps land below the sticky console; on a phone the console scrolls away, so offer a way back to it
   new ResizeObserver(([e]) => document.body.style.setProperty('--console-h', e.target.offsetHeight + 'px')).observe($('#console'));
   new IntersectionObserver(([e]) => { $('#totop').hidden = e.isIntersecting; }).observe($('#console'));

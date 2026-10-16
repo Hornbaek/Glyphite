@@ -54,7 +54,7 @@ The first build on `main` creates the Worker and attaches `glyphite.hornbaek.org
 ### 3. The D1 database (the idea bank)
 
 `wrangler.jsonc` binds a D1 database called `glyphite` as `DB` (id in the file; it is not secret). It holds the idea
-bank's stars, statuses and notes (`worker/ideas.js`, schema in `migrations/`). It already exists and has its table; to
+bank's stars, statuses, notes and [?] marks (`worker/ideas.js`, schema in `migrations/`). It already exists and has its table; to
 recreate it elsewhere: create a database named `glyphite` (Workers & Pages → D1), put its id in `wrangler.jsonc`, and run
 `npx wrangler d1 migrations apply glyphite --remote` (or paste `migrations/*.sql` into the dashboard's console). Without the
 binding the idea bank page still loads but says it cannot save.

@@ -1,7 +1,7 @@
 // The idea bank: the data file, the generated markdown, and the D1-backed API (real SQLite stands in for D1).
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { loadIdeas, validate, renderMarkdown, md } from '../../tools/ideas.mjs';
 import { handleIdeas, resetKnownIdeas } from '../../worker/ideas.js';
 import worker from '../../worker/index.js';
@@ -25,7 +25,7 @@ test('markdown escaping keeps code spans and escapes the rest', () => {
 // a D1-shaped wrapper over node:sqlite: prepare().bind().all()/run()/first(), batch()
 function d1() {
   const db = new sqlite.DatabaseSync(':memory:');
-  db.exec(read('migrations/0001_idea_state.sql'));
+  for (const m of readdirSync(new URL('migrations/', ROOT)).filter(f => f.endsWith('.sql')).sort()) db.exec(read(`migrations/${m}`));   // as D1 applies them
   const stmt = (sql, args = []) => ({
     bind: (...a) => stmt(sql, a),
     all: async () => ({ results: db.prepare(sql).all(...args) }),
@@ -60,6 +60,20 @@ test('starring, status and note are stored and partial updates keep the rest', {
   assert.equal(Object.keys(await list()).length, 2);
 });
 
+test('asking for an explanation is stored, kept by other changes and cleared on its own', { skip }, async () => {
+  let r = await (await put(ID, { ask: true })).json();
+  assert.deepEqual([r.ask, r.starred, r.status], [true, false, 'idea']);
+  await put(ID, { status: 'planned' });
+  assert.equal((await list())[ID].ask, true);
+  r = await (await put(ID, { ask: false })).json();
+  assert.deepEqual([r.ask, r.status], [false, 'planned']);
+  // marked and nothing else: the row lives while the mark does
+  await put(ID2, { ask: true });
+  assert.equal((await list())[ID2].ask, true);
+  await put(ID2, { ask: false });
+  assert.equal((await list())[ID2], undefined);
+});
+
 test('an idea back at its defaults loses its row', { skip }, async () => {
   await put(ID, { starred: true, status: 'building', note: 'x' });
   await put(ID, { starred: false, status: 'idea', note: '' });
@@ -77,6 +91,7 @@ test('bad requests are refused and change nothing', { skip }, async () => {
     [put(ID, {}), 400],
     [put(ID, { status: 'done' }), 400],
     [put(ID, { starred: 'yes' }), 400],
+    [put(ID, { ask: 1 }), 400],
     [put(ID, { note: 'x'.repeat(501) }), 400],
     [put(ID, { note: 5 }), 400],
     [put('Not_An_Id', { starred: true }), 400],
