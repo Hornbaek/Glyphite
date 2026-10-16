@@ -7,13 +7,19 @@ domain **glyphite.hornbaek.org**.
 - **Cloudflare Workers Builds deploys it.** Cloudflare pulls `main`, runs `npm run build:cloudflare` (the
   unit tests, then the build) and `npx wrangler deploy`. No deploy token lives in GitHub; the GitHub workflow
   only checks pull requests (the same build plus a smoke test of every game).
-- **Nothing is public.**
-  1. A Cloudflare Access application in front of the hostname asks for the login.
+- **Only the landing page is public.**
+  1. A Cloudflare Access application asks for the login. It covers `glyphite.hornbaek.org/login` (section 5);
+     before that change it covered the whole hostname, and everything still works that way, minus the landing page.
   2. The Worker checks the Access token itself on every request (`worker/auth.js`, the same check as
      hornbaek-site's admin): signature, this application's AUD tag, expiry, and optionally the email.
      `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` are in `wrangler.jsonc` (neither is secret). While `ACCESS_AUD`
-     is empty, the Worker answers **503 "not open yet"** to everyone.
-  3. `workers_dev` and `preview_urls` are off; PR Previews get none of the Access vars, so they are closed too.
+     is empty, the Worker answers **503 "not open yet"** to every private page.
+  3. The Worker decides what anyone may see (`worker/index.js`, `isPublic`): `/` is the landing page
+     (`portal/welcome/`) for visitors who are not signed in and the game list for those who are; `/welcome/…` (the
+     landing page's files, the games' titles and thumbnails) and `/games/showcase/` (the live demo on it) are public.
+     Everything else needs the sign-in: a browser is sent to `/login?next=…`, files and the API get a 401.
+     `tests/node/routes.test.mjs` pins this down. Making anything else public goes to the owner first.
+  4. `workers_dev` and `preview_urls` are off; PR Previews get none of the Access vars, so they are closed too.
 
 ## One-time setup
 
@@ -58,6 +64,22 @@ Access already decides who can sign in. To narrow it further in the Worker, set 
 (comma-separated) under the Worker → **Settings** → **Variables and Secrets**; `keep_vars` keeps it across
 deploys. Vars that are in `wrangler.jsonc` are overwritten by every deploy: change those in the file.
 
+### 5. The public landing page: Access on /login only
+
+Do this after the pull request that adds the landing page has deployed (until then the old Worker turns away everyone
+without a token, and nobody could sign in). Zero Trust → **Access** → **Applications** → the Glyphite application →
+**Configure**:
+- **Application domain** (Public hostname): keep `glyphite.hornbaek.org`, and set the **path** to `login`. Keep the same
+  application: its AUD tag stays the same, so nothing in `wrangler.jsonc` changes.
+- **Settings → Cookie settings**: leave **Cookie Path Attribute** off, so the sign-in cookie is sent for the whole site
+  (the Worker reads it on every page).
+- Save. In a private window, `glyphite.hornbaek.org` now shows the landing page; **LOG IN** asks for the login and comes
+  back to the game list; a private address (e.g. `/edit/`) asks for the login and comes back to it. Signed in, `/` is
+  the game list as before (the landing page stays at `/welcome/`, the **ABOUT** button on the game list).
+
+To close it again, remove the path (the application covers the whole hostname again). With Access on `/login` only,
+the Worker's token check is what guards the private pages, so keep `worker/auth.js` and `isPublic` strict.
+
 ## Where things show up
 
 | What | Where |
@@ -77,6 +99,8 @@ deploys. Vars that are in `wrangler.jsonc` are overwritten by every deploy: chan
 | The site says **503 … not open yet** | `ACCESS_AUD` is still empty in `wrangler.jsonc`. | Step 1. |
 | **401 "not valid"** after signing in | The AUD tag or team domain doesn't match the Access application. | Copy the AUD again. |
 | **403** after signing in | Your email isn't in `ALLOWED_EMAILS`. | Fix the variable in the dashboard. |
+| **401 "the sign-in did not come through"** on `/login` | Access does not cover `/login` (section 5). | Set the application's path to `login`. |
+| LOG IN goes round in a loop | **Cookie Path Attribute** is on, so the cookie is only sent for `/login`. | Turn it off (section 5). |
 | `glyphite.hornbaek.org` doesn't answer | The custom domain didn't attach. | The Worker → **Settings** → **Domains & Routes**. |
 | The idea bank says "could not be read" or "not saved" | The `DB` binding or the `idea_state` table is missing. | Section 3 above; the message names the cause. |
 

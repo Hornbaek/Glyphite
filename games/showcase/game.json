@@ -1,0 +1,18 @@
+{
+  "id": "showcase",
+  "title": "Glyphite Showcase",
+  "tagline": "The engine running live on the public landing page: a word in rock, sand, lamps and meteors",
+  "description": "Unlisted. Shown at the top of the landing page that visitors see before they log in. GLYPHITE is spelled in rock on the ground, lit by a low sun and two lamps; sand pours onto it and meteors break it into falling chunks. Click or tap to drop a meteor. When the word is mostly gone it builds itself again.",
+  "order": 97,
+  "listed": false,
+  "status": "playable",
+  "parts": ["world.js", "main.js"],
+  "controls": [
+    ["Click or tap", "drop a meteor there"]
+  ],
+  "tunables": {
+    "meteorEvery": { "label": "Meteor every", "unit": "s", "value": 3.2, "min": 1, "max": 12, "step": 0.1, "live": true, "help": "How often a meteor falls by itself (clicks drop more)." },
+    "sand": { "label": "Sand", "unit": "x", "value": 1, "min": 0, "max": 3, "step": 0.1, "live": true, "help": "How much sand pours from the hoppers above the word." }
+  },
+  "smoke": { "keys": [] }
+}

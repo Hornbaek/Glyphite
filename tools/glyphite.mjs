@@ -8,6 +8,7 @@
 //
 // dist/ layout (served by the Cloudflare Worker in worker/):
 //   index.html, edit/, ideas/, whats-new/, assets/   the portal (from portal/), the editor, the idea bank (+ ideas/ideas.json), What's new, shared scripts
+//   welcome/                          the public landing page (portal/welcome/) + site.json and thumbs/: what the public may see of the games
 //   games.json                        every game's listing data
 //   changes.json                      HISTORY.md and the merged pull requests, for the What's new page
 //   games/<id>/index.html             the playable single-file game
@@ -121,6 +122,19 @@ function copyRef(g, out) {
   return { sheets: ref.sheets.length, drawings: ref.sheets.reduce((n, sh) => n + sh.frames.length, 0) };
 }
 
+// The public landing page's data: the listed games' titles, taglines, descriptions and thumbnails, and a few counts. Only
+// this, the landing page and the live demo are served to visitors who are not signed in (worker/index.js).
+function writeWelcome(engine, listing, changes) {
+  const games = [];
+  for (const g of listing.filter(e => e.listed && !e.template)) {
+    let thumb = null;
+    if (g.thumbnail && existsSync(join(DIST, g.thumbnail))) { thumb = `/welcome/thumbs/${g.id}.png`; mkdirSync(join(DIST, 'welcome/thumbs'), { recursive: true }); copyFileSync(join(DIST, g.thumbnail), join(DIST, thumb)); }
+    games.push({ id: g.id, title: g.title, tagline: g.tagline, description: g.description, thumb });
+  }
+  const ideas = readJSON('docs/ideas.json').categories.reduce((n, c) => n + c.ideas.length, 0);
+  write(join(DIST, 'welcome/site.json'), JSON.stringify({ engine: engine.version, games, ideas, changes: changes.sections.length }) + '\n');
+}
+
 function build(only) {
   const engine = loadEngine();
   const games = gameDirs().map(loadGame).filter(g => !only.length || only.includes(g.manifest.id));
@@ -167,7 +181,9 @@ function build(only) {
   }
   listing.sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
   write(join(DIST, 'games.json'), JSON.stringify({ engine: { name: engine.name, version: engine.version, parts: engine.parts.map(p => p.name), shell: engine.shell }, built: new Date().toISOString(), games: listing }, null, 2) + '\n');
-  write(join(DIST, 'changes.json'), JSON.stringify(buildChanges(read('docs/HISTORY.md'), ROOT)) + '\n');   // the What's new page
+  const changes = buildChanges(read('docs/HISTORY.md'), ROOT);
+  write(join(DIST, 'changes.json'), JSON.stringify(changes) + '\n');   // the What's new page
+  writeWelcome(engine, listing, changes);
   console.log('SYNTAX_OK');
 }
 

@@ -2,8 +2,8 @@
 
 **Glyphite** is an AI-first game engine for the browser that draws everything with the 95 printable ASCII
 characters, each in its own colour. Games are made and changed in Claude Code sessions on this repository, and
-live at **glyphite.hornbaek.org** (behind a Cloudflare Access login). There you can see the list of games, play
-them, and open any of them in a web editor.
+live at **glyphite.hornbaek.org**. Visitors who are not signed in see a landing page about the engine with a live demo;
+behind the Cloudflare Access login are the games, the web editor, the idea bank and each game's reference art.
 
 ![Regolith Lander](docs/images/title_screen.png)
 
