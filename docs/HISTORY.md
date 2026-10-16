@@ -342,6 +342,16 @@ text spacing.
   emissive materials and bloom* (`Beat`, `setBeatPulse`, material `beatGlow`). Regolith: the He-3 veins flash on drum hits,
   the pad beacons flare, the bloom swells (tunable **Beat pulse**); the beat-synced beacons moved from the game into the
   engine (`Beat.blink`); `listener` hook so blasts are heard from the lander. `tests/engine_audio.py`.
+- **Merging.** "Don't wait for my merge at this stage, just merge. We are so early in dev, it does not matter for now." From
+  here the session merges its own pull requests once CI is green (`CLAUDE.md`, "Shipping changes"); batches 1 and 2 had been
+  merged after a go-ahead each.
+- **Batch 3, the site.** *What's-new page built from HISTORY.md* (`tools/changes.mjs` writes `changes.json` at build time;
+  `/whats-new/` renders it, newest first, with a "recently merged" list; the game list gets a WHAT'S NEW button with a NEW
+  marker and UPDATED badges on cards, both remembered per browser). *A Glyphite micro-game as the 404 page*: `games/notfound`,
+  where a lander crashes into the missing address spelled out in rock; the Worker serves it, with status 404, to browsers
+  asking for a missing page. *Auto-pick the most interesting thumbnail frame*: `tools/thumbnail.py --auto N --every K` scores
+  candidate frames (lit area, contrast, colour, highlights, motion, particles) and keeps the best, with a contact sheet of the
+  top six. Tests: `tests/node/changes.test.mjs`, `tests/node/notfound.test.mjs`, `tests/notfound.py`, `tests/thumbnail_pick.py`.
 
 ## Published versions (claude.ai artifact "Regolith Lander")
 

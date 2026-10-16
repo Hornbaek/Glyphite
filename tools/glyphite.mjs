@@ -7,11 +7,13 @@
 //   node tools/glyphite.mjs serve [--port 8787]   serve dist/ on http://localhost:8787
 //
 // dist/ layout (served by the Cloudflare Worker in worker/):
-//   index.html, edit/, ideas/, assets/   the portal (from portal/), the editor, the idea bank (+ ideas/ideas.json), shared scripts
+//   index.html, edit/, ideas/, whats-new/, assets/   the portal (from portal/), the editor, the idea bank (+ ideas/ideas.json), What's new, shared scripts
 //   games.json                        every game's listing data
+//   changes.json                      HISTORY.md and the merged pull requests, for the What's new page
 //   games/<id>/index.html             the playable single-file game
 //   games/<id>/game.json, thumb.png   its manifest and thumbnail
 //   src/engine/..., src/games/<id>/...  sources, for the editor's in-browser rebuild
+import { buildChanges } from './changes.mjs';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, copyFileSync, rmSync, cpSync } from 'node:fs';
 import { join, dirname, extname, resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -143,6 +145,7 @@ function build(only) {
   }
   listing.sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
   write(join(DIST, 'games.json'), JSON.stringify({ engine: { name: engine.name, version: engine.version, parts: engine.parts.map(p => p.name), shell: engine.shell }, built: new Date().toISOString(), games: listing }, null, 2) + '\n');
+  write(join(DIST, 'changes.json'), JSON.stringify(buildChanges(read('docs/HISTORY.md'), ROOT)) + '\n');   // the What's new page
   console.log('SYNTAX_OK');
 }
 

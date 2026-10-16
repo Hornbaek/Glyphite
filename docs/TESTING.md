@@ -13,6 +13,9 @@ Three layers:
    `engine_audio.py [2d|gl ...]` checks sound through air (delay, volume and dullness with distance, only with an atmosphere;
    `explode()` passing it on; the listener hook) by spying on `Sfx.burst`, and the beat (drum-hit edges from a faked chip
    meter, `blink`, material `beatGlow` and the bloom swell measured in pixels).
+   `notfound.py [2d|gl ...]` (or `--url <a missing page on a running site>`) plays the 404 game: the address becomes rock, the
+   lander crashes within ten seconds and breaks some of it, Enter restarts, a hostile address is only drawn as rock.
+   `thumbnail_pick.py` checks the frame scoring of `tools/thumbnail.py --auto` on synthetic frames (no browser).
 
 All browser tests drive headless Chromium with Playwright against the built pages in `dist/games/<id>/`
 (build first). Scripts find the repo root from their own path, so they run from any directory. Screenshots

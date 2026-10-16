@@ -1,0 +1,24 @@
+/* The What's new page. Same palette as the rest of the site (site.css). */
+.ebar{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--rim);background:var(--panel)}
+.ebar .crumb{font-weight:700;color:var(--bright)} .ebar .crumb a{color:var(--dim)} .ebar .spacer{flex:1}
+.intro{display:grid;gap:10px;margin-bottom:22px}
+.intro h1{margin:0;font-size:clamp(22px,3.4vw,32px);color:var(--bright);letter-spacing:-.01em}
+.lede{margin:0;max-width:72ch}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,320px);gap:28px;align-items:start}
+.entry{background:var(--panel);border:1px solid var(--rim);border-left:3px solid var(--rim2);border-radius:3px;padding:16px 18px;margin-bottom:16px;min-width:0}
+.entry.fresh{border-left-color:var(--amber)}
+.entry h2{margin:0;font-size:16px;color:var(--bright);display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px}
+.entry .no{color:var(--amber)} .entry .when{color:var(--dim);font-weight:400;font-size:12px}
+.entry .new{font-size:11px;letter-spacing:.08em;color:var(--void);background:var(--amber);padding:3px 6px;border-radius:2px;font-weight:700}
+.entry blockquote{margin:12px 0 4px;padding:0 0 0 12px;border-left:2px solid var(--rim2);color:var(--dim);font-size:13px;display:grid;gap:6px}
+.entry blockquote p{margin:0;overflow-wrap:anywhere}
+.entry ul{margin:12px 0 0;padding-left:1.2em;display:grid;gap:7px}
+.entry li{overflow-wrap:anywhere}
+.entry code{font-size:.9em;background:var(--void);border:1px solid var(--rim);border-radius:2px;padding:0 4px;white-space:pre-wrap}
+details.older{margin:6px 0 16px} details.older>summary{cursor:pointer;color:var(--dim);padding:8px 0}
+details.older>summary:hover{color:var(--phosphor)}
+#merged{background:var(--panel);border:1px solid var(--rim);border-radius:3px;padding:14px 16px}
+#merged h2{margin:0 0 8px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--amber)}
+#merged ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+#merged li{font-size:13px;overflow-wrap:anywhere} #merged .pr{color:var(--cyan)} #merged .d{display:block;color:var(--dim);font-size:12px}
+@media (max-width:860px){.cols{grid-template-columns:minmax(0,1fr)} #merged{order:2}}

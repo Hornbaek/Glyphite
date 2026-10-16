@@ -17,14 +17,16 @@ edits to a Claude session as a prompt plus a patch. **The repository is the sour
 engine/                 the engine (shared by every game)
   engine.json           part order + version          API.md   the public API: read it before writing game code
   shell.html            page template                 01_core … 11_loop.js   the parts (banner says what each does)
+games/notfound/         the 404 game: unlisted, served by the Worker for any missing page (worker/index.js)
 games/<id>/             one folder per game: game.json (manifest), head.html (optional page HTML), *.js parts,
                         thumb.png, plus the game's own tools/, tests/, ref/ (source art), music/, NOTES.md
 templates/starter/      the game `new` copies: small, uses every engine feature once (Cave Drone)
-portal/                 the website: game list (index.html), editor (edit/), idea bank (ideas/), assets/, vendor/codemirror
+portal/                 the website: game list (index.html), editor (edit/), idea bank (ideas/), what's new (whats-new/), assets/, vendor/codemirror
 worker/                 the Cloudflare Worker: Access login check + static site + idea bank API (ideas.js)
                         wrangler.jsonc: its config (incl. the D1 binding)     migrations/: the D1 schema
 tools/                  glyphite.mjs (CLI: build, new, list, serve), assemble.mjs (page assembler, shared with the
-                        editor), ideas.mjs (docs/ideas.json → docs/IDEAS.md), thumbnail.py, sprite2ascii.py +
+                        editor), ideas.mjs (docs/ideas.json → docs/IDEAS.md), changes.mjs (HISTORY.md → What's new), thumbnail.py
+                        (--auto picks the best frame), sprite2ascii.py +
                         ascii_preview.py (pixel art → sprites)
 tests/                  smoke.py (any game, both renderers), node/ (unit tests: build, editor patches, Access)
 docs/                   ARCHITECTURE (how it works), HISTORY, LESSONS, ROADMAP (the plan), IDEAS (the idea bank),
@@ -117,6 +119,15 @@ Apply the diff with `git apply` (if it no longer applies, carry the intent over 
    `device_scale_factor=3` and a clip; freeze first with `Glyphite.test.freeze()` (never pause: it draws a box).
 4. Run the game's regression scripts that the change could break. Treat any `pageerror` as a failure.
 The **`glyphite-verify`** skill walks through this loop.
+
+## Shipping changes
+
+For this early stage the owner has said: **merge your own pull request once CI is green**, without waiting for approval
+("we are so early in dev, it does not matter for now"). So: branch, build, test, push, open the PR, wait for both checks
+(GitHub's `test` and Cloudflare's `Workers Builds`) to pass, squash-merge, then confirm the deploy landed (the Worker's
+`modified_on` in Cloudflare moves) and update the idea bank statuses (`building` → `shipped`) and tell the owner what to try.
+Red CI is never merged. Anything that touches the sign-in (`worker/auth.js`, `ACCESS_*`) still goes to the owner first. The
+owner will say when this changes.
 
 ## Deploying
 

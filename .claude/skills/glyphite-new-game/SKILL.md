@@ -65,7 +65,9 @@ RES 1 and 3 too. Fix what looks wrong; repeat.
 ## 5. Finish
 
 - Thumbnail: `python3 tools/thumbnail.py <id> --play --steps 120 --keys ArrowUp` (or `--eval "…"` to stage a
-  scene). Look at `games/<id>/thumb.png`; a good one shows the player in action and reads at 640 × 400.
+  scene). Look at `games/<id>/thumb.png`; a good one shows the player in action and reads at 640 × 400. To let the
+  tool choose, add `--auto 24 --every 15` (24 frames, 15 steps apart): it scores them for detail, colour and action,
+  writes the best and a contact sheet `shots/thumb_<id>_candidates.png` to look over.
 - `games/<id>/NOTES.md`: the design in a few lines, controls, tunables, decisions and known issues, so the next
   session can pick it up.
 - Set `"status": "playable"` once it is fun from start to end.
