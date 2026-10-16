@@ -63,6 +63,7 @@ BEAT = """() => {
 
 GLOW = """() => {
   Glyphite.test.start(); setEyeAdaptation(0); TUNE.atmosphere = 0; startSite(1); Glyphite.test.step(3, []); Glyphite.test.freeze(); R.bloom = true;
+  const realPlaying = Chip.playing; Chip.playing = false;   // the music (started by the sound checks) would fire real drum hits between frames
   // a view with He-3 veins in it
   let c = -1; for (let i = W * 8; i < W * (H - 8) && c < 0; i++) if (cells[i] === CRYST) c = i;
   if (c < 0) return { error: 'no crystal vein found' };
@@ -75,7 +76,7 @@ GLOW = """() => {
     for (let j = 0; j < R.RH; j++) for (let i = 0; i < R.RW; i++) if (getC(o + i, p + j) === CRYST) { const q = (j * R.RW + i) * 4; sum += R.wPix[q] + R.wPix[q + 1] + R.wPix[q + 2]; n++; }
     return { crystal: n ? sum / n : 0, bloom: bl, n }; };
   const o = { quiet: frame(0, 1), hit: frame(1, 1), hit_but_off: frame(1, 0), half: frame(.5, 1) };
-  setBeatPulse(0); Glyphite.test.unfreeze(); return o;
+  setBeatPulse(0); Chip.playing = realPlaying; Glyphite.test.unfreeze(); return o;
 }"""
 
 

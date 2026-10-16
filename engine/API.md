@@ -107,6 +107,7 @@ Returns the id (1..255; `EMPTY = 0` is built in). Define materials at load time,
 | `density` | 1 | Relative density in falling chunks. |
 | `brittle` | true | Chips apart on hard impacts (false: bends and bounces, like steel). |
 | `anchor` | false | Never falls; supports any structure touching it (bedrock, pad metal). |
+| `oneWay` | false | A `Character` lands on it from above, jumps up through it and drops down through it (catwalks, ledges). To everything else (sand, particles, light, chunks) it is solid. |
 | `style` | `'terrain'` | `'terrain'` (slope glyphs `/ \ | ~` at surfaces), `'flat'` (always the ramp), `'deck'` (`= -` top, `# H` body), `'mast'` (`| = +` by neighbours; buried parts look like the ground), `'crystal'` (animated `* +` with a colour `pulse`). |
 | `grainGlyphs` | `".,'`:"` | Glyphs of its flying grains; `debris: true` makes them heavier, bouncier debris. |
 | `sublimate` | 0 | Chance per exhaust-gas hit to turn into vapour. `vaporize: true`: blasts turn it into vapour. |
@@ -138,6 +139,19 @@ effects, chunks and mounts. Then fill `cells[y * W + x] = MATERIAL` directly (fa
 | `settleIslands(onDrop)` | Drop floating solid pieces until they rest; `onDrop(cellIndices, rows)` lets you move objects riding them. Call after generation. |
 | `updateSkyline()`, `colTop[x]` | First solid row of each column (updated every frame). |
 
+**The back wall.** A second grid, `backCells` (same size, material ids, 0 = none), for walls, panels and pipes behind the rooms
+of a station, a house or a cave. It is never solid: nothing collides with it and light and sand pass it by. It is drawn
+wherever the world cell in front is empty, darker than the world (`BACK.dim`), lit by the same light as the air in front of
+it, with a drop shadow where world cells stand between it and the light, so rooms read as rooms. Where it is 0 the sky shows
+through: windows, hull breaches, the outdoors. Give it the back material of everything inside, solid cells included, so
+whatever gets eaten or blown away shows a wall rather than the stars. Materials come from the same registry: `'mast'` style
+draws seams and pipes (`| = +` from its back-wall neighbours), every other style uses its ramp.
+
+| | |
+|---|---|
+| `setBack(x, y, m)`, `getBack(x, y)` | Write / read one back-wall cell (or fill `backCells[y * W + x]` directly while generating). `worldInit` clears it. |
+| `setBackdrop({ dim, shadow, dir, depth })` | `dim` (.42): brightness against the world; `shadow` (.6): how dark the drop shadow is; `dir` ([.6, .8]): the way shadows fall, in units (down and right); `depth` (2.2): how far they reach, base units. |
+
 ## Bodies and contacts
 
 ```js
@@ -151,6 +165,44 @@ Fields: `x, y, vx, vy, a, w, m, I, hull, hits, feetDown, bodyDown`. Helpers: `b.
 material's friction), 2 strut side; the kind only matters for friction, your game decides what a hit means.
 A mass of 1 is about a lander; a chunk of 120 cells weighs ~2.
 
+## Characters
+
+A `Character` is an upright box that walks and jumps on the grid the way a platformer hero does: it steps up bumps of about
+one row (every slope in a voxel world is a staircase) and sticks to the ground walking down them; it jumps with coyote time,
+a jump buffer and a variable height (letting go early cuts the jump short), falls faster than it rises, can slide down walls
+and jump off them, lands on `oneWay` materials from above (holding `down` drops through), and stands on falling chunks.
+Position is the middle of its feet, like a Body: x in cells, y in units. Author sizes and speeds in base units × `RES`.
+
+```js
+const hero = new Character(x, y, { w: 4 * RES, h: 6 * RES, run: 30 * RES, jump: 14 * RES, wallJump: [26 * RES, 10 * RES] });
+hero.step(dt, { x: -1..1, jump: held, down: held });   // every fixed step, in GAME.update
+if (hero.jumped) Sfx.tone(440, .07); if (hero.landed > 30 * RES) puff(); if (MAT_NAME[hero.ground] === 'ice') slide();
+```
+After a step: `onGround`, `ground` (the material under the feet, 0 in the air), `wall` (-1 / 1 when airborne against a wall on
+that side), `facing` (-1 / 1), `vx`, `vy`, and what happened this step: `jumped`, `wallJumped`, `landed` (impact speed in
+units/s, else 0), `bumped` (hit its head). Options live in `hero.o` and can be changed at any time (live tunables):
+
+| Option | Default | |
+|---|---|---|
+| `w`, `h` | `4·RES`, `6·RES` | The box, units. |
+| `run` | `28·RES` | Top running speed, units/s. |
+| `accelT`, `stopT` | .09, .06 | Seconds from standing to top speed, and back to standing (also to turn round). |
+| `air` | .75 | Air control: acceleration in the air as a fraction of the ground's. |
+| `jump` | `14·RES` | Jump height, units (the launch speed is worked out from gravity, so the height stays the same if gravity changes). |
+| `cut` | .45 | Vertical speed kept when the jump is let go while rising. |
+| `gravity` | 0 | Units/s²; 0 = the world's `G` (set it for low-gravity zones). |
+| `fallMul`, `fallMax` | 1.6, `140·RES` | Gravity multiplier while falling; terminal fall speed. |
+| `coyote`, `buffer` | .1, .12 | Seconds a jump still counts after leaving the ground / before landing. |
+| `step` | one row | The highest bump it walks up, units. |
+| `wallSlide` | 0 | > 0: pressing into a wall in the air, it falls no faster than this (units/s). |
+| `wallJump` | null | `[push away (units/s), height (units)]`: jump off walls. |
+| `chunks` | true | Falling chunks are solid to it. |
+
+Also: `hero.solid(cx, cy)` (is that cell solid to it), `hero.blocked(x, y)` (would the box overlap anything there),
+`hero.touches(ch)` (does it overlap this falling chunk: use it in `GAME.chunkStep` to crush or push), `hero.unstick(reach)`
+(push it out of whatever it overlaps, e.g. sand poured onto it). Enemies can walk on Characters too: give them `input.x` and
+turn them round at `hero.solid(ahead, row)`. See `games/spacemouse/` (the mouse and the cat-bots).
+
 ## Breakable structures
 
 After every `explode()` the engine checks support around the blast. Solid regions that lost their connection
@@ -162,6 +214,7 @@ and freeze back into the grid when they rest. `STRUCTURES = false` turns this of
 | `blastFrom(vx, vy)` | Call just before `explode()` for a projectile: loose pieces are pushed along its flight. |
 | `chunks`, `chunkAt(x, y)` | Falling chunks; the chunk covering a world point (for projectile hits). |
 | `chunkVsBody(ch, body, onHit)` | From `GAME.chunkStep(ch)`: pushes your body out of the chunk. `onHit(v, hullPoint)` → return true to stop (body destroyed). |
+| `checkSupport(x, y, R, delay = 0)` | A structure lost its support without a blast (the game removed a bracket, a pillar, a pin): check around (x, y) within about R units now, or `delay` seconds from now; whatever no longer connects breaks off as chunks. |
 | `addMount(obj)` | Fix a game object to a cell (`obj.mount = y * W + x`) so it rides the chunk that cell breaks into. Handlers on `obj` (this = obj): `onRide(ch)`, `onMove(ch)`, `onImpact(ch, vb, x, y)`, `onLand(ch, placedCells)`, `onLost(ch)`. `obj.chunk` is the chunk while riding; set `obj.dead` to stop. See `games/regolith/lamps.js`. |
 
 ## Particles, blasts and effects
@@ -215,6 +268,14 @@ screen) and consider terrain and frozen chunks, not moving bodies:
 - `isLitBy(light, x, y)` → how strongly this light (an object like the ones `GAME.lights` pushes, with `x, y, r, I, shadow`
   and, for a cone, `dx, dy, cos`) reaches the point: `0` = not at all, else its intensity there. Same falloff, cone and
   shadows as the lighting itself.
+- `lineClear(x0, y0, x1, y1, skip)` → `true` if no terrain lies on the straight line between the points (ignoring the first
+  `skip` units): line of sight, for guards that see the player.
+
+**Flicker and pulse.** Any light may carry `flicker: 'candle' | 'fluorescent' | 'dying' | 'strobe' | 'alarm' | 'pulse'` and a
+`seed`; its intensity is then multiplied by `flickerAt(flicker, time, seed)` (0..1): a candle wavers, a fluorescent tube is
+steady with the odd stutter, a dying tube has long dark spells and bursts of stuttering light, an alarm turns like a beacon. It
+is a pure function of time and seed, so the game can draw the lamp's own glyph in step with its light (and buzz with
+`Sfx.buzz`), and lamps with different seeds don't blink together.
 
 **Eye adaptation.** `setEyeAdaptation(strength 0..1, opts?)` lets the exposure follow the scene (off by default; 0 = off,
 exposure exactly 1). It is measured each frame as the average brightness of what is on screen and eased toward a target: a
@@ -238,6 +299,8 @@ spriteHull(SHIP, 3)                          // hull points (base units: multipl
 ```
 `k` = base units per pixel, `(ox, oy)` the origin pixel (centre of mass). `part(c, r)` gives movable parts (1..n)
 their own offset `shift[2p-2], shift[2p-1]`. `foot` snaps that line to a row boundary so feet stand on the ground.
+`flip: true` mirrors it left to right in its own frame (draw characters facing right, flip them to face left). Animation
+frames are simply several sprites from rows that differ (see `games/spacemouse/art.js`).
 
 ## Sky
 
@@ -265,7 +328,9 @@ aim for 6 s after it moved, else null), `Input.touch.<name>` (on-screen hold but
 ## Sound
 
 `Sfx` (procedural, starts on the first input): `Sfx.engine(throttle 0..1)` (a looping thrust hum), `boom(power)`,
-`launch()`, `thud(v)`, `pickup()`, `alarm()`, `win()`, `tone(freq, dur, vol, type, delay)`, `burst(...)`, `heard(x, y)`, `toggle()`.
+`launch()`, `thud(v)`, `pickup()`, `alarm()`, `win()`, `tone(freq, dur, vol, type, delay)`, `burst(...)`, `heard(x, y)`, `toggle()`,
+`buzz(level 0..1)` (a looping mains hum for dying lamps and live wires: set it every frame, e.g. from `flickerAt()` times how
+near the lamp is).
 
 `Chip` (NES-style synth playing MIDI): `Chip.load(arrayBuffer)` → song, `Chip.play(song, { loop, fadeIn, onEnd })`,
 `Chip.stop(fade)`, `Chip.setVolume(v)`, `Chip.meter()` (lanes and beat, for visualisers), `Chip.connectMidi()`.

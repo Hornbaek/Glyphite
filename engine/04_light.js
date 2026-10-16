@@ -230,6 +230,30 @@ function isLitBy(L, x, y) {
   if (L.shadow && d > .6 && !lineClear(L.x, L.y, x, y, Math.min(d - .6, L.skip || 1.2))) return 0;
   return att * L.I;
 }
+// ---------- flicker and pulse presets ----------
+// A light (from GAME.lights or addLight) may carry flicker: 'candle' | 'fluorescent' | 'dying' | 'strobe' | 'alarm' | 'pulse' and a
+// seed; its intensity is then multiplied by flickerAt(flicker, time, seed). The value is a pure function of time and seed, so a
+// game can draw the lamp's own glyph, or buzz (Sfx.buzz), in step with its light, and lamps with different seeds don't blink
+// together.
+function flickerAt(kind, t, seed = 0) {
+  const sd = seed * 7.31;
+  switch (kind) {
+    case 'candle': return .62 + .38 * fbm1(t * 5 + sd, 11, 3) + .06 * Math.sin(t * 31 + sd);
+    case 'fluorescent': {   // steady, with a faint 100 Hz shimmer and the odd stutter
+      const w = Math.floor(t * 14 + sd);
+      return hash2(w, 3, seed) < .035 ? .2 + .4 * hash2(w, 4, seed) : .95 + .05 * Math.sin(t * 628);
+    }
+    case 'dying': {         // a tube on its way out: long dark spells, bursts of stuttering light
+      const w = Math.floor(t * 11 + sd), bad = vnoise1(t * .45 + sd, 13 + seed);
+      return hash2(w, 5, seed) < (bad > .5 ? .18 : .82) ? .75 + .25 * hash2(w, 6, seed) : .04;
+    }
+    case 'strobe': return ((t * 1.6 + sd) % 1) < .06 ? 1 : 0;
+    case 'alarm': { const q = Math.max(0, Math.sin((t * .9 + sd) * 6.2832)); return .12 + .88 * q * q; }   // a turning beacon
+    case 'pulse': return .55 + .45 * Math.sin((t * .5 + sd) * 6.2832);
+    default: return 1;
+  }
+}
+
 // cheap unshadowed glow for emissive things (flames, hot rock, crystals); rad in base cells
 function splatLight(cx, cy, r, g, b, rad) {
   rad = Math.max(1, Math.round(rad * RES));

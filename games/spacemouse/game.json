@@ -1,0 +1,117 @@
+{
+  "id": "spacemouse",
+  "title": "Space Mouse",
+  "tagline": "One small mouse, one abandoned space station, and somewhere aboard: cheese",
+  "description": "A platformer in the dark. Run, jump and wall-jump through an empty station by the light of your helmet lamp and its dying tubes, eat your way through cheese, stomp the old cat-bots that still patrol the decks, and don't touch the live cables. Find the great cheese at the end of every sector.",
+  "order": 2,
+  "listed": true,
+  "status": "playable",
+  "thumbnail": "thumb.png",
+  "parts": [
+    "materials.js",
+    "sectors.js",
+    "station.js",
+    "giveway.js",
+    "art.js",
+    "mouse.js",
+    "catbots.js",
+    "main.js"
+  ],
+  "controls": [
+    [
+      "A D / Left Right",
+      "run"
+    ],
+    [
+      "W / Up / Space",
+      "jump (hold to go higher; jump again sliding down a wall)"
+    ],
+    [
+      "S / Down",
+      "drop through a catwalk; eat the cheese you stand on"
+    ],
+    [
+      "walk into cheese",
+      "eat it"
+    ],
+    [
+      "Enter or tap",
+      "start / next sector"
+    ]
+  ],
+  "tunables": {
+    "gravity": {
+      "label": "Gravity",
+      "unit": "x normal",
+      "value": 1,
+      "min": 0.25,
+      "max": 2.5,
+      "step": 0.05,
+      "live": true,
+      "help": "The station's artificial gravity, for the mouse and everything that falls. Jumps keep their height, so lower gravity makes them slower and floatier."
+    },
+    "jumpHeight": {
+      "label": "Jump height",
+      "unit": "mouse heights",
+      "value": 2.6,
+      "min": 1,
+      "max": 6,
+      "step": 0.1,
+      "live": true,
+      "help": "How high a full jump (button held) goes. A tap gives about half."
+    },
+    "runSpeed": {
+      "label": "Run speed",
+      "unit": "mouse widths/s",
+      "value": 7,
+      "min": 2,
+      "max": 16,
+      "step": 0.5,
+      "live": true,
+      "help": "Top running speed."
+    },
+    "airControl": {
+      "label": "Air control",
+      "unit": "0-1",
+      "value": 0.8,
+      "min": 0,
+      "max": 1,
+      "step": 0.05,
+      "live": true,
+      "help": "How much you can steer in the air, against how quickly you change direction on the ground."
+    },
+    "wallJump": {
+      "label": "Wall jumps",
+      "unit": "on/off",
+      "value": true,
+      "live": true,
+      "help": "Slide down walls and jump off them."
+    },
+    "catSpeed": {
+      "label": "Cat-bot speed",
+      "unit": "x normal",
+      "value": 1,
+      "min": 0,
+      "max": 2.5,
+      "step": 0.1,
+      "live": true,
+      "help": "How fast the cat-bots patrol and chase (0 = switched off)."
+    },
+    "stationLight": {
+      "label": "Station light",
+      "unit": "x normal",
+      "value": 1,
+      "min": 0.2,
+      "max": 4,
+      "step": 0.1,
+      "live": true,
+      "help": "The faint background light everywhere. Raise it if the station is too dark to play."
+    }
+  },
+  "smoke": {
+    "keys": [
+      "ArrowRight",
+      "ArrowUp"
+    ]
+  }
+}

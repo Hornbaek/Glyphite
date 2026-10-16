@@ -72,6 +72,13 @@ Renderer selection (used in every script):
 | `prof_systems.py` | ms per second spent in each engine system during a roof collapse (wraps globals with timers). |
 | `shot_lander_normal_view.py` | Normal-zoom gameplay screenshots, in flight and landed. |
 
+## Space Mouse (`games/spacemouse/tests/`)
+
+| Script | What it checks |
+|---|---|
+| `mechanics.py [2d\|gl] [RES ...]` | In sector 1: a held jump reaches the tuned height and a tap about half; the run speed matches; the mouse eats through the cheese wall; the rusted floor gives way; it jumps up through a catwalk, stands on it and drops through; a cat-bot catches it from the side and is shorted out from above; a live cable kills; the great cheese clears the sector. Default: GL at RES 1, 2, 3. |
+| `reach.py [sector ...] [--res R] [--tune JSON]` | Can each sector be finished? A breadth-first search with the real controller from every place the mouse can stand (walks, jumps of three lengths, steering mid-air, running jumps), never touching cables or glass. Cheese counts as eaten, rust and gantries as fallen, cracked walls as broken; low gravity applies. Fails if the great cheese, a crumb or a checkpoint can't be reached. Run it after editing a map, and at RES 1 and 3, and with tunables you changed (e.g. `--tune '{"jumpHeight":2}'`). |
+
 ## Regolith Lander: historical tests (written for earlier versions; may need updating)
 
 | Script | Original purpose |

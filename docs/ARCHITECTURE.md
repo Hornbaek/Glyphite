@@ -142,6 +142,24 @@ Hull point kinds:
 
 `toWorld`, `dirWorld` and `impulse` are the frame helpers.
 
+### Characters (`Character`, same file)
+
+Platformer movement is not a rigid body: a `Character` is an axis-aligned box (feet at `x, y`) moved cell-exactly, so it
+never sinks, jitters or tips over. Each step: the jump button is remembered for `buffer` seconds and the ground for `coyote`
+seconds; running accelerates toward `dir × run` (slower in the air, `air`); a jump sets `vy = -sqrt(2·g·jump)` so the height
+holds whatever the gravity; letting go while rising multiplies `vy` by `cut`; falling uses `g × fallMul`. Then it moves:
+- **across**, in steps of under half a cell: when the leading edge enters a new column, the topmost solid cell of that column
+  within the box's rows decides. If it lies within `step` of the feet (and the character is on the ground, or falling onto a
+  corner) and the box fits above it, the feet rise onto it; otherwise the move stops there.
+- **down a staircase**: on the ground and not jumping, ground up to `step` below the feet pulls them down onto it.
+- **up or down**, a row at a time: entering a row with anything solid under the box lands it on that row's top (or bumps its
+  head on the way up). A `oneWay` cell is solid only here, and only if the feet were at or above its top before the move and
+  the character isn't dropping through (`down` held on one).
+
+Solid means any non-empty world cell, plus falling chunks (`chunkCellMat` over the chunks' cell boxes, gathered once per step).
+`wall` is set while airborne with something solid beside the box above its lowest row, which is what wall slides and wall
+jumps read.
+
 ## 5. Breakable structures (`engine/09_structures.js`)
 
 ### Support check
@@ -291,7 +309,11 @@ path.
 ### Scene shading (`engine/06_scene.js`)
 `renderScene(ox, oy, time, drawExtras)` runs in order:
 1. Emissive particles, hot rock and crystals splat light.
-2. Terrain cells. Colour = albedo × light (buried cells have a floor), plus texture variation, plus
+2. Terrain cells. An empty cell with a back-wall material behind it (`backCells`) draws that material instead of staying
+   transparent: albedo × the light in the air there × `BACK.dim`, darkened when a world cell lies a short way toward the
+   light (`BACK.dir`, `BACK.depth`: a drop shadow that makes rooms look like rooms), with `Z = 0` so particles and rings
+   still draw over it. Its glyph is never 0, so the sky stays hidden behind it. A filled cell: colour = albedo × light
+   (buried cells have a floor), plus texture variation, plus
    heat glow. The glyph depends on the surface:
    - normal facing up → luminance ramp;
    - normal facing down → `~`;

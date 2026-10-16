@@ -180,9 +180,15 @@ function chunkCellBox(ch) {
 
 // loose regolith keeps sliding after a blast and can undermine what was still standing, so each
 // blast site is checked once more a moment later
-function scheduleRecheck(x, y, R) {
-  for (const c of rechecks) if (Math.hypot(c.x - x, c.y - y) < R * 2) { c.t = .9; c.R = Math.max(c.R, R); return; }
-  rechecks.push({ x, y, R, t: .9 });
+function scheduleRecheck(x, y, R, t = .9) {
+  for (const c of rechecks) if (Math.hypot(c.x - x, c.y - y) < R * 2) { c.t = t; c.R = Math.max(c.R, R); return; }
+  rechecks.push({ x, y, R, t });
+}
+// a structure losing its support without a blast (the game took out a bracket, a pillar, a pin): check the support around
+// (x, y) within about R units now, or `delay` seconds from now; whatever no longer connects breaks off as chunks
+function checkSupport(x, y, R, delay = 0) {
+  if (!STRUCTURES) return;
+  if (delay > 0) scheduleRecheck(x, y, R, delay); else structuralCheck(x, y, R);
 }
 
 function stepChunks(dt) {
