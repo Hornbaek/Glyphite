@@ -36,8 +36,12 @@ control, wall jumps on/off, cat-bot speed, station light (the ambient).
 - A shorted cat-bot's blast sets off whole cracked-wall panels within about two tiles (`crackWalls`), so secrets open
   reliably instead of being chipped.
 
+**Editing the sectors.** In the site's editor (EDIT on the game list), the **LEVELS** tab paints the maps with the legend from
+`game.json` ("levels"); PLAY THIS MAP and the TEST tool try them at once, CHECK proves they can be finished (`levelcheck.js`).
+A new kind of tile needs a legend entry (with its own colour) and a case in `station.js`.
+
 **Tests.** `tests/mechanics.py` (the mechanics at RES 1–3) and `tests/reach.py` (every sector finishable, every crumb and
-checkpoint reachable). Run `reach.py` after any map edit.
+checkpoint reachable: it runs `checkSector` from `levelcheck.js`). Run `reach.py` after any map edit; CI runs it too.
 
 **Known issues / ideas.**
 - No music yet (the Chip could play an eerie station theme; the beat could drive the alarm lamps).

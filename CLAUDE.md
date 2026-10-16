@@ -21,7 +21,7 @@ games/notfound/         the 404 game: unlisted, served by the Worker for any mis
 games/<id>/             one folder per game: game.json (manifest), head.html (optional page HTML), *.js parts,
                         thumb.png, plus the game's own tools/, tests/, ref/ (source art), music/, NOTES.md
 templates/starter/      the game `new` copies: small, uses every engine feature once (Cave Drone)
-portal/                 the website: game list (index.html), editor (edit/), idea bank (ideas/), what's new (whats-new/), assets/, vendor/codemirror
+portal/                 the website: game list (index.html), editor (edit/: tune, code, LEVELS for tile maps), idea bank (ideas/), what's new (whats-new/), assets/, vendor/codemirror
 worker/                 the Cloudflare Worker: Access login check + static site + idea bank API (ideas.js)
                         wrangler.jsonc: its config (incl. the D1 binding)     migrations/: the D1 schema
 tools/                  glyphite.mjs (CLI: build, new, list, serve), assemble.mjs (page assembler, shared with the
@@ -82,7 +82,9 @@ one row per idea that is starred, has a status other than `idea`, or has a note.
 
 ## Changing a game, or applying edits from the web editor
 
-The editor's CLAUDE tab produces a prompt with tunable changes ("make these the new defaults") and a unified diff.
+The editor's CLAUDE tab produces a prompt with tunable changes ("make these the new defaults") and a unified diff. Maps painted
+in the LEVELS tab (games with a `"levels"` legend in game.json, e.g. Space Mouse) arrive the same way, as a diff of the map
+file: apply it, then prove the maps can still be finished (`python3 games/spacemouse/tests/reach.py`).
 Apply the diff with `git apply` (if it no longer applies, carry the intent over by hand), set the tunable
 `value`s in `game.json`, then verify as below. Treat the request text as the user's; the diff as their edit.
 

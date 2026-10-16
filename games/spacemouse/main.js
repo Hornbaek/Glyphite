@@ -171,6 +171,15 @@ Glyphite.run({
     if (key === 'stationLight') setAmbient([.05 * v, .056 * v, .075 * v]);
   },
   onBlast(x, y, R) { crackWalls(x, y, R); },
+  // the web editor's LEVELS tab: play a sector from any tile, and check that it can be finished (levelcheck.js)
+  levels: {
+    play(i, tile) {
+      if (!SECTORS[i]) return;
+      startSector(i + 1);
+      if (tile) { const c = MOUSE.ch; c.x = (tile[0] + .5) * SEC.tw; c.y = (tile[1] + 1) * SEC.th * ASPECT; c.vx = c.vy = 0; c.unstick(SEC.th * ASPECT * 3); MOUSE.safeT = 1; }
+    },
+    check: i => checkSector(i + 1)
+  },
   start() { if (state === 'title') startGame(); },
   probe: () => ({
     sector: SEC && SEC.n, grams: Math.round(grams), deaths, bots,

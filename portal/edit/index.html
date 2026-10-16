@@ -26,6 +26,7 @@
     <div class="tabs" role="tablist">
       <button role="tab" id="tab-tune" aria-controls="pane-tune" aria-selected="true">TUNE</button>
       <button role="tab" id="tab-code" aria-controls="pane-code" aria-selected="false">CODE</button>
+      <button role="tab" id="tab-levels" aria-controls="pane-levels" aria-selected="false" hidden>LEVELS</button>
       <button role="tab" id="tab-claude" aria-controls="pane-claude" aria-selected="false">CLAUDE</button>
     </div>
 
@@ -45,6 +46,25 @@
         <button class="btn small primary" type="button" id="runBtn" title="Ctrl/Cmd + S">[ RUN ]</button>
       </div>
       <div class="codehost" id="codehost"></div>
+    </div>
+
+    <div class="pane levels" id="pane-levels" role="tabpanel" aria-labelledby="tab-levels" hidden>
+      <div class="lvlist" id="lvList" role="group" aria-label="Map"></div>
+      <div class="lvtools" id="lvTools" role="toolbar" aria-label="Tools"></div>
+      <div class="lvwrap" id="lvWrap"><canvas id="lvCanvas" aria-label="The map: one square per tile. Left button paints, right button paints the second colour."></canvas></div>
+      <div class="lvinfo" id="lvInfo"></div>
+      <div class="lvbrush" id="lvBrush"></div>
+      <div class="palette" id="lvPalette" role="group" aria-label="Tiles"></div>
+      <div class="lvfoot">
+        <button class="btn small primary" type="button" id="lvPlay">[ PLAY THIS MAP ]</button>
+        <button class="btn small" type="button" id="lvCheck" title="Can the map be finished? Marks what can't be reached">[ CHECK ]</button>
+        <span class="lvsize"><input id="lvW" type="number" min="8" max="600" aria-label="Width in tiles"> x <input id="lvH" type="number" min="6" max="200" aria-label="Height in tiles">
+          <button class="btn small" type="button" id="lvResize" title="Grow or shrink at the right and bottom">[ RESIZE ]</button></span>
+        <button class="btn small" type="button" id="lvPngOut" title="One pixel per tile, in the legend's colours: edit it in any pixel editor">[ PNG ↓ ]</button>
+        <label class="btn small" title="Load a PNG painted in the legend's colours">[ PNG ↑ ]<input id="lvPngIn" type="file" accept="image/png,image/*" hidden></label>
+        <button class="btn small" type="button" id="lvRevert">[ REVERT MAP ]</button>
+      </div>
+      <div class="lvreport" id="lvReport" aria-live="polite"></div>
     </div>
 
     <div class="pane handoff" id="pane-claude" role="tabpanel" aria-labelledby="tab-claude" hidden>

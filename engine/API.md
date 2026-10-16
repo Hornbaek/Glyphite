@@ -55,6 +55,7 @@ Glyphite.run({
   skyBegin(ox, oy, t) {}, sky(i, j, out) {},   // paint planets etc. on the sky layer (see Sky)
   onTune(key, value) {},  // a tunable changed live (the web editor)
   start() {},             // leave the title screen (tests call it; default: the Enter key)
+  levels: { play(i, tile) {}, check(i) { return {}; } },   // the web editor's LEVELS tab (see Levels in the web editor)
   snapshot() { return {}; },   // state to keep across a hot reload
   probe() { return {}; }       // small JSON summary of the game, for tests and AI sessions
 });
@@ -352,6 +353,34 @@ centre unless the game gives a `listener: () => [x, y] | null` hook (Regolith: t
 - `setBeatPulse(strength 0..1)` (0 = off, the default) turns the pulse on: it scales every material's `beatGlow` (the
   material flashes in its own colour and its light grows) and swells the bloom (lower threshold, more gain).
   `Beat.pulse()` returns the scaled value for the game's own lights, e.g. `I: .9 * (1 + .8 * Beat.pulse())`.
+
+## Levels in the web editor
+
+A game with hand-drawn tile maps gets a **LEVELS** tab in the site's editor (a pixel editor: one coloured square per tile)
+by declaring them in `game.json`:
+```json
+"levels": {
+  "file": "sectors.js",                         // a part of the game holding the maps
+  "tile": "4 x 4 base units",                   // shown in the editor
+  "legend": { "#": { "name": "hull", "color": "#4a5263" }, ".": { "name": "inside", "color": "#1c202b" },
+              "P": { "name": "start", "color": "#ffffff", "on": ".", "unique": true } },
+  "marks": { "signs": { "kind": "text", "color": "#ffd278" }, "lowG": { "kind": "rect", "color": "#78dcff", "label": "low gravity" } }
+}
+```
+In that file each map is a `String.raw` template literal whose rows start on the line after the backtick, inside an object
+with a `name: '...'` before it (see `games/spacemouse/sectors.js`).
+Every tile needs its own colour (a map exported as a PNG must come back the same); `on` draws an object over another tile's
+colour; `unique` allows exactly one per map; `marks` are read-only overlays read from the map's own object (`text`: `[x, y,
+'text']`, `rect`: `[x0, y0, x1, y1]`). Painting edits the file's draft, so the preview, the CODE tab and the CLAUDE tab's
+patch all see it. Parsing and edits: `portal/assets/levels-core.mjs`.
+
+Two optional hooks let the editor drive the preview: `GAME.levels.play(i, tile)` starts map `i` (with the player at `tile` =
+`[x, y]` when given) and `GAME.levels.check(i)` returns whether it can be finished:
+`{ ok, goal, crumbs: [reached, total], missing: { crumbs: [[x, y]], ... }, spots: [[x, y], ...] }` (the editor circles what is
+missing and dots `spots`, the tiles the player can stand on). The editor talks to the preview with messages the engine
+handles: the page posts `{ type: 'glyphite:ready' }` to its parent once booted, takes `{ type: 'glyphite:level', action:
+'play' | 'check', level, tile, id }`, and answers a check with `{ type: 'glyphite:levelcheck', id, result }`.
+See `games/spacemouse/` (`main.js` and `levelcheck.js`).
 
 ## Tests and probes: `Glyphite.test`
 
