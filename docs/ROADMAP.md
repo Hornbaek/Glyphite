@@ -90,7 +90,10 @@ Build at least one more small game on the engine to check that it is game-agnost
 - ~~a side-view platformer with a walking sprite~~: **Space Mouse** (2026-10-16). It needed, and got, general engine
   features: `Character`, the back wall, `oneWay`, sprite `flip`, light flicker, `checkSupport`. Follow-ups it exposed:
   - **Climbable, liquid and hazard flags** (the rest of the idea bank's material-flags idea): ladders, water, spikes as
-    plain materials. Space Mouse keeps its hazards in a game table for now.
+    plain materials. Space Mouse keeps its hazards in a game table for now; the owner's art sheet has ladders and lifts
+    waiting for this.
+  - **Prop tiles as a general feature**: Space Mouse draws its decoration (sprites standing on a tile's floor or hanging on
+    its wall) itself; a `drawProps` helper with view culling would let any tile-map game place sprites from its legend.
   - **Moving platforms and lifts** (kinematic chunks that carry characters): a Character stands on a falling chunk but is
     not carried sideways by one.
   - **Back-wall shadows per light**, instead of one fixed direction.

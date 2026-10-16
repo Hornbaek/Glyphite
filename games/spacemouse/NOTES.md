@@ -19,9 +19,16 @@ right. Enter or tap to start and continue.
 
 **Parts.** `materials.js` (front and back-wall materials, what hurts, what is edible), `sectors.js` (maps), `station.js`
 (map → world: tiles, Swiss-cheese holes, sagging cables, back-wall panels, glow-paint signs, lamps, the cheese moon on the
-sky), `giveway.js` (rust and cracked walls crumbling, gantries, low gravity), `art.js` (sprites: the mouse in six frames, the
-cat-bot), `mouse.js` (input, eating, pickups, checkpoints, hazards, death), `catbots.js` (patrol, sight, chase, stomp),
+sky), `decor.js` (moss, red cables and cobwebs from the map), `giveway.js` (rust and cracked walls crumbling, gantries, low
+gravity), `mouse_sprite.js` (generated: the mouse, cheese and props), `art.js` (sprites: the mouse in six frames, cheese, props,
+the cat-bot), `mouse.js` (input, eating, pickups, checkpoints, hazards, death), `catbots.js` (patrol, sight, chase, stomp),
 `main.js` (states, lamps, HUD, hints, camera, hooks).
+
+**Art.** The owner's art sheet is `ref/art_sheet.png`. `python3 games/spacemouse/tools/art.py` cuts the mouse's frames, a
+cheese wedge and the props out of it and writes `mouse_sprite.js` (and the cut pictures in `ref/`). To change how the mouse
+looks, edit `tools/mouse_palette.json` (colours matched against the sheet, a dense glyph per material, an optional display
+colour) or the boxes in `tools/art.py`, and rerun it. A new prop: add its box to `PROPS` (tile character, sheet box, height in
+base units, floor or wall), rerun, and give the tile a legend entry with its own colour in game.json.
 
 **Tunables.** Gravity (× normal; jumps keep their height), jump height (mouse heights), run speed (mouse widths/s), air
 control, wall jumps on/off, cat-bot speed, station light (the ambient).
@@ -48,3 +55,5 @@ checkpoint reachable: it runs `checkSector` from `levelcheck.js`). Run `reach.py
 - Cat-bots don't jump or use catwalks; a jump-link navgraph (idea bank) would let them follow.
 - The gantry falls straight down; a hinge (one bracket going first) would swing it.
 - The darkness is a mood choice; the Station light tunable raises it.
+- The sheet has ladders and lifts; the controller has no climbing yet (a `climb` material flag would be a general feature).
+- The cat-bot is still hand-drawn; the sheet has no cat to cut.

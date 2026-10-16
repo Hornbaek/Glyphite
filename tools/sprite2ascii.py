@@ -16,7 +16,8 @@ pass --grid WxH when the preview looks off. Each output pixel is the average of 
 of its block, so the anti-aliased seams of AI-made pixel art are ignored.
 Palette: k-means on the sprite's own pixels, then any pixel still far from every colour (a small
 accent such as a window) gets a colour of its own. --palette pal.json ([[r,g,b], ...] or
-[[r,g,b,ink,glyph], ...]) fixes the palette instead. Colours darker than --outline-lum are outline
+[[r,g,b,ink,glyph], ...]) fixes the palette instead; an entry's optional 6th field [r,g,b] is the colour to draw
+it in (matched against r,g,b, written as that: lifts a dark detail that would vanish in a dark scene). Colours darker than --outline-lum are outline
 (ink 0): drawn as dark gaps rather than glyphs. glyph: the dense glyph for solid areas of that colour
 ('@' for light colours, '#' for the rest; change it in the output for textured materials, e.g. '%').
 """
@@ -93,6 +94,7 @@ if a.palette and len(raw[0]) >= 5: ink = [p[3] for p in raw]; glyph = [p[4] for 
 
 DIG = '0123456789abcdefghijklmnopqrstuvwxyz'
 idx = np.argmin(((cols[..., None, :] - pal[None, None]) ** 2).sum(-1), -1)
+if a.palette: pal = np.array([p[5] if len(p) > 5 else p[:3] for p in raw], float)   # matched by the art's colour, drawn in this one
 rows = [''.join(DIG[idx[j, i]] if opaque[j, i] else '.' for i in range(nx)) for j in range(ny)]
 
 os.makedirs(a.out, exist_ok=True); os.makedirs('shots', exist_ok=True)
