@@ -71,7 +71,19 @@ write a small `games/<id>/tools/art.py` that cuts each drawing out, flood-fills 
 from the box edges (a plain colour key also eats dark outlines inside the drawing), runs
 `sprite2ascii.py` on each with one shared palette, and writes the game's sprite file. Find the frames
 as the column spans of non-background pixels in the row. Line frames up on a stable feature (the
-head), not the box centre, or the character jitters between frames. Example: `games/spacemouse/tools/art.py`.
+head), not the box centre, or the character jitters between frames. Example: `games/spacemouse/tools/art.py`
+(four sheets). What its `cut()` handles, each learned the hard way:
+- **Strays** (labels, sweat drops, motion lines): keep the pieces at least a fraction of the biggest. Keeping only
+  the biggest drops thin parts that came loose (a tail, a helmet behind a dark collar).
+- **Tolerance**: about 9 on a clean PNG background (higher eats thin dark parts like a tail), about 24 on a JPEG.
+- **Something drawn behind the character** (a wall): treat its colours as background too, then fill what the
+  outline encloses in the head with the glass colour (see-through glass showed the wall).
+- **A glow round a lit object**: crop the box to the object itself; a higher tolerance alone leaves a halo.
+- **A second sheet of the same character** (from another AI, drawn larger): scale it by a standing frame's height,
+  and give it a palette listing the same materials in the same order, matched against its colours but drawn in
+  the first sheet's (the 6th field), so the colours don't jump between moves.
+- **Dark shading** (black-grey metal): only near-black (luminance < 25) is outline; the default 45 turns dark
+  metal into gaps and the character falls apart.
 
 Then set each palette entry's **dense glyph** (the 5th field) by material:
 
@@ -204,3 +216,7 @@ edit it directly and mention the change. In the Claude app, propose the updated 
   helmet), a cheese wedge, ten props. Three rounds: k-means made the suit muddy (curated palette by
   material), then per-material dense glyphs, then the dark helmet glass vanished (display colour,
   now `sprite2ascii.py`'s 6th palette field). Cutting from the sheet needed a flood fill, not a key.
+- 2026-10-16: Three more sheets for Space Mouse (ChatGPT cat-bot, 12 frames, k = 0.19; Gemini mouse moves, 13 frames,
+  scaled 0.22 to match; Gemini objects). Two rounds each for the cat (tails lost at tolerance 16; dark metal as
+  outline) and the wall slides (largest piece only; see-through glass), one for the objects (glow under a lamp).
+  Fixes are now in the list under "An art sheet".

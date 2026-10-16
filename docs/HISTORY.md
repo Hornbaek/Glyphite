@@ -407,6 +407,26 @@ text spacing.
   tufts on floors and spills moss over ledges, and spins cobwebs in corners (worked out from the map, so alike at every
   detail). The sky is a big blue planet with a bright rim and a small cheese moon.
 
+## 17. Cat-bots, more moves for Pip, and the station's objects from three more sheets (Claude Code, 2026-10-16)
+
+> (three sheets from ChatGPT and Gemini: the cat-bot's patrol walk, alert, chase run and shorted out; Pip's wall slide,
+> falling, landing squash, eating, zapped and victory; a cheese checkpoint beacon off and on, the great cheese on a pedestal,
+> ceiling lamps off and on, a red alarm beacon, hatches, a ladder and a lift)
+
+- `games/spacemouse/tools/art.py` now cuts all four sheets (in `ref/`) and writes `sprites.js` (was `mouse_sprite.js`). The
+  cut keeps pieces above a size fraction (drops labels, sweat drops, motion lines), removes the wall drawn behind the wall
+  slides and fills the see-through helmet glass back in. The second mouse sheet draws Pip larger: it is scaled to the first
+  sheet's pixels and matched with `tools/mouse_palette_actions.json`, the same materials drawn in the same colours.
+- **Pip**: clings to walls while sliding (facing the wall), tumbles on falls longer than 1.3 jumps, squashes on hard landings,
+  chews while biting, flashes with its glowing skeleton when a cable gets it, and holds the cheese up when a sector is cleared.
+- **Cat-bots**: twelve frames replace the hand-drawn one: patrol walk, an alert pose (it stops for a moment when it spots the
+  mouse), the chase run; the eye glow sits on the art's eyes. A shorted cat-bot leaves a wreck that sparks, then lies there.
+- **Objects**: the checkpoint is a cheese beacon that lights up; lamps are strips that light with their flicker; the alarm is a
+  red dome turning under the ceiling; hatches (`d` shut, `e` open: an open one where Pip enters each sector) are props.
+- **The great cheese** is a wheel on a pedestal, drawn as tall as the `G` area on the map, standing on its floor; reaching it
+  clears the sector (`atGoal`, shared by the game and the reach search). The `GREAT` material is gone.
+- The ladder and the lift wait for climbing and moving platforms in the engine (ROADMAP).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

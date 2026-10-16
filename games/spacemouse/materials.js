@@ -25,7 +25,6 @@ const CHEESE = defineMaterial('cheese', {
 });
 const CRUMBS = defineMaterial('cheese crumbs', { albedo: [1, .78, .28], ramp: ' .oo', granular: true, tough: .1, grainGlyphs: '.,o', style: 'flat' });
 // the goal of each sector: a great cheese that glows, pulses and cannot be blown up
-const GREAT = defineMaterial('the great cheese', { albedo: [1, .86, .34], ramp: ' .oO@', tough: 99, anchor: true, glow: [.5, .36, .06, 9], pulse: [1, .75, .2], style: 'crystal' });
 worldMaterials({ edge: HULL, rubble: SCRAP, fill: HULL });
 
 // back wall

@@ -36,7 +36,7 @@ function buildSector(n) {
   worldInit(mw * tw, mh * th);
   if (def.sun) setSun(def.sun, { kelvin: 5772 }); else setSun(null);   // a sector with a sun is lit outside, and through its windows
   setAmbient([.05 * TUNE.stationLight, .056 * TUNE.stationLight, .075 * TUNE.stationLight]);
-  const sec = { n, def, tw, th, mw, mh, res: S, lamps: [], crumbs: [], checkpoints: [], cats: [], props: [], start: null, cableRuns: [] };
+  const sec = { n, def, tw, th, mw, mh, res: S, lamps: [], crumbs: [], checkpoints: [], cats: [], props: [], wrecks: [], start: null, cableRuns: [] };
   // runs of cable along a row ([row, first, last] tile): each run sags between its ends
   for (let ty = 0; ty < mh; ty++) for (let tx = 0; tx < mw; tx++) {
     if (map[ty][tx] !== '~' || map[ty][tx - 1] === '~') continue;
@@ -56,7 +56,6 @@ function buildSector(n) {
         case 'r': m = v < .5 ? RUST : EMPTY; break;
         case 'B': m = RUST; break;
         case 'C': m = cheeseHole(bx, by) ? EMPTY : CHEESE; break;
-        case 'G': m = cheeseHole(bx, by) ? EMPTY : GREAT; break;
         case 'x': m = u < 1 / tw || u > 1 - 1 / tw || v < 1 / th || v > 1 - 1 / th ? CRATE_EDGE : CRATE; break;
         case 'w': m = WEAK; break;
         case 's': m = PEAS; break;
@@ -94,10 +93,11 @@ function buildSector(n) {
   }
   // objects
   const at = (tx, ty, dx = .5, dy = 1) => [(tx + dx) * tw, (ty + dy) * th * ASPECT];   // a point in the tile (default: middle of its floor)
-  let seed = 1;
+  let seed = 1, gx0 = 1e9, gx1 = -1, gy0 = 1e9, gy1 = -1;
   for (let ty = 0; ty < mh; ty++) for (let tx = 0; tx < mw; tx++) {
     const c = map[ty][tx];
     if (c === 'P') sec.start = at(tx, ty);
+    else if (c === 'G') { gx0 = Math.min(gx0, tx); gx1 = Math.max(gx1, tx); gy0 = Math.min(gy0, ty); gy1 = Math.max(gy1, ty); }
     else if (c === 'c') { const [x, y] = at(tx, ty, .5, .55); sec.crumbs.push({ x, y, got: false, ph: hash2(tx, ty, 3) * 6.28 }); }
     else if (c === 'S') { const [x, y] = at(tx, ty); sec.checkpoints.push({ x, y, on: false }); }
     else if (c === 'K') { const [x, y] = at(tx, ty); sec.cats.push({ x, y }); }
@@ -108,6 +108,11 @@ function buildSector(n) {
     }
   }
   if (!sec.start) sec.start = [3 * tw, (mh - 2) * th * ASPECT];
+  // the great cheese on its pedestal, as tall as the goal area painted on the map, standing on its floor in the middle
+  if (gx1 >= 0) {
+    const h = (gy1 - gy0 + 1) * th * ASPECT, spr = goalSprite(h / S);
+    sec.goal = { x: (gx0 + gx1 + 1) / 2 * tw, y: (gy1 + 1) * th * ASPECT, w: OBJ_ART.goal.w * spr.k * S, h, spr };
+  }
   // let loose things settle before the mouse arrives
   awake.fill(1);
   for (let k = 0; k < 40 * S; k++) { simGranular(); frameNo++; }

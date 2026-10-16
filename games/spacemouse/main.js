@@ -35,6 +35,7 @@ function gameUpdate(dt) {
   if (state === 'play') { SEC.time += dt; stepMouse(dt); }
   if (state === 'dead' && stateT > 1.3) respawn();
   if (state !== 'title') stepCats(dt);
+  if (state === 'play') stepWrecks(dt);
   stepCrumble(dt);
   stepGantries(dt);
   stepCables(dt);
@@ -68,7 +69,8 @@ function gameLights(t, out) {
   const S = RES;
   for (const lp of SEC.lamps) out.push({ x: lp.x, y: lp.y, r: (lp.kind === 'alarm' ? 64 : 56) * S, c: lp.c, I: lp.kind === 'alarm' ? 1.9 : 1.55, shadow: true, flicker: lp.kind, seed: lp.seed, skip: 1.2 * S });
   for (const cr of SEC.crumbs) if (!cr.got) out.push({ x: cr.x, y: cr.y, r: 11 * S, c: [1, .78, .32], I: .5, shadow: false });
-  for (const cp of SEC.checkpoints) out.push({ x: cp.x, y: cp.y - 5 * S, r: (cp.on ? 22 : 12) * S, c: cp.on ? [.3, 1, .45] : [1, .3, .2], I: cp.on ? .9 : .5, shadow: true });
+  if (SEC.goal) out.push({ x: SEC.goal.x, y: SEC.goal.y - SEC.goal.h * .7, r: 44 * S, c: [1, .8, .36], I: 1.1, shadow: true });   // the great cheese glows
+  for (const cp of SEC.checkpoints) out.push({ x: cp.x, y: cp.y - 7 * S, r: (cp.on ? 22 : 12) * S, c: cp.on ? [.3, 1, .45] : [1, .3, .2], I: cp.on ? .9 : .5, shadow: true });
   mouseLights(out);
   catLights(out);
 }
@@ -79,22 +81,18 @@ function gameDraw(t) {
   for (const i of SEC.signCells) if (cells[i] === EMPTY) putEmit(i % W, (i / W) | 0, 35, .42, .3, .08);
   drawDecor();
   for (const p of SEC.props) if (Math.abs(p.x - cam.x - R.cols / 2) < R.cols * .6 + 20 * S) drawSprite(PROP_SPR[p.ch], p.x, p.y, 0);
-  for (const lp of SEC.lamps) {   // fixtures under the ceiling, as bright as their light this moment
-    const f = flickerAt(lp.kind, t, lp.seed), cx = Math.floor(lp.x), cy = Math.floor(lp.y / ASPECT), w = Math.max(1, Math.round(1.6 * S));
-    if (lp.kind === 'alarm') { putEmit(cx - 1, cy, 40, .5, .1, .1); putEmit(cx, cy, 79, 2 * f + .2, .35 * f, .2 * f); putEmit(cx + 1, cy, 41, .5, .1, .1); continue; }
-    for (let i = -w; i <= w; i++) putEmit(cx + i, cy, i === -w ? 91 : i === w ? 93 : 61, lp.c[0] * (1.6 * f + .15), lp.c[1] * (1.6 * f + .15), lp.c[2] * (1.6 * f + .15));
+  for (const lp of SEC.lamps) {   // fixtures from the art sheet under the ceiling, lit while their light is on this moment
+    const f = flickerAt(lp.kind, t, lp.seed), top = lp.y - .6 * S;
+    if (lp.kind === 'alarm') drawSprite(ALARM_SPR[(t * 6 | 0) & 1], lp.x, top, Math.PI, { light: f < .3 });   // hangs upside down, turning
+    else drawSprite(LAMP_SPR[f > .45 ? 'on' : 'off'], lp.x, top, 0, { light: f <= .45 });
   }
   for (const cr of SEC.crumbs) if (!cr.got) {   // a wedge of cheese from the art sheet, bobbing (a single glyph at coarse detail)
     const y = cr.y + Math.sin(t * 3 + cr.ph) * .8 * S, q = .85 + .25 * Math.sin(t * 5 + cr.ph);
     if (S >= 2) drawSprite(CHEESE_SPR, cr.x, y, 0, { light: false });
     else putEmit(Math.floor(cr.x), Math.floor(y / ASPECT), 111, 1.5 * q, 1.15 * q, .35 * q);
   }
-  for (const cp of SEC.checkpoints) {   // a post with a lamp on top: red, green once touched
-    const cx = Math.floor(cp.x), top = Math.floor((cp.y - 5 * S) / ASPECT), bot = Math.floor((cp.y - .1) / ASPECT);
-    for (let cy = top + 1; cy <= bot; cy++) putLit(cx, cy, 124, .7, .72, .78, .25);
-    const p = .7 + .3 * Math.sin(t * 4);
-    putEmit(cx, top, 79, cp.on ? .3 : 1.6 * p, cp.on ? 1.6 * p : .3, cp.on ? .45 : .2);
-  }
+  for (const cp of SEC.checkpoints) drawSprite(CHECK_SPR[cp.on ? 'on' : 'off'], cp.x, cp.y, 0, { light: !cp.on });   // the cheese beacon lights up once touched
+  if (SEC.goal) drawSprite(SEC.goal.spr, SEC.goal.x, SEC.goal.y, 0);
   drawCats(t);
   drawMouse();
 }
@@ -136,7 +134,7 @@ function gameRegenerate() {
   if (!SEC) return;
   const k = RES / SEC.res, old = SEC, m = MOUSE;
   buildSector(old.n);
-  SEC.time = old.time; SEC.catsDown = old.catsDown;
+  SEC.time = old.time; SEC.catsDown = old.catsDown; SEC.wrecks = old.wrecks;
   SEC.crumbs.forEach((c, i) => c.got = old.crumbs[i].got);
   SEC.checkpoints.forEach((c, i) => { c.on = old.checkpoints[i].on; if (c.on) SEC.check = c; });
   CRUMBLE.clear();

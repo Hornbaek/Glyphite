@@ -13,7 +13,7 @@
     "station.js",
     "decor.js",
     "giveway.js",
-    "mouse_sprite.js",
+    "sprites.js",
     "art.js",
     "mouse.js",
     "catbots.js",
@@ -147,7 +147,9 @@
       "g": {"name": "wall screen (on the wall)", "color": "#52d273", "on": "."},
       "f": {"name": "fan box (prop)", "color": "#a39a8a", "on": "."},
       "b": {"name": "B3 sign (on the wall)", "color": "#9b59b6", "on": "."},
-      "n": {"name": "gas tank (prop)", "color": "#c8d6c0", "on": "."}
+      "n": {"name": "gas tank (prop)", "color": "#c8d6c0", "on": "."},
+      "d": {"name": "hatch, shut (prop)", "color": "#6b4f3a", "on": "."},
+      "e": {"name": "hatch, open (prop)", "color": "#e0a3ff", "on": "."}
     },
     "marks": {
       "signs": {"kind": "text", "color": "#ffd278"},
