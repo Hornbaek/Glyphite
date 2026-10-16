@@ -24,7 +24,8 @@ Map it onto the engine before writing code:
 - **Actors** → `Body` with a hull (from `spriteHull` or traced) for things that fly, tumble and crash; a `Character` for
   anything that walks and jumps (platformer heroes, patrolling enemies: coyote time, jump buffer, step-up, wall jumps,
   one-way floors are built in). Draw them with `drawSprite` (`flip` for facing left, one sprite per animation frame) or
-  glyph by glyph. `games/spacemouse/` is the walking reference.
+  glyph by glyph. `games/spacemouse/` is the walking reference. Art the owner gives goes through the
+  `glyphite-pixel-art-to-ascii` skill, which keeps the original and every drawing cut from it in `ref/` (the ART page).
 - **Hand-made levels** → a tile map in a JS string (one character per 4 × 4 base-unit tile, the smallest square that is whole
   rows at every RES), built into cells and the back wall (`backCells`) per detail level, like `games/spacemouse/station.js`.
   Prove every map can be finished with a search over standing spots using the real controller (copy

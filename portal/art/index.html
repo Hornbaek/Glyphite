@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reference art · Glyphite</title>
+<meta name="description" content="The art a game's ASCII sprites were made from: the original images and every drawing cut from them.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/whatsnew.css">
+<link rel="stylesheet" href="/assets/art.css">
+</head>
+<body class="art">
+<header class="ebar">
+  <div class="crumb"><a href="/">GLYPHITE</a> / <span id="crumbGame">REFERENCE ART</span></div>
+  <span class="spacer"></span>
+  <a class="btn small" id="playLink" href="/" hidden>[ PLAY ]</a>
+  <a class="btn small" id="editLink" href="/" hidden>[ EDIT ]</a>
+  <a class="btn small" href="/">[ GAMES ]</a>
+</header>
+<div class="wrap">
+  <header class="intro">
+    <h1 id="title">Reference art</h1>
+    <p class="lede">The images the game's ASCII art was made from, untouched, and every drawing cut out of them at its original
+      pixels, with where it came from on its sheet and what the game uses it for. Point at a box on a sheet to find its drawing.</p>
+    <div class="filters" id="filters" hidden>
+      <button class="btn small on" data-show="all">[ ALL ]</button>
+      <button class="btn small" data-show="used">[ IN THE GAME ]</button>
+      <button class="btn small" data-show="unused">[ NOT USED YET ]</button>
+    </div>
+  </header>
+  <main id="sheets" aria-live="polite"><p class="empty">Loading…</p></main>
+</div>
+<script type="module" src="/assets/art.js"></script>
+</body>
+</html>

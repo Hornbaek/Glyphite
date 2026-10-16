@@ -1,0 +1,29 @@
+/* The reference art page (/art/). Uses the palette of site.css and the header of whatsnew.css. */
+.filters{display:flex;flex-wrap:wrap;gap:8px}
+.filters .on{color:var(--amber);border-color:var(--amber)}
+.sheet{background:var(--panel);border:1px solid var(--rim);border-radius:3px;padding:16px 18px;margin-bottom:22px;min-width:0}
+.sheet h2{margin:0;font-size:16px;color:var(--bright)}
+.sheet .meta{margin:6px 0 0;color:var(--dim);font-size:12px;overflow-wrap:anywhere}
+.sheet .use{margin:8px 0 0}
+/* the sheet, with a box over each drawing cut from it */
+.viewer{position:relative;margin:14px 0 0;line-height:0;background:var(--void);border:1px solid var(--rim)}
+.viewer img{width:100%;height:auto;display:block}
+.viewer .box{position:absolute;border:1px solid rgba(255,190,90,.55);border-radius:1px}
+.viewer .box.later{border-color:rgba(140,170,255,.45);border-style:dashed}
+.viewer .box.hot,.viewer .box:hover{border:2px solid var(--amber);background:rgba(255,190,90,.12)}
+.viewer .box[hidden]{display:none}
+/* the drawings, at their own pixels on a dark checkerboard (so a transparent edge shows) */
+.frames{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-top:14px}
+.frame{margin:0;background:var(--void);border:1px solid var(--rim);border-radius:3px;padding:10px;display:grid;gap:8px;align-content:start;min-width:0}
+.frame.later{border-style:dashed}
+.frame.hot{border-color:var(--amber)}
+.frame .pic{display:flex;align-items:center;justify-content:center;min-height:120px;overflow:auto;
+  background:repeating-conic-gradient(#11141b 0 25%,#171b24 0 50%) 0 0/16px 16px;border-radius:2px}
+.frame img{image-rendering:pixelated;max-width:100%;height:auto}
+.frame figcaption{display:grid;gap:3px;font-size:12px;overflow-wrap:anywhere}
+.frame figcaption b{color:var(--bright);font-size:13px}
+.frame .use{color:var(--phosphor)} .frame.later .use{color:var(--dim)}
+.frame .meta{color:var(--dim);font-size:11px}
+.games{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.games li{background:var(--panel);border:1px solid var(--rim);border-radius:3px;padding:12px 14px}
+.games .meta{display:block;color:var(--dim);font-size:12px}

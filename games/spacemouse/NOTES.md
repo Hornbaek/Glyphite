@@ -29,7 +29,9 @@ camera, hooks).
 `mouse_actions_sheet.jpg` (wall slide, falling, landing, eating, zapped, victory), `catbot_sheet.png` (patrol, alert, chase,
 shorted out) and `objects_sheet.jpg` (checkpoint, the great cheese, lamps, alarm, hatches; its ladder and lift wait for
 climbing). `python3 games/spacemouse/tools/art.py` cuts every drawing out (boxes in the tool), converts it and writes
-`sprites.js` (the cut pictures go to `ref/cut/`). The mouse's frames share one palette: `tools/mouse_palette.json` for the
+`sprites.js`. Every drawing on every sheet, used or not, is kept at its original pixels in `ref/frames/` (the tool's
+`REFERENCE` list has the ones the game does not use yet) and listed in `ref/ref.json` and `ref/README.md`; the site's ART page
+shows them. The mouse's frames share one palette: `tools/mouse_palette.json` for the
 first sheet, and `tools/mouse_palette_actions.json` for the second, which lists the same materials in the same order matched
 against that sheet's colours but drawn in the first sheet's, so the suit doesn't change colour between moves (the tool checks
 this), plus the cheese the mouse holds. The cat-bot's palette is made from all its frames (only near-black is outline).

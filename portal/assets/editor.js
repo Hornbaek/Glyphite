@@ -271,6 +271,7 @@ async function main() {
   document.title = `${S.entry.title} · Glyphite Editor`;
   $('#gameTitle').textContent = S.entry.title;
   $('#playLink').href = `/games/${S.id}/`;
+  if (S.entry.ref) { $('#artLink').href = `/art/?game=${encodeURIComponent(S.id)}`; $('#artLink').hidden = false; }   // the reference art
   renderTunables(); renderFiles(); setupEditor(); setupLevelTab();
   for (const t of ['tune', 'code', 'levels', 'claude']) $(`#tab-${t}`).addEventListener('click', () => showTab(t));
   $('#resetTune').addEventListener('click', () => { S.tune = {}; store.set(KEY('tune'), null); renderTunables(); refreshMarks(); run(); });

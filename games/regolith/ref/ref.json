@@ -1,0 +1,14 @@
+{
+ "title": "Regolith Lander",
+ "made_by": "written by hand (the lander is converted whole by games/regolith/tools/art.py)",
+ "sheets": [
+  {
+   "file": "lander_ref.png",
+   "title": "The lander: a pixel-art Apollo-style lunar module",
+   "source": "the owner",
+   "size": [1254, 1254],
+   "use": "the lander sprite, converted whole by tools/art.py into lander_sprite.js",
+   "frames": []
+  }
+ ]
+}

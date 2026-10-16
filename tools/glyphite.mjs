@@ -12,6 +12,7 @@
 //   changes.json                      HISTORY.md and the merged pull requests, for the What's new page
 //   games/<id>/index.html             the playable single-file game
 //   games/<id>/game.json, thumb.png   its manifest and thumbnail
+//   games/<id>/ref/                   its reference art (the owner's images and the drawings cut from them) + ref.json, for /art/
 //   src/engine/..., src/games/<id>/...  sources, for the editor's in-browser rebuild
 import { buildChanges } from './changes.mjs';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, copyFileSync, rmSync, cpSync } from 'node:fs';
@@ -100,6 +101,26 @@ function gitDate(path) {
   catch { return null; }
 }
 
+// Reference art (games/<id>/ref/): the owner's images and every drawing cut from them, listed in ref/ref.json by the game's art
+// tool ({ title, sheets: [{ file, title, source, size, use?, frames: [{ file, name, box, size, use, used }] }] }). Copied to
+// the site for the ART page; without a ref.json the images in ref/ are listed as sheets. Returns { sheets, drawings } or null.
+const IMAGE_RE = /\.(png|jpe?g|gif|webp)$/i;
+function copyRef(g, out) {
+  const dir = join(ROOT, g.path, 'ref');
+  if (!existsSync(dir)) return null;
+  let ref = existsSync(join(dir, 'ref.json')) ? JSON.parse(readFileSync(join(dir, 'ref.json'), 'utf8')) : null;
+  if (!ref) {
+    const sheets = readdirSync(dir).filter(f => IMAGE_RE.test(f)).sort().map(file => ({ file, title: file, frames: [] }));
+    if (!sheets.length) return null;
+    ref = { title: g.manifest.title, sheets };
+  }
+  for (const sh of ref.sheets) for (const f of [sh.file, ...sh.frames.map(fr => fr.file)])
+    if (!existsSync(join(dir, f))) die(`${g.path}/ref/ref.json lists ${f}, which is not there`);
+  cpSync(dir, join(out, 'ref'), { recursive: true, filter: src => statSync(src).isDirectory() || IMAGE_RE.test(src) });
+  write(join(out, 'ref', 'ref.json'), JSON.stringify(ref) + '\n');
+  return { sheets: ref.sheets.length, drawings: ref.sheets.reduce((n, sh) => n + sh.frames.length, 0) };
+}
+
 function build(only) {
   const engine = loadEngine();
   const games = gameDirs().map(loadGame).filter(g => !only.length || only.includes(g.manifest.id));
@@ -129,6 +150,7 @@ function build(only) {
     write(join(out, 'game.json'), JSON.stringify(m, null, 2) + '\n');
     let thumb = null;
     if (m.thumbnail && existsSync(join(ROOT, g.path, m.thumbnail))) { thumb = `games/${m.id}/${m.thumbnail}`; mkdirSync(out, { recursive: true }); copyFileSync(join(ROOT, g.path, m.thumbnail), join(DIST, thumb)); }
+    const ref = copyRef(g, out);
     // sources for the editor: the manifest, the head and every part
     const src = join(DIST, 'src', 'games', m.id);
     write(join(src, 'game.json'), read(`${g.path}/game.json`));
@@ -138,7 +160,7 @@ function build(only) {
       id: m.id, title: m.title, tagline: m.tagline || '', description: m.description || '', status: m.status || 'draft',
       order: m.order ?? 99, listed: m.listed !== false, template: !!m.template, path: g.path, thumbnail: thumb,
       controls: m.controls || [], tunables: Object.keys(m.tunables || {}).length,
-      parts: [...(m.head ? [m.head] : []), ...m.parts], sizeKB: Math.round(page.length / 1024), updated: gitDate(g.path)
+      parts: [...(m.head ? [m.head] : []), ...m.parts], sizeKB: Math.round(page.length / 1024), updated: gitDate(g.path), ref
     };
     const at = listing.findIndex(e => e.id === m.id); if (at >= 0) listing[at] = entry; else listing.push(entry);
     console.log(`built ${g.path} → dist/games/${m.id}/index.html (${entry.sizeKB} KB)`);

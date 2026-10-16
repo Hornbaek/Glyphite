@@ -19,9 +19,10 @@ engine/                 the engine (shared by every game)
   shell.html            page template                 01_core … 11_loop.js   the parts (banner says what each does)
 games/notfound/         the 404 game: unlisted, served by the Worker for any missing page (worker/index.js)
 games/<id>/             one folder per game: game.json (manifest), head.html (optional page HTML), *.js parts,
-                        thumb.png, plus the game's own tools/, tests/, ref/ (source art), music/, NOTES.md
+                        thumb.png, plus the game's own tools/, tests/, ref/ (reference art: see the rules), music/, NOTES.md
 templates/starter/      the game `new` copies: small, uses every engine feature once (Cave Drone)
-portal/                 the website: game list (index.html), editor (edit/: tune, code, LEVELS for tile maps), idea bank (ideas/), what's new (whats-new/), assets/, vendor/codemirror
+portal/                 the website: game list (index.html), editor (edit/: tune, code, LEVELS for tile maps), idea bank (ideas/), what's new (whats-new/),
+                        reference art (art/), assets/, vendor/codemirror
 worker/                 the Cloudflare Worker: Access login check + static site + idea bank API (ideas.js)
                         wrangler.jsonc: its config (incl. the D1 binding)     migrations/: the D1 schema
 tools/                  glyphite.mjs (CLI: build, new, list, serve), assemble.mjs (page assembler, shared with the
@@ -90,6 +91,13 @@ Apply the diff with `git apply` (if it no longer applies, carry the intent over 
 
 ## Rules of the codebase
 
+- **Reference art: keep every original** (the owner's rule, for every image they give). The image goes into
+  `games/<id>/ref/` untouched; **every drawing cut, traced or cropped from it** is saved at its original pixels in
+  `ref/frames/`, the ones the game does not use yet too; `ref/ref.json` lists each sheet (title, where it came from) and each
+  drawing (its box on the sheet, what the game uses it for, `used`), and `ref/README.md` shows them on GitHub. The game's
+  `tools/art.py` writes all of it (see `games/spacemouse/tools/art.py`); the build publishes it and the site's **ART** page
+  (`/art/?game=<id>`, linked from the game list and the editor) shows it. `tests/node/ref.test.mjs` fails if an image in
+  `ref/` is not listed.
 - **Printable ASCII only** (32–126) for every glyph. World glyph 0 = transparent (sky shows), 32 = opaque blank.
 - **One page per game, no runtime dependencies.** The only external request is the JetBrains Mono stylesheet.
 - **Units.** Author sizes and speeds in base units × `RES` (`const S = RES`); `UNIT_M = 0.5/RES` m per unit; a
