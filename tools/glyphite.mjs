@@ -122,14 +122,14 @@ function copyRef(g, out) {
   return { sheets: ref.sheets.length, drawings: ref.sheets.reduce((n, sh) => n + sh.frames.length, 0) };
 }
 
-// The public landing page's data: the listed games' titles, taglines, descriptions and thumbnails, and a few counts. Only
-// this, the landing page and the live demo are served to visitors who are not signed in (worker/index.js).
+// The public landing page's data: the listed games' titles, taglines, descriptions, controls and thumbnails, and a few counts.
+// The Worker also reads it to know which games anyone may play (worker/index.js, isPublicGame): only the games listed here.
 function writeWelcome(engine, listing, changes) {
   const games = [];
   for (const g of listing.filter(e => e.listed && !e.template)) {
     let thumb = null;
     if (g.thumbnail && existsSync(join(DIST, g.thumbnail))) { thumb = `/welcome/thumbs/${g.id}.png`; mkdirSync(join(DIST, 'welcome/thumbs'), { recursive: true }); copyFileSync(join(DIST, g.thumbnail), join(DIST, thumb)); }
-    games.push({ id: g.id, title: g.title, tagline: g.tagline, description: g.description, thumb });
+    games.push({ id: g.id, title: g.title, tagline: g.tagline, description: g.description, controls: g.controls, thumb });
   }
   const ideas = readJSON('docs/ideas.json').categories.reduce((n, c) => n + c.ideas.length, 0);
   write(join(DIST, 'welcome/site.json'), JSON.stringify({ engine: engine.version, games, ideas, changes: changes.sections.length }) + '\n');

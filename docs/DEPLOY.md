@@ -7,7 +7,7 @@ domain **glyphite.hornbaek.org**.
 - **Cloudflare Workers Builds deploys it.** Cloudflare pulls `main`, runs `npm run build:cloudflare` (the
   unit tests, then the build) and `npx wrangler deploy`. No deploy token lives in GitHub; the GitHub workflow
   only checks pull requests (the same build plus a smoke test of every game).
-- **Only the landing page is public.**
+- **Only the landing page and the games are public.**
   1. A Cloudflare Access application asks for the login. It covers `glyphite.hornbaek.org/login` (section 5);
      before that change it covered the whole hostname, and everything still works that way, minus the landing page.
   2. The Worker checks the Access token itself on every request (`worker/auth.js`, the same check as
@@ -16,8 +16,9 @@ domain **glyphite.hornbaek.org**.
      is empty, the Worker answers **503 "not open yet"** to every private page.
   3. The Worker decides what anyone may see (`worker/index.js`, `isPublic`): `/` is the landing page
      (`portal/welcome/`) for visitors who are not signed in and the game list for those who are; `/welcome/…` (the
-     landing page's files, the games' titles and thumbnails) and `/games/showcase/` (the live demo on it) are public.
-     Everything else needs the sign-in: a browser is sent to `/login?next=…`, files and the API get a 401.
+     landing page's files, the games' titles and thumbnails), `/games/showcase/` (the live demo on it) and the page of each
+     game listed on the landing page (`/games/<id>/`, from `welcome/site.json`; `isPublicGame`) are public. Everything else,
+     including a game's `game.json`, sources and reference art, the editor, the idea bank and the ART pages, needs the sign-in: a browser is sent to `/login?next=…`, files and the API get a 401.
      `tests/node/routes.test.mjs` pins this down. Making anything else public goes to the owner first.
   4. `workers_dev` and `preview_urls` are off; PR Previews get none of the Access vars, so they are closed too.
 
@@ -73,12 +74,13 @@ without a token, and nobody could sign in). Zero Trust → **Access** → **Appl
   application: its AUD tag stays the same, so nothing in `wrangler.jsonc` changes.
 - **Settings → Cookie settings**: leave **Cookie Path Attribute** off, so the sign-in cookie is sent for the whole site
   (the Worker reads it on every page).
-- Save. In a private window, `glyphite.hornbaek.org` now shows the landing page; **LOG IN** asks for the login and comes
+- Save. In a private window, `glyphite.hornbaek.org` now shows the landing page and its games' **PLAY** buttons work
+  without a login; **LOG IN** asks for the login and comes
   back to the game list; a private address (e.g. `/edit/`) asks for the login and comes back to it. Signed in, `/` is
   the game list as before (the landing page stays at `/welcome/`, the **ABOUT** button on the game list).
 
 To close it again, remove the path (the application covers the whole hostname again). With Access on `/login` only,
-the Worker's token check is what guards the private pages, so keep `worker/auth.js` and `isPublic` strict.
+the Worker's token check is what guards the private pages, so keep `worker/auth.js`, `isPublic` and `isPublicGame` strict.
 
 ## Where things show up
 

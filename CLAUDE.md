@@ -6,8 +6,8 @@ self-contained HTML page per game. It has a destructible voxel world with fallin
 structures that break where they are hit, ray-traced light, particles, sprites drawn from pixel art and an
 NES-style sound chip.
 
-The site **https://glyphite.hornbaek.org** (behind a Cloudflare Access login) lists the games. You can play
-each one and open it in a web **editor**: tune its numbers, edit its code with a live preview, then hand the
+The site **https://glyphite.hornbaek.org** shows visitors a landing page about the engine, where anyone can play the
+games (as test games, a work in progress). Behind a Cloudflare Access login it lists the games, and each one opens in a web **editor**: tune its numbers, edit its code with a live preview, then hand the
 edits to a Claude session as a prompt plus a patch. **The repository is the source of truth**: merging to
 `main` builds and deploys the site.
 
@@ -147,6 +147,8 @@ Like horn-dev and hornbaek-site: Cloudflare **Workers Builds** pulls `main` and 
 (`.github/workflows/ci.yml`) runs the same build plus the smoke test of every game on pull requests; no deploy
 token lives in GitHub. Setup and troubleshooting: `docs/DEPLOY.md`. Never weaken the Access check in
 `worker/auth.js` (`ACCESS_TEAM_DOMAIN` / `ACCESS_AUD` in `wrangler.jsonc`): the site must stay behind the login. Only the
-landing page (`portal/welcome/`, shown at `/` to visitors who are not signed in) and its live demo (`games/showcase/`) are
-public (`isPublic` in `worker/index.js`, pinned by `tests/node/routes.test.mjs`); making anything else public goes to the
-owner first. The landing page shows only what the build writes to `welcome/site.json` (titles, taglines, thumbnails).
+landing page (`portal/welcome/`, shown at `/` to visitors who are not signed in), its live demo (`games/showcase/`) and the
+pages of the listed games (`/games/<id>/` only; the owner: "I'm okay with the players not being logged in to play the
+games") are public (`isPublic` and `isPublicGame` in `worker/index.js`, pinned by `tests/node/routes.test.mjs`); making
+anything else public goes to the owner first. The landing page shows only what the build writes to `welcome/site.json`
+(titles, taglines, controls, thumbnails), and a game is public exactly when it is listed there.
