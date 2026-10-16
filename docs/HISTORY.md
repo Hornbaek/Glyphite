@@ -508,6 +508,26 @@ text spacing.
   roadmap (phase 4). The two rendering ideas explained before it (blue-noise dithering, chromatic aberration)
   wait, with the explanation in their idea bank notes.
 
+## 23. The Viking sheets checked, and a sheet checker (Claude Code, 2026-10-16)
+
+The owner sent the two isometric sheets for the Viking homestead (Gemini, JPEG). Checked with the skill before cutting:
+labels clear, every drawing a separate piece, iso angle and palette right. But:
+- the background came raspberry instead of magenta, close to the red art;
+- most "NE" poses face the viewer;
+- walks have 3 frames instead of 4, and two-frame actions 1;
+- the ravens are near-black;
+- a few items are missing or extra.
+
+- **`tools/sheetcheck.py`**: the mechanical part of that check in 3 s. It reports the background and its noise, the cut
+  tolerance that stays inside the outlines, labels close to drawings, and near-black or white drawings. It also writes
+  a numbered boxes image and the drawings' boxes as JSON for `tools/art.py`.
+- **`glyphite-art-prompt`**: the lessons, folded into its rules. It now:
+  - spells out the background colour;
+  - asks for exactly N separate figures and nothing extra;
+  - describes NE as seen from behind;
+  - gives sizes relative to the adult and the tile only;
+  - adds an item-by-item count to the check.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |
