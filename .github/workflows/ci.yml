@@ -43,6 +43,12 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Smoke-test every game in both renderers
         run: python3 tests/smoke.py --all
+      # The editor's LEVELS tab end to end, and every Space Mouse sector can still be finished (a map edit that walls off
+      # a goal or leaves a crumb out of reach fails here).
+      - name: Level editor and Space Mouse levels
+        run: |
+          python3 tests/editor_levels.py
+          python3 games/spacemouse/tests/reach.py --res 1
       - uses: actions/upload-artifact@v4
         if: always()
         with:

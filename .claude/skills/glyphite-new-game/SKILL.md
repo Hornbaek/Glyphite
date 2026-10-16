@@ -28,7 +28,10 @@ Map it onto the engine before writing code:
 - **Hand-made levels** → a tile map in a JS string (one character per 4 × 4 base-unit tile, the smallest square that is whole
   rows at every RES), built into cells and the back wall (`backCells`) per detail level, like `games/spacemouse/station.js`.
   Prove every map can be finished with a search over standing spots using the real controller (copy
-  `games/spacemouse/tests/reach.py`): it finds the jumps that are a tile too far before a player does.
+  `games/spacemouse/levelcheck.js` and `tests/reach.py`): it finds the jumps that are a tile too far before a player does.
+  Declare the maps in game.json (`"levels"`: file, legend with a colour per tile) and give `Glyphite.run` a `levels` hook
+  (`play`, `check`): the site's editor then gets a LEVELS tab to paint, play and check them (engine/API.md, "Levels in the
+  web editor").
 - **Effects** → `explode`, built-in particles, `defineParticle` for pickups and the like, lights.
 - **Gravity / sun** → `setGravity` (0 for top-down), `setSun(null)` for caves or indoors, `setAmbient`.
 - **Anything the engine lacks** → add it to the engine as a *general* feature (with API.md and ROADMAP

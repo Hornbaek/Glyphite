@@ -73,6 +73,10 @@ and pulse presets* (`flicker` on any light, `flickerAt`, `Sfx.buzz`), plus `draw
 
 ## Editor and site ideas
 
+- ~~A map painter~~: the LEVELS tab (2026-10-16) paints tile maps declared in game.json. Next: stamps and copy/paste of a
+  region, mirror painting, editing the overlays (signs, zones) on the map instead of in code, and maps for generated games
+  (painting into the live world, the idea bank's "material painter in the live preview").
+
 - Commit from the editor directly (a GitHub token or a Worker endpoint opening a pull request), so a
   small tweak doesn't need a Claude session.
 - Talk to Claude from the editor (the Worker calling the Claude API with the game's sources), turning

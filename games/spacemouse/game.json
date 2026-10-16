@@ -15,6 +15,7 @@
     "art.js",
     "mouse.js",
     "catbots.js",
+    "levelcheck.js",
     "main.js"
   ],
   "controls": [
@@ -106,6 +107,39 @@
       "step": 0.1,
       "live": true,
       "help": "The faint background light everywhere. Raise it if the station is too dark to play."
+    }
+  },
+  "levels": {
+    "file": "sectors.js",
+    "tile": "4 x 4 base units (about a mouse wide, two thirds of a mouse tall)",
+    "legend": {
+      "#": {"name": "hull", "color": "#4a5263"},
+      ".": {"name": "inside (wall behind)", "color": "#1c202b"},
+      ":": {"name": "window (stars behind)", "color": "#06081a"},
+      " ": {"name": "outside the station", "color": "#000000"},
+      "=": {"name": "deck", "color": "#9096a2"},
+      "_": {"name": "thin deck", "color": "#6f7684"},
+      "-": {"name": "catwalk (jump up through)", "color": "#b08d58"},
+      "r": {"name": "rusted panel (crumbles)", "color": "#9a5428"},
+      "B": {"name": "gantry bracket (gives way)", "color": "#d2601e"},
+      "C": {"name": "cheese (eat it)", "color": "#ffcc44"},
+      "G": {"name": "the great cheese (goal)", "color": "#fff27a"},
+      "x": {"name": "cargo crate", "color": "#5c7d62"},
+      "w": {"name": "cracked wall", "color": "#7a7a86"},
+      "s": {"name": "freeze-dried peas (sand)", "color": "#6fae44"},
+      "~": {"name": "live cable (deadly)", "color": "#4f86ff"},
+      "^": {"name": "broken glass (deadly)", "color": "#9ee2f4"},
+      "P": {"name": "mouse start", "color": "#ffffff", "on": ".", "unique": true},
+      "c": {"name": "cheese crumb", "color": "#ff9f1c", "on": "."},
+      "K": {"name": "cat-bot", "color": "#ff3b3b", "on": "."},
+      "S": {"name": "checkpoint", "color": "#3cff7a", "on": "."},
+      "L": {"name": "ceiling lamp", "color": "#fffbc8", "on": "."},
+      "l": {"name": "dying lamp", "color": "#b9b46a", "on": "."},
+      "A": {"name": "alarm lamp", "color": "#ff6f9a", "on": "."}
+    },
+    "marks": {
+      "signs": {"kind": "text", "color": "#ffd278"},
+      "lowG": {"kind": "rect", "color": "#78dcff", "label": "low gravity"}
     }
   },
   "smoke": {

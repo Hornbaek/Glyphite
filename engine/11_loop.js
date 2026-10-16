@@ -24,6 +24,7 @@
 //     start()                             leave the title screen (tests call it; default: press Enter)
 //     snapshot()                          state to keep across a hot reload
 //     probe()                             a small JSON-able summary of the game, for tests and AI sessions
+//     levels: { play(i, tile), check(i) } the web editor's LEVELS tab: start map i (at tile [x, y]); can map i be finished?
 //   })
 // The game state is the engine globals `state` (a string) and `stateT` (seconds in it); setState()
 // switches. 'title' shows the #titleBar buttons, 'paused' stops time, 'play' is where slow-frame hints
@@ -50,6 +51,18 @@ window.addEventListener('message', e => {
   const d = e.data;
   if (e.source !== window.parent || !d || d.type !== 'glyphite:tune' || !d.values) return;
   for (const k in d.values) if (k in TUNE && typeof d.values[k] === typeof TUNE[k]) { TUNE[k] = d.values[k]; if (GAME.onTune) GAME.onTune(k, TUNE[k]); }
+});
+// The editor's LEVELS tab drives the preview: { type: 'glyphite:level', action: 'play', level, tile } starts that map (at that
+// tile) and 'check' asks the game whether it can be finished; the answer goes back as 'glyphite:levelcheck'.
+window.addEventListener('message', e => {
+  const d = e.data;
+  if (e.source !== window.parent || !d || d.type !== 'glyphite:level' || !GAME.levels) return;
+  if (d.action === 'play' && GAME.levels.play) { GAME.levels.play(d.level | 0, d.tile || null); updateCamera(0, true); try { R.canvas.focus({ preventScroll: true }); } catch (err) { } }
+  else if (d.action === 'check') {
+    let result;
+    try { result = GAME.levels.check ? GAME.levels.check(d.level | 0) : { error: 'this game cannot check its levels' }; } catch (err) { result = { error: String(err && err.message || err) }; }
+    window.parent.postMessage({ type: 'glyphite:levelcheck', id: d.id, level: d.level, result }, '*');
+  }
 });
 
 // ---------- camera ----------
@@ -178,6 +191,7 @@ function boot(data) {
   updateCamera(0, true);
   if (document.fonts && document.fonts.load) document.fonts.load(`700 16px "JetBrains Mono"`).then(() => document.fonts.load(`16px "JetBrains Mono"`)).then(() => { if (R.cw) { buildAtlases(); SPR_SHAPES = null; } }).catch(() => { });
   window.claude?.hot?.snapshot?.(() => ({ detail: RES, ...(GAME.snapshot ? GAME.snapshot() : {}) }));
+  if (window.parent !== window) window.parent.postMessage({ type: 'glyphite:ready', id: GAME.id, levels: !!GAME.levels }, '*');   // the editor's preview
   requestAnimationFrame(t => { lastT = t; frame(t); });
 }
 

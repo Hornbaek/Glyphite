@@ -504,6 +504,13 @@ on the title screen and leads the lander in flight. `afterFrame` runs the music 
 
 ## 13. Build, site and deployment
 
+**The editor's LEVELS tab** (`portal/assets/levels.js`, `levels-core.mjs`) works on the text of the game's map file, not on the
+running world: it finds each `String.raw` map with a regular expression, edits a copy of its rows, and writes the whole file
+back as a draft (the drafts the CODE tab uses, in localStorage), so rebuilding the preview, the CODE view and the patch all
+follow without any new storage. To play or check a map it sets a pending message, rebuilds the preview, and sends the message
+when the page posts `glyphite:ready`; checks are answered with `glyphite:levelcheck`. The preview is a same-origin `srcdoc`
+iframe, so a check runs on the editor's thread: the page waits for it (a second or two).
+
 `node tools/glyphite.mjs build` (also `npm run build`):
 1. Reads `engine/engine.json` and every `games/*/game.json` (and `templates/*`, built unlisted so they
    stay tested), and validates the manifests.

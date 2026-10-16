@@ -4,6 +4,7 @@
 // Code session, which commits them to the repository (the source of truth) through a pull request.
 import { assemble, lineMap } from '/assets/assemble.mjs';
 import { unifiedDiff } from '/assets/diff.mjs';
+import { setupLevels } from '/assets/levels.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -20,7 +21,9 @@ const S = {
   files: [],         // [{ path, label, group, mode }]
   current: '',       // path open in the code tab
   docs: {},          // path → CodeMirror Doc
-  tune: {}, defs: {}, renderer: '', dirty: false, page: '', map: null
+  tune: {}, defs: {}, renderer: '', dirty: false, page: '', map: null,
+  levelSpec: null, levels: null,   // game.json "levels" and the LEVELS tab, for games with tile maps
+  pending: null                    // what to tell the preview once it has started: play a map, check a map
 };
 const KEY = k => `glyphite.edit.v1.${S.id}.${k}`;
 
@@ -50,7 +53,9 @@ async function load() {
     S.orig[path] = texts[i];
     S.files.push({ path, label, group, mode: label.endsWith('.json') ? { name: 'javascript', json: true } : label.endsWith('.html') ? 'htmlmixed' : 'javascript' });
   });
-  S.defs = JSON.parse(S.orig[`${base}/game.json`]).tunables || {};
+  const manifest = JSON.parse(S.orig[`${base}/game.json`]);
+  S.defs = manifest.tunables || {};
+  if (manifest.levels && S.orig[`${base}/${manifest.levels.file}`] !== undefined) S.levelSpec = manifest.levels;
   S.tune = store.get(KEY('tune')) || {};
   for (const k in S.tune) if (!(k in S.defs)) delete S.tune[k];
 }
@@ -90,6 +95,22 @@ function logError(msg, where) {
   d.textContent = where ? `${where[0]}:${where[1]}  ${msg}` : msg;
   if (where && S.files.some(f => f.path === where[0])) { d.style.cursor = 'pointer'; d.title = 'Open in the editor'; d.onclick = () => { showTab('code'); openFile(where[0], where[1]); }; }
   c.appendChild(d); c.hidden = false;
+}
+// the preview started: hand it what was waiting (play a map from a tile, or check one); a check's answer comes back here
+const checks = {};
+addEventListener('message', e => {
+  if (e.source !== $('#preview').contentWindow || !e.data) return;
+  if (e.data.type === 'glyphite:ready' && S.pending) { const p = S.pending; S.pending = null; e.source.postMessage(p, '*'); if (p.action === 'play') setTimeout(() => { try { $('#preview').contentWindow.focus(); } catch { } }, 50); }
+  if (e.data.type === 'glyphite:levelcheck' && checks[e.data.id]) { checks[e.data.id](e.data.result); delete checks[e.data.id]; }
+});
+function previewDo(msg) { S.pending = { type: 'glyphite:level', ...msg }; run(); }
+function checkLevel(level) {
+  return new Promise((resolve, reject) => {
+    const id = Math.random().toString(36).slice(2);
+    checks[id] = resolve;
+    setTimeout(() => { if (checks[id]) { delete checks[id]; reject(new Error('the preview did not answer (did the game fail to start? see below the preview)')); } }, 60000);
+    setStatus('checking the map…'); previewDo({ action: 'check', level, id });
+  });
 }
 addEventListener('message', e => {
   if (e.source !== $('#preview').contentWindow || !e.data || e.data.type !== 'glyphite:error') return;
@@ -172,7 +193,25 @@ function revertFile() {
   if (!confirm(`Revert ${path} to the deployed version?`)) return;
   store.set(KEY(`file:${path}`), null);
   if (cm) { guard = true; S.docs[path].setValue(S.orig[path]); guard = false; } else plain.value = S.orig[path];
-  refreshMarks(); run();
+  refreshMarks(); run(); if (S.levels) S.levels.refresh();
+}
+
+// ---------- the LEVELS tab: the map editor works on drafts of the map file, like the CODE tab ----------
+function setupLevelTab() {
+  if (!S.levelSpec) return;
+  const path = `${S.entry.path}/${S.levelSpec.file}`;
+  S.levels = setupLevels({
+    spec: S.levelSpec, path, id: S.id,
+    textOf, saveDraft, origText: p => S.orig[p],
+    edited(p) {   // keep the CODE tab's copy of the file in step, and mark it edited
+      if (S.docs[p]) { guard = true; S.docs[p].setValue(textOf(p)); guard = false; }
+      if (!cm && plain && S.current === p) plain.value = textOf(p);
+      refreshMarks(); S.dirty = true; setStatus('map edited: PLAY THIS MAP (or RUN) to try it');
+    },
+    play: (level, tile) => previewDo({ action: 'play', level, tile }),
+    check: checkLevel
+  });
+  $('#tab-levels').hidden = false;
 }
 
 // ---------- the CLAUDE tab ----------
@@ -214,7 +253,10 @@ function refreshMarks() {
   if (!$('#pane-claude').hidden) renderHandoff();
 }
 function showTab(name) {
-  for (const t of ['tune', 'code', 'claude']) { $(`#tab-${t}`).setAttribute('aria-selected', String(t === name)); $(`#pane-${t}`).hidden = t !== name; }
+  if (name === 'levels' && !S.levels) name = 'tune';
+  for (const t of ['tune', 'code', 'levels', 'claude']) { $(`#tab-${t}`).setAttribute('aria-selected', String(t === name)); $(`#pane-${t}`).hidden = t !== name; }
+  document.body.classList.toggle('wide-side', name === 'levels');
+  if (name === 'levels') S.levels.show();
   if (name === 'code') {
     if (!S.current) { const game = S.files.filter(f => f.group === 'game'); openFile((game.find(f => f.label === 'main.js') || game[1] || game[0]).path); }
     else if (cm) setTimeout(() => cm.refresh(), 0);
@@ -229,8 +271,8 @@ async function main() {
   document.title = `${S.entry.title} · Glyphite Editor`;
   $('#gameTitle').textContent = S.entry.title;
   $('#playLink').href = `/games/${S.id}/`;
-  renderTunables(); renderFiles(); setupEditor();
-  for (const t of ['tune', 'code', 'claude']) $(`#tab-${t}`).addEventListener('click', () => showTab(t));
+  renderTunables(); renderFiles(); setupEditor(); setupLevelTab();
+  for (const t of ['tune', 'code', 'levels', 'claude']) $(`#tab-${t}`).addEventListener('click', () => showTab(t));
   $('#resetTune').addEventListener('click', () => { S.tune = {}; store.set(KEY('tune'), null); renderTunables(); refreshMarks(); run(); });
   $('#runBtn').addEventListener('click', run);
   $('#rebuild').addEventListener('click', run);
@@ -239,7 +281,7 @@ async function main() {
     if (!confirm('Discard every tunable change and code edit for this game?')) return;
     for (const f of S.files) store.set(KEY(`file:${f.path}`), null);
     S.tune = {}; store.set(KEY('tune'), null); S.docs = {};
-    renderTunables(); if (S.current) openFile(S.current); refreshMarks(); run();
+    renderTunables(); if (S.current) openFile(S.current); refreshMarks(); run(); if (S.levels) S.levels.refresh();
   });
   $('#ask').addEventListener('input', () => { $('#promptPreview').textContent = promptText(); });
   $('#copyPrompt').addEventListener('click', e => copy(promptText(), e.currentTarget));

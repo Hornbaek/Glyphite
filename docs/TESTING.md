@@ -77,7 +77,14 @@ Renderer selection (used in every script):
 | Script | What it checks |
 |---|---|
 | `mechanics.py [2d\|gl] [RES ...]` | In sector 1: a held jump reaches the tuned height and a tap about half; the run speed matches; the mouse eats through the cheese wall; the rusted floor gives way; it jumps up through a catwalk, stands on it and drops through; a cat-bot catches it from the side and is shorted out from above; a live cable kills; the great cheese clears the sector. Default: GL at RES 1, 2, 3. |
-| `reach.py [sector ...] [--res R] [--tune JSON]` | Can each sector be finished? A breadth-first search with the real controller from every place the mouse can stand (walks, jumps of three lengths, steering mid-air, running jumps), never touching cables or glass. Cheese counts as eaten, rust and gantries as fallen, cracked walls as broken; low gravity applies. Fails if the great cheese, a crumb or a checkpoint can't be reached. Run it after editing a map, and at RES 1 and 3, and with tunables you changed (e.g. `--tune '{"jumpHeight":2}'`). |
+| `reach.py [sector ...] [--res R] [--tune JSON]` | Runs the game's own search (`levelcheck.js`, also the editor's CHECK button). Can each sector be finished? A breadth-first search with the real controller from every place the mouse can stand (walks, jumps of three lengths, steering mid-air, running jumps), never touching cables or glass. Cheese counts as eaten, rust and gantries as fallen, cracked walls as broken; low gravity applies. Fails if the great cheese, a crumb or a checkpoint can't be reached. Run it after editing a map, and at RES 1 and 3, and with tunables you changed (e.g. `--tune '{"jumpHeight":2}'`). |
+
+## The site
+
+| Script | What it checks |
+|---|---|
+| `tests/editor_levels.py [game]` | The editor's LEVELS tab against the built site (it serves `dist/` itself): the maps are listed and drawn, painting writes the map file's draft and the CLAUDE tab's patch carries it, undo, PLAY THIS MAP and the TEST tool start the preview on that map and tile, CHECK passes the shipped map and catches one with the goal walled off, the start tile stays one of a kind. Runs in CI. |
+| `tests/node/levels.test.mjs` | The level editor's core (`portal/assets/levels-core.mjs`): finding maps, writing one back without touching the others, marks, the edits, and the PNG round trip. |
 
 ## Regolith Lander: historical tests (written for earlier versions; may need updating)
 

@@ -373,6 +373,21 @@ text spacing.
   It caught five level-design mistakes on the way (catwalks too far apart, a cable jump too tight under a low ceiling).
   `tests/engine_audio.py` stops the music while it measures the beat glow (real drum hits made it flaky).
 
+## 15. A level editor in the web editor (Claude Code, 2026-10-16)
+
+> "And for the platform again, I want to be able to edit the levels in like a 2D pixel editor that represents the levels."
+
+- **LEVELS tab** (`portal/assets/levels.js`, core in `levels-core.mjs`): for games that declare `"levels"` in game.json (a map
+  file and a legend: name and colour per tile), each map is a grid of coloured squares. Pen, rectangle, flood fill, picker, pan
+  and TEST tools, left and right colours, zoom (Ctrl + wheel), grid, undo and redo, resize, PNG export and import (one pixel per
+  tile, in the legend's colours, for any pixel editor), revert. Signs and low-gravity zones show as overlays.
+- Painting edits the map file's **draft**, the same one the CODE tab edits, so the preview runs it and the CLAUDE tab hands it
+  over as a patch. **PLAY THIS MAP** restarts the preview on that map; the **TEST** tool drops the mouse on the tile you click.
+  **CHECK** runs Space Mouse's completability search on the map you are painting and circles what can't be reached.
+- Engine: the preview announces `glyphite:ready` to the editor and takes `glyphite:level` messages (play, check), handled
+  through a new `GAME.levels` hook. Space Mouse's search moved from its test into the game (`levelcheck.js`), so the editor and
+  `reach.py` share it. CI now runs the editor test and the search on every sector.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |
