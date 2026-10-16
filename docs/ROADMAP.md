@@ -41,6 +41,13 @@ could have, to pick from when planning. Move an idea here when it is chosen.
 - **Site.** Game list, play pages, the web editor (tune live, edit code with an in-browser rebuild, hand
   edits to Claude as a prompt plus a patch), a Cloudflare Worker with an Access check, CI and deploy.
 
+## Done from the idea bank (engine 0.3.0, see HISTORY section 13)
+
+Lighting batch, tried in Regolith Lander: visibility queries (`sunAt`, `isLitBy`), the sun's colour from airmass or kelvin
+(`setAtmosphere`, `setSun(el, { kelvin })`), star twinkle in an atmosphere and star glare near lamps, auto-exposure
+(`setEyeAdaptation`). Regolith gets an "Atmosphere (test)" and an "Eye adaptation" tunable and `[SUN]` / `[LAMP]` lights on
+its warning row.
+
 ## Phase 3, still open: sprites and assets
 
 1. **Animation frames:** several `rows` arrays per sprite, chosen per draw call.

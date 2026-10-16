@@ -11,7 +11,7 @@ async def run(p, mode):
     page = await b.new_page(viewport={'width': 1200, 'height': 750})
     errs=[]; page.on('pageerror', lambda e: errs.append(str(e)))
     await page.goto(f'file://{ROOT}/dist/games/regolith/index.html#{mode}'); await page.wait_for_timeout(1200)
-    await page.evaluate('setDetail(2)'); await page.evaluate('startSite(1)'); await page.wait_for_timeout(300)
+    await page.evaluate('setDetail(2)'); await page.evaluate('setEyeAdaptation(0)'); await page.evaluate('startSite(1)');   # the Earth is found by colour, so keep the exposure fixed await page.wait_for_timeout(300)
     info = await page.evaluate('(() => { state = "paused"; const x0 = Math.floor(cam.x), y0 = cam.y; window.__c0 = [x0, y0]; return { cw: R.cw, chh: R.chh, dpr: R.dpr, cols: R.cols, rows: R.rows, renderer: R.mode, canvas: [R.canvas.width, R.canvas.height], left: R.canvas.style.left, top: R.canvas.style.top }; })()')
     print(mode, info)
     pos = []

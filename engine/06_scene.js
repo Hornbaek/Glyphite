@@ -1,6 +1,25 @@
 // ===================== ENGINE · scene shading → glyphs =====================
 const FLAME_GLYPHS = Array.from('.:-=+*#%@', c => c.charCodeAt(0));
 const tone = c => 1 - Math.exp(-c * 1.7);
+// Eye adaptation: the exposure eases toward what the scene calls for, measured each frame as the geometric mean brightness of
+// the visible cells before tone mapping (so exposure cannot feed back into its own measurement). A dark scene brightens slowly
+// (`up` seconds, like eyes in a cave), a bright one darkens quickly (`down`), so stepping from shadow into sun dazzles for a
+// moment and a dark cave becomes readable. Off by default; the game turns it on with setEyeAdaptation.
+const EYE = { s: 0, min: .55, max: 2.6, key: .15, up: 2.4, down: .6, e: 1, t: -1 };
+// strength 0..1 (0 = off: exposure 1; 1 = the scene is held at brightness `key`); opts: { min, max, key, up, down } (see EYE)
+function setEyeAdaptation(strength, opts) {
+  Object.assign(EYE, opts); EYE.s = clamp(+strength || 0, 0, 1);
+  if (EYE.s === 0) EYE.e = 1;
+}
+function adaptEye(G, n, time) {
+  if (EYE.s <= 0) return;
+  let sum = 0, cnt = 0;
+  for (let k = 0; k < n; k += 5) if (G[k]) { sum += Math.log(.3 * cR[k] + .59 * cG[k] + .11 * cB[k] + .03); cnt++; }
+  const dt = EYE.t < 0 ? 0 : clamp(time - EYE.t, 0, .1); EYE.t = time;
+  if (cnt < 12) return;                            // almost nothing on screen to judge by: keep what we have
+  const target = clamp(Math.exp(EYE.s * Math.log(EYE.key / Math.max(.02, Math.exp(sum / cnt) - .03))), EYE.min, EYE.max);
+  EYE.e += (target - EYE.e) * (1 - Math.exp(-dt / (target > EYE.e ? EYE.up : EYE.down)));
+}
 let cR, cG, cB, vig;
 const _fc = [0, 0, 0], _pc = [0, 0, 0];
 // direction → line glyph: - \ | /
@@ -140,9 +159,10 @@ function renderScene(ox, oy, time, drawExtras) {
   }
 
   // 6) tone map + vignette → bytes (and optional bloom bright-pass)
-  const D = R.wPix, BL = R.bloomPix, bloom = R.bloom, glA = R.mode === 'gl', OC = R.occPix;
+  adaptEye(G, n, time);
+  const D = R.wPix, BL = R.bloomPix, bloom = R.bloom, glA = R.mode === 'gl', OC = R.occPix, E = EYE.e;
   for (let k = 0; k < n; k++) {
-    const vv = vig[k], r = tone(cR[k]) * vv, g = tone(cG[k]) * vv, b = tone(cB[k]) * vv, q = k * 4;
+    const vv = vig[k], r = tone(cR[k] * E) * vv, g = tone(cG[k] * E) * vv, b = tone(cB[k] * E) * vv, q = k * 4;
     D[q] = r * 255; D[q + 1] = g * 255; D[q + 2] = b * 255; D[q + 3] = glA ? G[k] : 255;   // GL reads the glyph code from alpha
     if (!glA) { OC[q] = 5; OC[q + 1] = 7; OC[q + 2] = 12; OC[q + 3] = G[k] ? 255 : 0; }  // 2D: occupied cells are opaque
     if (bloom) { const on = G[k] > 32; BL[q] = on ? Math.max(0, r - .62) * 460 : 0; BL[q + 1] = on ? Math.max(0, g - .62) * 460 : 0; BL[q + 2] = on ? Math.max(0, b - .62) * 460 : 0; BL[q + 3] = 255; }
@@ -158,12 +178,17 @@ function renderScene(ox, oy, time, drawExtras) {
 // GAME.sky(i, j, out) → glyph code (0 = nothing here, stars may show; -1 = dark body, hides the
 // stars; out = [r, g, b] in light units).
 // GAME.stars sets the star density (default 1, 0 = none).
+// Stars twinkle only in an atmosphere (setAtmosphere; never in a vacuum) and are dimmed by the light of nearby lamps and flashes
+// (read from the frame's light buffer, minus the sun and ambient): GAME.starGlare scales that (default 1, 0 = off). Either makes
+// the layer rebuild a few times a second instead of once.
 const SKY_PAR = .05;
 let skyKey = '';
 function renderSky(time) {
   const RW = R.RW, RH = R.RH, sx = cam.x * SKY_PAR, sy = cam.y / ASPECT * SKY_PAR, ix = Math.floor(sx), iy = Math.floor(sy);
   R.skyFX = sx - ix; R.skyFY = sy - iy;
-  const ox = ix - 1, oy = iy - 1, key = `${ox},${oy},${RW},${RH},${time | 0}`;
+  const air = Math.min(1, ATMOS), glare = LR && LR.length === RW * RH ? GAME.starGlare ?? 1 : 0, E = EYE.e;
+  const busy = glare > 0 && (L_NLIGHTS > 0 || FX.flash > .03), step = air > 0 ? (time * 8) | 0 : busy ? (time * 5) | 0 : time | 0;
+  const ox = ix - 1, oy = iy - 1, key = `${ox},${oy},${RW},${RH},${step},${Math.round(E * 24)}`;
   if (key === skyKey) return;
   skyKey = key; R.skyDirty = true;
   const SG = R.sG, D = R.sPix, glA = R.mode === 'gl', paint = GAME.sky, starP = .011 * (GAME.stars ?? 1) / (RES * RES);
@@ -171,11 +196,19 @@ function renderSky(time) {
   for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) {
     const k = j * RW + i, q = k * 4; let glyph = 0, r = 0, g = 0, b = 0;
     if (paint && (glyph = paint(i, j, _pc)) !== 0) { if (glyph < 0) glyph = 0; else { r = _pc[0]; g = _pc[1]; b = _pc[2]; } }
-    else if (hash2(ox + i, oy + j, 5) < starP) {   // stars: steady, no air to twinkle
+    else if (hash2(ox + i, oy + j, 5) < starP) {   // stars: steady in a vacuum
       const bb = hash2(ox + i, oy + j, 6), tint = hash2(ox + i, oy + j, 8); glyph = bb > .93 ? 42 : bb > .7 ? 43 : 46;
       r = .45 + .4 * bb + tint * .1; g = .45 + .4 * bb; b = .5 + .4 * bb + (1 - tint) * .12;
+      let f = 1;
+      if (air > 0) f -= .6 * air * (.5 + .5 * Math.sin(time * (4 + 7 * hash2(ox + i, oy + j, 11)) + 6.283 * hash2(ox + i, oy + j, 12)));   // scintillation
+      if (glare > 0 && LSURF[k] === 0) {   // light pollution: what the lights and flashes add over sun and ambient
+        const su = LSUN[k], base = .3 * (AMB_C[0] * .7 + su * SUN_C[0]) + .59 * (AMB_C[1] * .7 + su * SUN_C[1]) + .11 * (AMB_C[2] * .7 + su * SUN_C[2]);
+        f /= 1 + glare * 3.5 * Math.max(0, .3 * LR[k] + .59 * LG[k] + .11 * LB[k] - base);
+      }
+      r *= f; g *= f; b *= f;
+      if (f < .5) glyph = 46;              // a faint star shrinks to a dot
     }
     const vv = vig[k];
-    SG[k] = glyph; D[q] = tone(r) * vv * 255; D[q + 1] = tone(g) * vv * 255; D[q + 2] = tone(b) * vv * 255; D[q + 3] = glA ? glyph : 255;
+    SG[k] = glyph; D[q] = tone(r * E) * vv * 255; D[q + 1] = tone(g * E) * vv * 255; D[q + 2] = tone(b * E) * vv * 255; D[q + 3] = glA ? glyph : 255;
   }
 }

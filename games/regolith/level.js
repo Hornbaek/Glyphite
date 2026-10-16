@@ -18,6 +18,7 @@ function genLevel(lv) {
   const S = RES, rng = mulberry32(lv * 7919 + 1013), seed = (lv * 131 + 7) | 0;
   const site = SITES[(lv - 1) % SITES.length], tier = Math.min(lv, 9);
   worldInit(Math.round(WORLD_W * S), Math.round(WORLD_H * S));
+  setAtmosphere(TUNE.atmosphere);
   setSun(site.sun);
   const rough = .75 + tier * .11, hgt = new Float32Array(W);
   for (let x = 0; x < W; x++) hgt[x] = H * .62 + (fbm1(x / (105 * S), seed, 4) - .5) * H * .4 * rough

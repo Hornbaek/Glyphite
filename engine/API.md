@@ -200,6 +200,27 @@ out.push({ x, y, r: 70 * RES, c: [.8, .9, 1], I: 2, shadow: true, dx, dy, cos: M
 left, 1..89°; `setSun(null)` for no sun: caves, indoors), `setAmbient([r, g, b])`. Emissive things: `splatLight(cx, cy,
 r, g, b, radiusBaseCells)`; materials with `glow`; heat. `lightAtCell(cx, cy, out)` reads the light at a cell.
 
+**The sun's colour.** `setSun(el, [r, g, b])` pins it. `setSun(el, { kelvin: 5772, intensity?: 1.15 })` sets the base colour
+from a blackbody (1000..40000 K; 2000 is orange, 10000 bluish). Left out, the last base colour stays. `setAtmosphere(thickness)`
+(0 = vacuum, the default; 1 = Earth-like) then dims that base by the air the light crosses, per channel
+(`exp(-scatter × airmass(elevation))`, blue first), so a low sun is orange and then red without a hand-made sunset palette. A
+pinned `[r, g, b]` is never reddened. Calling `setAtmosphere` later recolours the sun at once. The atmosphere also makes
+stars twinkle (see Sky).
+
+**Visibility queries** (for gameplay: plants that grow toward light, solar panels, stealth, vampires). Positions are body
+coordinates (x in cells, y in units = row × `ASPECT`). They read the world directly, so they work anywhere (not only on
+screen) and consider terrain and frozen chunks, not moving bodies:
+- `sunAt(x, y)` → `true` if the sun reaches the point (`false` with no sun).
+- `isLitBy(light, x, y)` → how strongly this light (an object like the ones `GAME.lights` pushes, with `x, y, r, I, shadow`
+  and, for a cone, `dx, dy, cos`) reaches the point: `0` = not at all, else its intensity there. Same falloff, cone and
+  shadows as the lighting itself.
+
+**Eye adaptation.** `setEyeAdaptation(strength 0..1, opts?)` lets the exposure follow the scene (off by default; 0 = off,
+exposure exactly 1). It is measured each frame as the average brightness of what is on screen and eased toward a target: a
+dark view brightens over a couple of seconds (`up`, 2.4 s), a bright one darkens faster (`down`, 0.6 s), so stepping from
+shadow into sun dazzles for a moment. `opts`: `{ min: .55, max: 2.6, key: .15, up: 2.4, down: .6 }` (`key` = the brightness it
+aims for). It applies to the world and the sky, not to the HUD, in both renderers. `EYE.e` is the current exposure.
+
 ## Drawing into the world
 
 World cells are `cx = floor(x)`, `cy = floor(y / ASPECT)`. Inside `GAME.draw`:
@@ -220,7 +241,9 @@ their own offset `shift[2p-2], shift[2p-1]`. `foot` snaps that line to a row bou
 ## Sky
 
 The sky is its own slow-scrolling layer behind empty world cells: stars (`GAME.stars`, default 1) plus whatever
-the game paints. `GAME.skyBegin(ox, oy, time)` runs once per rebuild; `GAME.sky(i, j, out)` is asked for every
+the game paints. Stars twinkle only when the game has an atmosphere (`setAtmosphere`), never in a vacuum, and are dimmed by
+the light of nearby lamps and flashes, read from the frame's light buffer minus sun and ambient (`GAME.starGlare`, default 1,
+0 = off; the layer then rebuilds a few times a second instead of once). `GAME.skyBegin(ox, oy, time)` runs once per rebuild; `GAME.sky(i, j, out)` is asked for every
 sky cell and returns a glyph code (0 = nothing, -1 = dark body that hides stars) with `out = [r, g, b]`.
 See `earthBegin` / `earthCell` in `games/regolith/view.js`.
 
