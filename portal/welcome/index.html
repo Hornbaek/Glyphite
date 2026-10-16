@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glyphite · an AI-first ASCII game engine</title>
+<meta name="description" content="Glyphite is a game engine for the browser that draws everything with the 95 printable ASCII characters, over a real simulation of rock, sand and light. Its games are made by talking to Claude.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="/welcome/welcome.css">
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="/" aria-label="Glyphite">GLYPHITE</a>
+  <nav aria-label="Page">
+    <a href="#can">WHAT IT DOES</a><a href="#how">HOW</a><a href="#games">GAMES</a><a href="#goal">GOAL</a>
+  </nav>
+  <a class="btn primary small" href="/login">[ LOG IN ]</a>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <p class="eyebrow">AN AI-FIRST ASCII GAME ENGINE</p>
+    <h1>Games drawn in 95 characters,<br>made by talking to Claude.</h1>
+    <p class="lede">Glyphite is a game engine for the browser that draws everything with the printable ASCII characters, each in its
+      own colour. Under the letters runs a real simulation: rock that breaks where it is hit, sand that pours and piles, light
+      that casts shadows. And its games are not written by hand: they are made, and changed, in conversations with Claude Code.</p>
+    <div class="cta">
+      <a class="btn primary" href="/login">[ LOG IN TO PLAY ]</a>
+      <a class="btn" href="#can">[ WHAT IT CAN DO ↓ ]</a>
+    </div>
+  </section>
+
+  <section class="demo wrap" aria-label="The engine, running live">
+    <div class="screen">
+      <iframe src="/games/showcase/" title="The Glyphite engine running live: the word GLYPHITE in rock, sand and meteors. Click to drop a meteor." loading="eager"></iframe>
+    </div>
+    <p class="caption">Not a video: this is the engine, running in this page. Every character is a cell of rock, sand or light. Click or tap
+      to drop a meteor; whatever loses its support breaks off and falls.</p>
+  </section>
+
+  <section class="wrap" id="can">
+    <h2><span>01</span> What it can do</h2>
+    <div class="grid">
+      <article><h3>A world you can break</h3><p>Every cell is a material: rock, ice, glass, cheese. A blast carves it, and anything left without
+        support breaks off as a rigid chunk that falls, tumbles, chips and settles back into the world.</p></article>
+      <article><h3>Sand that flows</h3><p>Sand, dust and rubble pour, pile and slide in a cellular simulation. Debris thrown by a blast becomes
+        ground again where it lands.</p></article>
+      <article><h3>Light, in text</h3><p>Sun shadows, lamps that flicker and buzz, ambient occlusion, glowing materials and bloom, all worked
+        out character by character, with eyes that adapt to the dark.</p></article>
+      <article><h3>Physics underneath</h3><p>Rigid bodies with contacts and friction, and a platformer controller with coyote time, jump buffering,
+        wall jumps and floors you can jump up through.</p></article>
+      <article><h3>Pixel art becomes ASCII</h3><p>Art is cut from image sheets and turned into sprites whose characters follow its shapes,
+        rotated and lit by the scene. Every original drawing is kept beside the game.</p></article>
+      <article><h3>Fire, sparks and smoke</h3><p>Particles, shock rings, flashes, screen shake and slow motion, and an NES-style sound chip that
+        plays music and makes the booms.</p></article>
+      <article><h3>One page per game</h3><p>Each game is a single self-contained web page with nothing to install: WebGL first, a 2D canvas
+        when there is no GPU, and detail from one to three characters per metre.</p></article>
+      <article><h3>Built for AI sessions</h3><p>One documented API, a starter game, a test hook every game answers, and checks that prove a
+        level can be finished, so a Claude session can build and verify a game on its own.</p></article>
+    </div>
+  </section>
+
+  <section class="wrap" id="how">
+    <h2><span>02</span> How a game gets made</h2>
+    <ol class="steps">
+      <li><b>Describe it.</b> A few lines: who you play, the goal, the look. <q>You play a space mouse in an abandoned space station,
+        looking for cheese.</q></li>
+      <li><b>Claude builds it.</b> In a Claude Code session on the repository: the code, the levels, the art, and tests that play it.</li>
+      <li><b>Play it and tune it.</b> Every game opens in a web editor: turn its numbers, edit its code with a live preview, paint its
+        levels in a pixel editor, see the art it was made from.</li>
+      <li><b>Hand it back.</b> The editor turns your changes into a prompt and a patch for the next session. Merging it deploys the site.
+        The repository is the source of truth.</li>
+    </ol>
+  </section>
+
+  <section class="wrap" id="games">
+    <h2><span>03</span> The games</h2>
+    <div class="games" id="gameList"><p class="muted">Loading the games…</p></div>
+  </section>
+
+  <section class="wrap" id="goal">
+    <h2><span>04</span> The goal</h2>
+    <div class="goal">
+      <p>A game engine made for one kind of picture, ASCII, and for one way of working: describing what you want and playing the result.
+        Not just one game, but any 2D game: landers, platformers, falling-sand toys, top-down adventures. Physics and light come first,
+        every game stays a single page, and the whole loop, from idea to deployed game, runs through AI sessions.</p>
+      <p>What comes next is picked from an idea bank of <b id="ideaCount">over a thousand</b> ideas, from climbing and moving platforms to
+        whole new games. <span id="stats"></span></p>
+    </div>
+    <div class="cta"><a class="btn primary" href="/login">[ LOG IN ]</a></div>
+  </section>
+</main>
+
+<footer class="wrap foot">
+  <span>GLYPHITE</span><span id="engine"></span><span>Made with Claude Code</span><a href="https://hornbaek.org">hornbaek.org</a>
+</footer>
+<script type="module" src="/welcome/welcome.js"></script>
+</body>
+</html>

@@ -18,11 +18,12 @@ engine/                 the engine (shared by every game)
   engine.json           part order + version          API.md   the public API: read it before writing game code
   shell.html            page template                 01_core … 11_loop.js   the parts (banner says what each does)
 games/notfound/         the 404 game: unlisted, served by the Worker for any missing page (worker/index.js)
+games/showcase/         the live engine demo on the public landing page: unlisted, public
 games/<id>/             one folder per game: game.json (manifest), head.html (optional page HTML), *.js parts,
                         thumb.png, plus the game's own tools/, tests/, ref/ (reference art: see the rules), music/, NOTES.md
 templates/starter/      the game `new` copies: small, uses every engine feature once (Cave Drone)
 portal/                 the website: game list (index.html), editor (edit/: tune, code, LEVELS for tile maps), idea bank (ideas/), what's new (whats-new/),
-                        reference art (art/), assets/, vendor/codemirror
+                        reference art (art/), the public landing page (welcome/), assets/, vendor/codemirror
 worker/                 the Cloudflare Worker: Access login check + static site + idea bank API (ideas.js)
                         wrangler.jsonc: its config (incl. the D1 binding)     migrations/: the D1 schema
 tools/                  glyphite.mjs (CLI: build, new, list, serve), assemble.mjs (page assembler, shared with the
@@ -145,4 +146,7 @@ Like horn-dev and hornbaek-site: Cloudflare **Workers Builds** pulls `main` and 
 (unit tests, then the build), then `npx wrangler deploy` to glyphite.hornbaek.org. GitHub Actions
 (`.github/workflows/ci.yml`) runs the same build plus the smoke test of every game on pull requests; no deploy
 token lives in GitHub. Setup and troubleshooting: `docs/DEPLOY.md`. Never weaken the Access check in
-`worker/auth.js` (`ACCESS_TEAM_DOMAIN` / `ACCESS_AUD` in `wrangler.jsonc`): the site must stay behind the login.
+`worker/auth.js` (`ACCESS_TEAM_DOMAIN` / `ACCESS_AUD` in `wrangler.jsonc`): the site must stay behind the login. Only the
+landing page (`portal/welcome/`, shown at `/` to visitors who are not signed in) and its live demo (`games/showcase/`) are
+public (`isPublic` in `worker/index.js`, pinned by `tests/node/routes.test.mjs`); making anything else public goes to the
+owner first. The landing page shows only what the build writes to `welcome/site.json` (titles, taglines, thumbnails).

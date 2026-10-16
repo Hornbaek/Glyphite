@@ -544,6 +544,13 @@ game **updated** when its last-change date (`games.json`) is newer than the one 
 (remembered the first time it is seen and again when it is opened, so a new visitor sees no badges), and the What's new button
 says **new** until that page has been opened for the latest section.
 
+**Who sees what** (`worker/index.js`): Cloudflare Access only needs to cover `/login`; the Worker checks the Access token on
+every request and decides. `/` serves the game list to the signed in and the public landing page (`portal/welcome/`, with
+`welcome/site.json`, the games' public facts, written by the build) to everyone else, never cached (`Vary: Cookie`).
+`/welcome/…` and `/games/showcase/` (the live demo in the landing page's hero, an unlisted game) are public. Any other
+path needs the sign-in: a browser is redirected to `/login?next=<path>`, which Access guards and which sends the signed-in
+visitor back (to a path on this site only, `safeNext`); files and the API get a 401. `tests/node/routes.test.mjs`.
+
 **The 404 game** (`games/notfound/`, unlisted): for a `GET` that asks for `text/html` and finds nothing (and is not under
 `/api/`), `worker/index.js` serves `/games/notfound/` with status 404 and `no-store`; files and API calls get a plain 404.
 The page reads `location.pathname` (or `?path=` for tests), keeps printable ASCII and the last 11 characters when it is long,

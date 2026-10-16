@@ -39,7 +39,13 @@ test('pages that exist are untouched', async () => {
 });
 
 test('the 404 game is only reached after the sign-in check', async () => {
-  const res = await worker.fetch(new Request('https://glyphite.hornbaek.org/no/such/page', { headers: { Accept: 'text/html' } }), { ...env, DEV_EMAIL: undefined, ACCESS_TEAM_DOMAIN: 'https://t.cloudflareaccess.com', ACCESS_AUD: 'aud' });
-  assert.equal(res.status, 401);
-  assert.doesNotMatch(await res.text(), /canvas/);
+  const signedOut = { ...env, DEV_EMAIL: undefined, ACCESS_TEAM_DOMAIN: 'https://t.cloudflareaccess.com', ACCESS_AUD: 'aud' };
+  // signed out, a browser is sent to sign in first; anything else gets a plain 401
+  const page = await worker.fetch(new Request('https://glyphite.hornbaek.org/no/such/page', { headers: { Accept: 'text/html' } }), signedOut);
+  assert.equal(page.status, 302);
+  assert.equal(page.headers.get('Location'), '/login?next=%2Fno%2Fsuch%2Fpage');
+  assert.doesNotMatch(await page.text(), /canvas/);
+  const file = await worker.fetch(new Request('https://glyphite.hornbaek.org/missing.js'), signedOut);
+  assert.equal(file.status, 401);
+  assert.doesNotMatch(await file.text(), /canvas/);
 });

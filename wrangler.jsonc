@@ -2,7 +2,8 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   // The Glyphite site at https://glyphite.hornbaek.org: a Worker with static assets. Cloudflare serves
   // the built dist/ (the game list, the games, the editor), and worker/index.js runs first on every
-  // request to check the Cloudflare Access sign-in (worker/auth.js), so nothing is served without it.
+  // request to check the Cloudflare Access sign-in (worker/auth.js): only the landing page (/welcome/, shown at / to
+  // visitors who are not signed in) and its live demo (/games/showcase/) are served without it (docs/DEPLOY.md).
   //
   // Cloudflare pulls this repo through Workers Builds, like horn-dev and hornbaek-site: nothing here or
   // in GitHub holds a deploy token. On every push to main it runs (dashboard → the Worker → Settings →

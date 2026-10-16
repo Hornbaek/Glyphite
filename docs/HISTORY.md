@@ -444,6 +444,24 @@ text spacing.
   their names, sizes, boxes and uses; filters for all, in the game, not used yet. The build copies `ref/` to the site
   (`games.json` says how many sheets and drawings each game has). `tests/node/ref.test.mjs` fails if an image is not listed.
 
+## 19. A public landing page (Claude Code, 2026-10-16)
+
+> "I want to create a landing page for the game engine … So when someone that is not logged in using the Cloudflare login
+> … I want them to see like a landing page of what is the Glyphite engine and what can it do and what the goal and
+> everything like that." (The owner chose: the landing page at the main address, Access only on `/login`; visitors read
+> about it and watch a live demo, the games stay private.)
+
+- **The landing page** (`portal/welcome/`): what Glyphite is, the engine running live in the page, what it can do, how a
+  game gets made, the games (titles, taglines, thumbnails: `welcome/site.json`, written by the build), the goal, and LOG IN.
+- **The live demo** (`games/showcase/`, unlisted): GLYPHITE spelled in rock, sand pouring onto it, lamps, and meteors that
+  break it into falling chunks; click or tap to drop one. Sized to the view, so a phone sees the whole word.
+- **Who sees what** (`worker/index.js`): `/` is the game list when signed in and the landing page otherwise; `/welcome/…`
+  and `/games/showcase/` are public; everything else needs the sign-in (a browser is sent to `/login?next=…` and back,
+  files and the API get a 401). `tests/node/routes.test.mjs`. Signed in, the game list has an ABOUT button to the landing
+  page.
+- **To open it**, the owner changes the Glyphite Access application to cover only `/login` (`docs/DEPLOY.md`, section 5).
+  Until then nothing changes for visitors: Cloudflare still asks everyone to sign in first.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |
