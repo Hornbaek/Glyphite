@@ -584,6 +584,20 @@ building would go, and help, speed and pause were keys only.
 - **Tests**: `games/fjordheim/tests/phone.py` plays on an emulated Pixel 7 with real touch events (tap, drag, tap-tap,
   the buttons). `ui.py` now waits on game steps, not seconds: the headless 2D canvas can take half a second a frame.
 
+## 26. Buildings and the knarr turned the right way (Claude Code, 2026-10-17)
+
+The owner: "We need to fix some orentations... Both the ship and the house orients strange." The screenshot showed two
+problems. The longhouse lay crosswise to its outline, because the drawing's long side runs down-left while its 3 × 2
+footprint runs down-right. The knarr's hull lay along one diagonal while the ship sailed almost straight up the screen.
+Buildings and fields were also pinned by their middle, so they floated above or beside their footprints.
+
+- Every building, building site and field now stands with its drawing's lowest point (the front corner of its base) on
+  its footprint's front corner, and is mirrored when its long side runs the other way from the footprint's
+  (`onFoot` in `games/fjordheim/art.js`). The longhouse and the well are mirrored; the rest stand as drawn.
+- The knarr sails along the fjord, parallel to the shore, the way its (mirrored) drawing lies. It comes in from the
+  right, moors three tiles off the landing, and sails on up the fjord to the left. It is a little smaller (3 tiles long).
+- No new art was needed. The thumbnail is redrawn.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

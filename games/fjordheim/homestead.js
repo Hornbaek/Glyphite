@@ -135,21 +135,28 @@ function stepFields(dt) {
 }
 
 // ---------- newcomers arrive by knarr ----------
+// The knarr sails along the fjord, parallel to the shore (the way its drawing lies, mirrored: bow to the upper left): in
+// from the right, moored off the landing while the newcomer wades ashore, then on up the fjord and away to the left.
+// Its lane keeps three tiles off the shore, which wanders: the drawing rises far up the screen, and nearer in it would
+// stand on the beach.
+function shipLane(u) {
+  const i = clamp(Math.floor(u), 0, N - 1);
+  let j = 0; while (j < N && groundAt(i, j) !== G_WATER) j++;
+  return j + 3;
+}
 function sendShip() {
-  const land = LANDING;
-  HOME.ship = { u: land[0] + 6, v: N + 6, tu: land[0] + .5, tv: land[1] + 1.6, phase: 'in', t: 0 };
+  HOME.ship = { u: N + 6, v: shipLane(N - 1), phase: 'in', t: 0 };
   say('A KNARR IS COMING IN'); Sfx.tone(330, .5, .08, 'triangle'); Sfx.tone(440, .6, .07, 'triangle', .3);
 }
 function stepShip(dt) {
   const s = HOME.ship; if (!s) return;
-  const sp = 2.2 * dt;
-  if (s.phase === 'in' || s.phase === 'out') {
-    const tu = s.phase === 'in' ? s.tu : s.tu + 8, tv = s.phase === 'in' ? s.tv : N + 8;
-    const d = Math.hypot(tu - s.u, tv - s.v);
-    if (d < sp) { s.u = tu; s.v = tv; if (s.phase === 'in') { s.phase = 'moored'; s.t = 0; } else HOME.ship = null; }
-    else { s.u += (tu - s.u) / d * sp; s.v += (tv - s.v) / d * sp; }
-  } else if (s.phase === 'moored' && (s.t += dt) > 1.5) {
-    if (!s.landed) { s.landed = true; s.cargo = arrive(); }
+  if (s.phase === 'moored') {
+    if ((s.t += dt) > 1.5 && !s.landed) { s.landed = true; s.cargo = arrive(); }
     if (s.t > 4) s.phase = 'out';
+    return;
   }
+  const stop = s.phase === 'in' ? LANDING[0] + .5 : -8;
+  s.u = Math.max(stop, s.u - 2.2 * dt);
+  s.v += (shipLane(s.u) - s.v) * Math.min(1, dt * 1.5);   // eases along the lane as the shore bends
+  if (s.u === stop) { if (s.phase === 'in') { s.phase = 'moored'; s.t = 0; } else HOME.ship = null; }
 }

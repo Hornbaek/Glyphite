@@ -73,6 +73,14 @@ or not), writes `sprites.js` (the 70 used ones; characters share a palette per g
   `#` / `@`); people and animals keep `#`, `%`, `&`, `@`.
 - `art.js` lifts every palette by a gamma of .8 and sizes sprites: people and trees by height (`HEIGHT`), buildings by
   their footprint's width.
+- **Orientation** (`onFoot` in `art.js`): a building or field stands with its drawing's lowest point (`frontCorner`, its
+  base's front corner) on the footprint's front corner (i + w, j + h). A footprint w along i (down-right on screen) and h
+  along j (down-left) has that corner w / (w + h) of the way across, so a drawing whose own corner sits nearer
+  h / (w + h) is mirrored: the longhouse (3 × 2) is drawn with its long side running down-left, and so is mirrored. The
+  well is mirrored too; the rest stand as drawn.
+- **The knarr** lies along the fjord (its drawing mirrored, bow to the upper left), so it sails parallel to the shore:
+  in from the right, moored off the landing, out to the left (`shipLane`: three tiles off the wandering shore; nearer,
+  its tall drawing stands on the beach). The rowboats row straight out, mirrored the same way.
 
 ## Decisions and known issues
 - The world is static (no physics): the ground is the back wall, so lamps light it and nothing falls.
