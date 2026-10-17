@@ -21,6 +21,7 @@
 //   foot   units below the origin that snap to a row boundary (feet stand right on the ground)
 //   light  false: fixed colours; default: lit by the scene, but never dark
 //   flip   true: mirrored left to right in its own frame (a character facing the other way)
+//   cache  true: a still sprite (a = 0, no shift) is worked out once per detail level and then only lit (trees, buildings)
 // markSpriteDyn(spr, x, y, a, o) → top row; marks the covered cells as dynamic shadow casters.
 const SPR_SX = 3, SPR_SY = 6, SPR_N = SPR_SX * SPR_SY;
 const SPR_EDGE = ".,'`-_=:;|/\\()[]<>^v+~\"!*", SPR_DENSE = 10;   // edge glyphs; from this many painted samples a cell is solid
@@ -91,10 +92,30 @@ function spriteBox(spr, x, y, o) {
 }
 
 const _sprL = [0, 0, 0];
+// one cell of a sprite into the world grid; lit by the scene, but never dark: the art already carries its own shading
+function sprEmit(cx, cy, glyph, r, g, b, lit) {
+  if (lit) { lightAtCell(cx, cy, _sprL); putEmit(cx, cy, glyph, r * (.75 + .4 * Math.min(1.3, _sprL[0])), g * (.75 + .4 * Math.min(1.3, _sprL[1])), b * (.75 + .4 * Math.min(1.3, _sprL[2]))); }
+  else putEmit(cx, cy, glyph, r, g, b);
+}
 function drawSprite(spr, x, y, a, o = {}) {
   if (!SPR_SHAPES) SPR_SHAPES = spriteShapes();
-  const sh = o.shift || _sprNoShift, [bx, by, x0, y0, x1, y1] = spriteBox(spr, x, y, o), c = Math.cos(a), s = Math.sin(a), fl = o.flip ? -1 : 1;
-  const V = spr.V, hist = spr.hist, shapes = SPR_SHAPES, inkPal = spr.inkPal, outPal = spr.outlinePal, lit = o.light !== false;
+  const sh = o.shift || _sprNoShift, [bx, by, x0, y0, x1, y1] = spriteBox(spr, x, y, o), fl = o.flip ? -1 : 1, lit = o.light !== false;
+  if (x1 < L_OX || y1 < L_OY || x0 >= L_OX + R.RW || y0 >= L_OY + R.RH) return;   // nothing of it on screen
+  if (o.cache && !a && !sh.length) {
+    // a still sprite (unrotated, no moving parts) comes out the same wherever it stands, since it is pinned to the character
+    // grid: work its cells out once per detail level, then only light them
+    const foot = o.foot || 0, row0 = Math.round((by + foot) / ASPECT), key = `${fl}|${foot}|${RES}`;
+    const stamps = spr.stamps || (spr.stamps = new Map());
+    let st = stamps.get(key);
+    if (!st) { st = []; sprCells(spr, bx, by, x0, y0, x1, y1, 0, sh, fl, false, (cx, cy, g, r, gg, b) => st.push(cx - bx, cy - row0, g, r, gg, b)); stamps.set(key, st); }
+    for (let k = 0; k < st.length; k += 6) sprEmit(bx + st[k], row0 + st[k + 1], st[k + 2], st[k + 3], st[k + 4], st[k + 5], lit);
+    return;
+  }
+  sprCells(spr, bx, by, x0, y0, x1, y1, a, sh, fl, lit, sprEmit);
+}
+function sprCells(spr, bx, by, x0, y0, x1, y1, a, sh, fl, lit, emit) {
+  const c = Math.cos(a), s = Math.sin(a);
+  const V = spr.V, hist = spr.hist, shapes = SPR_SHAPES, inkPal = spr.inkPal, outPal = spr.outlinePal;
   for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {
     let occ = 0, ink = 0, r = 0, g = 0, bl = 0; hist.fill(0);
     for (let j = 0; j < SPR_SY; j++) for (let i = 0; i < SPR_SX; i++) {
@@ -105,13 +126,13 @@ function drawSprite(spr, x, y, a, o = {}) {
       const p = spr.idx[px]; V[k] = 1; ink++; hist[p]++; const q = spr.lin[p]; r += q[0]; g += q[1]; bl += q[2];
     }
     if (occ < 4) continue;
-    if (ink < 3) { putEmit(cx, cy, 32, 0, 0, 0); continue; }   // outline: a dark gap that still hides what is behind
+    if (ink < 3) { emit(cx, cy, 32, 0, 0, 0, false); continue; }   // outline: a dark gap that still hides what is behind
     // main paint of the cell; a panel line (interior outline) only wins when it fills most of the cell
     let dom = inkPal[0] ?? 0, lines = 0;
     for (const p of inkPal) if (hist[p] > hist[dom]) dom = p;
     for (const p of outPal) lines += hist[p];
     if (lines > ink * .6) {
-      if (ink >= SPR_DENSE) { putEmit(cx, cy, 32, 0, 0, 0); continue; }
+      if (ink >= SPR_DENSE) { emit(cx, cy, 32, 0, 0, 0, false); continue; }
       dom = outPal[0]; for (const p of outPal) if (hist[p] > hist[dom]) dom = p;
     }
     // colour leans on the cell's main paint, so thin bright parts (rails, jets) stay crisp
@@ -121,10 +142,7 @@ function drawSprite(spr, x, y, a, o = {}) {
       let best = 1e9;
       for (const sp of shapes) { let d = 0; const m = sp.m; for (let k = 0; k < SPR_N; k++) { const e = V[k] - m[k]; d += e * e; } if (d < best) { best = d; glyph = sp.code; } }
     } else glyph = spr.dense[dom];
-    if (lit) {   // lit by the scene, but never dark: the art already carries its own shading
-      lightAtCell(cx, cy, _sprL);
-      putEmit(cx, cy, glyph, r * (.75 + .4 * Math.min(1.3, _sprL[0])), g * (.75 + .4 * Math.min(1.3, _sprL[1])), bl * (.75 + .4 * Math.min(1.3, _sprL[2])));
-    } else putEmit(cx, cy, glyph, r, g, bl);
+    emit(cx, cy, glyph, r, g, bl, lit);
   }
 }
 

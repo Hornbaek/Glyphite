@@ -101,16 +101,21 @@ Build at least one more small game on the engine to check that it is game-agnost
     Space Mouse's pieces (tile maps, the reach search) rather than the flying starter.
 - a falling-sand sandbox;
 - or a top-down game (gravity 0, no sun);
-- **an isometric game: the Viking homestead** (planned 2026-10-16), a peaceful settlement builder inspired by Anno 1404 and
-  The Settlers. The art comes first: two sheets the owner makes from the prompts in
-  `.claude/skills/glyphite-art-prompt/example-viking-homestead.md`. Isometric needs general engine features the
-  side-view games don't:
-  - an **isometric ground grid**: 2:1 diamond tiles mapped onto the 1 × 2 cells, the ground painted from materials,
-    picking a tile from the mouse;
-  - **sprites drawn back to front** by their ground position, so nearer things cover farther ones;
-  - **two-facing animation** (SE and NE, flipped for SW and NW).
-
-  Lamps, particles, sprites and sound carry over; the side-view physics and sun shadows do not.
+- ~~an isometric game~~: **Fjordheim**, the Viking homestead (2026-10-17, engine 0.6.0), a peaceful settlement builder
+  inspired by Anno 1404 and The Settlers, drawn from three Gemini sheets. It needed, and got, general engine features: the
+  isometric ground grid (`engine/12_iso.js`: diamonds in the back wall, `isoPick`, `isoDraw` back to front), cached still
+  sprites (`drawSprite` `cache`), the right click (`'TapAlt'`), and a `mouseAim` that is null until the mouse moves.
+  Follow-ups it exposed:
+  - **Ground that reads at a glance**: the back wall shows a texture glyph per cell, so a flat diamond of grass is a field of
+    `' , ;` in the grass colour, and it had to be brightened 1.5x to show. A cell background colour (a tint behind the
+    glyph) would let ground read as a surface without competing with the sprites.
+  - **Zoom**: the view's scale is fixed (a base unit is the same size on screen at every detail level). An RTS wants to
+    zoom out over the whole map; it would need a second, coarser scale for the view, not just for detail.
+  - **Sprite contrast**: dark art (the Gemini buildings) turns into dim `#` blocks. Fjordheim lifts its palettes and picks
+    the dense glyph by material (`games/fjordheim/tools/art.py`); a sprite option for both would serve every game.
+  - **Pathfinding as an engine helper**: Fjordheim's A* over tiles (`findPath`, eight ways, no corner cutting) is general.
+  - **Seasons for materials**: Fjordheim swaps ground albedo and paints snow itself; a material palette per season would
+    be a small general feature.
 
 Each new game should need no engine edits. Every engine edit it forces goes on this roadmap.
 
@@ -121,7 +126,7 @@ Each new game should need no engine edits. Every engine edit it forces goes on t
 - **Performance:**
   - Profile lighting at RES 3 on large screens.
   - Consider moving the light computation to a worker or to WebGL.
-  - Cache sprite rasterisation when nothing changed.
+  - ~~Cache sprite rasterisation when nothing changed~~: `drawSprite` `cache` (engine 0.6.0) for still sprites.
 - **Tests:** turn the most useful scripts in `games/regolith/tests/` into a regression suite with
   pass/fail thresholds (landing tolerances, floating islands, clearance, sky smoothness, sprite timing)
   and run it in CI next to the smoke test.

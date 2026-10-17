@@ -528,6 +528,40 @@ labels clear, every drawing a separate piece, iso angle and palette right. But:
   - gives sizes relative to the adult and the tile only;
   - adds an item-by-item count to the check.
 
+## 24. Fjordheim, an isometric homestead builder (Claude Code, 2026-10-17)
+
+The owner asked for "a small rts game ... inspired by anno 1404 and settlers 6. No fighting, just build a base and leave
+peacefully with nature. Build a homestead for a new family in the Viking Age in Scandinavia", isometric, and sent three
+Gemini sheets (ground, buildings and nature; the family, animals, boats and goods; and a fix sheet with the walks seen
+from behind, slate ravens, the drying rack, a meadow tile and a small rock).
+
+- **The game** (`games/fjordheim/`): Ulf, Sigrid and little Eir land on an empty shore. The player chooses what to build
+  and where (nine buildings, 1–9 or the build bar, click to place); the family does the work itself, like in The Settlers:
+  - adults build first (a worker leaves the hut to build and goes back), then take the empty workplaces (woodcutter,
+    fisher, sawyer, farmer), then break stone; the farmer breaks stone between sowing and reaping; the child picks
+    lingonberries;
+  - every dawn they eat; in winter the longhouse burns two wood a night, and a winter night without a roof is cold. Three
+    hungry or cold days and the family sails home; reach the second spring and the homestead stands;
+  - newcomers arrive by knarr when there are free beds and food to spare (after the first, only to a homestead with a
+    well);
+  - nature: woodcutters plant a tree for every two they fell, stumps sprout and saplings grow; the deer leave if the forest
+    falls below 85% of what it was. Seasons repaint the ground (autumn grass, snow) and the birches.
+- **The art**: `tools/art.py` cuts 92 drawings from the sheets (labels masked, the raspberry keyed out, its halo peeled)
+  into `ref/frames/` and the 70 it uses into `sprites.js`. Three fixes on the way: labels touching a drawing were cut in with
+  it (now masked), the JPEG's magenta bled into every outline (`unpink`), and the dark buildings needed a dense glyph per
+  material and a palette lift to read.
+- **Engine 0.6.0**:
+  - `engine/12_iso.js`: an isometric ground grid painted into the back wall, `isoPick`, `isoOutline`, `isoDraw` (back to
+    front);
+  - `drawSprite`: skips sprites off screen, and `cache: true` works a still sprite out once per detail level (about 230
+    trees cost under 1 ms);
+  - input: `'TapAlt'` for a right click (no browser menu); `mouseAim()` is null until the mouse moves over the canvas and
+    once it leaves. It used to return the top-left corner until then, which slid Fjordheim's view into the corner and made
+    Regolith aim at the corner for the first six seconds.
+- **Tests**: `games/fjordheim/tests/playthrough.py` (a bot builds through the build bar and the map, and must reach the
+  second spring; an idle player must lose), `ui.py` (real mouse: edge scroll, build bar, placing, right click) and
+  `look.py` (screenshots).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |
