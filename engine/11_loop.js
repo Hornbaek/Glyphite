@@ -81,7 +81,7 @@ function updateCamera(dt, snap) {
 function update(dt) {
   frameNo++; stateT += dt;
   if (GAME.update) GAME.update(dt);
-  Input.pressed.clear(); Input.fireQueued = false;
+  Input.pressed.clear(); Input.fireQueued = false; Input.drag[0] = Input.drag[1] = 0;
   stepWorld(dt);
   updateCamera(dt);
 }

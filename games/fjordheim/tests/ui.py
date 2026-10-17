@@ -40,7 +40,7 @@ with sync_playwright() as p:
     pg.mouse.move(*at(.5, .5)); steps(5); c6 = cam(); pg.mouse.move(*at(.001, .5)); steps(15); c7 = cam()
     check(c7[0] < c6[0], f'...and it scrolls back at once (the view is held at the edge, not run on past it) {c6} → {c7}')
     # the build bar: click [1] LONGHOUSE (its hit box from the HUD layout)
-    m = pg.evaluate('(() => { const m = MENU.find(m => m.type === "longhouse"); return [(m.c0 + 2) / R.hcols, (m.r + .5) / R.hrows]; })()')
+    m = pg.evaluate('(() => { const m = MENU.find(m => m.id === "longhouse"); return [(m.c0 + 2) / R.hcols, (m.r + .5) / R.hrows]; })()')
     pg.mouse.click(*at(*m))
     check(until("SEL === 'longhouse'"), 'a click on the build bar picks the longhouse')
     pg.mouse.click(*at(.5, .5), button='right')
@@ -59,7 +59,8 @@ with sync_playwright() as p:
     check(until("HOME.buildings.some(b => b.type === 'longhouse')"), 'a click on the map places the longhouse')
     g = pg.evaluate('Glyphite.test.probe().game')
     check(g['stock']['wood'] == 4 and g['stock']['stone'] == 0, f"its cost is paid {g['stock']}")
-    check(until("FOLK.some(p => p.job && p.job.type === 'build')"), 'someone goes to build it')
+    steps(60)   # a game second: jobs are handed out twice a second
+    check(pg.evaluate("FOLK.some(p => p.job && p.job.type === 'build')"), 'someone goes to build it')
     check(not errs, f'no page errors {errs[:3]}')
     b.close()
 print('FAIL: ' + ' | '.join(fail) if fail else 'OK')

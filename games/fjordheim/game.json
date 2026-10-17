@@ -21,19 +21,23 @@
       "choose a building"
     ],
     [
-      "click",
-      "place it (right click / Esc cancels)"
+      "click the map",
+      "build it there (right click / Esc cancels)"
     ],
     [
-      "arrows / WASD / screen edge",
+      "phone: tap the map, then tap again",
+      "see where it goes, then build it"
+    ],
+    [
+      "drag / arrows / WASD / screen edge",
       "scroll"
     ],
     [
-      "F",
+      "F or [>>]",
       "time three times as fast"
     ],
     [
-      "H",
+      "H or [?]",
       "how it works"
     ],
     [
@@ -41,7 +45,7 @@
       "pause"
     ],
     [
-      "Enter or click",
+      "Enter, click or tap",
       "begin / go on"
     ]
   ],

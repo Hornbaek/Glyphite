@@ -1,6 +1,6 @@
 {
   "name": "Glyphite",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "shell": "shell.html",
   "parts": [
     "01_core.js",
