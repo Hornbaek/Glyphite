@@ -210,3 +210,7 @@ keep the skill short.
     Look at a contact sheet of every cut before converting.
   - **JPEG:** Gemini sends JPEG whatever the prompt says, and the raspberry bled into every dark outline and edge pixel,
     giving each palette magenta-tinted colours. `art.py`'s `unpink` turns the dark ones into outline and drops the rest.
+- 2026-10-17, Fjordheim in play: the longhouse was drawn with its long side running down-left, against its footprint, and
+  the knarr along the other diagonal from the way it sailed. Mirroring fixed both in the game (`onFoot` in
+  `games/fjordheim/art.js`), but a prompt can say it: give each long building and each vessel the diagonal its long side
+  runs along (down-right or down-left), to match its footprint and its course.

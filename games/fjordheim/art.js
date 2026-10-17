@@ -1,10 +1,11 @@
 'use strict';
 // ===================== GAME · sprites: sizes, origins and animations =====================
 // FJ_ART (sprites.js, made by tools/art.py from the owner's sheets) holds every drawing; here each becomes an engine sprite
-// with its size in the world. Buildings are sized by their footprint: the drawing's width becomes the footprint diamond's
-// width ((a + b) tiles × TILE / 2), its bottom on the footprint's front corner. People, animals and trees are sized by
-// height and stand on their feet (the drawing's foot row). Walking characters have frames facing the viewer ("se") and
-// facing away ("ne"); the engine's flip gives the two other directions.
+// with its size in the world. Buildings and fields are sized by their footprint (the drawing's width becomes the footprint
+// diamond's width, (a + b) tiles × TILE / 2) and stand with the lowest point of the drawing, its base's front corner, on the
+// footprint's front corner; a drawing whose long side runs the other way from the footprint's is mirrored. People, animals
+// and trees are sized by height and stand on their feet (the drawing's foot row). Walking characters have frames facing the
+// viewer ("se") and facing away ("ne"); the engine's flip gives the two other directions.
 const FJ = {};
 // the drawings' colours lifted a little (a gamma of .8): a glyph inks only part of its cell, so the art's dark browns would
 // read darker on screen than on the sheet
@@ -37,17 +38,29 @@ function makeArt() {
   FJ.rock = fjSprite('rock', { height: HEIGHT.rock });
   FJ.boulders = fjSprite('boulders', { height: HEIGHT.boulders });
   FJ.bush = fjSprite('lingonberry', { height: HEIGHT.bush });
-  FJ.knarr = fjSprite('knarr', { width: 30 });
+  FJ.knarr = fjSprite('knarr', { width: 24 });
   FJ.rowboat = fjSprite('rowboat', { width: 11 });
   FJ.goods = Object.fromEntries(['logs', 'planks', 'stones', 'grain', 'fish'].map(n => [n, fjSprite(`goods_${n}`, { width: n === 'grain' || n === 'fish' ? 2.8 : 4 })]));
-  // buildings and fields: as wide as their footprint's diamond, standing on its front corner
-  FJ.build = {};
-  for (const [b, art] of Object.entries(BUILD_ART)) FJ.build[b] = fjSprite(art, { width: footWidth(BUILDINGS[b]) * 1.08, oy: FJ_ART[art].h });
-  FJ.site = {};
-  for (const b of Object.keys(BUILD_ART)) FJ.site[b] = fjSprite('building_site', { width: footWidth(BUILDINGS[b]) * .95, oy: FJ_ART.building_site.h });
-  FJ.field = [0, 1, 2, 3, 4].map(s => fjSprite(`field_${s}`, { width: footWidth(BUILDINGS.field) * 1.02, oy: FJ_ART[`field_${s}`].h }));
+  // buildings and fields: as wide as their footprint's diamond, standing on its front corner ({ spr, flip })
+  FJ.build = {}; FJ.site = {};
+  for (const [b, art] of Object.entries(BUILD_ART)) { FJ.build[b] = onFoot(art, BUILDINGS[b], 1.08); FJ.site[b] = onFoot('building_site', BUILDINGS[b], .95); }
+  FJ.field = [0, 1, 2, 3, 4].map(s => onFoot(`field_${s}`, BUILDINGS.field, 1.02));
 }
 const footWidth = b => (b.w + b.h) * TILE / 2;
+// the drawing's lowest point, the front corner of what it stands on: [column, row below it] (the middle of the lowest
+// painted pixels, from the bottom two rows so a lone pixel does not decide it)
+function frontCorner(a) {
+  let bottom = a.h; while (bottom > 0 && !/[^.]/.test(a.rows[bottom - 1])) bottom--;
+  let n = 0, sum = 0;
+  for (const r of [bottom - 1, bottom - 2]) if (r >= 0) for (let c = 0; c < a.w; c++) if (a.rows[r][c] !== '.') { n++; sum += c; }
+  return [n ? sum / n + .5 : a.w / 2, bottom];
+}
+// a footprint a tiles along i (down-right on screen) and b along j (down-left) has its front corner a / (a + b) of the way
+// across; mirror the drawing when its own front corner sits nearer b / (a + b)
+function onFoot(name, b, scale) {
+  const a = FJ_ART[name], [fx, fy] = frontCorner(a), f = fx / a.w, want = b.w / (b.w + b.h);
+  return { spr: defineSprite({ ...a, pal: a.pal.map(lift) }, { k: footWidth(b) * scale / a.w, ox: fx, oy: fy }), flip: Math.abs(1 - f - want) < Math.abs(f - want) };
+}
 
 // a walking character's frame and flip for a screen direction (dx, dy in world units) and a walk phase (0..1 per stride)
 function walkFrame(set, dx, dy, phase, moving, se = set.se, ne = set.ne) {

@@ -187,10 +187,10 @@ const onScreen = (x, y, m) => x > cam.x - m && x < cam.x + R.cols + m && y > cam
 function gameDraw(t) {
   if (!HOME) return;
   const items = [], S = RES, m = 26 * S, put = (spr, u, v, o = {}) => { isoToWorld(u, v, _p); if (onScreen(_p[0], _p[1], m)) { const x = _p[0], y = _p[1]; items.push({ u: o.du ?? u, v: o.dv ?? v, draw: () => drawSprite(spr, x, y, 0, { cache: true, flip: o.flip }) }); } };
-  // fields lie flat on the ground: under everything
+  // fields lie flat on the ground, under everything, on their footprint's front corner
   for (const f of HOME.buildings) if (f.type === 'field') {
-    isoToWorld(f.i + f.w / 2, f.j + f.h, _p);
-    if (onScreen(_p[0], _p[1], m)) drawSprite(FJ.field[f.done ? f.stage : 0], _p[0], _p[1], 0, { cache: true });
+    const art = FJ.field[f.done ? f.stage : 0]; isoToWorld(f.i + f.w, f.j + f.h, _p);
+    if (onScreen(_p[0], _p[1], m)) drawSprite(art.spr, _p[0], _p[1], 0, { cache: true, flip: art.flip });
   }
   // trees, saplings, stumps, rocks, bushes
   for (const tr of trees) {
@@ -203,8 +203,8 @@ function gameDraw(t) {
   for (const b of bushes) if (thingAt(b.i, b.j) === T_BUSH) put(FJ.bush, b.i + .5, b.j + .5);
   // buildings: drawn on their footprint's front corner, sorted by its middle
   for (const b of HOME.buildings) if (b.type !== 'field') {
-    const spr = b.done ? FJ.build[b.type] : FJ.site[b.type];
-    put(spr, b.i + b.w / 2 + .5, b.j + b.h / 2 + .5, { du: b.i + b.w / 2, dv: b.j + b.h / 2 });
+    const art = b.done ? FJ.build[b.type] : FJ.site[b.type];
+    put(art.spr, b.i + b.w, b.j + b.h, { flip: art.flip, du: b.i + b.w / 2, dv: b.j + b.h / 2 });
   }
   // the store: piles of what the homestead has, beside the longhouse (or the camp on the beach)
   const s = store(), front = [s[0] + s[2] + .35, s[1] + s[3] - .2];
@@ -221,7 +221,7 @@ function gameDraw(t) {
   if (foot) {
     const [i, j] = foot, b = BUILDINGS[SEL];
     ghost = { i, j, b, why: placeProblem(SEL, i, j) };
-    if (SEL !== 'field') put(FJ.build[SEL], i + b.w / 2 + .5, j + b.h / 2 + .5, { du: N * 3, dv: N * 3 });
+    if (SEL !== 'field') put(FJ.build[SEL].spr, i + b.w, j + b.h, { flip: FJ.build[SEL].flip, du: N * 3, dv: N * 3 });
   }
   isoDraw(items);
   if (ghost) isoOutline(ghost.i, ghost.j, ghost.b.w, ghost.b.h, ghost.why ? [1.6, .35, .25] : [.5, 1.6, .6]);

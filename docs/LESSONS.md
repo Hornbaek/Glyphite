@@ -208,3 +208,10 @@ way.
   row around them. Leave the last row free: Android's gesture bar sits over it.
 - **The headless 2D canvas is slow and noisy** (50 to 900 ms a frame here). Time the JavaScript, not the frame, and let
   tests wait on game steps.
+- **Stand an isometric drawing on its lowest point.** A building drawn in isometric touches the ground at the front
+  corner of its base, which is rarely the middle of the drawing: pin that point to the footprint's front corner. Its
+  position across the drawing also tells which way the long side runs (w / (w + h) of the way across for a footprint
+  w along i): mirror the drawing when it runs the other way. Then check every building with its footprint outlined.
+- **Move things the way their drawing faces.** A sprite has one or two facings (drawn and mirrored), so give it a path
+  along them: the knarr sails along the shore, not straight at it. A tall sprite near the shore reads as standing on
+  the land behind it; keep it well out.
