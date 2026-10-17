@@ -46,6 +46,8 @@ function makeArt() {
   for (const [b, art] of Object.entries(BUILD_ART)) { FJ.build[b] = onFoot(art, BUILDINGS[b], 1.08); FJ.site[b] = onFoot('building_site', BUILDINGS[b], .95); }
   FJ.field = [0, 1, 2, 3, 4].map(s => onFoot(`field_${s}`, BUILDINGS.field, 1.02));
 }
+// the drawing a building (or field) stands as now: a field by its stage, a building site until it is done
+const buildingArt = b => b.type === 'field' ? FJ.field[b.done ? b.stage : 0] : b.done ? FJ.build[b.type] : FJ.site[b.type];
 const footWidth = b => (b.w + b.h) * TILE / 2;
 // the drawing's lowest point, the front corner of what it stands on: [column, row below it] (the middle of the lowest
 // painted pixels, from the bottom two rows so a lone pixel does not decide it)

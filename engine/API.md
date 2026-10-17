@@ -298,6 +298,11 @@ drawSprite(SHIP, b.x, b.y, b.a, { shift: [dx1, dy1], foot: 4 * RES, light: true 
 markSpriteDyn(SHIP, b.x, b.y, b.a, opts);   // in GAME.markDyn (casts shadows); returns the top row
 spriteHull(SHIP, 3)                          // hull points (base units: multiply by RES) for new Body()
 ```
+On the HUD, `hudSprite(SHIP, c, r, w, { rows, flip, gain })` draws a sprite as a small picture (an icon in a menu, a
+portrait) fitted into `w` columns (and `rows`, if given) with its top-left on HUD cell `(c, r)`, centred and standing on the
+box's bottom; it returns the rows it takes. The art's own colours, unlit; `gain` brightens dark art on the HUD's black.
+Worked out once per size (see the build menu in `games/fjordheim/main.js`).
+
 `k` = base units per pixel, `(ox, oy)` the origin pixel (centre of mass). `part(c, r)` gives movable parts (1..n)
 their own offset `shift[2p-2], shift[2p-1]`. `foot` snaps that line to a row boundary so feet stand on the ground.
 `flip: true` mirrors it left to right in its own frame (draw characters facing right, flip them to face left). Animation
@@ -337,7 +342,8 @@ See `earthBegin` / `earthCell` in `games/regolith/view.js`.
 A fixed grid of readable cells (`R.hcols × R.hrows`), redrawn every frame inside `GAME.hud(t)`.
 `hudText(col, row, text, [r,g,b])`, `hudPut(col, row, code, r, g, b)`, `hudFill`, `hudBox(c, r, w, h, col, bg)`,
 `msgBox([[text, colour], ...], topRow?)` (centred box), `hudFlow(row, [[text, colour], ...])` → next row,
-`fmtS(v, width, decimals)` (signed, zero-padded), `worldToHud(x, y, out)`, colours `HC.txt dim amber red cyan green gold`.
+`fmtS(v, width, decimals)` (signed, zero-padded), `worldToHud(x, y, out)`, colours `HC.txt dim amber red cyan green gold`,
+`hudSprite(spr, c, r, w, o)` (a sprite as a small picture: see Sprites).
 
 ## Input
 

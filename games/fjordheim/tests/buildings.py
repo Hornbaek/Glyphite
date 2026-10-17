@@ -36,7 +36,7 @@ with sync_playwright() as p:
             if (t === 'field') { o.stage = 3; isoPaintFoot(o); }
             centreOn([ci, cj - 1, BUILDINGS[type].w, BUILDINGS[type].h]);
           }
-          Glyphite.test.step(1); toastMsg = null; Glyphite.test.render(); })''', t)
+          Glyphite.test.step(1); NEWS = []; Glyphite.test.render(); })''', t)
         crops.append((t, Image.open(io.BytesIO(pg.screenshot(clip={'x': 440, 'y': 200, 'width': 400, 'height': 300})))))
     b.close()
 w, h = crops[0][1].size; cols = 4

@@ -215,3 +215,13 @@ way.
 - **Move things the way their drawing faces.** A sprite has one or two facings (drawn and mirrored), so give it a path
   along them: the knarr sails along the shore, not straight at it. A tall sprite near the shore reads as standing on
   the land behind it; keep it well out.
+- **Pick a building by its drawing, not its tile.** An isometric building's roof rises far above its footprint, so a click
+  on the roof landed on the tile behind it, and a builder standing beside the site took the click. Test the drawing's
+  painted pixels (frontmost first, with slack for a finger), and give people a hit box the size of their figure.
+- **Lay out the HUD for the narrowest phone.** The same Pixel 7 has 55 HUD columns in WebGL and 54 in 2D (rounding), and a
+  menu that needed 55 for two columns fell back to one column four screens tall. Check the layout at the smallest width.
+- **The 2D renderer caches a tinted glyph sheet per HUD colour**, and clears it past 96 colours. Pictures and fades on the
+  HUD must use few colours: `hudSprite` rounds its colours to steps of 32, the news fades in three steps.
+- **A worker taken off a job lets go of everything.** Pausing or tearing down a workplace has to bring in the fisher's
+  boat, what anyone carries, the builder's way back to a workplace that may be gone, and the farmer once no field is left;
+  the tile grid points at buildings by their index, so removing one re-points every tile after it.

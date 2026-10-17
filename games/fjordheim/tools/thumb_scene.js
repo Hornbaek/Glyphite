@@ -8,6 +8,6 @@
   put('field', L[0] + 2, L[1] - 7, 3); put('field', L[0] + 5, L[1] - 7, 2); put('woodcutter', L[0] + 4, L[1] - 11); put('stabbur', L[0] - 2, L[1] - 10);
   isoPaintFoot(HOME.buildings[3]); isoPaintFoot(HOME.buildings[4]);
   newPerson('father', L[0] + 1, L[1] - 2); newPerson('mother', L[0] + 3, L[1] - 1);
-  sendShip(); HOME.ship.u = L[0] + 5; HOME.ship.v = shipLane(L[0] + 5); toastMsg = null;
+  sendShip(); HOME.ship.u = L[0] + 5; HOME.ship.v = shipLane(L[0] + 5); NEWS = [];
   centreOn([L[0] - 2, L[1] - 9, 6, 6]);
 })()
