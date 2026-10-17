@@ -301,7 +301,27 @@ spriteHull(SHIP, 3)                          // hull points (base units: multipl
 `k` = base units per pixel, `(ox, oy)` the origin pixel (centre of mass). `part(c, r)` gives movable parts (1..n)
 their own offset `shift[2p-2], shift[2p-1]`. `foot` snaps that line to a row boundary so feet stand on the ground.
 `flip: true` mirrors it left to right in its own frame (draw characters facing right, flip them to face left). Animation
-frames are simply several sprites from rows that differ (see `games/spacemouse/art.js`).
+frames are simply several sprites from rows that differ (see `games/spacemouse/art.js`). A sprite whose box is off screen
+costs nothing. `cache: true` for a still sprite (angle 0, no `shift`): its cells are worked out once per detail level and
+flip, then only lit each frame, so hundreds of trees and houses stay cheap (`games/fjordheim/main.js`).
+
+## Isometric maps
+
+`engine/12_iso.js`, for games seen from above at an angle (`games/fjordheim/`). The ground is a grid of `ni × nj` tiles
+drawn as 2:1 diamonds into the back wall (never solid, lit by the scene, textured by each material's glyph ramp); the world
+grid stays empty, so every light reaches the ground. Everything standing on it is a sprite, drawn back to front.
+```js
+isoInit(30, 30, { tile: 8, top: 20, bottom: 14 });   // the world for 30 × 30 tiles (top/bottom: room for tall sprites, boats)
+isoGround((i, j) => GRASS);                          // paint every tile with a material (0: nothing, the sky shows)
+isoSetTile(i, j, SOIL);                              // repaint one
+isoToWorld(u, v, out); worldToIso(x, y, out);        // ground point (tile i spans u = i .. i + 1) ⇄ world [x, y]
+isoPick(mouseAim())                                  // the tile [i, j] under a canvas point, or null
+isoOutline(i, j, 2, 2, [.5, 1.6, .6]);               // trace a 2 × 2 footprint with / \ (a cursor, a selection)
+isoDraw([{ u, v, draw() { drawSprite(TREE, x, y, 0, { cache: true }); } }, ...]);   // sorted by u + v, then u
+```
+A tile is `tile · RES` cells wide and a quarter of that in rows; keep `tile` a multiple of 8 so diamonds have whole cells
+and rows at every detail level. Give a building's item its footprint's front corner (largest `u + v`) so it covers what
+stands behind it.
 
 ## Sky
 
@@ -322,9 +342,11 @@ A fixed grid of readable cells (`R.hcols × R.hrows`), redrawn every frame insid
 ## Input
 
 `keyDown('ArrowUp', 'KeyW')` (held now), `Input.pressed` (codes pressed since the last step, plus `'Tap'` for a
-click or tap), `Input.aim` (where the tap was, 0..1 of the canvas) and `Input.fireQueued`, `mouseAim()` (cursor
-aim for 6 s after it moved, else null), `Input.touch.<name>` (on-screen hold buttons from `GAME.touch`),
-`touchShown()`. Aim → world: `[cam.x + a[0] * R.cols, cam.y + a[1] * R.rows * ASPECT]`.
+click or tap and `'TapAlt'` for a right click, which opens no browser menu), `Input.aim` (where the tap was, 0..1 of the
+canvas) and `Input.fireQueued`, `mouseAim()` (the cursor, 0..1 of the canvas, for 6 s after it moved; null before the
+mouse first moves over the canvas and once it leaves), `Input.mouseX`/`mouseY` with `Input.mouseSeen` (0 while the mouse
+is off the canvas: for a cursor that may rest, like edge scrolling), `Input.touch.<name>` (on-screen hold buttons from
+`GAME.touch`), `touchShown()`. Aim → world: `[cam.x + a[0] * R.cols, cam.y + a[1] * R.rows * ASPECT]`.
 
 ## Sound
 

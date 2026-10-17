@@ -69,7 +69,7 @@ const Sfx = {
 
 // ---------- input ----------
 // keys: KeyboardEvent.code values held now; pressed: codes that went down since the last step, plus
-// 'Tap' for a click or tap (cleared after every step); aim: where the last tap was (0..1 of the
+// 'Tap' for a click or tap and 'TapAlt' for a right click (cleared after every step); aim: where the last tap was (0..1 of the
 // canvas) or null; touch: on-screen hold buttons by name.
 const Input = {
   keys: new Set(), fireQueued: false, aim: null, mouseX: 0, mouseY: 0, mouseSeen: 0,
@@ -94,9 +94,13 @@ function setupInput(canvas, onKey, touchSpec) {
   canvas.addEventListener('pointerdown', e => {
     Sfx.init(); if (e.pointerType === 'mouse') canvas.focus({ preventScroll: true });
     const [x, y] = toCanvas(e); Input.mouseX = x; Input.mouseY = y; Input.mouseSeen = performance.now();
-    Input.aim = [x, y]; Input.fireQueued = true; Input.pressed.add('Tap');
+    Input.aim = [x, y];
+    if (e.button === 2) { Input.pressed.add('TapAlt'); return; }   // right click: cancel, deselect (no browser menu)
+    Input.fireQueued = true; Input.pressed.add('Tap');
     if (e.pointerType !== 'mouse') showTouch();
   });
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  canvas.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') Input.mouseSeen = 0; });   // off the canvas: no aim
   const bind = (b, sp) => {
     const key = sp.hold;
     if (key) Input.touch[key] = false;
@@ -122,5 +126,5 @@ function setupInput(canvas, onKey, touchSpec) {
 function showTouch() { const t = document.getElementById('touch'); if (t && t.hidden && t.childElementCount) t.hidden = false; }
 const touchShown = () => { const t = document.getElementById('touch'); return !!t && !t.hidden; };
 // the mouse cursor as an aim point (0..1 of the canvas), for 6 s after it last moved
-function mouseAim() { return performance.now() - Input.mouseSeen < 6000 ? [Input.mouseX, Input.mouseY] : null; }
+function mouseAim() { return Input.mouseSeen && performance.now() - Input.mouseSeen < 6000 ? [Input.mouseX, Input.mouseY] : null; }
 const keyDown = (...codes) => codes.some(c => Input.keys.has(c));

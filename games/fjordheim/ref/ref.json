@@ -1,0 +1,1511 @@
+{
+ "title": "Fjordheim",
+ "made_by": "games/fjordheim/tools/art.py",
+ "sheets": [
+  {
+   "file": "sheet_buildings.jpg",
+   "title": "Ground, buildings, nature and the barley field",
+   "source": "Gemini",
+   "size": [
+    1264,
+    848
+   ],
+   "frames": [
+    {
+     "file": "frames/tile_grass.png",
+     "name": "tile grass",
+     "box": [
+      34,
+      9,
+      251,
+      141
+     ],
+     "size": [
+      215,
+      128
+     ],
+     "use": "the colour of the grass",
+     "used": true
+    },
+    {
+     "file": "frames/tile_soil.png",
+     "name": "tile soil",
+     "box": [
+      279,
+      9,
+      496,
+      140
+     ],
+     "size": [
+      214,
+      129
+     ],
+     "use": "the colour of tilled soil",
+     "used": true
+    },
+    {
+     "file": "frames/tile_sand.png",
+     "name": "tile sand",
+     "box": [
+      524,
+      9,
+      740,
+      141
+     ],
+     "size": [
+      214,
+      130
+     ],
+     "use": "the colour of the beach",
+     "used": true
+    },
+    {
+     "file": "frames/tile_water.png",
+     "name": "tile water",
+     "box": [
+      768,
+      9,
+      985,
+      141
+     ],
+     "size": [
+      213,
+      133
+     ],
+     "use": "the colour of the fjord",
+     "used": true
+    },
+    {
+     "file": "frames/tile_snow.png",
+     "name": "tile snow",
+     "box": [
+      1013,
+      9,
+      1230,
+      141
+     ],
+     "size": [
+      215,
+      129
+     ],
+     "use": "the colour of snow",
+     "used": true
+    },
+    {
+     "file": "frames/longhouse.png",
+     "name": "longhouse",
+     "box": [
+      37,
+      114,
+      375,
+      367
+     ],
+     "size": [
+      336,
+      251
+     ],
+     "use": "the longhouse, the family's home",
+     "used": true
+    },
+    {
+     "file": "frames/smithy.png",
+     "name": "smithy",
+     "box": [
+      445,
+      143,
+      692,
+      349
+     ],
+     "size": [
+      247,
+      190
+     ],
+     "use": "the smithy",
+     "used": true
+    },
+    {
+     "file": "frames/stabbur.png",
+     "name": "stabbur",
+     "box": [
+      761,
+      143,
+      954,
+      351
+     ],
+     "size": [
+      191,
+      189
+     ],
+     "use": "the storehouse on stilts (stabbur)",
+     "used": true
+    },
+    {
+     "file": "frames/woodcutter.png",
+     "name": "woodcutter",
+     "box": [
+      1014,
+      178,
+      1219,
+      349
+     ],
+     "size": [
+      203,
+      170
+     ],
+     "use": "the woodcutter's hut",
+     "used": true
+    },
+    {
+     "file": "frames/sawpit.png",
+     "name": "sawpit",
+     "box": [
+      82,
+      356,
+      242,
+      500
+     ],
+     "size": [
+      158,
+      143
+     ],
+     "use": "the sawpit (two sawyers drawn in)",
+     "used": true
+    },
+    {
+     "file": "frames/fishing_hut.png",
+     "name": "fishing hut",
+     "box": [
+      345,
+      340,
+      525,
+      499
+     ],
+     "size": [
+      178,
+      158
+     ],
+     "use": "the fishing hut",
+     "used": true
+    },
+    {
+     "file": "frames/well.png",
+     "name": "well",
+     "box": [
+      629,
+      383,
+      713,
+      494
+     ],
+     "size": [
+      83,
+      110
+     ],
+     "use": "the well",
+     "used": true
+    },
+    {
+     "file": "frames/building_site.png",
+     "name": "building site",
+     "box": [
+      795,
+      374,
+      989,
+      498
+     ],
+     "size": [
+      192,
+      121
+     ],
+     "use": "any building under construction",
+     "used": true
+    },
+    {
+     "file": "frames/fence.png",
+     "name": "fence",
+     "box": [
+      1061,
+      386,
+      1191,
+      500
+     ],
+     "size": [
+      128,
+      113
+     ],
+     "use": "not used yet: fences around fields",
+     "used": false
+    },
+    {
+     "file": "frames/pine.png",
+     "name": "pine",
+     "box": [
+      28,
+      473,
+      144,
+      666
+     ],
+     "size": [
+      114,
+      190
+     ],
+     "use": "pine trees",
+     "used": true
+    },
+    {
+     "file": "frames/birch_summer.png",
+     "name": "birch summer",
+     "box": [
+      186,
+      506,
+      271,
+      665
+     ],
+     "size": [
+      83,
+      158
+     ],
+     "use": "birches in spring and summer",
+     "used": true
+    },
+    {
+     "file": "frames/birch_autumn.png",
+     "name": "birch autumn",
+     "box": [
+      325,
+      503,
+      454,
+      665
+     ],
+     "size": [
+      83,
+      157
+     ],
+     "use": "birches in autumn",
+     "used": true
+    },
+    {
+     "file": "frames/birch_winter.png",
+     "name": "birch winter",
+     "box": [
+      464,
+      511,
+      554,
+      666
+     ],
+     "size": [
+      87,
+      153
+     ],
+     "use": "birches in winter",
+     "used": true
+    },
+    {
+     "file": "frames/sapling.png",
+     "name": "sapling",
+     "box": [
+      617,
+      596,
+      658,
+      663
+     ],
+     "size": [
+      39,
+      65
+     ],
+     "use": "a young tree growing back",
+     "used": true
+    },
+    {
+     "file": "frames/stump.png",
+     "name": "stump",
+     "box": [
+      710,
+      608,
+      787,
+      668
+     ],
+     "size": [
+      74,
+      59
+     ],
+     "use": "a felled tree's stump",
+     "used": true
+    },
+    {
+     "file": "frames/log.png",
+     "name": "log",
+     "box": [
+      818,
+      565,
+      963,
+      667
+     ],
+     "size": [
+      143,
+      100
+     ],
+     "use": "a felled tree (not drawn yet: the woodcutter carries it off at once)",
+     "used": false
+    },
+    {
+     "file": "frames/boulders.png",
+     "name": "boulders",
+     "box": [
+      989,
+      572,
+      1109,
+      666
+     ],
+     "size": [
+      118,
+      91
+     ],
+     "use": "boulders to quarry for stone",
+     "used": true
+    },
+    {
+     "file": "frames/lingonberry.png",
+     "name": "lingonberry",
+     "box": [
+      1133,
+      600,
+      1241,
+      665
+     ],
+     "size": [
+      105,
+      62
+     ],
+     "use": "lingonberry bushes to pick",
+     "used": true
+    },
+    {
+     "file": "frames/field_0.png",
+     "name": "field 0",
+     "box": [
+      71,
+      710,
+      277,
+      824
+     ],
+     "size": [
+      203,
+      111
+     ],
+     "use": "a field, ploughed",
+     "used": true
+    },
+    {
+     "file": "frames/field_1.png",
+     "name": "field 1",
+     "box": [
+      301,
+      671,
+      505,
+      824
+     ],
+     "size": [
+      203,
+      119
+     ],
+     "use": "a field, sprouting",
+     "used": true
+    },
+    {
+     "file": "frames/field_2.png",
+     "name": "field 2",
+     "box": [
+      529,
+      671,
+      734,
+      824
+     ],
+     "size": [
+      202,
+      132
+     ],
+     "use": "a field, growing",
+     "used": true
+    },
+    {
+     "file": "frames/field_3.png",
+     "name": "field 3",
+     "box": [
+      759,
+      680,
+      963,
+      824
+     ],
+     "size": [
+      202,
+      141
+     ],
+     "use": "a field, ripe",
+     "used": true
+    },
+    {
+     "file": "frames/field_4.png",
+     "name": "field 4",
+     "box": [
+      987,
+      704,
+      1192,
+      842
+     ],
+     "size": [
+      203,
+      118
+     ],
+     "use": "a field, harvested",
+     "used": true
+    }
+   ]
+  },
+  {
+   "file": "sheet_people.jpg",
+   "title": "The family, animals, boats and goods",
+   "source": "Gemini",
+   "size": [
+    1264,
+    848
+   ],
+   "frames": [
+    {
+     "file": "frames/father_stand.png",
+     "name": "father stand",
+     "box": [
+      57,
+      27,
+      105,
+      148
+     ],
+     "size": [
+      46,
+      119
+     ],
+     "use": "the father standing",
+     "used": true
+    },
+    {
+     "file": "frames/father_se_1.png",
+     "name": "father se 1",
+     "box": [
+      179,
+      29,
+      230,
+      148
+     ],
+     "size": [
+      48,
+      116
+     ],
+     "use": "the father walking towards the viewer",
+     "used": true
+    },
+    {
+     "file": "frames/father_se_2.png",
+     "name": "father se 2",
+     "box": [
+      250,
+      29,
+      310,
+      147
+     ],
+     "size": [
+      58,
+      115
+     ],
+     "use": "the father walking towards the viewer",
+     "used": true
+    },
+    {
+     "file": "frames/father_se_3.png",
+     "name": "father se 3",
+     "box": [
+      338,
+      29,
+      392,
+      148
+     ],
+     "size": [
+      51,
+      116
+     ],
+     "use": "the father walking towards the viewer",
+     "used": true
+    },
+    {
+     "file": "frames/father_ne_1.png",
+     "name": "father ne 1",
+     "box": [
+      433,
+      29,
+      488,
+      148
+     ],
+     "size": [
+      53,
+      116
+     ],
+     "use": "the father walking away",
+     "used": true
+    },
+    {
+     "file": "frames/father_ne_2.png",
+     "name": "father ne 2",
+     "box": [
+      505,
+      29,
+      557,
+      143
+     ],
+     "size": [
+      50,
+      111
+     ],
+     "use": "the father walking away",
+     "used": true
+    },
+    {
+     "file": "frames/father_ne_3.png",
+     "name": "father ne 3",
+     "box": [
+      575,
+      29,
+      628,
+      148
+     ],
+     "size": [
+      52,
+      115
+     ],
+     "use": "the father walking away",
+     "used": true
+    },
+    {
+     "file": "frames/father_chop.png",
+     "name": "father chop",
+     "box": [
+      699,
+      7,
+      759,
+      148
+     ],
+     "size": [
+      58,
+      139
+     ],
+     "use": "the father felling a tree (axe raised)",
+     "used": true
+    },
+    {
+     "file": "frames/chopping_block.png",
+     "name": "chopping block",
+     "box": [
+      802,
+      70,
+      867,
+      148
+     ],
+     "size": [
+      63,
+      76
+     ],
+     "use": "not used: the woodcutter's hut has its own block",
+     "used": false
+    },
+    {
+     "file": "frames/father_log_se_1.png",
+     "name": "father log se 1",
+     "box": [
+      954,
+      21,
+      1045,
+      148
+     ],
+     "size": [
+      89,
+      125
+     ],
+     "use": "the father carrying a log towards the viewer",
+     "used": true
+    },
+    {
+     "file": "frames/father_log_se_2.png",
+     "name": "father log se 2",
+     "box": [
+      1118,
+      21,
+      1212,
+      148
+     ],
+     "size": [
+      92,
+      123
+     ],
+     "use": "the father carrying a log towards the viewer (drawn as \"NE\")",
+     "used": true
+    },
+    {
+     "file": "frames/mother_stand.png",
+     "name": "mother stand",
+     "box": [
+      57,
+      209,
+      105,
+      333
+     ],
+     "size": [
+      45,
+      121
+     ],
+     "use": "the mother standing",
+     "used": true
+    },
+    {
+     "file": "frames/mother_se_1.png",
+     "name": "mother se 1",
+     "box": [
+      160,
+      212,
+      215,
+      332
+     ],
+     "size": [
+      53,
+      117
+     ],
+     "use": "the mother walking towards the viewer",
+     "used": true
+    },
+    {
+     "file": "frames/mother_se_2.png",
+     "name": "mother se 2",
+     "box": [
+      232,
+      213,
+      287,
+      332
+     ],
+     "size": [
+      53,
+      117
+     ],
+     "use": "the mother walking towards the viewer",
+     "used": true
+    },
+    {
+     "file": "frames/mother_se_3.png",
+     "name": "mother se 3",
+     "box": [
+      302,
+      213,
+      358,
+      333
+     ],
+     "size": [
+      54,
+      117
+     ],
+     "use": "the mother walking towards the viewer",
+     "used": true
+    },
+    {
+     "file": "frames/mother_se_4.png",
+     "name": "mother se 4",
+     "box": [
+      383,
+      215,
+      440,
+      333
+     ],
+     "size": [
+      55,
+      116
+     ],
+     "use": "the mother walking towards the viewer (drawn as \"NE\")",
+     "used": true
+    },
+    {
+     "file": "frames/mother_ne_1.png",
+     "name": "mother ne 1",
+     "box": [
+      458,
+      213,
+      505,
+      333
+     ],
+     "size": [
+      45,
+      118
+     ],
+     "use": "the mother walking away",
+     "used": true
+    },
+    {
+     "file": "frames/mother_ne_2.png",
+     "name": "mother ne 2",
+     "box": [
+      518,
+      213,
+      573,
+      329
+     ],
+     "size": [
+      52,
+      114
+     ],
+     "use": "the mother walking away",
+     "used": true
+    },
+    {
+     "file": "frames/mother_reap_1.png",
+     "name": "mother reap 1",
+     "box": [
+      595,
+      216,
+      678,
+      332
+     ],
+     "size": [
+      81,
+      113
+     ],
+     "use": "the mother harvesting barley",
+     "used": true
+    },
+    {
+     "file": "frames/mother_reap_2.png",
+     "name": "mother reap 2",
+     "box": [
+      686,
+      221,
+      777,
+      332
+     ],
+     "size": [
+      88,
+      108
+     ],
+     "use": "the mother harvesting barley",
+     "used": true
+    },
+    {
+     "file": "frames/mother_basket_se_1.png",
+     "name": "mother basket se 1",
+     "box": [
+      803,
+      210,
+      869,
+      333
+     ],
+     "size": [
+      64,
+      121
+     ],
+     "use": "the mother carrying a basket towards the viewer",
+     "used": true
+    },
+    {
+     "file": "frames/mother_basket_se_2.png",
+     "name": "mother basket se 2",
+     "box": [
+      909,
+      209,
+      985,
+      333
+     ],
+     "size": [
+      74,
+      122
+     ],
+     "use": "the mother carrying a basket towards the viewer (drawn as \"NE\")",
+     "used": true
+    },
+    {
+     "file": "frames/child_se_1.png",
+     "name": "child se 1",
+     "box": [
+      1043,
+      235,
+      1089,
+      329
+     ],
+     "size": [
+      43,
+      92
+     ],
+     "use": "the child walking towards the viewer",
+     "used": true
+    },
+    {
+     "file": "frames/child_se_2.png",
+     "name": "child se 2",
+     "box": [
+      1163,
+      232,
+      1212,
+      332
+     ],
+     "size": [
+      47,
+      97
+     ],
+     "use": "the child walking towards the viewer (drawn as \"NE\")",
+     "used": true
+    },
+    {
+     "file": "frames/sheep_se_1.png",
+     "name": "sheep se 1",
+     "box": [
+      45,
+      415,
+      141,
+      499
+     ],
+     "size": [
+      94,
+      81
+     ],
+     "use": "a sheep grazing and wandering",
+     "used": true
+    },
+    {
+     "file": "frames/sheep_se_2.png",
+     "name": "sheep se 2",
+     "box": [
+      167,
+      413,
+      260,
+      499
+     ],
+     "size": [
+      91,
+      84
+     ],
+     "use": "a sheep grazing and wandering",
+     "used": true
+    },
+    {
+     "file": "frames/sheep_se_3.png",
+     "name": "sheep se 3",
+     "box": [
+      46,
+      582,
+      141,
+      662
+     ],
+     "size": [
+      93,
+      78
+     ],
+     "use": "not used: another sheep pair",
+     "used": false
+    },
+    {
+     "file": "frames/sheep_se_4.png",
+     "name": "sheep se 4",
+     "box": [
+      179,
+      579,
+      274,
+      666
+     ],
+     "size": [
+      92,
+      84
+     ],
+     "use": "not used: another sheep pair (labelled \"NE\", drawn side on)",
+     "used": false
+    },
+    {
+     "file": "frames/ram_1.png",
+     "name": "ram 1",
+     "box": [
+      315,
+      397,
+      422,
+      498
+     ],
+     "size": [
+      104,
+      98
+     ],
+     "use": "not used: horned rams nobody asked for",
+     "used": false
+    },
+    {
+     "file": "frames/ram_2.png",
+     "name": "ram 2",
+     "box": [
+      445,
+      395,
+      556,
+      499
+     ],
+     "size": [
+      108,
+      102
+     ],
+     "use": "not used: horned rams nobody asked for",
+     "used": false
+    },
+    {
+     "file": "frames/deer_se_1.png",
+     "name": "deer se 1",
+     "box": [
+      327,
+      503,
+      475,
+      666
+     ],
+     "size": [
+      150,
+      142
+     ],
+     "use": "the red deer stag in the forest",
+     "used": true
+    },
+    {
+     "file": "frames/deer_se_2.png",
+     "name": "deer se 2",
+     "box": [
+      464,
+      519,
+      571,
+      665
+     ],
+     "size": [
+      105,
+      144
+     ],
+     "use": "the red deer stag in the forest",
+     "used": true
+    },
+    {
+     "file": "frames/deer_se_3.png",
+     "name": "deer se 3",
+     "box": [
+      608,
+      395,
+      713,
+      499
+     ],
+     "size": [
+      103,
+      102
+     ],
+     "use": "not used: a third stag",
+     "used": false
+    },
+    {
+     "file": "frames/deer_se_4.png",
+     "name": "deer se 4",
+     "box": [
+      616,
+      546,
+      711,
+      667
+     ],
+     "size": [
+      93,
+      119
+     ],
+     "use": "not used: a fourth stag",
+     "used": false
+    },
+    {
+     "file": "frames/raven_black_1.png",
+     "name": "raven black 1",
+     "box": [
+      1028,
+      398,
+      1109,
+      491
+     ],
+     "size": [
+      79,
+      91
+     ],
+     "use": "not used: near-black, it converts as outline (the fixes sheet redrew it)",
+     "used": false
+    },
+    {
+     "file": "frames/raven_black_2.png",
+     "name": "raven black 2",
+     "box": [
+      1132,
+      421,
+      1237,
+      484
+     ],
+     "size": [
+      103,
+      62
+     ],
+     "use": "not used: near-black, it converts as outline (the fixes sheet redrew it)",
+     "used": false
+    },
+    {
+     "file": "frames/knarr.png",
+     "name": "knarr",
+     "box": [
+      756,
+      391,
+      1013,
+      667
+     ],
+     "size": [
+      255,
+      274
+     ],
+     "use": "the knarr that brings the family and newcomers",
+     "used": true
+    },
+    {
+     "file": "frames/rowboat.png",
+     "name": "rowboat",
+     "box": [
+      1051,
+      544,
+      1232,
+      663
+     ],
+     "size": [
+      178,
+      117
+     ],
+     "use": "the fisher's rowing boat",
+     "used": true
+    },
+    {
+     "file": "frames/goods_logs.png",
+     "name": "goods logs",
+     "box": [
+      99,
+      717,
+      211,
+      802
+     ],
+     "size": [
+      110,
+      83
+     ],
+     "use": "the wood pile",
+     "used": true
+    },
+    {
+     "file": "frames/goods_planks.png",
+     "name": "goods planks",
+     "box": [
+      244,
+      721,
+      351,
+      801
+     ],
+     "size": [
+      105,
+      76
+     ],
+     "use": "the plank stack",
+     "used": true
+    },
+    {
+     "file": "frames/goods_stones.png",
+     "name": "goods stones",
+     "box": [
+      382,
+      721,
+      483,
+      797
+     ],
+     "size": [
+      99,
+      72
+     ],
+     "use": "the stone pile",
+     "used": true
+    },
+    {
+     "file": "frames/goods_firewood.png",
+     "name": "goods firewood",
+     "box": [
+      515,
+      721,
+      615,
+      801
+     ],
+     "size": [
+      97,
+      78
+     ],
+     "use": "not used yet: firewood is wood in this version",
+     "used": false
+    },
+    {
+     "file": "frames/goods_grain.png",
+     "name": "goods grain",
+     "box": [
+      653,
+      723,
+      719,
+      798
+     ],
+     "size": [
+      64,
+      72
+     ],
+     "use": "the food store (grain)",
+     "used": true
+    },
+    {
+     "file": "frames/goods_fish.png",
+     "name": "goods fish",
+     "box": [
+      763,
+      721,
+      841,
+      800
+     ],
+     "size": [
+      76,
+      76
+     ],
+     "use": "the food store (fish)",
+     "used": true
+    },
+    {
+     "file": "frames/goods_wool.png",
+     "name": "goods wool",
+     "box": [
+      880,
+      727,
+      960,
+      796
+     ],
+     "size": [
+      78,
+      66
+     ],
+     "use": "not used yet: no wool in this version",
+     "used": false
+    },
+    {
+     "file": "frames/goods_iron.png",
+     "name": "goods iron",
+     "box": [
+      997,
+      733,
+      1081,
+      787
+     ],
+     "size": [
+      81,
+      52
+     ],
+     "use": "not used yet: no iron in this version",
+     "used": false
+    },
+    {
+     "file": "frames/goods_bread.png",
+     "name": "goods bread",
+     "box": [
+      1121,
+      739,
+      1192,
+      784
+     ],
+     "size": [
+      69,
+      41
+     ],
+     "use": "not used yet",
+     "used": false
+    }
+   ]
+  },
+  {
+   "file": "sheet_fixes.jpg",
+   "title": "The fixes: walks seen from behind, animals from behind, slate ravens, the stockfish rack, meadow, a small rock",
+   "source": "Gemini",
+   "size": [
+    1264,
+    848
+   ],
+   "frames": [
+    {
+     "file": "frames/father_log_ne_1.png",
+     "name": "father log ne 1",
+     "box": [
+      308,
+      32,
+      426,
+      199
+     ],
+     "size": [
+      115,
+      163
+     ],
+     "use": "the father carrying a log away",
+     "used": true
+    },
+    {
+     "file": "frames/father_log_ne_2.png",
+     "name": "father log ne 2",
+     "box": [
+      440,
+      33,
+      558,
+      205
+     ],
+     "size": [
+      115,
+      170
+     ],
+     "use": "the father carrying a log away",
+     "used": true
+    },
+    {
+     "file": "frames/father_chop_down.png",
+     "name": "father chop down",
+     "box": [
+      38,
+      26,
+      266,
+      251
+     ],
+     "size": [
+      224,
+      223
+     ],
+     "use": "not used: drawn on its own ground tile",
+     "used": false
+    },
+    {
+     "file": "frames/mother_ne_3.png",
+     "name": "mother ne 3",
+     "box": [
+      639,
+      40,
+      712,
+      205
+     ],
+     "size": [
+      69,
+      163
+     ],
+     "use": "the mother walking away",
+     "used": true
+    },
+    {
+     "file": "frames/mother_ne_4.png",
+     "name": "mother ne 4",
+     "box": [
+      736,
+      39,
+      812,
+      198
+     ],
+     "size": [
+      74,
+      155
+     ],
+     "use": "the mother walking away",
+     "used": true
+    },
+    {
+     "file": "frames/mother_basket_ne.png",
+     "name": "mother basket ne",
+     "box": [
+      901,
+      40,
+      987,
+      201
+     ],
+     "size": [
+      83,
+      158
+     ],
+     "use": "the mother carrying a basket away",
+     "used": true
+    },
+    {
+     "file": "frames/child_ne_1.png",
+     "name": "child ne 1",
+     "box": [
+      1065,
+      71,
+      1130,
+      200
+     ],
+     "size": [
+      63,
+      127
+     ],
+     "use": "the child walking away",
+     "used": true
+    },
+    {
+     "file": "frames/child_ne_2.png",
+     "name": "child ne 2",
+     "box": [
+      1155,
+      71,
+      1221,
+      203
+     ],
+     "size": [
+      62,
+      130
+     ],
+     "use": "the child walking away",
+     "used": true
+    },
+    {
+     "file": "frames/sheep_ne_1.png",
+     "name": "sheep ne 1",
+     "box": [
+      312,
+      374,
+      426,
+      493
+     ],
+     "size": [
+      112,
+      116
+     ],
+     "use": "a sheep wandering away",
+     "used": true
+    },
+    {
+     "file": "frames/sheep_ne_2.png",
+     "name": "sheep ne 2",
+     "box": [
+      458,
+      374,
+      574,
+      492
+     ],
+     "size": [
+      112,
+      114
+     ],
+     "use": "a sheep wandering away",
+     "used": true
+    },
+    {
+     "file": "frames/deer_ne_1.png",
+     "name": "deer ne 1",
+     "box": [
+      623,
+      323,
+      752,
+      513
+     ],
+     "size": [
+      125,
+      188
+     ],
+     "use": "the stag walking away",
+     "used": true
+    },
+    {
+     "file": "frames/deer_ne_2.png",
+     "name": "deer ne 2",
+     "box": [
+      793,
+      323,
+      922,
+      513
+     ],
+     "size": [
+      126,
+      188
+     ],
+     "use": "the stag walking away",
+     "used": true
+    },
+    {
+     "file": "frames/raven_1.png",
+     "name": "raven 1",
+     "box": [
+      1027,
+      397,
+      1110,
+      491
+     ],
+     "size": [
+      80,
+      92
+     ],
+     "use": "ravens flying over",
+     "used": true
+    },
+    {
+     "file": "frames/raven_2.png",
+     "name": "raven 2",
+     "box": [
+      1130,
+      420,
+      1238,
+      485
+     ],
+     "size": [
+      105,
+      63
+     ],
+     "use": "ravens flying over",
+     "used": true
+    },
+    {
+     "file": "frames/tile_meadow.png",
+     "name": "tile meadow",
+     "box": [
+      605,
+      623,
+      886,
+      794
+     ],
+     "size": [
+      279,
+      167
+     ],
+     "use": "the colour of the flower meadow",
+     "used": true
+    },
+    {
+     "file": "frames/drying_rack.png",
+     "name": "drying rack",
+     "box": [
+      104,
+      511,
+      365,
+      795
+     ],
+     "size": [
+      257,
+      281
+     ],
+     "use": "the stockfish drying rack",
+     "used": true
+    },
+    {
+     "file": "frames/rock.png",
+     "name": "rock",
+     "box": [
+      1078,
+      677,
+      1151,
+      740
+     ],
+     "size": [
+      70,
+      60
+     ],
+     "use": "small rocks in the grass",
+     "used": true
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,119 @@
+{
+  "id": "fjordheim",
+  "title": "Fjordheim",
+  "tagline": "A Viking family's first year by the fjord",
+  "description": "An isometric homestead builder, inspired by Anno 1404 and The Settlers, without any fighting. A family lands on an empty shore in Viking Age Scandinavia: choose what to build (a longhouse, a woodcutter, a fishing hut, barley fields, a sawpit, a storehouse, a well, a smithy) and they do the work themselves. Keep them fed and warm through the first winter, and leave the forest standing: the deer leave if you cut it too thin.",
+  "order": 4,
+  "listed": true,
+  "status": "playable",
+  "thumbnail": "thumb.png",
+  "parts": [
+    "sprites.js",
+    "world.js",
+    "art.js",
+    "homestead.js",
+    "folk.js",
+    "main.js"
+  ],
+  "controls": [
+    [
+      "1-9 or click the bar",
+      "choose a building"
+    ],
+    [
+      "click",
+      "place it (right click / Esc cancels)"
+    ],
+    [
+      "arrows / WASD / screen edge",
+      "scroll"
+    ],
+    [
+      "F",
+      "time three times as fast"
+    ],
+    [
+      "H",
+      "how it works"
+    ],
+    [
+      "P",
+      "pause"
+    ],
+    [
+      "Enter or click",
+      "begin / go on"
+    ]
+  ],
+  "tunables": {
+    "dayLength": {
+      "label": "Day length",
+      "unit": "s",
+      "value": 40,
+      "min": 15,
+      "max": 120,
+      "step": 5,
+      "live": true,
+      "help": "Seconds from one dawn to the next. The family eats every morning, so shorter days make it harder."
+    },
+    "daysPerSeason": {
+      "label": "Days per season",
+      "unit": "days",
+      "value": 3,
+      "min": 2,
+      "max": 6,
+      "step": 1,
+      "live": false,
+      "help": "Four seasons make a year; reach the second spring to win. More days: more time before winter, and a longer winter."
+    },
+    "startFood": {
+      "label": "Food on the ship",
+      "unit": "food",
+      "value": 16,
+      "min": 0,
+      "max": 80,
+      "step": 1,
+      "live": false,
+      "help": "What the family brings ashore. Three of them eat 2.5 a day."
+    },
+    "harvest": {
+      "label": "Barley harvest",
+      "unit": "food",
+      "value": 14,
+      "min": 4,
+      "max": 30,
+      "step": 1,
+      "live": true,
+      "help": "Food from reaping one ripe field."
+    },
+    "walk": {
+      "label": "Walking speed",
+      "unit": "tiles/s",
+      "value": 1.4,
+      "min": 0.6,
+      "max": 3,
+      "step": 0.1,
+      "live": true,
+      "help": "How fast everyone walks (a tile is about 4 m)."
+    },
+    "deerForest": {
+      "label": "Forest the deer need",
+      "unit": "%",
+      "value": 85,
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "live": true,
+      "help": "The share of the first forest that must stand, grown, for the deer to stay. A woodcutter plants a tree for every two he fells, and saplings take three days to grow: two woodcutters all year thin it to about this."
+    },
+    "edgeScroll": {
+      "label": "Scroll at the screen edge",
+      "value": true,
+      "live": true,
+      "help": "Move the view when the mouse touches the edge of the game."
+    }
+  },
+  "smoke": {
+    "keys": []
+  }
+}

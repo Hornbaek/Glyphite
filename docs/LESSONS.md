@@ -144,6 +144,14 @@ way.
   outline as paint. Otherwise a landed sprite floats about one row above the deck.
 - **Clearance.** The pixel-art lander is taller than the old one. Check clearances: the x3 roof
   was raised 1.5·RES rows; see `tests/check_x3_clearance.py`.
+- **JPEG sheets bleed the background into the art.** Every Gemini palette had magenta-tinted colours: dark ones from the
+  outlines, light ones from edge pixels and from background seen through lattices (the drying rack had 500 of them). Turn
+  the dark ones into outline and make the light ones transparent (`unpink`, `games/fjordheim/tools/art.py`).
+- **Look at every cut before converting.** A label touching the drawing below it is cut in with it; in the game it showed
+  as a stripe of text across a birch. A contact sheet of `ref/frames/` finds it in seconds.
+- **Dark art needs texture, not just colour.** The isometric buildings are dark browns, and all-`#` solids made them dim
+  blocks. A dense glyph per material (thatch `%`, log walls `=`, stone `#`) shows the parts apart, and a small palette lift
+  (gamma .8) makes up for glyphs inking only part of their cell.
 
 ## Audio
 
@@ -175,3 +183,20 @@ way.
   plating against the dimmer back wall.
 - **The camera trails long falls.** The engine eases the camera at a fixed rate, so a fast fall left the mouse at the bottom
   edge; leading the target by about 0.3 s of the fall speed keeps it on screen.
+
+## Isometric (Fjordheim)
+
+- **An aim of [0, 0] is not "no aim".** `mouseAim()` returned the top-left corner until the mouse first moved, so edge
+  scrolling slid the view into the corner on its own (and Regolith aimed at the corner for the first six seconds). It is
+  null now until the mouse moves over the canvas and once it leaves.
+- **Clamp the game's own camera too.** The engine holds the view inside the world, but Fjordheim's `CAM` ran on past the
+  edge, so scrolling back first had to undo the overrun.
+- **Thin ground glyphs read nearly black.** A diamond of grass is a field of `' , ;` in the grass colour; it needed its
+  albedo lifted 1.5x to read as land, but no more, or it outshines the sprites standing on it.
+- **Let a bot play the whole year.** `games/fjordheim/tests/playthrough.py` builds through the real build bar and clicks
+  and steps a game year in 18 s. Its first runs found the design bugs no screenshot would: with two adults in two huts
+  nobody was left to build, the fields had no farmer, stone ran out, and the berries alone could feed the family.
+- **Real-time UI tests wait for game steps, not wall time.** Headless frames are slow and uneven (the loop runs at most
+  three steps a frame), so `games/fjordheim/tests/ui.py` waits on `frameNo` or on the outcome.
+- **Tiles a multiple of 8 base units.** A 2:1 diamond of T base units is T·RES cells by T·RES/4 rows: whole at every
+  detail level only when T is a multiple of 8.

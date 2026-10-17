@@ -370,6 +370,17 @@ Pixel art becomes a palette-indexed grid; see the `glyphite-pixel-art-to-ascii` 
 `markSpriteDyn` marks the covered cells for shadows; `spriteHull` gives collision points from the
 silhouette. Cost for the lander: about 0.5 ms (RES 1) to 1.6 ms (RES 3) per frame in headless Chromium.
 
+A sprite whose bounding box is off screen is skipped. With `cache: true` (a still sprite: angle 0, no `shift`), steps 1–5
+run once per flip and detail level and the result is kept as a stamp of cells (offset, glyph, colour); each frame only
+lights the stamp. Fjordheim draws about 230 trees and its buildings this way in under 1 ms.
+
+**Isometric ground** (`engine/12_iso.js`): `isoInit` sizes the world for a diamond of `ni × nj` tiles, each `tile · RES`
+cells wide and a quarter of that in rows (a 2:1 diamond on 1 × 2 cells). The ground is painted into the back wall
+(`backCells`): never solid, lit by the scene and textured by each material's ramp, while the world grid stays empty so every
+light reaches it. `isoToWorld` / `worldToIso` convert between ground coordinates and world units; `isoPick` turns a canvas
+point into a tile through the camera. Standing things are sprites: `isoDraw` sorts them by depth (`u + v`, then `u`) and
+draws them in that order, so nearer ones overwrite farther ones (`drawSprite` overwrites cells).
+
 Physics geometry is derived from the same sprite at 0.28 base units per pixel, origin at pixel
 (24, 28). `LEG0 = { ax: 3.92, ay: 1.96, fx: 5.46, fy: 6.16, stroke: 1.5, pad: 1.26, k: 4.3, c: 2.2 }`.
 The hull points (`LANDER_HULL0`) are traced from the silhouette.

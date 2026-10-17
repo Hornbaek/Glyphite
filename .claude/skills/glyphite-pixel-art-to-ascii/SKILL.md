@@ -228,3 +228,8 @@ edit it directly and mention the change. In the Claude app, propose the updated 
   scaled 0.22 to match; Gemini objects). Two rounds each for the cat (tails lost at tolerance 16; dark metal as
   outline) and the wall slides (largest piece only; see-through glass), one for the objects (glow under a lamp).
   Fixes are now in the list under "An art sheet".
+- 2026-10-17: Fjordheim, 70 sprites from three Gemini JPEG sheets (isometric buildings, trees, a family, animals). Four
+  rounds for the whole set: labels touching drawings were cut in (`drop` boxes), the JPEG's magenta bled into the outlines
+  (`unpink` in `games/fjordheim/tools/art.py`: magenta-tinted palette colours become outline or transparent), and dark
+  buildings read as dim `#` blocks, fixed by picking the dense glyph by material (thatch `%`, log walls `=`, stone `#`/`@`)
+  and lifting the palette by a gamma of .8 in the game. Still sprites use `drawSprite`'s `cache`.

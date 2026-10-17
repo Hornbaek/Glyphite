@@ -84,7 +84,8 @@ FORMAT
   behind the sprites. No checkerboard, no scenery, no ground strip, no boxes or frames around items, no title, no legend.
 - Follow the row plan below. Leave at least 24 pixels of empty magenta around every item; no item may touch another
   item or the edge of the image.
-- Under each item, a short label in small plain white text, with a clear gap so it never touches or overlaps the sprite.
+- Under each item, a short label in small plain white text, with a clear gap so it never touches or overlaps the sprite
+  above it or the tops of the sprites in the row below.
 
 STYLE (important: a program converts this art into coloured ASCII characters)
 - True pixel art on a fixed grid: every art pixel is a square block of <2 x 2> image pixels. Flat colours. No
@@ -154,7 +155,8 @@ It reports:
 `_drawings.json` holds every drawing's box for `tools/art.py`. Then count, item by item against the prompt's list:
 present, missing, extra, wrong frame count, wrong facing. Then check:
 - the background is one flat colour, with no checkerboard;
-- labels sit clear of every drawing, and there is no title;
+- labels sit clear of every drawing, the row below's tops too (a label touching a drawing is cut out with it), and
+  there is no title;
 - the frames of one animation have the same size and ground line;
 - no black fills (anything below luminance 45 becomes outline), and no pink;
 - no effects, see-through glass or scenery behind characters.
@@ -201,3 +203,10 @@ keep the skill short.
   - **Ravens:** near-black despite the rule; convert them with a lower `--outline-lum`, as the cat-bot was.
   - **Tiles:** came as thick blocks with sides, not flat diamonds; fine for swatches.
   - **New tool:** `tools/sheetcheck.py` does the mechanical part of the check in 3 s.
+- 2026-10-17, the Viking sheets in the game (Fjordheim). Two things the check missed, both now in the rules or the tools:
+  - **Labels touching the row below:** "FISHING HUT", "ANIMALS", "BIRCH TREE (AUTUMN)" and "SAPLING" touched the tops of
+    the next row's drawings (a birch crown, antlers, field crops), so they were cut in with them and showed in the game as
+    stripes of text. Masked by hand with `drop` boxes in `games/fjordheim/tools/art.py`; the rule now names the row below.
+    Look at a contact sheet of every cut before converting.
+  - **JPEG:** Gemini sends JPEG whatever the prompt says, and the raspberry bled into every dark outline and edge pixel,
+    giving each palette magenta-tinted colours. `art.py`'s `unpink` turns the dark ones into outline and drops the rest.

@@ -16,7 +16,7 @@ edits to a Claude session as a prompt plus a patch. **The repository is the sour
 ```
 engine/                 the engine (shared by every game)
   engine.json           part order + version          API.md   the public API: read it before writing game code
-  shell.html            page template                 01_core … 11_loop.js   the parts (banner says what each does)
+  shell.html            page template                 01_core … 12_iso.js   the parts (banner says what each does)
 games/notfound/         the 404 game: unlisted, served by the Worker for any missing page (worker/index.js)
 games/showcase/         the live engine demo on the public landing page: unlisted, public
 games/<id>/             one folder per game: game.json (manifest), head.html (optional page HTML), *.js parts,
