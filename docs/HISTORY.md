@@ -598,6 +598,16 @@ Buildings and fields were also pinned by their middle, so they floated above or 
   right, moors three tiles off the landing, and sails on up the fjord to the left. It is a little smaller (3 tiles long).
 - No new art was needed. The thumbnail is redrawn.
 
+## 27. Ready for a session on Fjordheim alone (Claude Code, 2026-10-17)
+
+The owner will develop Fjordheim in a session of its own. `games/fjordheim/NOTES.md` now opens with "Start here": what
+each file holds, the commands and tests, how to probe the game, and how the owner works. It ends with ideas for what
+could come next. Two helpers moved into the repo from the scratch folder:
+- `games/fjordheim/tests/buildings.py`: every building on its outlined footprint, in one sheet;
+- `games/fjordheim/tools/thumb_scene.js`: the thumbnail's scene.
+
+`docs/TESTING.md` lists the game's tests, and `CLAUDE.md` points to a game's NOTES.md before changing it.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |
