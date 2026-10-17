@@ -79,6 +79,16 @@ Renderer selection (used in every script):
 | `mechanics.py [2d\|gl] [RES ...]` | In sector 1: a held jump reaches the tuned height and a tap about half; the run speed matches; the mouse eats through the cheese wall; the rusted floor gives way; it jumps up through a catwalk, stands on it and drops through; a cat-bot catches it from the side and is shorted out from above; a live cable kills; the great cheese clears the sector. Default: GL at RES 1, 2, 3. |
 | `reach.py [sector ...] [--res R] [--tune JSON]` | Runs the game's own search (`levelcheck.js`, also the editor's CHECK button). Can each sector be finished? A breadth-first search with the real controller from every place the mouse can stand (walks, jumps of three lengths, steering mid-air, running jumps), never touching cables or glass. Cheese counts as eaten, rust and gantries as fallen, cracked walls as broken; low gravity applies. Fails if the great cheese, a crumb or a checkpoint can't be reached. Run it after editing a map, and at RES 1 and 3, and with tunables you changed (e.g. `--tune '{"jumpHeight":2}'`). |
 
+## Fjordheim (`games/fjordheim/tests/`)
+
+- `playthrough.py`: a bot builds through the real build bar and map clicks and plays a whole year in about 20 s; it must
+  reach the second spring, and a player who builds nothing must lose. Prints a line per game day (stock, folk, jobs).
+- `ui.py`: real mouse events: the view stays put until the mouse moves, edge scrolling, the build bar, placing, right click.
+- `phone.py`: an emulated Pixel 7 with real touch events: drag to scroll, tap twice to build, `[?]` and `[>>]`.
+- `buildings.py`: every building alone on its outlined footprint, and the knarr, in one sheet (`shots/fj_buildings.png`).
+- `look.py`: screenshots after some play, in GL and 2D.
+They wait on game steps (`frameNo`), not on time: headless frames are slow. See `games/fjordheim/NOTES.md`.
+
 ## The site
 
 | Script | What it checks |

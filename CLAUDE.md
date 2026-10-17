@@ -94,6 +94,9 @@ has a note or is marked [?]. Statuses: `idea` (default, no row), `planned` (the 
 
 ## Changing a game, or applying edits from the web editor
 
+Start from the game's `games/<id>/NOTES.md`: what each file holds, the commands and the game's own tests, how it is
+balanced, what is known to be off and what could come next.
+
 The editor's CLAUDE tab produces a prompt with tunable changes ("make these the new defaults") and a unified diff. Maps painted
 in the LEVELS tab (games with a `"levels"` legend in game.json, e.g. Space Mouse) arrive the same way, as a diff of the map
 file: apply it, then prove the maps can still be finished (`python3 games/spacemouse/tests/reach.py`).
