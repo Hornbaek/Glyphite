@@ -44,8 +44,15 @@ deer need 85%). A player who builds nothing loses to the cold in the first winte
 days for three.
 
 ## Controls
-See `game.json` "controls" (shown on the game list). The mouse resting on a screen edge scrolls (`pointer()` in
-`main.js`, not `mouseAim()`, which forgets a cursor after 6 s still).
+See `game.json` "controls" (shown on the game list).
+- **Mouse**: the building shows under the cursor and a click builds it; resting on a screen edge scrolls (`pointer()` in
+  `main.js`, not `mouseAim()`, which forgets a cursor after 6 s still); right click or Esc cancels.
+- **Touch** (`TOUCH()`: `Input.pointer`): there is no cursor, so the first tap on the map shows where the building would
+  stand (`PEND`) and a second tap on the same spot builds it. Drag pans (a mouse can drag too). No on-screen arrows.
+- Clicks and taps act on release (`'TapUp'`), so a drag never builds. The tap that starts the game is ignored on the map.
+- The HUD's buttons (`hudButton`, `MENU`): the build bar, `[>>]` (time x3) and `[?]` (help) on the top row, `[CANCEL]`.
+  On a touch screen the bar's rows are a row apart and each button takes taps a row and a column around it; the last
+  row stays empty for the phone's gesture bar. Texts in boxes wrap to the screen (`wrapBox`): a phone has about 54 columns.
 
 ## Tunables
 See `game.json` "tunables" (sliders in the web editor).

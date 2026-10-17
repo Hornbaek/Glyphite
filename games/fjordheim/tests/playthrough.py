@@ -11,7 +11,7 @@ PAGE = (ROOT / 'dist/games/fjordheim/index.html').as_uri()
 r = sys.argv[1] if len(sys.argv) > 1 else '2d'
 
 # the player: whenever the next building on the list is affordable, put it at the nearest free spot that suits it, by
-# selecting it in the build bar (select) and clicking the map (clickMap with a canvas point, as a mouse click would)
+# selecting it in the build bar (select) and clicking the map (tap with a canvas point, as a mouse click would)
 BOT = r'''(() => {
   const plan = ['longhouse', 'woodcutter', 'fishing', 'field', 'field', 'sawpit', 'rack', 'woodcutter', 'well', 'stabbur', 'smithy'];
   window.__bot = window.__bot || { n: 0 };
@@ -33,7 +33,7 @@ BOT = r'''(() => {
   const t = [best[0] + ((b.w - 1) >> 1), best[1] + ((b.h - 1) >> 1)], p = isoToWorld(t[0] + .5, t[1] + .5);
   centreOn([t[0], t[1], 1, 1]); updateCamera(0, true);
   const aim = [(p[0] - cam.x) / R.cols, (p[1] - cam.y) / (R.rows * ASPECT)];
-  select(type); clickMap(aim);
+  select(type); tap(aim);
   if (SEL === type) SEL = null;
   const ok = HOME.buildings.some(x => x.type === type && x.i === best[0] && x.j === best[1]);
   if (ok) bot.n++;

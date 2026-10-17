@@ -18,8 +18,10 @@ const GROUND_MAT = {
   [G_GRASS]: defineMaterial('grass', { albedo: GRASS_SUMMER, ramp: ".,'\";:", style: 'flat' }),
   [G_MEADOW]: defineMaterial('meadow', { albedo: linC(mixC(FJ_GROUND.meadow, [150, 160, 70], .25), 1.45), ramp: ".,'\"*;", style: 'flat' }),
   [G_SOIL]: defineMaterial('soil', { albedo: linC(FJ_GROUND.soil, 1.5), ramp: '.,-=~', style: 'flat' }),
-  [G_ROCKY]: defineMaterial('scree', { albedo: linC([128, 130, 122], 1.4), ramp: '.,:o', style: 'flat' }),
+  [G_ROCKY]: defineMaterial('scree', { albedo: linC([128, 130, 122], 1.2), ramp: '.,:;o', style: 'flat' }),
 };
+// the hills round the map, and the fjord's far shore: quiet, so the eye stays on the valley
+const FELL_MAT = defineMaterial('fell', { albedo: linC([112, 118, 104], 1.1), ramp: " .,'", style: 'flat' });
 const SNOW_MAT = defineMaterial('snow', { albedo: linC(FJ_GROUND.snow, .9), ramp: '.:-=*', style: 'flat' });
 
 // the tile grid. thing: 0 nothing, T_TREE, T_STUMP, T_SAPLING, T_ROCK, T_BUSH, T_FIELD, T_BUILDING; ref: index into its list

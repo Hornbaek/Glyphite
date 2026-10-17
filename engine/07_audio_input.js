@@ -69,12 +69,16 @@ const Sfx = {
 
 // ---------- input ----------
 // keys: KeyboardEvent.code values held now; pressed: codes that went down since the last step, plus
-// 'Tap' for a click or tap and 'TapAlt' for a right click (cleared after every step); aim: where the last tap was (0..1 of the
-// canvas) or null; touch: on-screen hold buttons by name.
+// 'Tap' for a click or tap (as it goes down), 'TapUp' for one let go where it began (a tap, not a drag) and 'TapAlt' for a
+// right click (cleared after every step); aim: where the last tap was (0..1 of the canvas) or null; touch: on-screen hold
+// buttons by name. held: a pointer is down on the canvas; drag: how far it moved since the last step (0..1 of the canvas,
+// cleared after every step); pointer: what was used last, 'mouse' or 'touch' (a pen counts as touch).
 const Input = {
   keys: new Set(), fireQueued: false, aim: null, mouseX: 0, mouseY: 0, mouseSeen: 0,
-  touch: {}, pressed: new Set()
+  touch: {}, pressed: new Set(), held: false, drag: [0, 0],
+  pointer: window.matchMedia && matchMedia('(hover: none) and (pointer: coarse)').matches ? 'touch' : 'mouse'
 };
+const DRAG_PX = 10;   // a press that moves further than this (CSS pixels) is a drag, and no longer a tap
 // Touch controls come from GAME.touch: button groups laid out along the bottom edge, e.g.
 //   [[{ label: '[ < ]', aria: 'Rotate left', hold: 'left' }], [{ label: '[ FIRE ]', aria: 'Fire', tap: true }]]
 // hold: Input.touch[name] is true while held; tap: acts like tapping the screen without aiming.
@@ -90,15 +94,32 @@ function setupInput(canvas, onKey, touchSpec) {
   window.addEventListener('keyup', e => Input.keys.delete(e.code));
   window.addEventListener('blur', () => { Input.keys.clear(); for (const k in Input.touch) Input.touch[k] = false; });
   const toCanvas = e => { const r = canvas.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
-  canvas.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') { const [x, y] = toCanvas(e); Input.mouseX = x; Input.mouseY = y; Input.mouseSeen = performance.now(); } });
+  // the one pointer being held (a second finger is ignored): where it went down, where it is, whether it has dragged
+  let down = null;
+  canvas.addEventListener('pointermove', e => {
+    if (e.pointerType === 'mouse') { const [x, y] = toCanvas(e); Input.mouseX = x; Input.mouseY = y; Input.mouseSeen = performance.now(); }
+    if (!down || e.pointerId !== down.id) return;
+    const r = canvas.getBoundingClientRect();
+    Input.drag[0] += (e.clientX - down.x) / r.width; Input.drag[1] += (e.clientY - down.y) / r.height;
+    down.x = e.clientX; down.y = e.clientY;
+    if (Math.hypot(e.clientX - down.x0, e.clientY - down.y0) > DRAG_PX) down.moved = true;
+  });
   canvas.addEventListener('pointerdown', e => {
     Sfx.init(); if (e.pointerType === 'mouse') canvas.focus({ preventScroll: true });
+    Input.pointer = e.pointerType === 'mouse' ? 'mouse' : 'touch';
     const [x, y] = toCanvas(e); Input.mouseX = x; Input.mouseY = y; Input.mouseSeen = performance.now();
     Input.aim = [x, y];
     if (e.button === 2) { Input.pressed.add('TapAlt'); return; }   // right click: cancel, deselect (no browser menu)
     Input.fireQueued = true; Input.pressed.add('Tap');
+    if (!down) { down = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, moved: false }; Input.held = true; try { canvas.setPointerCapture(e.pointerId); } catch (_) { } }
     if (e.pointerType !== 'mouse') showTouch();
   });
+  const up = e => {
+    if (!down || e.pointerId !== down.id) return;
+    if (e.type === 'pointerup' && !down.moved) { Input.aim = toCanvas(e); Input.pressed.add('TapUp'); }
+    down = null; Input.held = false;
+  };
+  canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up); canvas.addEventListener('lostpointercapture', up);
   canvas.addEventListener('contextmenu', e => e.preventDefault());
   canvas.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') Input.mouseSeen = 0; });   // off the canvas: no aim
   const bind = (b, sp) => {

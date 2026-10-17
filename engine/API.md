@@ -342,8 +342,11 @@ A fixed grid of readable cells (`R.hcols × R.hrows`), redrawn every frame insid
 ## Input
 
 `keyDown('ArrowUp', 'KeyW')` (held now), `Input.pressed` (codes pressed since the last step, plus `'Tap'` for a
-click or tap and `'TapAlt'` for a right click, which opens no browser menu), `Input.aim` (where the tap was, 0..1 of the
-canvas) and `Input.fireQueued`, `mouseAim()` (the cursor, 0..1 of the canvas, for 6 s after it moved; null before the
+click or tap as it goes down, `'TapUp'` for one let go where it began (a tap, not a drag) and `'TapAlt'` for a right click,
+which opens no browser menu), `Input.aim` (where the tap was, 0..1 of the canvas) and `Input.fireQueued`, `Input.held`
+(a finger or mouse button is down on the canvas) with `Input.drag` (how far it moved since the last step, 0..1 of the
+canvas: drag to pan, as Fjordheim does), `Input.pointer` (`'mouse'` or `'touch'`, what was used last; it starts as
+`'touch'` on a phone), `mouseAim()` (the cursor, 0..1 of the canvas, for 6 s after it moved; null before the
 mouse first moves over the canvas and once it leaves), `Input.mouseX`/`mouseY` with `Input.mouseSeen` (0 while the mouse
 is off the canvas: for a cursor that may rest, like edge scrolling), `Input.touch.<name>` (on-screen hold buttons from
 `GAME.touch`), `touchShown()`. Aim → world: `[cam.x + a[0] * R.cols, cam.y + a[1] * R.rows * ASPECT]`.

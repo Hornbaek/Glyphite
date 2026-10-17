@@ -109,6 +109,8 @@ Build at least one more small game on the engine to check that it is game-agnost
   - **Ground that reads at a glance**: the back wall shows a texture glyph per cell, so a flat diamond of grass is a field of
     `' , ;` in the grass colour, and it had to be brightened 1.5x to show. A cell background colour (a tint behind the
     glyph) would let ground read as a surface without competing with the sprites.
+  - **Touch** (done in 0.6.1: `Input.drag`, `'TapUp'`, `Input.pointer`): Fjordheim pans by dragging and places with two
+    taps. Still missing: pinch to zoom (needs zoom, below) and a long press for a second action.
   - **Zoom**: the view's scale is fixed (a base unit is the same size on screen at every detail level). An RTS wants to
     zoom out over the whole map; it would need a second, coarser scale for the view, not just for detail.
   - **Sprite contrast**: dark art (the Gemini buildings) turns into dim `#` blocks. Fjordheim lifts its palettes and picks

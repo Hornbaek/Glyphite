@@ -430,7 +430,13 @@ Songs are base64 MIDI in `games/regolith/songs.js` (decoded with the engine's `b
 `Input.keys` (a Set of `KeyboardEvent.code`), `Input.pressed` (taps), `Input.aim` / `mouseAim()`
 (the normalised cursor, used for 6 s after the mouse last moved), `Input.fireQueued`, and
 `Input.touch.<name>` from the on-screen buttons the game declares in `GAME.touch` (hold buttons set a
-flag while held; tap buttons act like a tap). `keyDown(...codes)` checks keys. One-shot keys go to the
+flag while held; tap buttons act like a tap). `keyDown(...codes)` checks keys.
+
+The canvas follows one pointer at a time (a second finger is ignored), captured so a drag can leave the canvas: while it
+is down `Input.held` is set and `Input.drag` adds up its movement (cleared every step). A press that moves more than 10 CSS
+pixels is a drag; one let go before that adds `'TapUp'` with its release point in `Input.aim`, so a game can pan by
+dragging and still act on taps. `'Tap'` still fires as the press goes down, for games that act at once. `Input.pointer`
+says whether a mouse or a finger was used last. One-shot keys go to the
 engine's built-in keys first (- + detail, G bloom, M sound, P/Esc pause), then to the game's `onKey`.
 
 ## 11. The reference game: Regolith Lander (`games/regolith/`)

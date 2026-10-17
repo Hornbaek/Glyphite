@@ -562,6 +562,28 @@ from behind, slate ravens, the drying rack, a meadow tile and a small rock).
   second spring; an idle player must lose), `ui.py` (real mouse: edge scroll, build bar, placing, right click) and
   `look.py` (screenshots).
 
+## 25. Fjordheim on a phone (Claude Code, 2026-10-17)
+
+The owner tried Fjordheim on an Android phone: "The controls needs some update on phone." The screenshot showed the four
+scroll buttons on top of the build bar, which wrapped into four rows. With no cursor, there was no way to see where a
+building would go, and help, speed and pause were keys only.
+
+- **Engine 0.6.1**, for any game:
+  - `Input.held` and `Input.drag`: a finger or mouse button down, and how far it moved since the last step;
+  - `'TapUp'`: a tap let go where it began, so a game that pans by dragging can act on taps without a drag counting as one;
+  - `Input.pointer`: `'mouse'` or `'touch'`, what was used last (it starts as `'touch'` on a phone).
+- **Fjordheim**:
+  - drag to scroll, replacing the arrow buttons;
+  - on a touch screen the first tap on the map shows where the building would stand (outlined green or red, with why
+    not), and a second tap there builds it;
+  - `[>>]` and `[?]` buttons on the top row, `[CANCEL]` while choosing;
+  - the build bar and the info on a framed panel; on a phone its rows sit a row apart and take taps a row around them,
+    and the last row stays clear of the gesture bar;
+  - the title, help and end texts wrap to the screen;
+  - the hills round the map are quieter (a sparse material of their own instead of the scree's `o`).
+- **Tests**: `games/fjordheim/tests/phone.py` plays on an emulated Pixel 7 with real touch events (tap, drag, tap-tap,
+  the buttons). `ui.py` now waits on game steps, not seconds: the headless 2D canvas can take half a second a frame.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

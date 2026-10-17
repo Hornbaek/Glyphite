@@ -200,3 +200,11 @@ way.
   three steps a frame), so `games/fjordheim/tests/ui.py` waits on `frameNo` or on the outcome.
 - **Tiles a multiple of 8 base units.** A 2:1 diamond of T base units is T·RES cells by T·RES/4 rows: whole at every
   detail level only when T is a multiple of 8.
+- **A phone has no cursor.** Whatever a mouse shows by hovering (where a building would go, what is under it) needs a tap
+  of its own on a touch screen: the first tap shows, a second tap on the same spot acts.
+- **Act on release when dragging pans.** A click acted on as it went down would build at the start of every drag; act on
+  `'TapUp'`, and ignore the release of the tap that started the game.
+- **Give fingers room.** A HUD row on a phone is about 11 CSS pixels; the build bar's rows go a row apart and take taps a
+  row around them. Leave the last row free: Android's gesture bar sits over it.
+- **The headless 2D canvas is slow and noisy** (50 to 900 ms a frame here). Time the JavaScript, not the frame, and let
+  tests wait on game steps.
