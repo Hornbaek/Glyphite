@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Fjordheim: a simple player builds a homestead through the build bar and the map clicks; the family must live to the
-second spring. Checks that every building gets built, that the jobs produce, and that winter can be survived.
+"""Fjordheim: a simple player builds a homestead through the BUILD button, the build menu and the map clicks; the family
+must live to the second spring. Checks that every building gets built, that the jobs produce, and that winter can be
+survived.
   python3 games/fjordheim/tests/playthrough.py [renderer]      (needs the build: node tools/glyphite.mjs build fjordheim)
 Prints a line per game day and fails (exit 1) if the family sails home, a building stays unbuilt or the page errors."""
 import sys, json
@@ -11,7 +12,7 @@ PAGE = (ROOT / 'dist/games/fjordheim/index.html').as_uri()
 r = sys.argv[1] if len(sys.argv) > 1 else '2d'
 
 # the player: whenever the next building on the list is affordable, put it at the nearest free spot that suits it, by
-# selecting it in the build bar (select) and clicking the map (tap with a canvas point, as a mouse click would)
+# clicking BUILD, its entry in the build menu and the map (tap with a canvas point, as a mouse click would)
 BOT = r'''(() => {
   const plan = ['longhouse', 'woodcutter', 'fishing', 'field', 'field', 'sawpit', 'rack', 'woodcutter', 'well', 'stabbur', 'smithy'];
   window.__bot = window.__bot || { n: 0 };
@@ -33,7 +34,9 @@ BOT = r'''(() => {
   const t = [best[0] + ((b.w - 1) >> 1), best[1] + ((b.h - 1) >> 1)], p = isoToWorld(t[0] + .5, t[1] + .5);
   centreOn([t[0], t[1], 1, 1]); updateCamera(0, true);
   const aim = [(p[0] - cam.x) / R.cols, (p[1] - cam.y) / (R.rows * ASPECT)];
-  select(type); tap(aim);
+  // click BUILD, then the building's entry in the menu (the HUD as drawn), then the map
+  const button = id => { Glyphite.test.render(); const m = MENU.find(m => m.id === id); return [(m.c0 + m.c1) / 2 / R.hcols, (m.r0 + m.r1 + 1) / 2 / R.hrows]; };
+  tap(button('build')); tap(button(type)); Glyphite.test.render(); tap(aim);
   if (SEL === type) SEL = null;
   const ok = HOME.buildings.some(x => x.type === type && x.i === best[0] && x.j === best[1]);
   if (ok) bot.n++;

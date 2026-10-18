@@ -2,7 +2,7 @@
   "id": "fjordheim",
   "title": "Fjordheim",
   "tagline": "A Viking family's first year by the fjord",
-  "description": "An isometric homestead builder, inspired by Anno 1404 and The Settlers, without any fighting. A family lands on an empty shore in Viking Age Scandinavia: choose what to build (a longhouse, a woodcutter, a fishing hut, barley fields, a sawpit, a storehouse, a well, a smithy) and they do the work themselves. Keep them fed and warm through the first winter, and leave the forest standing: the deer leave if you cut it too thin.",
+  "description": "An isometric homestead builder, inspired by Anno 1404 and The Settlers, without any fighting. A family lands on an empty shore in Viking Age Scandinavia: choose what to build (a longhouse, a woodcutter, a fishing hut, barley fields, a sawpit, a storehouse, a well, a smithy) and they do the work themselves; pause a workplace when its goods are needed elsewhere, or tear it down. Keep them fed and warm through the first winter, and leave the forest standing: the deer leave if you cut it too thin.",
   "order": 4,
   "listed": true,
   "status": "playable",
@@ -17,8 +17,8 @@
   ],
   "controls": [
     [
-      "1-9 or click the bar",
-      "choose a building"
+      "B or BUILD, then a building (or 1-9)",
+      "choose what to build"
     ],
     [
       "click the map",
@@ -27,6 +27,10 @@
     [
       "phone: tap the map, then tap again",
       "see where it goes, then build it"
+    ],
+    [
+      "click or tap a building",
+      "pause its work, or tear it down (half the cost back)"
     ],
     [
       "drag / arrows / WASD / screen edge",

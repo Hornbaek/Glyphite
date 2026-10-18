@@ -17,7 +17,7 @@ function arrive() {   // a newcomer steps off the knarr
   const adults = FOLK.filter(p => p.kind !== 'child');
   const kind = adults.filter(p => p.kind === 'father').length <= adults.filter(p => p.kind === 'mother').length ? 'father' : 'mother';
   const p = newPerson(kind, LANDING[0], LANDING[1]);
-  say(`${p.name.toUpperCase()} HAS COME TO LIVE AT FJORDHEIM`); HOME.arrivals++;
+  news(`${p.name.toUpperCase()} HAS COME TO LIVE AT FJORDHEIM`, HC.green); HOME.arrivals++;
   return p;
 }
 const isAdult = p => p.kind !== 'child';
@@ -57,17 +57,39 @@ function assignJobs() {
   }
   for (const b of HOME.buildings) {
     const def = BUILDINGS[b.type];
-    if (!b.done || !def.job || def.job === 'farmer' || (b.worker && FOLK.includes(b.worker))) continue;
+    if (!b.done || b.paused || !def.job || def.job === 'farmer' || (b.worker && FOLK.includes(b.worker))) continue;
     const p = nearest(free(), b.i, b.j); if (p) setJob(p, { type: def.job, b }), b.worker = p;
   }
-  if (HOME.buildings.some(b => b.type === 'field' && b.done) && !FOLK.some(p => p.job && p.job.type === 'farmer')) {
-    const p = nearest(free(), store()[0], store()[1]); if (p) setJob(p, { type: 'farmer' });
-  }
+  // one farmer while there is a field at work; none once every field is paused or gone
+  const farmer = FOLK.find(p => p.job && p.job.type === 'farmer'), fields = HOME.buildings.some(b => b.type === 'field' && b.done && !b.paused);
+  if (fields && !farmer) { const p = nearest(free(), store()[0], store()[1]); if (p) setJob(p, { type: 'farmer' }); }
+  else if (!fields && farmer) quitJob(farmer);
   for (const p of free()) if (!p.job) setJob(p, rocks.some(r => r.stone > 0) && HOME.stock.stone < 40 ? { type: 'stone' } : { type: 'idle' });
   for (const p of FOLK) if (!isAdult(p) && !p.job) setJob(p, { type: 'berries' });
 }
-function backToWork(p) { const back = p.back; p.back = null; if (back) setJob(p, back); else p.job = null; }
+// back from building to the workplace they left, unless it was paused or torn down meanwhile
+function backToWork(p) {
+  const back = p.back; p.back = null;
+  if (back && (!back.b || (HOME.buildings.includes(back.b) && !back.b.paused))) setJob(p, back); else p.job = null;
+}
 function setJob(p, job) { p.job = job; p.task = 'seek'; p.path = []; p.t = 0; p.carry = null; p.hidden = false; }
+// someone stops their work (the workplace was paused or torn down): what they carry goes into the store, the boat comes in
+function quitJob(p) {
+  if (p.carry) HOME.stock[p.carry === 'log' ? 'wood' : p.carry === 'stone' ? 'stone' : 'food'] += p.carry === 'fish' ? (built('rack').length ? 3 : 2) : 1;
+  BOATS = BOATS.filter(o => o.who !== p);
+  setJob(p, null); p.anim = null; p.mode = null; p.target = null;
+}
+// everyone working at, building or heading for a building lets go of it
+function releaseFrom(o) {
+  for (const p of FOLK) {
+    if (p.back && p.back.b === o) p.back = null;
+    if (!p.job) continue;
+    if (p.job.type === 'build' && p.job.b === o) { p.anim = null; backToWork(p); if (!p.job) setJob(p, null); }
+    else if (p.job.b === o) quitJob(p);
+    else if (p.job.type === 'farmer' && p.target === o) { p.task = 'seek'; p.path = []; p.anim = null; p.target = null; }
+  }
+  o.worker = null; o.builder = null;
+}
 function nearest(list, i, j) { let best = null, bd = 1e9; for (const p of list) { const d = Math.hypot(p.ti - i, p.tj - j); if (d < bd) { bd = d; best = p; } } return best; }
 
 // the nearest tile matching test(i, j) within r of (ci, cj), by straight distance
@@ -124,7 +146,7 @@ function stepPerson(p, dt) {
           p.carry = 'log'; p.task = goBeside(p, b.i, b.j, b.w, b.h) ? 'carry' : 'deliver'; p.doing = 'carrying a log home';
         }
       }
-      if (p.task === 'deliver') { HOME.stock.wood++; p.logs++; p.carry = null; p.task = 'seek'; floatText(p, '+1 WOOD'); }
+      if (p.task === 'deliver') { HOME.stock.wood++; p.logs++; p.carry = null; p.task = 'seek'; floatText(p, '+1 WOOD', 'wood'); }
       return;
     }
     case 'fisher': {
@@ -146,7 +168,7 @@ function stepPerson(p, dt) {
           p.carry = 'fish'; p.task = goBeside(p, b.i, b.j, b.w, b.h) ? 'carry' : 'deliver'; p.doing = 'bringing the catch home';
         }
       }
-      if (p.task === 'deliver') { const n = rack ? 3 : 2; HOME.stock.food += n; p.carry = null; p.task = 'seek'; floatText(p, `+${n} FOOD`); }
+      if (p.task === 'deliver') { const n = rack ? 3 : 2; HOME.stock.food += n; p.carry = null; p.task = 'seek'; floatText(p, `+${n} FOOD`, 'food'); }
       return;
     }
     case 'sawyer': {
@@ -158,7 +180,7 @@ function stepPerson(p, dt) {
         if (HOME.stock.wood <= (HOME.season >= 2 ? 6 : 0)) { p.doing = HOME.season >= 2 ? 'leaving the logs for the fire' : 'waiting for logs'; p.anim = null; return; }
         p.doing = 'sawing planks'; p.anim = 'work';
         if (Math.random() < dt * 5) chips(b.i + 1, b.j + 1, [.9, .8, .6]);
-        if ((p.t += dt * sp) > 6) { p.t = 0; HOME.stock.wood--; HOME.stock.planks++; floatText(p, '+1 PLANK'); }
+        if ((p.t += dt * sp) > 6) { p.t = 0; HOME.stock.wood--; HOME.stock.planks++; floatText(p, '+1 PLANK', 'planks'); }
       }
       return;
     }
@@ -166,7 +188,7 @@ function stepPerson(p, dt) {
       if (p.mode === 'stone') { if (breakStone(p, dt, sp)) p.mode = null; return; }   // between sowing and reaping
       if (p.task === 'seek') {
         const warm = HOME.season < 2;
-        const f = HOME.buildings.find(f => f.type === 'field' && f.done && ((f.stage === 0 && warm) || f.stage === 3));
+        const f = HOME.buildings.find(f => f.type === 'field' && f.done && !f.paused && ((f.stage === 0 && warm) || f.stage === 3));
         if (f && goBeside(p, f.i, f.j, f.w, f.h)) { p.target = f; p.task = 'walk'; p.doing = f.stage === 3 ? 'reaping the barley' : 'sowing barley'; }
         else {
           p.mode = 'stone';
@@ -177,7 +199,7 @@ function stepPerson(p, dt) {
       if (p.task === 'work') {
         const f = p.target; faceTo(p, f.i, f.j); p.anim = f.stage === 3 ? 'reap' : 'work';
         if ((p.t += dt * sp) > (f.stage === 3 ? 5 : 3)) {
-          if (f.stage === 3) { f.stage = 4; HOME.stock.food += TUNE.harvest; floatText(p, `+${TUNE.harvest} FOOD`); Sfx.pickup(); }
+          if (f.stage === 3) { f.stage = 4; HOME.stock.food += TUNE.harvest; floatText(p, `+${TUNE.harvest} FOOD`, 'food'); Sfx.pickup(); }
           else if (f.stage === 0) { f.stage = 1; f.grow = 0; }
           p.anim = null; p.task = 'seek';
         }
@@ -196,7 +218,7 @@ function stepPerson(p, dt) {
         const b = p.target; faceTo(p, b.i, b.j);
         if ((p.t += dt) > 4) { b.berries--; const s = store(); p.carry = 'berries'; p.task = goBeside(p, ...s) ? 'carry' : 'deliver'; p.doing = 'bringing berries home'; }
       }
-      if (p.task === 'deliver') { HOME.stock.food++; p.carry = null; p.task = 'seek'; floatText(p, '+1 FOOD'); }
+      if (p.task === 'deliver') { HOME.stock.food++; p.carry = null; p.task = 'seek'; floatText(p, '+1 FOOD', 'food'); }
       return;
     }
     default:   // idle or playing: stroll about near the home; assignJobs hands out work when there is some
@@ -220,7 +242,7 @@ function breakStone(p, dt, sp) {
       const s = store(); p.carry = 'stone'; p.task = goBeside(p, ...s) ? 'carry' : 'deliver'; p.doing = 'carrying stone';
     }
   }
-  if (p.task === 'deliver') { HOME.stock.stone++; p.carry = null; p.task = 'seek'; floatText(p, '+1 STONE'); return true; }
+  if (p.task === 'deliver') { HOME.stock.stone++; p.carry = null; p.task = 'seek'; floatText(p, '+1 STONE', 'stone'); return true; }
   return false;
 }
 function wait(p, why) { p.doing = why; p.task = 'seekLater'; p.t = 0; }
@@ -230,7 +252,7 @@ function idleNear(p, b, why) {
   if (spot && goTo(p, (i, j) => i === spot[0] && j === spot[1])) { p.task = 'walk'; p.idleWalk = true; } else { p.task = 'rest'; p.t = 0; }
 }
 const nearBuilding = (i, j) => DIRS.some(([a, c]) => thingAt(i + a, j + c) === T_BUILDING || thingAt(i + a, j + c) === T_FIELD);
-function floatText(p, text) { isoToWorld(p.u, p.v, _w); addText(_w[0], _w[1] - 6 * RES, text, [255, 214, 120], 1.4); }
+function floatText(p, text, good) { isoToWorld(p.u, p.v, _w); addText(_w[0], _w[1] - 6 * RES, text, GOODS[good][1], 1.4); }   // in the good's own colour
 
 function stepFolk(dt) {
   for (const p of FOLK) {
@@ -260,9 +282,9 @@ function newAnimals() {
 }
 function stepAnimals(dt) {
   const forest = grownTrees(), need = TUNE.deerForest / 100 * HOME.forest0;
-  if (forest < need && !HOME.deerGone) { HOME.deerGone = true; say('THE DEER HAVE LEFT THE FOREST: let it grow back'); for (const a of ANIMALS) if (a.kind === 'deer') a.leaving = true; }
+  if (forest < need && !HOME.deerGone) { HOME.deerGone = true; news('THE DEER HAVE LEFT THE FOREST: let it grow back', HC.amber); for (const a of ANIMALS) if (a.kind === 'deer') a.leaving = true; }
   if (forest > need + 8 && HOME.deerGone) {
-    HOME.deerGone = false; say('A STAG IS BACK IN THE FOREST');
+    HOME.deerGone = false; news('A STAG IS BACK IN THE FOREST', HC.green);
     const s = nearTile(N - 2, 1, 6, walkable); if (s) ANIMALS.push({ kind: 'deer', u: s[0] + .5, v: s[1] + .5, ti: s[0], tj: s[1], path: [], t: 0, dx: 1, dy: 1, phase: 0 });
   }
   for (const a of ANIMALS) {

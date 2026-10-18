@@ -4,20 +4,22 @@
 // worker (BUILDINGS[...].job), whom the family hands out by itself (folk.js). Every dawn the family eats (an adult one food,
 // the child half) and, in winter, the longhouse burns firewood (wood). Three hungry or cold days in a row and the family
 // gives up and sails home; reach the second spring and the homestead stands.
+// short: what it is for, in the build menu (16 columns at most)
 const BUILDINGS = {
-  longhouse:  { name: 'Longhouse', w: 3, h: 2, cost: { wood: 8, stone: 4 }, work: 22, beds: 6, help: 'home: beds for six and the hearth' },
-  woodcutter: { name: "Woodcutter's hut", w: 2, h: 2, cost: { wood: 4 }, work: 10, job: 'woodcutter', help: 'fells trees nearby, plants new ones' },
-  fishing:    { name: 'Fishing hut', w: 2, h: 2, cost: { wood: 5 }, work: 12, job: 'fisher', shore: true, help: 'rows out for fish; by the water' },
-  field:      { name: 'Barley field', w: 2, h: 2, cost: {}, work: 3, job: 'farmer', help: 'sow in spring and summer, reap when ripe' },
-  sawpit:     { name: 'Sawpit', w: 2, h: 2, cost: { wood: 4, stone: 2 }, work: 12, job: 'sawyer', help: 'saws logs into planks (in autumn and winter it leaves 6 for the fire)' },
-  rack:       { name: 'Drying rack', w: 1, h: 2, cost: { wood: 3 }, work: 6, help: 'fishers bring home half again as much' },
-  stabbur:    { name: 'Storehouse', w: 2, h: 2, cost: { planks: 4, stone: 2 }, work: 14, help: 'keeps food dry: room for 60 more' },
-  well:       { name: 'Well', w: 1, h: 1, cost: { stone: 4 }, work: 8, help: 'fresh water: more newcomers come' },
-  smithy:     { name: 'Smithy', w: 2, h: 2, cost: { planks: 3, stone: 6 }, work: 16, help: 'iron tools: all work a third faster' },
+  longhouse:  { name: 'Longhouse', w: 3, h: 2, cost: { wood: 8, stone: 4 }, work: 22, beds: 6, short: 'home, 6 beds', help: 'home: beds for six and the hearth' },
+  woodcutter: { name: "Woodcutter's hut", w: 2, h: 2, cost: { wood: 4 }, work: 10, job: 'woodcutter', short: 'fells trees', help: 'fells trees nearby, plants new ones' },
+  fishing:    { name: 'Fishing hut', w: 2, h: 2, cost: { wood: 5 }, work: 12, job: 'fisher', shore: true, short: 'fish; by water', help: 'rows out for fish; by the water' },
+  field:      { name: 'Barley field', w: 2, h: 2, cost: {}, work: 3, job: 'farmer', short: 'barley: food', help: 'sow in spring and summer, reap when ripe' },
+  sawpit:     { name: 'Sawpit', w: 2, h: 2, cost: { wood: 4, stone: 2 }, work: 12, job: 'sawyer', short: 'logs to planks', help: 'saws logs into planks (in autumn and winter it leaves 6 for the fire)' },
+  rack:       { name: 'Drying rack', w: 1, h: 2, cost: { wood: 3 }, work: 6, short: 'more fish', help: 'fishers bring home half again as much' },
+  stabbur:    { name: 'Storehouse', w: 2, h: 2, cost: { planks: 4, stone: 2 }, work: 14, short: 'keeps more food', help: 'keeps food dry: room for 60 more' },
+  well:       { name: 'Well', w: 1, h: 1, cost: { stone: 4 }, work: 8, short: 'more newcomers', help: 'fresh water: more newcomers come' },
+  smithy:     { name: 'Smithy', w: 2, h: 2, cost: { planks: 3, stone: 6 }, work: 16, short: 'faster work', help: 'iron tools: all work a third faster' },
 };
 const BUILD_ORDER = ['longhouse', 'woodcutter', 'fishing', 'field', 'sawpit', 'rack', 'stabbur', 'well', 'smithy'];
 const SEASONS = ['SPRING', 'SUMMER', 'AUTUMN', 'WINTER'];
-const GOODS = ['wood', 'planks', 'stone', 'food'];
+// the goods, each with its icon on the HUD: a glyph in a colour of its own (the stock, the costs, what is brought home)
+const GOODS = { wood: ['=', [214, 148, 84]], planks: ['#', [236, 206, 140]], stone: ['@', [172, 184, 198]], food: ['*', [250, 206, 80]] };
 
 let HOME = null;
 function newHomestead() {
@@ -30,12 +32,13 @@ const foodCap = () => 40 + 60 * built('stabbur').length;
 const workSpeed = () => 1 + (built('smithy').length ? 1 / 3 : 0);
 const beds = () => built('longhouse').length * BUILDINGS.longhouse.beds;
 const affordable = type => Object.entries(BUILDINGS[type].cost).every(([g, n]) => HOME.stock[g] >= n);
-const costText = type => Object.entries(BUILDINGS[type].cost).map(([g, n]) => `${n}${g[0].toUpperCase()}`).join(' ') || 'FREE';
+// what is missing for it, in words: "3 more wood, 2 more stone"
+const lacking = type => Object.entries(BUILDINGS[type].cost).filter(([g, n]) => HOME.stock[g] < n).map(([g, n]) => `${n - HOME.stock[g]} more ${g}`).join(', ');
 
 // can a building of this type stand with its top corner on tile (i, j)? → '' or why not
 function placeProblem(type, i, j) {
   const b = BUILDINGS[type];
-  if (!affordable(type)) return `needs ${costText(type)}`;
+  if (!affordable(type)) return `needs ${lacking(type)}`;
   if (type === 'longhouse' && HOME.buildings.some(x => x.type === 'longhouse') && !built('longhouse').length) return 'finish the first longhouse';
   for (let v = j; v < j + b.h; v++) for (let u = i; u < i + b.w; u++) {
     if (!inMap(u, v)) return 'off the map';
@@ -57,20 +60,52 @@ function placeProblem(type, i, j) {
 function placeBuilding(type, i, j) {
   const b = BUILDINGS[type];
   for (const [g, n] of Object.entries(b.cost)) HOME.stock[g] -= n;
-  const o = { type, i, j, w: b.w, h: b.h, progress: 0, done: false, worker: null, builder: null, stage: 0, grow: 0, t: 0 };
+  const o = { type, i, j, w: b.w, h: b.h, progress: 0, done: false, worker: null, builder: null, stage: 0, grow: 0, t: 0, paused: false };
   HOME.buildings.push(o);
-  for (let v = j; v < j + b.h; v++) for (let u = i; u < i + b.w; u++) {
-    const k = tidx(u, v); thing[k] = type === 'field' ? T_FIELD : T_BUILDING; ref[k] = HOME.buildings.length - 1;
-  }
+  markFoot(o, HOME.buildings.length - 1);
   if (type === 'field') isoPaintFoot(o);
   return o;
+}
+// the footprint's tiles point at the building (n: its index in HOME.buildings), or are cleared (n < 0). A stump built
+// over is gone for good: once the building is torn down, a tree planted there is a new one.
+function markFoot(o, n) {
+  for (let v = o.j; v < o.j + o.h; v++) for (let u = o.i; u < o.i + o.w; u++) {
+    const k = tidx(u, v);
+    if (thing[k] === T_STUMP) trees[ref[k]].alive = false;
+    thing[k] = n < 0 ? 0 : o.type === 'field' ? T_FIELD : T_BUILDING; ref[k] = n;
+  }
 }
 function isoPaintFoot(o) { for (let v = o.j; v < o.j + o.h; v++) for (let u = o.i; u < o.i + o.w; u++) isoSetTile(u, v, groundMat(u, v, HOME.season)); }
 function finishBuilding(o) {
   o.done = true; o.progress = 1;
   const b = BUILDINGS[o.type];
   if (o.type === 'field') o.stage = HOME.season < 2 ? 0 : 4;
-  say(`${b.name.toUpperCase()} BUILT: ${b.help}`); Sfx.pickup();
+  news(`${b.name.toUpperCase()} BUILT: ${b.short}`, HC.green); Sfx.pickup();
+}
+const _hw = [0, 0];
+// what tearing it down gives back: all of a building site (nothing is used yet), half of a finished building
+const refund = o => Object.entries(BUILDINGS[o.type].cost).map(([g, n]) => [g, o.done ? Math.ceil(n / 2) : n]);
+function tearDown(o) {
+  const n = HOME.buildings.indexOf(o); if (n < 0) return;
+  const back = refund(o);
+  for (const [g, k] of back) HOME.stock[g] += k;
+  releaseFrom(o);
+  markFoot(o, -1); HOME.buildings.splice(n, 1);
+  HOME.buildings.forEach(markFoot);   // the ones after it moved down the list
+  if (o.type === 'field') isoPaintFoot(o);
+  // a cloud of dust and splinters where it stood
+  for (let k = 0; k < 14 * o.w * o.h; k++) { isoToWorld(o.i + Math.random() * o.w, o.j + Math.random() * o.h, _hw); spawnP(PT_SMOKE, _hw[0], _hw[1] - rr(0, 6) * RES, rr(-4, 4) * RES, rr(-6, -1) * RES, rr(.8, 2), pick('%&o@:'), 0); }
+  for (let k = 0; k < 8; k++) chips(o.i + Math.random() * o.w, o.j + Math.random() * o.h, [.75, .6, .4]);
+  Sfx.thud(6);
+  const got = back.filter(([, k]) => k > 0).map(([g, k]) => `${k} ${g}`).join(', ');
+  news(`${BUILDINGS[o.type].name.toUpperCase()} ${o.done ? 'TORN DOWN' : 'CALLED OFF'}${got ? `: ${got} back` : ''}`, HC.amber);
+}
+// a paused workplace sends its worker off to other work, and nobody takes it up until it is resumed
+function togglePause(o) {
+  o.paused = !o.paused;
+  if (o.paused) releaseFrom(o);
+  news(`${BUILDINGS[o.type].name.toUpperCase()} ${o.paused ? 'PAUSED: its worker turns to other work' : 'AT WORK AGAIN'}`, HC.amber);
+  Sfx.tone(o.paused ? 300 : 520, .08, .05, 'square');
 }
 
 // ---------- time: the day, the seasons, what each dawn costs ----------
@@ -84,7 +119,7 @@ function stepTime(dt) {
 }
 function newSeason() {
   const s = HOME.season;
-  say(s === 3 ? 'WINTER: the longhouse burns 2 wood a night' : `${SEASONS[s]} OF YEAR ${HOME.year}`);
+  news(s === 3 ? 'WINTER: the longhouse burns 2 wood a night' : `${SEASONS[s]} OF YEAR ${HOME.year}`, s === 3 ? HC.amber : HC.gold);
   paintGround(s);
   for (const b of bushes) if (s === 1) b.berries = 3;
   for (const f of HOME.buildings) if (f.type === 'field' && f.done) {
@@ -96,17 +131,17 @@ function newSeason() {
 function dawn() {
   const fed = FOLK.reduce((n, p) => n + (p.kind === 'child' ? .5 : 1), 0);
   if (HOME.stock.food >= fed) { HOME.stock.food -= fed; HOME.hunger = 0; }
-  else { HOME.stock.food = 0; HOME.hunger++; say(HOME.hunger >= 2 ? 'THE FAMILY IS STARVING: fish, berries, barley' : 'THE FAMILY WENT TO BED HUNGRY'); Sfx.alarm(); }
+  else { HOME.stock.food = 0; HOME.hunger++; news(HOME.hunger >= 2 ? 'THE FAMILY IS STARVING: fish, berries, barley' : 'THE FAMILY WENT TO BED HUNGRY', HC.red); Sfx.alarm(); }
   if (HOME.season === 3) {
     const need = 2 * built('longhouse').length;
-    if (!need) { HOME.cold++; say('A WINTER NIGHT WITHOUT A ROOF: build the longhouse'); Sfx.alarm(); }
+    if (!need) { HOME.cold++; news('A WINTER NIGHT WITHOUT A ROOF: build the longhouse', HC.red); Sfx.alarm(); }
     else if (HOME.stock.wood >= need) { HOME.stock.wood -= need; HOME.cold = 0; }
-    else { HOME.stock.wood = 0; HOME.cold++; say(HOME.cold >= 2 ? 'FREEZING: the longhouse needs wood' : 'A COLD NIGHT: no wood for the fire'); Sfx.alarm(); }
+    else { HOME.stock.wood = 0; HOME.cold++; news(HOME.cold >= 2 ? 'FREEZING: the longhouse needs wood' : 'A COLD NIGHT: no wood for the fire', HC.red); Sfx.alarm(); }
   }
   if (HOME.hunger >= 3) lose('THE FAMILY SAILED HOME: there was nothing to eat');
   else if (HOME.cold >= 3) lose('THE FAMILY SAILED HOME: the winter was too cold');
   const cap = foodCap();
-  if (HOME.stock.food > cap) { HOME.spoiled += HOME.stock.food - cap; HOME.stock.food = cap; say('FOOD SPOILED: build a storehouse'); }
+  if (HOME.stock.food > cap) { HOME.spoiled += HOME.stock.food - cap; HOME.stock.food = cap; news('FOOD SPOILED: build a storehouse', HC.amber); }
   growNature();
   // newcomers: when there is a free bed and food to spare, before winter; after the first, only to a homestead with a well
   if (!HOME.ship && FOLK.length < beds() && (HOME.arrivals < 1 || built('well').length) && HOME.stock.food >= 2 * FOLK.length && HOME.season < 3) sendShip();
@@ -146,7 +181,7 @@ function shipLane(u) {
 }
 function sendShip() {
   HOME.ship = { u: N + 6, v: shipLane(N - 1), phase: 'in', t: 0 };
-  say('A KNARR IS COMING IN'); Sfx.tone(330, .5, .08, 'triangle'); Sfx.tone(440, .6, .07, 'triangle', .3);
+  news('A KNARR IS COMING IN', HC.cyan); Sfx.tone(330, .5, .08, 'triangle'); Sfx.tone(440, .6, .07, 'triangle', .3);
 }
 function stepShip(dt) {
   const s = HOME.ship; if (!s) return;

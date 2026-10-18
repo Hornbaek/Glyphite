@@ -118,6 +118,12 @@ Build at least one more small game on the engine to check that it is game-agnost
   - **Pathfinding as an engine helper**: Fjordheim's A* over tiles (`findPath`, eight ways, no corner cutting) is general.
   - **Seasons for materials**: Fjordheim swaps ground albedo and paints snow itself; a material palette per season would
     be a small general feature.
+  - **Pictures on the HUD** (done in 0.6.2: `hudSprite`): the build menu shows each building's own drawing as an icon.
+    Still missing: a HUD cell background colour (icons and resource glyphs sit on black), and a 2D renderer that tints
+    glyphs without a cached sheet per colour (it clears its cache past 96 colours; `hudSprite` rounds colours to stay
+    under it).
+  - **A message feed**: Fjordheim keeps its messages in a list under the top rows (6–10 s each, by length) instead of the
+    engine's one-at-a-time `say()` toast (1.6 s). A `say(text, { time, colour })` that stacks would serve every game.
 
 Each new game should need no engine edits. Every engine edit it forces goes on this roadmap.
 

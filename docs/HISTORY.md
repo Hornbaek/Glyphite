@@ -608,6 +608,32 @@ could come next. Two helpers moved into the repo from the scratch folder:
 
 `docs/TESTING.md` lists the game's tests, and `CLAUDE.md` points to a game's NOTES.md before changing it.
 
+## 28. Pause and tear down; a BUILD menu with pictures; icons for the goods; news that stays (Claude Code, 2026-10-17)
+
+The owner, playing on a phone: "you need to be able to set buildings to destruct ... a building I have active, for example
+the saw pit, I want to be able to deactivate that so I don't use all the wood ... the way I'm selecting buildings, I don't
+want it to look like that. I want it to be small ... a button you open ... small icons and the titles and the resources
+they need. And I want resources to have icons as well ... maybe we can work with colors ... messages that appear should
+stay a little bit longer." Their screenshot showed the build bar filling a fifth of the phone and the toast cut off.
+
+- **A building's panel**: click or tap a building (on its drawing: the roofs rise far above the footprints, so picking by
+  the ground tile missed them) for its picture, how it is doing, `[PAUSE]`/`[RESUME]` and `[TEAR DOWN]`, which asks
+  first. A paused workplace lets its worker go to other work and gets nobody until resumed (a fisher at sea comes in; what
+  anyone carries goes into the store); with every field paused there is no farmer. Tearing down gives back half the cost
+  (all of it for a site: "call off"), frees the tiles, lets go of its people, and the tile grid is re-pointed.
+- **BUILD**: one small button at the bottom left (`B`) opens a menu of the nine buildings, each with its own drawing as a
+  small picture, its name, its cost and what it is for. The placing and the building panel open from the same spot.
+- **Icons for the goods**: a glyph in a colour of its own (`=` wood, `#` planks, `@` stone, `*` food, `&` folk, `^`
+  forest), on the top row, in the costs (red where the stock is short), and in the colour of the "+1 WOOD" over a worker.
+- **The news**: messages stack under the top rows, up to four, each for 6 to 10 s by its length (the toast was 1.6 s and
+  one at a time), and wrap to a phone's width.
+- **Engine 0.6.2**: `hudSprite(spr, c, r, w, { rows, flip, gain })` draws a sprite as a small picture on the HUD, fitted
+  into a box, its colours rounded so the 2D renderer's cache of tinted glyph sheets stays under its 96.
+- **Tests**: `games/fjordheim/tests/manage.py` (pausing, tearing down, the tile grid, picking by the roof, the news);
+  `playthrough.py` builds through BUILD and the menu; `ui.py` and `phone.py` open the menu and call off a site through its
+  panel with real mouse and touch events, and `phone.py` checks the menu's two columns fit 54 columns. The thumbnail is
+  redrawn.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

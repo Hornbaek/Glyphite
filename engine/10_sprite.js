@@ -146,6 +146,28 @@ function sprCells(spr, bx, by, x0, y0, x1, y1, a, sh, fl, lit, emit) {
   }
 }
 
+// the sprite as a small picture on the HUD grid (an icon in a menu, a portrait), fitted into w columns (and o.rows rows,
+// if given) with its top-left on HUD cell (c, r), centred and standing on the box's bottom; returns the rows it takes.
+// o.flip mirrors it, o.gain brightens it (dark art on the HUD's black). Worked out once per size; the art's own colours,
+// unlit, rounded to steps of 32 so the 2D renderer's cache of tinted glyph sheets stays small.
+function hudSprite(spr, c, r, w, o = {}) {
+  if (!SPR_SHAPES) SPR_SHAPES = spriteShapes();
+  const fl = o.flip ? -1 : 1, gain = o.gain || 1, key = `${w}|${o.rows}|${fl}|${gain}`, icons = spr.icons || (spr.icons = new Map());
+  let ic = icons.get(key);
+  if (!ic) {
+    // a copy at the scale that fits the box, its origin at the middle of its bottom edge
+    const s = Math.min(w / spr.w, o.rows ? o.rows * ASPECT / spr.h : 1e9), rows = o.rows || Math.ceil(spr.h * s / ASPECT);
+    const q = v => Math.min(255, Math.round(255 * tone(v * gain) / 32) * 32);
+    ic = { rows, cells: [] };
+    sprCells({ ...spr, k: s / RES, ox: spr.w / 2, oy: spr.h }, w / 2, rows * ASPECT, 0, 0, w - 1, rows - 1, 0, _sprNoShift, fl, false,
+      (cx, cy, g, cr, cg, cb) => ic.cells.push(cx, cy, g, q(cr), q(cg), q(cb)));
+    icons.set(key, ic);
+  }
+  const k = ic.cells;
+  for (let n = 0; n < k.length; n += 6) hudPut(c + k[n], r + k[n + 1], k[n + 2], k[n + 3], k[n + 4], k[n + 5]);
+  return ic.rows;
+}
+
 // cells the sprite covers, for shadows and lighting
 function markSpriteDyn(spr, x, y, a, o = {}) {
   const sh = o.shift || _sprNoShift, [bx, by, x0, y0, x1, y1] = spriteBox(spr, x, y, o), c = Math.cos(a), s = Math.sin(a), fl = o.flip ? -1 : 1; let top = 1e9;

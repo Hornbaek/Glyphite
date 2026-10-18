@@ -81,10 +81,14 @@ Renderer selection (used in every script):
 
 ## Fjordheim (`games/fjordheim/tests/`)
 
-- `playthrough.py`: a bot builds through the real build bar and map clicks and plays a whole year in about 20 s; it must
-  reach the second spring, and a player who builds nothing must lose. Prints a line per game day (stock, folk, jobs).
-- `ui.py`: real mouse events: the view stays put until the mouse moves, edge scrolling, the build bar, placing, right click.
-- `phone.py`: an emulated Pixel 7 with real touch events: drag to scroll, tap twice to build, `[?]` and `[>>]`.
+- `playthrough.py`: a bot builds through the BUILD button, the build menu and map clicks and plays a whole year in about
+  20 s; it must reach the second spring, and a player who builds nothing must lose. Prints a line per game day (stock, folk, jobs).
+- `manage.py`: pausing and tearing down buildings, probed step by step: who works where, what comes back, the tile grid,
+  picking a building by its roof, and how long the news stays.
+- `ui.py`: real mouse events: the view stays put until the mouse moves, edge scrolling, BUILD and the build menu, placing,
+  right click, a building site's panel.
+- `phone.py`: an emulated Pixel 7 with real touch events: drag to scroll, BUILD and the menu (two columns in 54), tap twice
+  to build, a site's panel, `[?]` and `[>>]`.
 - `buildings.py`: every building alone on its outlined footprint, and the knarr, in one sheet (`shots/fj_buildings.png`).
 - `look.py`: screenshots after some play, in GL and 2D.
 They wait on game steps (`frameNo`), not on time: headless frames are slow. See `games/fjordheim/NOTES.md`.
