@@ -86,7 +86,7 @@ function charDefaults() {
     fallMul: 1.6,                     // gravity multiplier while falling, for snappy jumps
     fallMax: 140 * S,                 // terminal fall speed
     coyote: .1, buffer: .12,          // seconds
-    step: Math.max(ASPECT, 1.2 * S),  // highest bump it walks up (units); a row is ASPECT
+    step: Math.max(2, 1.2 * S),      // highest bump it walks up (units)
     wallSlide: 0,                     // > 0: pressing into a wall in the air, it falls no faster than this (units/s)
     wallJump: null,                   // [push away (units/s), height (units)]: jump off walls
     chunks: true                      // falling chunks are solid to it
@@ -124,7 +124,7 @@ class Character {
     return false;
   }
   // push the box out of whatever it overlaps: straight up first, then sideways, then down, up to `reach` units
-  unstick(reach = 3 * ASPECT) {
+  unstick(reach = 6) {
     if (!this.blocked(this.x, this.y)) return true;
     for (let d = .5; d <= reach; d += .5) for (const [dx, dy] of [[0, -d], [-d, 0], [d, 0], [0, d]]) {
       if (!this.blocked(this.x + dx, this.y + dy)) { this.x += dx; this.y += dy; return true; }

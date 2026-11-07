@@ -118,7 +118,7 @@ Apply the diff with `git apply` (if it no longer applies, carry the intent over 
   text uses the engine's pixel font (`tools/pixelfont.py`), printable ASCII only.
 - **One page per game, no runtime dependencies.** A game page makes no external requests at all (no web font).
 - **Units.** Author sizes and speeds in base units × `RES` (`const S = RES`); `UNIT_M = 0.5/RES` m per unit; a
-  cell is 1 unit wide and 2 tall (`ASPECT`). The same world must behave the same at RES 1–3: check physics at
+  cell is a square pixel, 1 unit each way (`ASPECT = 1`). The same world must behave the same at RES 1–3: check physics at
   several detail levels.
 - **Engine vs game.** Engine code never names a game's materials, objects or state; it exposes hooks and
   registries (`engine/API.md`). If a game needs something the engine lacks, add a *general* feature to the

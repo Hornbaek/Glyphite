@@ -32,8 +32,8 @@ function buildDecor(sec) {
     const left = solid(tx - 1, ty), right = solid(tx + 1, ty);
     if (solid(tx, ty - 1) && (left || right) && hash2(tx, ty, 99) < .3) {
       const n = Math.max(2, Math.round(1.6 * S)), x0 = left ? tx * tw : (tx + 1) * tw - 1, d = left ? 1 : -1, y0 = ty * th, web = [.5, .55, .62];
-      for (let k = 0; k < n; k++) { add(x0 + d * k, y0 + Math.floor(k / 2), d > 0 ? '\\' : '/', web); if (k % 2 === 0) add(x0 + d * k, y0, '-', web); }
-      for (let r = 1; r < Math.ceil(n / 2); r++) add(x0, y0 + r, '|', web);
+      for (let k = 0; k < n; k++) { add(x0 + d * k, y0 + Math.floor(k / ASPECT), d > 0 ? '\\' : '/', web); if (k % 2 === 0) add(x0 + d * k, y0, '-', web); }
+      for (let r = 1; r < Math.ceil(n / ASPECT); r++) add(x0, y0 + r, '|', web);
     }
   }
   // red cables sagging in loops under the ceilings, between anchors a few tiles apart

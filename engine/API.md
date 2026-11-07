@@ -13,7 +13,7 @@ feature once) and `games/regolith/` (big, everything).
 
 | Name | Meaning |
 |---|---|
-| `ASPECT = 2` | A cell is 1 unit wide and 2 units tall. World x is in cells; world y in units = `row * ASPECT`. |
+| `ASPECT = 1` | Cells are square: one pixel, 1 unit each way, so a row is one unit. World x is in cells; world y in units = `row * ASPECT` (the constant stays from the ASCII engine, whose cells were 2 units tall; old code that divides by it keeps working). |
 | `RES` | Detail scale, one of `DETAIL_LEVELS = [1, 1.5, 2, 2.5, 3]`. **Author every size and speed in base units and multiply by `RES`** (alias `const S = RES`). A finer RES adds pixels; it does not zoom out. |
 | `UNIT_M = 0.5 / RES` | Metres per world unit. Show speeds to the player as `v * UNIT_M` m/s. |
 | `G` | Gravity in units/s², downward. Set it in m/s² with `setGravity(mps2)` (`GRAVITY` holds the m/s² value; default 1.62, the Moon). |
@@ -327,7 +327,7 @@ isoPick(mouseAim())                                  // the tile [i, j] under a 
 isoOutline(i, j, 2, 2, [.5, 1.6, .6]);               // trace a 2 × 2 footprint in pixels (a cursor, a selection)
 isoDraw([{ u, v, draw() { drawSprite(TREE, x, y, 0, { cache: true }); } }, ...]);   // sorted by u + v, then u
 ```
-A tile is `tile · RES` cells wide and a quarter of that in rows; keep `tile` a multiple of 8 so diamonds have whole cells
+A tile is `tile · RES` cells wide and half of that in rows; keep `tile` a multiple of 8 so diamonds have whole cells
 and rows at every detail level. Give a building's item its footprint's front corner (largest `u + v`) so it covers what
 stands behind it.
 

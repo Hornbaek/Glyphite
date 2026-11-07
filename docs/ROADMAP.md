@@ -16,8 +16,7 @@ could have, to pick from when planning. Move an idea here when it is chosen.
 The owner found ASCII too dark and chose pixel art, keeping every mechanic:
 1. ~~Rename to Pixelite~~ (#23; the domain, Worker, D1 and Access keep the old name for now).
 2. ~~The pixel renderer~~: solid cells, flat shading bands or palettes, the pixel-font HUD, glyph codes kept as brightness.
-3. Square cells (`ASPECT = 1`): the world's rows double; fix every place that assumes 2:1 (sand angles, light splats,
-   blasts, iso diamonds, sprites), keep physics the same at RES 1–3, watch the frame time.
+3. ~~Square cells~~ (`ASPECT = 1`): rows doubled, everything that counted cells fixed, physics the same at RES 1–3.
 4. Pixel sprites with normal maps (lamps model them), and the PIXEL LAB admin page: Pixel Snapper (cleans AI pixel art to a
    true grid and palette) and our own normal-map generator, both also as CLI tools for sessions.
 5. Space Mouse in pixels: art snapped from the original sheets, palettes, normal-mapped characters, pixel decor.

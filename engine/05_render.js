@@ -166,12 +166,12 @@ function renderResize(cssW, cssH) {
   const gl = R.mode === 'gl', dpr = Math.min(gl ? 3 : 2, window.devicePixelRatio || 1), base = cssW < 640 ? 56 : 150;
   // world cell shrinks with detail; never below 4 device px, where a finer grid costs more than it shows
   const cw = Math.max(4, Math.round(cssW / (base * RES) * dpr)), cwCss = cw / dpr;
-  R.dpr = dpr; R.cw = cw; R.chh = cw * 2;
-  R.cols = Math.max(40, Math.floor(cssW / cwCss)); R.rows = Math.max(24, Math.floor(cssH / (cwCss * 2)));
+  R.dpr = dpr; R.cw = cw; R.chh = cw * ASPECT;
+  R.cols = Math.max(40, Math.floor(cssW / cwCss)); R.rows = Math.max(24, Math.floor(cssH / (cwCss * ASPECT)));
   const c = R.canvas;
   c.width = R.cols * cw; c.height = R.rows * R.chh;
-  c.style.width = (R.cols * cwCss) + 'px'; c.style.height = (R.rows * cwCss * 2) + 'px';
-  c.style.left = Math.floor((cssW - R.cols * cwCss) / 2) + 'px'; c.style.top = Math.floor((cssH - R.rows * cwCss * 2) / 2) + 'px';
+  c.style.width = (R.cols * cwCss) + 'px'; c.style.height = (R.rows * cwCss * ASPECT) + 'px';
+  c.style.left = Math.floor((cssW - R.cols * cwCss) / 2) + 'px'; c.style.top = Math.floor((cssH - R.rows * cwCss * ASPECT) / 2) + 'px';
   // the HUD keeps its readable size whatever the detail level: the font scaled by whole pixels to about the size of old
   // terminal text, rounded down on phones so a line still holds as many characters
   const want = Math.max(6, Math.round(clamp(cssW / base, 6, 11) * dpr)) / FONT_W;

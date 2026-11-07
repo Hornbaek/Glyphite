@@ -7,7 +7,7 @@ const FUEL_USE = 22;       // % of the tank per second at full burn
 function startRun() {
   const S = RES, rng = Math.random;
   genSite();
-  SHIP = { x: SITE.x0 + (SITE.x1 - SITE.x0) * (.25 + .5 * rng()), y: 10 * S * ASPECT, vx: 0, vy: 0, fuel: 100, burn: 0, alive: true, reason: '' };
+  SHIP = { x: SITE.x0 + (SITE.x1 - SITE.x0) * (.25 + .5 * rng()), y: 20 * S, vx: 0, vy: 0, fuel: 100, burn: 0, alive: true, reason: '' };
   setState('play'); updateCamera(0, true);
 }
 

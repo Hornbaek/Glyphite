@@ -171,7 +171,7 @@ function chunkMatAt(ch, wx, wy) {
 }
 // a world cell counts as covered if either half of it (cells are 1 x 2 units) falls inside the chunk,
 // so thin posts lying on their side still draw and freeze as solid lines
-function chunkCellMat(ch, cx, cy) { return chunkMatAt(ch, cx + .5, cy * ASPECT + .5) || chunkMatAt(ch, cx + .5, cy * ASPECT + 1.5); }
+function chunkCellMat(ch, cx, cy) { return chunkMatAt(ch, cx + .5, (cy + .5) * ASPECT); }
 function chunkAt(wx, wy) { for (const ch of chunks) if (Math.abs(wx - ch.body.x) < ch.gw + ch.gh * 2 && chunkMatAt(ch, wx, wy)) return ch; return null; }
 function chunkCellBox(ch) {
   const b = ch.body, r = Math.hypot(ch.gw, ch.gh * ASPECT) * .5 + 2;
@@ -273,7 +273,7 @@ function chunkVsBody(ch, lb, onHit) {
     if (!chunkMatAt(ch, px, py)) continue;
     // surface normal from the chunk's own occupancy around the point
     let nx = 0, ny = 0;
-    for (let j = -2; j <= 2; j++) for (let i = -3; i <= 3; i++) if (chunkMatAt(ch, px + i, py + j * ASPECT)) { nx -= i; ny -= j * ASPECT; }
+    for (let j = -4; j <= 4; j++) for (let i = -3; i <= 3; i++) if (chunkMatAt(ch, px + i, py + j)) { nx -= i; ny -= j; }
     const l = Math.hypot(nx, ny); if (l < 1e-6) { nx = px - b.x; ny = py - b.y; } const ll = Math.hypot(nx, ny) || 1; nx /= ll; ny /= ll;
     const qx = px - b.x, qy = py - b.y;
     const vn = (lb.vx - lb.w * ry - (b.vx - b.w * qy)) * nx + (lb.vy + lb.w * rx - (b.vy + b.w * qx)) * ny;
@@ -318,7 +318,7 @@ function blastPush(ch, x, y, R, power) {
     const ex = at(gx - Math.sign(ux), gy) ? 0 : 1, ey = at(gx, gy - Math.sign(uy)) ? 0 : 1;
     if (!ex && !ey) continue;
     const f = power * 40 * S * cell * (1 - d / reach) / Math.max(d, .5);
-    const fx = ex * ux * f, fy = ey * uy * f * .5;     // local frame; a cell's top and bottom are half the size of its sides
+    const fx = ex * ux * f, fy = ey * uy * f / ASPECT;   // local frame; a cell's top and bottom are 1 unit, its sides ASPECT
     jx += fx; jy += fy; tq += lx * fy - ly * fx;
   }
   let dvx = (jx * c - jy * s) / b.m, dvy = (jx * s + jy * c) / b.m;

@@ -101,10 +101,10 @@ function stepParticles(dt) {
           cells[ci] = EMPTY; wakeAt(cx, cy);
           normalAt(nx, ny, _n);
           const rv = .45 * vin;
-          spawnGrain(cx + .5 + _n[0] * .8, cy * ASPECT + 1 + _n[1] * .8 - .5, _n[0] * rv * rr(.4, 1) + rr(-6, 6) * S, _n[1] * rv * rr(.5, 1) - rr(1, 5) * S, m);
+          spawnGrain(cx + .5 + _n[0] * .8, (cy + .5) * ASPECT + _n[1] * .8 - .5, _n[0] * rv * rr(.4, 1) + rr(-6, 6) * S, _n[1] * rv * rr(.5, 1) - rr(1, 5) * S, m);
         } else if (MAT_SUBL[m] && Math.random() < MAT_SUBL[m]) {          // ...and sublimates ice
           cells[ci] = EMPTY; wakeAt(cx, cy);
-          for (let k = 0; k < 3; k++) spawnP(PT_VAPOR, cx + .5, cy * ASPECT + 1, rr(-6, 6) * S, rr(-8, -2) * S, rr(.6, 1.4), pick('~-.'), 0);
+          for (let k = 0; k < 3; k++) spawnP(PT_VAPOR, cx + .5, (cy + .5) * ASPECT, rr(-6, 6) * S, rr(-8, -2) * S, rr(.6, 1.4), pick('~-.'), 0);
         }
         if (heat[ci] < 1) heat[ci] += .012;
         if (Math.random() < .08) spawnP(PT_DUST, X[i], Y[i] - .3, VX[i] * .2 + rr(-8, 8) * S, -rr(2, 9) * S, rr(.6, 1.6), pick(".'`"), m);
@@ -159,12 +159,12 @@ function explode(x, y, R, power, quiet) {
     const dl = Math.max(.5, Math.hypot(ux, uy)), dx = ux / dl, dy = uy / dl;
     const v = power * rr(6, 20) * S * (1.1 - d / R * .6);
     const mb = MATS[m].blast;
-    if (mb) mb(cx + .5, cy * ASPECT + 1, dx * v, dy * v, 'blast');
+    if (mb) mb(cx + .5, (cy + .5) * ASPECT, dx * v, dy * v, 'blast');
     else if (MAT_VAPOR[m]) {
-      for (let k = 0; k < 2; k++) spawnP(PT_VAPOR, cx + .5, cy * ASPECT + 1, dx * v * .6 + rr(-4, 4) * S, dy * v * .6 - 3 * S, rr(.8, 1.8), pick('~-.'), 0);
+      for (let k = 0; k < 2; k++) spawnP(PT_VAPOR, cx + .5, (cy + .5) * ASPECT, dx * v * .6 + rr(-4, 4) * S, dy * v * .6 - 3 * S, rr(.8, 1.8), pick('~-.'), 0);
     } else if (Math.random() < (MAT_GRAN[m] ? .7 : .55)) {
       const om = ejectaOf(m);
-      if (om) spawnGrain(cx + .5, cy * ASPECT + 1, dx * v + rr(-2, 2) * S, dy * v - rr(2, 8) * power * S, om);
+      if (om) spawnGrain(cx + .5, (cy + .5) * ASPECT, dx * v + rr(-2, 2) * S, dy * v - rr(2, 8) * power * S, om);
     }
   }
   // fireball, sparks, soot — denser at finer detail so the cloud stays filled

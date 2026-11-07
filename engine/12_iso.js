@@ -1,9 +1,9 @@
 // ===================== ENGINE · isometric ground: tiles, picking, back-to-front drawing =====================
 // An isometric game lays its ground out as a grid of tiles (i along the edge running down to the right, j along the edge
 // running down to the left), drawn as 2:1 diamonds. A tile is ISO.tw units wide and ISO.th = tw / 2 tall; the default,
-// 8 base units, is 8·RES cells by 2·RES rows: whole cells and rows at every detail level, so diamonds keep their shape.
-// The ground lives in the back wall (backCells): never solid, lit by the scene (sun, ambient, lamps) and textured by each
-// material's glyph ramp. The world grid itself stays empty, so every light reaches the ground and nothing falls. Things
+// 8 base units, is 8·RES cells by 4·RES rows: whole cells and rows at every detail level, so diamonds keep their shape.
+// The ground lives in the back wall (backCells): never solid, lit and shaded by the scene (sun, ambient, lamps) like any
+// material. The world grid itself stays empty, so every light reaches the ground and nothing falls. Things
 // standing on the ground are sprites, drawn back to front (isoDraw) so nearer things cover farther ones.
 //
 //   isoInit(ni, nj, { tile: 8, top: 0, bottom: 0 })   make the world for ni × nj tiles (top / bottom: room in base units
@@ -13,7 +13,7 @@
 //   isoPick(aim)                        the tile [i, j] under a canvas point (Input.aim, mouseAim()), or null
 //   isoGround(fn)                       paint every tile: fn(i, j) → a material id (0 = nothing: the sky shows)
 //   isoSetTile(i, j, m)                 repaint one tile
-//   isoOutline(i, j, a, b, rgb)         trace an a × b footprint's diamond with / \ glyphs (a cursor, a selection)
+//   isoOutline(i, j, a, b, rgb)         trace an a × b footprint's diamond in pixels (a cursor, a selection)
 //   isoDraw(items)                      items [{ u, v, draw() }]: sorted by depth (u + v, then u) and drawn in that order;
 //                                       give a footprint its front corner (largest u + v) so it covers what stands behind it
 const ISO = { ni: 0, nj: 0, tw: 0, th: 0, ox: 0, oy: 0 };

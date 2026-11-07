@@ -10,7 +10,7 @@ function markDyn() {
   return Math.min(top, markLanderDyn(L.body));
 }
 function hasCrystalNear(c) {
-  const cx = Math.floor(c.x), cy = Math.floor(c.y / ASPECT), ri = Math.round(4 * RES), rj = Math.round(2 * RES);
+  const cx = Math.floor(c.x), cy = Math.floor(c.y / ASPECT), ri = Math.round(4 * RES), rj = Math.round(4 * RES / ASPECT);
   for (let j = -rj; j <= rj; j++) for (let i = -ri; i <= ri; i++) if (getC(cx + i, cy + j) === CRYST) return true;
   return false;
 }
@@ -126,7 +126,7 @@ function drawTitle(t) {
 // floating text and pad labels are anchored in the world but drawn on the HUD grid
 function drawWorldLabels() {
   for (const p of LEVEL.pads) {
-    const lx = (p.x0 + p.x1) / 2, ly = (p.postTop - 2) * ASPECT;
+    const lx = (p.x0 + p.x1) / 2, ly = p.postTop * ASPECT - 4;
     if (L && L.alive && Math.abs(L.body.x - lx) < 9 * RES && ly > L.body.y - 8 * RES && ly < L.body.y + 7 * RES) continue;   // don't print over the lander
     worldToHud(lx, ly, _h);
     const s = `x${p.mult}`; hudText(_h[0] - 1, _h[1], s, [242, 178, 76]);
@@ -223,7 +223,7 @@ function drawHUD(t) {
 const EARTH_RAMP = Array.from(' .:-=+*#%@', c => c.charCodeAt(0));
 const _earth = { rx: 0, ry: 0, cx: 0, cy: 0, t: 0 };
 function earthBegin(ox, oy, time) {
-  _earth.rx = clamp(R.RW * .045, 4 * RES, 9 * RES); _earth.ry = _earth.rx / 2;
+  _earth.rx = clamp(R.RW * .045, 4 * RES, 9 * RES); _earth.ry = _earth.rx / ASPECT;
   _earth.cx = R.cols * .76 + (W - R.cols) * .5 * SKY_PAR - ox; _earth.cy = R.rows * .2 + H * .45 * SKY_PAR - oy;
   _earth.t = time | 0;
 }

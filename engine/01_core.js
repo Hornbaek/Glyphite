@@ -1,13 +1,12 @@
 /* =====================================================================
-   PIXELITE — a 2D game engine that only draws printable ASCII (32..126):
-   voxel world + granular sim, particles, rigid bodies, breakable
-   structures, ray-traced light, an 8-bit sound chip. Games are built on
-   top of it (see engine/API.md). Units: 1 base unit = 0.5 m; a character
-   cell is 1 unit wide and 2 units tall.
+   PIXELITE — a 2D pixel-art game engine: voxel world + granular sim,
+   particles, rigid bodies, breakable structures, ray-traced light, an
+   8-bit sound chip. Games are built on top of it (see engine/API.md).
+   Units: 1 base unit = 0.5 m; a cell is one square pixel, 1 unit each way.
    ===================================================================== */
 // ===================== ENGINE · core =====================
-const ASPECT = 2;              // cell height in units
-// Detail: how many character columns stand for one "base unit" (0.5 m).
+const ASPECT = 1;              // cell height in units: cells are square (the ASCII engine's were 2 tall)
+// Detail: how many pixel columns stand for one "base unit" (0.5 m).
 // Everything physical (sizes, speeds, radii) is authored in base units and
 // multiplied by RES, so a finer grid adds detail instead of zooming out.
 const DETAIL_LEVELS = [1, 1.5, 2, 2.5, 3];
@@ -144,7 +143,7 @@ const matU = (xu, yu) => getC(Math.floor(xu), Math.floor(yu / ASPECT));
 
 // surface normal from local occupancy (isotropic units)
 function normalAt(xu, yu, out) {
-  const cx = Math.floor(xu), cy = Math.floor(yu / ASPECT), ri = Math.round(3 * RES), rj = Math.round(2 * RES); let nx = 0, ny = 0;
+  const cx = Math.floor(xu), cy = Math.floor(yu / ASPECT), ri = Math.round(3 * RES), rj = Math.round(4 * RES / ASPECT); let nx = 0, ny = 0;
   for (let j = -rj; j <= rj; j++) for (let i = -ri; i <= ri; i++) if (getC(cx + i, cy + j) !== EMPTY) { nx -= i; ny -= j * ASPECT; }
   const l = Math.hypot(nx, ny);
   if (l < 1e-6) { out[0] = 0; out[1] = -1; } else { out[0] = nx / l; out[1] = ny / l; }
@@ -165,20 +164,21 @@ function simGranular() {
         if (!MAT_GRAN[m]) continue;
         if (cells[row + W + x] === EMPTY) {               // unsupported → ballistic grain
           cells[row + x] = EMPTY; wakeAt(x, y);
-          if (!spawnGrain(x + .5, y * ASPECT + 1, rr(-.3, .3) * RES, 0, m)) { cells[row + W + x] = m; wakeAt(x, y + 1); }
+          if (!spawnGrain(x + .5, (y + .5) * ASPECT, rr(-.3, .3) * RES, 0, m)) { cells[row + W + x] = m; wakeAt(x, y + 1); }
           continue;
         }
         const d = ((x + y + frameNo) & 2) ? 1 : -1;
         for (let s = 0; s < 2; s++) {
           const dd = s ? -d : d, nx = x + dd; if (nx < 0 || nx >= W) continue;
-          if (cells[row + nx] === EMPTY && cells[row + W + nx] === EMPTY) {   // slide down-diagonal
+          // slide down-diagonal while two cells below that side are free: sand rests at about 63°, as steep as it was on the
+          // ASCII engine's cells (two units tall); a slope of 1 in 1 here would be 45° and every pile would slump
+          if (cells[row + nx] === EMPTY && cells[row + W + nx] === EMPTY && (y + 2 >= H || cells[row + 2 * W + nx] === EMPTY)) {
             if (Math.random() < .55) { cells[row + x] = EMPTY; cells[row + W + nx] = m; wakeAt(x, y); wakeAt(nx, y + 1); }
             else awake[ci] = 1;
             break;
           }
-          if (MAT_CREEP[m]) {                                                 // fine dust creeps to ~45°
-            const n2 = x + 2 * dd;
-            if (n2 >= 0 && n2 < W && cells[row + nx] === EMPTY && cells[row + n2] === EMPTY && cells[row + W + n2] === EMPTY) {
+          if (MAT_CREEP[m]) {                                                 // fine dust creeps on down to ~45°
+            if (cells[row + nx] === EMPTY && cells[row + W + nx] === EMPTY) {
               if (Math.random() < .22) { cells[row + x] = EMPTY; cells[row + nx] = m; wakeAt(x, y); wakeAt(nx, y); }
               else awake[ci] = 1;
               break;

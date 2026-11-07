@@ -61,8 +61,10 @@ SKY = """() => {
   for (const gl of [1, 0]) { GAME.starGlare = gl; FX.lights.length = 0; addLight(wx, wy, 30 * RES, [1, .9, .8], 2.2, 5); sky(); o['glare' + gl] = R.sPix[bk * 4]; }
   GAME.starGlare = 1; FX.lights.length = 0; sky(); o.normal = R.sPix[bk * 4];
   FX.flash = .7; sky(); o.flash = R.sPix[bk * 4]; FX.flash = 0;
+  // twinkling only: the eye's exposure is held still, or its easing (the game's own eye adaptation) dims every star a little
+  // from one frame to the next as well
   const series = air => { setAtmosphere(air); const v = []; for (let i = 0; i < 14; i++) { skyKey = ''; draw(1000 + i * .09); v.push(R.sPix[bk * 4]); } return v; };
-  o.vacuum = series(0); o.air = series(1); setAtmosphere(0);
+  const eye = EYE.s; setEyeAdaptation(0); o.vacuum = series(0); o.air = series(1); setAtmosphere(0); setEyeAdaptation(eye);
   Pixelite.test.unfreeze(); return o;
 }"""
 
