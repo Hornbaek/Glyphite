@@ -14,7 +14,9 @@ could have, to pick from when planning. Move an idea here when it is chosen.
 ## Now: the move to pixel art (2026-11-07, HISTORY sections 29 and up)
 
 The owner found ASCII too dark and chose pixel art, keeping every mechanic:
-1. ~~Rename to Pixelite~~ (#23; the domain, Worker, D1 and Access keep the old name for now).
+1. ~~Rename to Pixelite~~ (#23; the Worker, D1 and Access keep the old name). The site also answers on
+   pixelite.hornbaek.org (HISTORY 35). Next, once the owner has signed in there: send glyphite.hornbaek.org to it with a
+   permanent redirect in `worker/index.js` (a sign-in change: the owner first).
 2. ~~The pixel renderer~~: solid cells, flat shading bands or palettes, the pixel-font HUD, glyph codes kept as brightness.
 3. ~~Square cells~~ (`ASPECT = 1`): rows doubled, everything that counted cells fixed, physics the same at RES 1–3.
 4. ~~Pixel sprites with normal maps and the PIXEL LAB~~ (Pixel Snapper and our own normal maps, in the browser and as CLI

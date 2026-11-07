@@ -2,7 +2,7 @@
 
 **Pixelite** is an AI-first pixel-art game engine for the browser: every cell of its world is one pixel, over a real
 simulation of rock, sand and light (it began as Glyphite, an ASCII engine, kept on the branch `glyphite-ascii`). Games are made and changed in Claude Code sessions on this repository, and
-live at **glyphite.hornbaek.org**. Anyone can read the landing page about the engine, watch a live demo and play the test
+live at **glyphite.hornbaek.org** (and **pixelite.hornbaek.org**). Anyone can read the landing page about the engine, watch a live demo and play the test
 games; behind the Cloudflare Access login are the web editor, the idea bank and each game's reference art.
 
 ![Regolith Lander](docs/images/title_screen.png)

@@ -18,8 +18,13 @@
   "main": "worker/index.js",
   "compatibility_date": "2026-10-01",
 
-  // Attached by the deploy itself: the hornbaek.org zone is on the same account.
-  "routes": [{ "pattern": "glyphite.hornbaek.org", "custom_domain": true }],
+  // Attached by the deploy itself: the hornbaek.org zone is on the same account. pixelite.hornbaek.org is the new name
+  // (the engine was renamed); both serve the same site, and the one Access application covers /login on both
+  // (docs/DEPLOY.md, section 6). The deploy fails if another DNS record already holds a hostname here.
+  "routes": [
+    { "pattern": "glyphite.hornbaek.org", "custom_domain": true },
+    { "pattern": "pixelite.hornbaek.org", "custom_domain": true }
+  ],
   // Only the custom domain (behind Access) serves production: no workers.dev or version URLs.
   "workers_dev": false,
   "preview_urls": false,
