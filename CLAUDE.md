@@ -23,17 +23,20 @@ games/<id>/             one folder per game: game.json (manifest), head.html (op
                         thumb.png, plus the game's own tools/, tests/, ref/ (reference art: see the rules), music/, NOTES.md
 templates/starter/      the game `new` copies: small, uses every engine feature once (Cave Drone)
 portal/                 the website: game list (index.html), editor (edit/: tune, code, LEVELS for tile maps), idea bank (ideas/), what's new (whats-new/),
-                        reference art (art/), the public landing page (welcome/), assets/, vendor/codemirror
+                        reference art (art/), the PIXEL LAB (lab/: snap AI art, make normal maps), the public landing page (welcome/), assets/,
+                        vendor/ (codemirror, pixel-snapper)
 worker/                 the Cloudflare Worker: Access login check + static site + idea bank API (ideas.js)
                         wrangler.jsonc: its config (incl. the D1 binding)     migrations/: the D1 schema
 tools/                  pixelite.mjs (CLI: build, new, list, serve), assemble.mjs (page assembler, shared with the
                         editor), ideas.mjs (docs/ideas.json → docs/IDEAS.md), changes.mjs (HISTORY.md → What's new), thumbnail.py
-                        (--auto picks the best frame), sprite2ascii.py +
-                        ascii_preview.py (pixel art → sprites), sheetcheck.py (check an AI art sheet before cutting it)
-tests/                  smoke.py (any game, both renderers), node/ (unit tests: build, editor patches, Access)
+                        (--auto picks the best frame), pixelsprite.py (pixel art → sprites), snap.mjs (Pixel Snapper: AI art
+                        → its true grid; build-snapper.sh rebuilds it), normalmap.mjs (sprite normal maps), pixelfont.py
+                        (the HUD font), sheetcheck.py (check an AI art sheet before cutting it)
+tests/                  smoke.py (any game, both renderers), lab.py (the PIXEL LAB), node/ (unit tests: build, editor
+                        patches, Access, pixel tools)
 docs/                   ARCHITECTURE (how it works), HISTORY, LESSONS, ROADMAP (the plan), IDEAS (the idea bank),
                         TESTING, DEPLOY
-.claude/skills/         pixelite-new-game, pixelite-verify, pixelite-art-prompt (the prompt for an art sheet), pixelite-pixel-art-to-ascii
+.claude/skills/         pixelite-new-game, pixelite-verify, pixelite-art-prompt (the prompt for an art sheet), pixelite-pixel-art
 dist/                   build output = the deployed site (git-ignored)
 ```
 

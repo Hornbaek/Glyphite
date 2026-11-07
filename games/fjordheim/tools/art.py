@@ -8,7 +8,7 @@ Each drawing is cut out of its sheet: every label tools/sheetcheck.py finds is b
 background is keyed out everywhere in the drawing's box (also where the drawing encloses it: between sawyers, under a
 sail), the pink anti-aliased halo along the outline is peeled off, and stray specks are dropped. It is saved at its
 original pixels in ref/frames/ and listed in ref/ref.json and ref/README.md
-(the owner's rule: every original kept, used or not), and the ones the game uses are converted with tools/sprite2ascii.py
+(the owner's rule: every original kept, used or not), and the ones the game uses are converted with tools/pixelsprite.py
 into games/fjordheim/sprites.js. A character's frames share one palette, so it doesn't change colour as it walks. The
 ground tiles are not drawn as sprites: their top colours become the ground materials (FJ_GROUND).
 Boxes are x0, y0, x1, y1 on the sheet, from `python3 tools/sheetcheck.py <sheet> shots/<name>` (padded here by 4 px).
@@ -193,9 +193,9 @@ def save(im, name, sheet, box, use, used):
 
 
 def convert(png, grid, palette=None, colors=10):
-    """run sprite2ascii, return (w, h, pal, rows)"""
+    """run pixelsprite, return (w, h, pal, rows)"""
     with tempfile.TemporaryDirectory() as tmp:
-        cmd = ['python3', str(ROOT / 'tools/sprite2ascii.py'), str(png), '--name', 'cut', '--out', tmp, '--grid', f'{grid[0]}x{grid[1]}']
+        cmd = ['python3', str(ROOT / 'tools/pixelsprite.py'), str(png), '--name', 'cut', '--out', tmp, '--grid', f'{grid[0]}x{grid[1]}']
         cmd += ['--palette', str(palette)] if palette else ['--colors', str(colors)]
         subprocess.run(cmd, check=True, cwd=ROOT, capture_output=True)
         js = Path(tmp, 'cut_sprite.js').read_text()
@@ -268,7 +268,7 @@ def main():
         save(ims[name], name, sheet, box, use, used)
 
     out = ['// ===================== GAME · sprites cut from the art sheets (generated) =====================',
-           "// Made by tools/art.py from the owner's three Gemini sheets in ref/: cut out, converted with tools/sprite2ascii.py.",
+           "// Made by tools/art.py from the owner's three Gemini sheets in ref/: cut out, converted with tools/pixelsprite.py.",
            '// Edit the tool and rerun it, not this file. FJ_ART: name → { w, h, pal, rows, foot } (foot: the row the drawing',
            "// stands on, counted from the top). FJ_GROUND: the ground tiles' top colours, for the ground materials."]
     ground = {n[5:]: top_colour(ims[n]) for n in D if n.startswith('tile_')}

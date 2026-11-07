@@ -17,8 +17,9 @@ The owner found ASCII too dark and chose pixel art, keeping every mechanic:
 1. ~~Rename to Pixelite~~ (#23; the domain, Worker, D1 and Access keep the old name for now).
 2. ~~The pixel renderer~~: solid cells, flat shading bands or palettes, the pixel-font HUD, glyph codes kept as brightness.
 3. ~~Square cells~~ (`ASPECT = 1`): rows doubled, everything that counted cells fixed, physics the same at RES 1–3.
-4. Pixel sprites with normal maps (lamps model them), and the PIXEL LAB admin page: Pixel Snapper (cleans AI pixel art to a
-   true grid and palette) and our own normal-map generator, both also as CLI tools for sessions.
+4. ~~Pixel sprites with normal maps and the PIXEL LAB~~ (Pixel Snapper and our own normal maps, in the browser and as CLI
+   tools). Left: drop the glyph field from the sprite palettes (`pixelsprite.py`, Fjordheim's and Space Mouse's art tools);
+   offer `tools/pixel-snapper.patch` upstream; Moonfell's normal-map tool if the owner sends its source.
 5. Space Mouse in pixels: art snapped from the original sheets, palettes, normal-mapped characters, pixel decor.
 6. Later: Regolith from `lander_ref.png`, Fjordheim's sheets, the starter, showcase and notfound; moving the site to a
    pixelite domain with the owner.

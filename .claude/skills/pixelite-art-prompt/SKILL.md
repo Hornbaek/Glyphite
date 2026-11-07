@@ -1,12 +1,12 @@
 ---
 name: pixelite-art-prompt
-description: Write the prompt the owner pastes into ChatGPT or Gemini to generate a pixel-art sheet for a Pixelite game (characters and their animation frames, buildings, props, nature, animals, vehicles, goods), so the sheet converts into ASCII sprites cleanly the first time. Use when a new game needs art, when the owner asks what art to make or for a prompt for an image model, when a follow-up sheet must match an earlier one, and to check a sheet that came back before converting it.
+description: Write the prompt the owner pastes into ChatGPT or Gemini to generate a pixel-art sheet for a Pixelite game (characters and their animation frames, buildings, props, nature, animals, vehicles, goods), so the sheet converts into clean pixel sprites the first time. Use when a new game needs art, when the owner asks what art to make or for a prompt for an image model, when a follow-up sheet must match an earlier one, and to check a sheet that came back before converting it.
 ---
 
 # Write an art-sheet prompt for a Pixelite game
 
 The owner makes the art in ChatGPT or Gemini from a prompt we write, then gives us the sheet. The
-`pixelite-pixel-art-to-ascii` skill turns it into sprites and keeps every original (CLAUDE.md, "Reference art"). A loose
+`pixelite-pixel-art` skill turns it into sprites and keeps every original (CLAUDE.md, "Reference art"). A loose
 prompt costs hours later: hand-cut labels, tolerances tuned per drawing, palettes remapped between sheets. Every rule
 below fixes something that went wrong on the four Space Mouse sheets (`games/spacemouse/ref/`, `tools/art.py`).
 **Target: the sheet converts with default settings.**
@@ -26,7 +26,7 @@ below fixes something that went wrong on the four Space Mouse sheets (`games/spa
 
   Lamps, particles, sprites and sound still work. Use the isometric lines in the fixed block (section 3).
 - **Leave out what the engine draws itself:**
-  - terrain: rock, soil, sand, snow and ice are materials (`defineMaterial`, glyph ramps), not art;
+  - terrain: rock, soil, sand, snow and ice are materials (`defineMaterial`: shades or a palette), not art;
   - sky, sun, stars, light and shadow;
   - smoke, fire, sparks, dust and blasts;
   - HUD text.
@@ -34,8 +34,9 @@ below fixes something that went wrong on the four Space Mouse sheets (`games/spa
   At most, ask for a row of colour swatches for the game's materials; in isometric, one flat diamond per ground type,
   which also fixes the tile size. There is no water in the engine yet: draw boats without water (and, in isometric,
   water as a ground swatch).
-- **One scale for everything:** the main character's height, A. On screen it is small. 1 m is 2·RES units, and a cell
-  is 1 unit wide and 2 tall, so at RES 2 a 1.8 m person is about 4 rows by 2 cells. So:
+- **One scale for everything:** the main character's height, A. On screen it is small. 1 m is 2·RES units and a pixel
+  is 1 unit, so at RES 2 a 1.8 m person is about 7 pixels tall; sprites look best at one art pixel per world pixel, so
+  draw characters at the pixel size the game will show them (ask the game's NOTES or the session for it). So:
   - people need strong silhouettes and one clear colour per role;
   - detail pays off on big things (buildings, ships, machines).
 - **Draw one way, flip for the other.** `drawSprite(..., { flip: true })` mirrors a sprite.
@@ -87,7 +88,7 @@ FORMAT
 - Under each item, a short label in small plain white text, with a clear gap so it never touches or overlaps the sprite
   above it or the tops of the sprites in the row below.
 
-STYLE (important: a program converts this art into coloured ASCII characters)
+STYLE (important: a program cuts this sheet into pixel-art sprites for a game)
 - True pixel art on a fixed grid: every art pixel is a square block of <2 x 2> image pixels. Flat colours. No
   anti-aliasing, no gradients, no blur, no glow halos, no dithering, no drop shadows.
 <VIEW: the side-view or isometric lines below>
@@ -162,7 +163,7 @@ present, missing, extra, wrong frame count, wrong facing. Then check:
 - no effects, see-through glass or scenery behind characters.
 
 If something is off, the cheapest fix is a reply in the same chat ("the same sheet, but …"); keep both images. Then
-continue with `pixelite-pixel-art-to-ascii`. With a magenta background the flood fill in the cut can use a wide
+continue with `pixelite-pixel-art`. With a magenta background the flood fill in the cut can use a wide
 tolerance (40–60) without eating into dark outlines.
 
 ## Why each rule

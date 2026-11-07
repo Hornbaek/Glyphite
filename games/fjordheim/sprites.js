@@ -1,5 +1,5 @@
 // ===================== GAME · sprites cut from the art sheets (generated) =====================
-// Made by tools/art.py from the owner's three Gemini sheets in ref/: cut out, converted with tools/sprite2ascii.py.
+// Made by tools/art.py from the owner's three Gemini sheets in ref/: cut out, converted with tools/pixelsprite.py.
 // Edit the tool and rerun it, not this file. FJ_ART: name → { w, h, pal, rows, foot } (foot: the row the drawing
 // stands on, counted from the top). FJ_GROUND: the ground tiles' top colours, for the ground materials.
 const FJ_GROUND = {"grass": [106, 136, 68], "soil": [89, 67, 54], "sand": [231, 211, 154], "water": [68, 92, 105], "snow": [236, 245, 248], "meadow": [107, 137, 68]};

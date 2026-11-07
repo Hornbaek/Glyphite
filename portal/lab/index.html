@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pixel lab · Pixelite</title>
+<meta name="description" content="Clean up AI-made pixel art and give sprites normal maps, before they go into a game.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/whatsnew.css">
+<link rel="stylesheet" href="/assets/lab.css">
+</head>
+<body class="lab">
+<header class="ebar">
+  <div class="crumb"><a href="/">PIXELITE</a> / PIXEL LAB</div>
+  <span class="spacer"></span>
+  <a class="btn small" href="/art/">[ ART ]</a>
+  <a class="btn small" href="/">[ GAMES ]</a>
+</header>
+<div class="wrap">
+  <header class="intro">
+    <h1>Pixel lab</h1>
+    <p class="lede">Two tools for getting art into a game. <b>Snap</b> cleans up "pixel art" from an image model: it finds the grid
+      the drawing was meant to have and gives back one pixel per art pixel, in a few colours (Pixel Snapper by Sprite Fusion).
+      <b>Normals</b> gives the clean sprite a normal map, so lamps and the sun in the game light it from the side they are on.
+      Everything runs in this page; nothing is uploaded. When it looks right, copy the prompt for a Claude session, which runs
+      the same tools on the repository's files.</p>
+  </header>
+
+  <section class="step" id="source">
+    <h2><span>1</span> The picture</h2>
+    <div class="row">
+      <label class="btn small file">[ OPEN AN IMAGE ]<input type="file" id="file" accept="image/png,image/jpeg"></label>
+      <span class="or">or a drawing from a game's reference art:</span>
+      <select id="game"><option value="">game…</option></select>
+      <select id="frame" disabled><option value="">drawing…</option></select>
+    </div>
+    <p class="meta" id="srcInfo">Open a PNG or JPEG, or drop one on this page.</p>
+    <div class="pics"><figure><div class="pic" id="srcPic"></div><figcaption>as it is</figcaption></figure></div>
+  </section>
+
+  <section class="step" id="snapStep">
+    <h2><span>2</span> Snap to its grid</h2>
+    <div class="row">
+      <label>Colours <input type="number" id="colors" min="2" max="64" value="16"></label>
+      <label>Pixel size <input type="number" id="pixelSize" min="1" step="0.5" placeholder="auto"></label>
+      <label class="wide">Palette <input type="text" id="palette" placeholder="optional: hex colours, e.g. 0d2b45,203c56,544e68"></label>
+      <button class="btn small" id="snapBtn" disabled>[ SNAP ]</button>
+      <label class="check"><input type="checkbox" id="skipSnap"> already clean: skip</label>
+    </div>
+    <p class="meta">Pixel size is how many image pixels make one art pixel. The guess works on most AI sheets; when the result has
+      far too few or too many pixels, measure one art pixel and type its size.</p>
+    <p class="meta" id="snapInfo"></p>
+    <div class="pics"><figure><div class="pic" id="snapPic"></div><figcaption>snapped <a href="#" id="snapDl" hidden>download PNG</a></figcaption></figure></div>
+  </section>
+
+  <section class="step" id="normalStep">
+    <h2><span>3</span> Normals</h2>
+    <div class="row">
+      <label>Bevel <input type="range" id="bevel" min="0.5" max="6" step="0.5" value="3"> <output for="bevel" id="bevelOut">3</output></label>
+      <label>Detail <input type="range" id="detail" min="0" max="1.5" step="0.05" value="0.8"> <output for="detail" id="detailOut">0.8</output></label>
+      <label>Strength <input type="range" id="strength" min="0.2" max="5" step="0.1" value="2.5"> <output for="strength" id="strengthOut">2.5</output></label>
+      <label class="check"><input type="checkbox" id="smooth" checked> smooth</label>
+      <label class="check"><input type="checkbox" id="flat"> compare flat</label>
+    </div>
+    <p class="meta">Bevel: how far in from the edge the shape rounds off (pixels). Detail: how much light paint stands out and dark
+      lines sink in. Strength: how steep it all is. Move the pointer over the lit picture to move the lamp.</p>
+    <div class="pics">
+      <figure><div class="pic" id="nrmPic"></div><figcaption>normal map <a href="#" id="nrmDl" hidden>download PNG</a></figcaption></figure>
+      <figure><div class="pic lamp" id="litPic"></div><figcaption>lit by a lamp</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" id="handoff">
+    <h2><span>4</span> Into the game</h2>
+    <p class="meta">A Claude session reproduces this from the repository's files with the same tools: copy the prompt (tell it
+      which game and what the sprite is for), or the sprite's <code>normals</code> rows if you paste them in yourself.</p>
+    <div class="row">
+      <button class="btn small" id="copyPrompt" disabled>[ COPY PROMPT ]</button>
+      <button class="btn small" id="copyRows" disabled>[ COPY NORMALS ROWS ]</button>
+      <span class="meta" id="copied" aria-live="polite"></span>
+    </div>
+    <pre id="prompt" class="prompt"></pre>
+  </section>
+</div>
+<script type="module" src="/assets/lab.js"></script>
+</body>
+</html>

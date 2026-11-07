@@ -292,9 +292,9 @@ World cells are `cx = floor(x)`, `cy = floor(y / ASPECT)`. Inside `GAME.draw`:
 - `putLit(cx, cy, code, ar, ag, ab, floor)`: albedo × the scene light at that cell.
 - `slopeGlyph(dx, dy)`: the code of `- \ | /` for a direction (a thin line's brightness).
 
-**Sprites** (pixel art drawn as world pixels; data from `tools/sprite2ascii.py`, see the `pixelite-pixel-art-to-ascii` skill):
+**Sprites** (pixel art drawn as world pixels; data from `tools/pixelsprite.py`, see the `pixelite-pixel-art` skill):
 ```js
-const SHIP = defineSprite(SPRITE_SHIP, { k: .3, ox: 12, oy: 10, part: (c, r) => 0 });
+const SHIP = defineSprite(SPRITE_SHIP, { k: .3, ox: 12, oy: 10, part: (c, r) => 0 });   // SPRITE_SHIP may carry `normals`
 drawSprite(SHIP, b.x, b.y, b.a, { shift: [dx1, dy1], foot: 4 * RES, light: true });   // in GAME.draw
 markSpriteDyn(SHIP, b.x, b.y, b.a, opts);   // in GAME.markDyn (casts shadows); returns the top row
 spriteHull(SHIP, 3)                          // hull points (base units: multiply by RES) for new Body()
@@ -305,7 +305,18 @@ box's bottom; it returns the rows it takes. The art's own colours, unlit; `gain`
 Worked out once per size (see the build menu in `games/fjordheim/main.js`).
 
 Each world cell the sprite covers becomes one pixel in the colour most of the art under it has (cells less than about
-half covered stay clear), so the art is resampled to the world's pixels, turning with the body.
+half covered stay clear), so the art is resampled to the world's pixels, turning with the body. Pixel art looks best at
+one art pixel per world pixel at the game's default detail (`k = 1 / RES`); resize the art rather than `k` (see the skill).
+
+**Normal maps.** A sprite's data may carry `normals: ['..0d..', ...]`, the same size as `rows`: for each pixel, in base 36,
+a direction from `SPR_NORMALS` (33 of them: facing the viewer, then rings tipped 20°, 42° and 65°; `.` where there is no
+pixel). Made from the art by `node tools/normalmap.mjs art.png --rows` or the PIXEL LAB page (`/lab/`). A lit pixel is
+then multiplied by `0.5 + 0.5·sprRelief(n, l)`, where `l` points toward the light there (the sun if it reaches the cell,
+the lamps' own direction, `LDX/LDY`, and a little sky from above): up to ×1.35 facing the light, down to ×0.65 facing away,
+exactly ×1 for a flat pixel or a sprite without normals.
+
+**Cleaning AI art.** `node tools/snap.mjs in.png out.png [--colors 16] [--pixel-size P] [--palette hex,...]` runs Pixel
+Snapper (Sprite Fusion, MIT): it snaps AI-made pixel art to the grid it was meant to have and to a palette.
 `k` = base units per pixel, `(ox, oy)` the origin pixel (centre of mass). `part(c, r)` gives movable parts (1..n)
 their own offset `shift[2p-2], shift[2p-1]`. `foot` snaps that line to a row boundary so feet stand on the ground.
 `flip: true` mirrors it left to right in its own frame (draw characters facing right, flip them to face left). Animation

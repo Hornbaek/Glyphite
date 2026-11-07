@@ -1,12 +1,14 @@
 // ===================== ENGINE · sprites: pixel art in the world =====================
-// A sprite is palette-indexed pixel art, in the format tools/sprite2ascii.py writes:
-//   { w, h, pal: [[r, g, b, ink], ...], rows: ['..01..', ...] }
+// A sprite is palette-indexed pixel art, in the format tools/pixelsprite.py writes:
+//   { w, h, pal: [[r, g, b, ink], ...], rows: ['..01..', ...], normals?: ['..0g..', ...] }
 // '.' is empty; any other character indexes pal in base 36. ink 0 marks an outline colour (a fifth entry, the glyph the
-// ASCII engine used, is ignored).
+// ASCII engine used, is ignored). `normals`, optional, is the sprite's normal map: for each pixel, in base 36, a direction
+// from SPR_NORMALS (made by tools/normalmap.mjs or the PIXEL LAB page), so lamps and the sun model the drawing.
 //
 // Every world cell the sprite covers takes 3 x 3 samples of it in the object's own frame, so the drawing turns with the
 // body. A cell that is mostly covered becomes one pixel in the colour most of its samples land on, lit by the scene; the
-// rest stay clear. Parts (legs, doors, turrets) are looked up with their own offset, so they can slide or open without new art.
+// rest stay clear. Its normal is the average of the samples', turned with the body. Parts (legs, doors, turrets) are looked
+// up with their own offset, so they can slide or open without new art.
 //
 // defineSprite(data, opts) → sprite
 //   k        base units per sprite pixel (its size in the world; RES is applied when drawing)
@@ -22,6 +24,22 @@
 const SPR_S = 3, SPR_FILL = .45;   // samples across a cell (and per unit of its height); the share that must land on the art
 const HUD_ASPECT = FONT_H / FONT_W;   // a HUD cell is twice as tall as wide, unlike the world's square cells
 const _sprNoShift = [];
+// the normal-map directions (x right, y down, z toward the viewer): 0 facing the viewer, 1..12 tipped 20° and 13..24 tipped
+// 42° toward 12 directions, 25..32 tipped 65° toward 8; portal/assets/normalmap-core.mjs builds the same table (a unit test
+// checks they agree)
+const SPR_NORMALS = (() => {
+  const t = [[0, 0, 1]];
+  for (const [tilt, n] of [[20, 12], [42, 12], [65, 8]]) for (let k = 0; k < n; k++) {
+    const a = k * 2 * Math.PI / n, s = Math.sin(tilt * Math.PI / 180);
+    t.push([Math.cos(a) * s, Math.sin(a) * s, Math.cos(tilt * Math.PI / 180)]);
+  }
+  return t;
+})();
+// how much brighter (> 1) or darker a pixel facing n is than a flat one, under light from (lx, ly, lz) (toward the light)
+function sprRelief(nx, ny, nz, lx, ly, lz) {
+  const l = Math.hypot(lx, ly, lz) || 1, d = (nx * lx + ny * ly + nz * lz) / l, flat = lz / l;
+  return Math.min(1.7, Math.max(.3, Math.max(0, d) / Math.max(.25, flat)));
+}
 
 function defineSprite(data, opts = {}) {
   const { w, h, pal, rows } = data, n = w * h;
@@ -35,8 +53,13 @@ function defineSprite(data, opts = {}) {
   }
   // palette in the renderer's light units, so that after tone mapping it shows the sprite's own colours
   const lin = pal.map(([r, g, b]) => [r, g, b].map(v => -Math.log(1 - Math.min(.93, v / 255)) / 1.7));
+  let nrm = null;
+  if (data.normals) {
+    nrm = new Uint8Array(n).fill(255);
+    for (let r = 0; r < h; r++) for (let c = 0; c < w; c++) { const ch = data.normals[r][c]; if (ch !== '.' && ch !== undefined) nrm[r * w + c] = parseInt(ch, 36); }
+  }
   const ox = opts.ox ?? w / 2, oy = opts.oy ?? h / 2;
-  return { w, h, k: opts.k ?? .25, ox, oy, idx, part, parts, lin,
+  return { w, h, k: opts.k ?? .25, ox, oy, idx, part, parts, lin, nrm,
     reach: Math.hypot(Math.max(ox, w - ox), Math.max(oy, h - oy)), hist: new Uint16Array(pal.length) };
 }
 
@@ -62,10 +85,20 @@ function spriteBox(spr, x, y, o) {
 }
 
 const _sprL = [0, 0, 0];
-// one cell of a sprite into the world grid; lit by the scene, but never dark: the art already carries its own shading
-function sprEmit(cx, cy, glyph, r, g, b, lit) {
-  if (lit) { lightAtCell(cx, cy, _sprL); putEmit(cx, cy, glyph, r * (.75 + .4 * Math.min(1.3, _sprL[0])), g * (.75 + .4 * Math.min(1.3, _sprL[1])), b * (.75 + .4 * Math.min(1.3, _sprL[2]))); }
-  else putEmit(cx, cy, glyph, r, g, b);
+// one cell of a sprite into the world grid; lit by the scene, but never dark: the art already carries its own shading. With
+// a normal (nx, ny, nz) it is also brighter where it faces the light there (the sun, the lamps, a little sky from above) and
+// darker where it faces away, by up to about a third.
+function sprEmit(cx, cy, glyph, r, g, b, lit, nx = 0, ny = 0, nz = 1) {
+  if (!lit) { putEmit(cx, cy, glyph, r, g, b); return; }
+  lightAtCell(cx, cy, _sprL);
+  let f = 1;
+  const i = cx - L_OX, j = cy - L_OY;
+  if ((nx || ny) && i >= 0 && j >= 0 && i < R.RW && j < R.RH) {
+    const k = j * R.RW + i, sun = SUN_ON && LSUN[k] ? (SUN_C[0] + SUN_C[1] + SUN_C[2]) / 3 : 0, amb = (AMB_C[0] + AMB_C[1] + AMB_C[2]) / 3;
+    const lamp = Math.hypot(LDX[k], LDY[k]);
+    f = .5 + .5 * sprRelief(nx, ny, nz, LDX[k] - SUN_L[0] * sun, LDY[k] - SUN_L[1] * sun - .5 * amb, .6 * (sun + lamp + amb));
+  }
+  putEmit(cx, cy, glyph, r * f * (.75 + .4 * Math.min(1.3, _sprL[0])), g * f * (.75 + .4 * Math.min(1.3, _sprL[1])), b * f * (.75 + .4 * Math.min(1.3, _sprL[2])));
 }
 function drawSprite(spr, x, y, a, o = {}) {
   const sh = o.shift || _sprNoShift, [bx, by, x0, y0, x1, y1] = spriteBox(spr, x, y, o), fl = o.flip ? -1 : 1, lit = o.light !== false;
@@ -76,26 +109,31 @@ function drawSprite(spr, x, y, a, o = {}) {
     const foot = o.foot || 0, row0 = Math.round((by + foot) / ASPECT), key = `${fl}|${foot}|${RES}`;
     const stamps = spr.stamps || (spr.stamps = new Map());
     let st = stamps.get(key);
-    if (!st) { st = []; sprCells(spr, bx, by, x0, y0, x1, y1, 0, sh, fl, false, (cx, cy, g, r, gg, b) => st.push(cx - bx, cy - row0, g, r, gg, b)); stamps.set(key, st); }
-    for (let k = 0; k < st.length; k += 6) sprEmit(bx + st[k], row0 + st[k + 1], st[k + 2], st[k + 3], st[k + 4], st[k + 5], lit);
+    if (!st) { st = []; sprCells(spr, bx, by, x0, y0, x1, y1, 0, sh, fl, false, (cx, cy, g, r, gg, b, _, nx, ny, nz) => st.push(cx - bx, cy - row0, g, r, gg, b, nx, ny, nz)); stamps.set(key, st); }
+    for (let k = 0; k < st.length; k += 9) sprEmit(bx + st[k], row0 + st[k + 1], st[k + 2], st[k + 3], st[k + 4], st[k + 5], lit, st[k + 6], st[k + 7], st[k + 8]);
     return;
   }
   sprCells(spr, bx, by, x0, y0, x1, y1, a, sh, fl, lit, sprEmit);
 }
 // asp: the cell's height in units (the world's ASPECT, or HUD_ASPECT for a picture on the HUD)
 function sprCells(spr, bx, by, x0, y0, x1, y1, a, sh, fl, lit, emit, asp = ASPECT) {
-  const c = Math.cos(a), s = Math.sin(a), hist = spr.hist, np = hist.length, sy = Math.round(SPR_S * asp), need = SPR_FILL * SPR_S * sy;
+  const c = Math.cos(a), s = Math.sin(a), hist = spr.hist, np = hist.length, sy = Math.round(SPR_S * asp), need = SPR_FILL * SPR_S * sy, nrm = spr.nrm;
   for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {
-    let occ = 0; hist.fill(0);
+    let occ = 0, nx = 0, ny = 0, nz = 0; hist.fill(0);
     for (let j = 0; j < sy; j++) for (let i = 0; i < SPR_S; i++) {
       const wx = cx + (i + .5) / SPR_S - bx, wy = (cy + (j + .5) / sy) * asp - by;
       const px = spritePixel(spr, (wx * c + wy * s) * fl, -wx * s + wy * c, sh);
-      if (px >= 0) { occ++; hist[spr.idx[px]]++; }
+      if (px < 0) continue;
+      occ++; hist[spr.idx[px]]++;
+      if (nrm && nrm[px] !== 255) { const v = SPR_NORMALS[nrm[px]]; nx += v[0]; ny += v[1]; nz += v[2]; }
     }
     if (occ < need) continue;
     let dom = 0; for (let p = 1; p < np; p++) if (hist[p] > hist[dom]) dom = p;
     const q = spr.lin[dom];
-    emit(cx, cy, SOLID, q[0], q[1], q[2], lit);
+    if (nx || ny) {   // the average normal, from the sprite's frame (mirrored, turned) into the world's
+      const l = Math.hypot(nx, ny, nz), fx = nx * fl;
+      emit(cx, cy, SOLID, q[0], q[1], q[2], lit, (c * fx - s * ny) / l, (s * fx + c * ny) / l, nz / l);
+    } else emit(cx, cy, SOLID, q[0], q[1], q[2], lit);
   }
 }
 

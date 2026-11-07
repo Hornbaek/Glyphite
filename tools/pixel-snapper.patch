@@ -1,0 +1,31 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index 92a0dec..a7032e9 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -957,20 +957,17 @@ fn compute_profiles(img: &RgbaImage) -> Result<(Vec<f64>, Vec<f64>)> {
+         }
+     };
+ 
+-    // kernels: [-1, 0, 1]
++    // kernels: [-1, 1], the change from the pixel before to this one, so a boundary scores at the index where the new pixel
++    // starts (the cut position); a centred [-1, 0, 1] scores it equally one pixel early, and cuts then land one pixel short
+     for y in 0..h {
+-        for x in 1..w - 1 {
+-            let left = gray(x - 1, y);
+-            let right = gray(x + 1, y);
+-            let grad = (right - left).abs();
++        for x in 1..w {
++            let grad = (gray(x, y) - gray(x - 1, y)).abs();
+             col_proj[x as usize] += grad;
+         }
+     }
+     for x in 0..w {
+-        for y in 1..h - 1 {
+-            let top = gray(x, y - 1);
+-            let bottom = gray(x, y + 1);
+-            let grad = (bottom - top).abs();
++        for y in 1..h {
++            let grad = (gray(x, y) - gray(x, y - 1)).abs();
+             row_proj[y as usize] += grad;
+         }
+     }

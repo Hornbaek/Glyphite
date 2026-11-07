@@ -1,0 +1,5 @@
+Pixel Snapper by Sprite Fusion (Hugo Duprez), MIT licence (LICENSE): https://github.com/Hugo-Dz/spritefusion-pixel-snapper
+Built to WebAssembly from commit 02f9315 by tools/build-snapper.sh (wasm-bindgen 0.2.105, --target web), with one fix
+(tools/pixel-snapper.patch): edges are measured where a new pixel starts, so cuts no longer land a pixel short.
+It snaps AI-made "pixel art" to the grid it was meant to have and to a palette: process_image(pngBytes, colours?,
+pixelSize?, paletteHex?) → PNG bytes. Used by the PIXEL LAB page (portal/lab/) and tools/snap.mjs.

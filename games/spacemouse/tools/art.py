@@ -5,7 +5,7 @@
   catbot_sheet.png         the cat-bot: patrol walk, alert, chase run, shorted out
   objects_sheet.jpg        the checkpoint (off, on), the great cheese, a ceiling lamp (off, on), the alarm beacon, hatches
 Each drawing is cut out of its sheet: the flat background is flood-filled away from the edges of its box, and stray bits
-(labels, sweat drops, motion lines) are dropped. Each is converted with tools/sprite2ascii.py and written to
+(labels, sweat drops, motion lines) are dropped. Each is converted with tools/pixelsprite.py and written to
 games/spacemouse/sprites.js. The mouse's frames share one palette (tools/mouse_palette.json, and
 tools/mouse_palette_actions.json for the second sheet: the same materials matched against that sheet's colours and drawn
 in the first sheet's, so the suit does not change colour between frames). The cat-bot's frames share a palette made from
@@ -197,9 +197,9 @@ def save(im, name, sheet, box, use, used=True):
 
 
 def convert(png, grid, palette=None, colors=7):
-    """run sprite2ascii, return (w, h, pal, rows)"""
+    """run pixelsprite, return (w, h, pal, rows)"""
     with tempfile.TemporaryDirectory() as tmp:
-        cmd = ['python3', str(ROOT / 'tools/sprite2ascii.py'), str(png), '--name', 'cut', '--out', tmp, '--grid', f'{grid[0]}x{grid[1]}']
+        cmd = ['python3', str(ROOT / 'tools/pixelsprite.py'), str(png), '--name', 'cut', '--out', tmp, '--grid', f'{grid[0]}x{grid[1]}']
         cmd += ['--palette', str(palette)] if palette else ['--colors', str(colors)]
         subprocess.run(cmd, check=True, cwd=ROOT, capture_output=True)
         js = Path(tmp, 'cut_sprite.js').read_text()
@@ -247,7 +247,7 @@ def js_rows(rows, ind='    '):
 
 def main():
     out = ['// ===================== GAME · sprites cut from the art sheets (generated) =====================',
-           '// Made by tools/art.py from the owner\'s art sheets in ref/: cut out, converted with tools/sprite2ascii.py. Edit the',
+           '// Made by tools/art.py from the owner\'s art sheets in ref/: cut out, converted with tools/pixelsprite.py. Edit the',
            '// palettes or the tool and rerun it, not this file.']
 
     # ---- the mouse: six moves from the first sheet, thirteen from the second, one palette
