@@ -62,13 +62,13 @@ with sync_playwright() as p:
     pg.click('#lvTools [data-t="test"]')
     pg.mouse.click(box[0] + 116.5 * z, box[1] + 12.5 * z)
     pg.wait_for_timeout(2500)
-    m = pg.evaluate('() => { const w = document.querySelector("#preview").contentWindow; return w.Glyphite && w.Glyphite.test.probe().game; }')
+    m = pg.evaluate('() => { const w = document.querySelector("#preview").contentWindow; return w.Pixelite && w.Pixelite.test.probe().game; }')
     check('TEST starts the preview on that map at that tile', m and m['sector'] == 1 and abs(m['mouse']['tx'] - 116.5) < 1.5 and m['mouse']['ty'] <= 14.2, m)
     # PLAY THIS MAP on the second map
     if len(names) > 1:
         pg.click('#lvList button[data-i="1"]'); pg.wait_for_timeout(200)
         pg.click('#lvPlay'); pg.wait_for_timeout(2500)
-        m = pg.evaluate('() => document.querySelector("#preview").contentWindow.Glyphite.test.probe().game')
+        m = pg.evaluate('() => document.querySelector("#preview").contentWindow.Pixelite.test.probe().game')
         check('PLAY THIS MAP starts the preview on that map', m and m['sector'] == 2, m)
     # CHECK the first map as it is: it can be finished
     pg.click('#lvList button[data-i="0"]'); pg.wait_for_timeout(200)

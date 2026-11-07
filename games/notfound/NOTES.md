@@ -1,7 +1,7 @@
 # Page Not Found (the 404 game)
 
 Unlisted. `worker/index.js` serves it, with status 404, to a browser that asks for a page that is not there (`GET`, `Accept:
-text/html`, not under `/api/`). It is a normal Glyphite game: `world.js` builds the address as rock, `main.js` is the lander.
+text/html`, not under `/api/`). It is a normal Pixelite game: `world.js` builds the address as rock, `main.js` is the lander.
 
 - **The address.** `missingPath()` takes `location.pathname` (a test or preview can pass `?path=/x`; opened from the game list it
   shows a sample). Only printable ASCII is kept, and a long address becomes `...` plus its last 11 characters. It is drawn with

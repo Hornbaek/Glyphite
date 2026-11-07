@@ -1,6 +1,6 @@
-# Roadmap: the Glyphite engine
+# Roadmap: the Pixelite engine
 
-**Goal (from the user):** "I want this to become a custom made ASCII game engine … called Glyphite",
+**Goal (from the user):** "I want this to become a custom made ASCII game engine … called Glyphite" (renamed Pixelite and moved to pixel art on 2026-11-07, HISTORY section 29),
 "This game engine should work for any 2D game, not just a moon lander game", and (2026-10-15) an
 **AI-first** engine: games are made in Claude Code sessions, listed on glyphite.hornbaek.org behind a
 Cloudflare login, playable and editable there. Regolith Lander stays the reference game.
@@ -23,8 +23,8 @@ could have, to pick from when planning. Move an idea here when it is chosen.
 ## Done (2026-10-15, see HISTORY section 10): phases 1 and 2, most of phase 3
 
 - **Structure.** `engine/` (ordered parts, `engine.json`) and `games/<id>/` (`game.json` manifest); a Node
-  build (`tools/glyphite.mjs`) replaced `build.sh`. The engine no longer reads game globals; games hand it
-  a hook object through `Glyphite.run`. The engine owns the loop, slow motion, detail switching, resize,
+  build (`tools/pixelite.mjs`) replaced `build.sh`. The engine no longer reads game globals; games hand it
+  a hook object through `Pixelite.run`. The engine owns the loop, slow motion, detail switching, resize,
   the slow-device hint, the hot-reload snapshot, the camera (the game gives a target) and built-in keys.
   *Not done, on purpose:* a namespace for every engine name. The flat API stays (fast, short to write,
   documented in `engine/API.md`); the build refuses game names that clash with it instead.
@@ -35,8 +35,8 @@ could have, to pick from when planning. Move an idea here when it is chosen.
 - **Sprites.** `defineSprite` / `drawSprite` / `markSpriteDyn` / `spriteHull` in the engine, reading the
   `sprite2ascii.py` format; parts with their own offsets; the lander renders pixel-identically.
 - **AI-first tooling.** `CLAUDE.md`, `engine/API.md`, the starter game (`templates/starter/`, Cave Drone:
-  no sun, gravity 3, its own materials and sprite), `glyphite new`, the `glyphite-new-game` skill,
-  `Glyphite.test` (start/step/press/freeze/probe), `tests/smoke.py` for any game, `tools/thumbnail.py`,
+  no sun, gravity 3, its own materials and sprite), `pixelite new`, the `pixelite-new-game` skill,
+  `Pixelite.test` (start/step/press/freeze/probe), `tests/smoke.py` for any game, `tools/thumbnail.py`,
   tunables in `game.json`.
 - **Site.** Game list, play pages, the web editor (tune live, edit code with an in-browser rebuild, hand
   edits to Claude as a prompt plus a patch), a Cloudflare Worker with an Access check, CI and deploy.
@@ -52,7 +52,7 @@ Audio batch (0.4.0): thunder delayed by distance (`Sfx.heard`, with an atmospher
 bloom (`Beat`, `setBeatPulse`, material `beatGlow`); Regolith's beat-synced beacons are now the engine's `Beat.blink`.
 
 Site batch: *What's-new page built from HISTORY.md* (`tools/changes.mjs`, `/whats-new/`, UPDATED badges on game cards),
-*A Glyphite micro-game as the 404 page* (`games/notfound`, served by the Worker for missing pages) and *Auto-pick the most
+*A Pixelite micro-game as the 404 page* (`games/notfound`, served by the Worker for missing pages) and *Auto-pick the most
 interesting thumbnail frame* (`tools/thumbnail.py --auto`).
 
 Platformer batch (engine 0.5.0, with the second game, Space Mouse): *Platformer character controller kit* (`Character`:
@@ -97,7 +97,7 @@ Build at least one more small game on the engine to check that it is game-agnost
   - **Moving platforms and lifts** (kinematic chunks that carry characters): a Character stands on a falling chunk but is
     not carried sideways by one.
   - **Back-wall shadows per light**, instead of one fixed direction.
-  - **A walking-game starter**, or a `--kit platformer` option for `glyphite.mjs new`, so the next platformer starts from
+  - **A walking-game starter**, or a `--kit platformer` option for `pixelite.mjs new`, so the next platformer starts from
     Space Mouse's pieces (tile maps, the reach search) rather than the flying starter.
 - a falling-sand sandbox;
 - or a top-down game (gravity 0, no sun);
@@ -129,7 +129,7 @@ Each new game should need no engine edits. Every engine edit it forces goes on t
 
 ## Phase 5: quality and performance
 
-- **Deterministic simulation:** a seeded RNG in the engine (`Glyphite.rand`) for replays and
+- **Deterministic simulation:** a seeded RNG in the engine (`Pixelite.rand`) for replays and
   reliable tests.
 - **Performance:**
   - Profile lighting at RES 3 on large screens.

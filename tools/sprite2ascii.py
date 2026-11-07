@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""sprite2ascii.py - turn a pixel-art image into a palette-indexed sprite for a Glyphite game.
+"""sprite2ascii.py - turn a pixel-art image into a palette-indexed sprite for a Pixelite game.
 
   python3 tools/sprite2ascii.py games/<id>/ref/robot.png --name robot --out games/<id>
                                 [--grid 48x50] [--colors 12] [--palette pal.json] [--outline-lum 45]

@@ -1,8 +1,8 @@
-# Glyphite Showcase: notes
+# Pixelite Showcase: notes
 
 **What it is.** The live engine demo at the top of the public landing page (`portal/welcome/`), unlisted on the game list
 and one of the two places visitors who are not signed in may see (`/games/showcase/`, `worker/index.js` `isPublic`).
-GLYPHITE is spelled in rock on the ground (drawn by the browser into a tiny canvas, every lit pixel a block, as in the 404
+PIXELITE is spelled in rock on the ground (drawn by the browser into a tiny canvas, every lit pixel a block, as in the 404
 game), lit by a low sun and two flickering lamps. Sand pours from two hoppers in turn; meteors fall every few seconds and
 wherever the visitor clicks, and the rock that loses its support breaks off as falling chunks. When less than 30% of the
 word is left (or after 75 s) it is built again.

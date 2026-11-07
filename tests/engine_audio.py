@@ -24,7 +24,7 @@ def check(name, ok, detail=''):
 
 
 SOUND = """() => {
-  Glyphite.test.start(); Glyphite.test.step(3, []); const o = {};
+  Pixelite.test.start(); Pixelite.test.step(3, []); const o = {};
   const real = Sfx.burst, calls = []; Sfx.burst = (...a) => calls.push(a);
   const lx = L.body.x, ly = L.body.y;
   const fire = (dx) => { calls.length = 0; explode(lx + dx, ly, 6 * RES, 1.2); return calls.map(a => ({ at: a[6], vol: a[3], f0: a[1], dur: a[0], f1: a[2], alive: L.alive })); };
@@ -44,7 +44,7 @@ SOUND = """() => {
 }"""
 
 BEAT = """() => {
-  Glyphite.test.start(); Glyphite.test.step(3, []); const o = {};
+  Pixelite.test.start(); Pixelite.test.step(3, []); const o = {};
   o.pulse_off = (setBeatPulse(0), Beat.hit(1), Beat.pulse()); Beat.v = 0;
   setBeatPulse(1); Beat.hit(.6); o.pulse_on = Beat.pulse();
   Beat.t = 10; for (let i = 1; i <= 30; i++) Beat.step(10 + i / 60); o.after_half_second = Beat.v;
@@ -62,7 +62,7 @@ BEAT = """() => {
 }"""
 
 GLOW = """() => {
-  Glyphite.test.start(); setEyeAdaptation(0); TUNE.atmosphere = 0; startSite(1); Glyphite.test.step(3, []); Glyphite.test.freeze(); R.bloom = true;
+  Pixelite.test.start(); setEyeAdaptation(0); TUNE.atmosphere = 0; startSite(1); Pixelite.test.step(3, []); Pixelite.test.freeze(); R.bloom = true;
   const realPlaying = Chip.playing; Chip.playing = false;   // the music (started by the sound checks) would fire real drum hits between frames
   // a view with He-3 veins in it
   let c = -1; for (let i = W * 8; i < W * (H - 8) && c < 0; i++) if (cells[i] === CRYST) c = i;
@@ -76,7 +76,7 @@ GLOW = """() => {
     for (let j = 0; j < R.RH; j++) for (let i = 0; i < R.RW; i++) if (getC(o + i, p + j) === CRYST) { const q = (j * R.RW + i) * 4; sum += R.wPix[q] + R.wPix[q + 1] + R.wPix[q + 2]; n++; }
     return { crystal: n ? sum / n : 0, bloom: bl, n }; };
   const o = { quiet: frame(0, 1), hit: frame(1, 1), hit_but_off: frame(1, 0), half: frame(.5, 1) };
-  setBeatPulse(0); Chip.playing = realPlaying; Glyphite.test.unfreeze(); return o;
+  setBeatPulse(0); Chip.playing = realPlaying; Pixelite.test.unfreeze(); return o;
 }"""
 
 

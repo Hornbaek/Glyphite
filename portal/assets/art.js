@@ -52,7 +52,7 @@ async function main() {
   try { ref = await getJSON(base + 'ref.json'); }
   catch (e) { $('#sheets').innerHTML = `<p class="empty">No reference art for this game (${esc(e.message)}).</p>`; return; }
   const title = (g && g.title) || ref.title || id;
-  document.title = `${title}: reference art · Glyphite`;
+  document.title = `${title}: reference art · Pixelite`;
   $('#title').textContent = `${title}: reference art`;
   $('#crumbGame').textContent = `${title.toUpperCase()} / ART`;
   if (g) { $('#playLink').href = `/games/${encodeURIComponent(id)}/`; $('#editLink').href = `/edit/?game=${encodeURIComponent(id)}`; $('#playLink').hidden = $('#editLink').hidden = false; }

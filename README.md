@@ -1,6 +1,6 @@
-# Glyphite
+# Pixelite
 
-**Glyphite** is an AI-first game engine for the browser that draws everything with the 95 printable ASCII
+**Pixelite** is an AI-first game engine for the browser that draws everything with the 95 printable ASCII
 characters, each in its own colour. Games are made and changed in Claude Code sessions on this repository, and
 live at **glyphite.hornbaek.org**. Anyone can read the landing page about the engine, watch a live demo and play the test
 games; behind the Cloudflare Access login are the web editor, the idea bank and each game's reference art.
@@ -14,7 +14,7 @@ games; behind the Cloudflare Access login are the web editor, the idea bank and 
 | [Regolith Lander](games/regolith/) | Land on the pads at eight lunar sites, blast rock for He-3, bring structures down. The engine's first and reference game. |
 | [Space Mouse](games/spacemouse/) | A platformer: a mouse in a space suit crosses a dark, abandoned station looking for cheese. Eat through cheese, stomp cat-bots, ride a falling gantry, spacewalk in low gravity. The walking reference (engine `Character`, back walls). |
 
-New games start from `templates/starter/` (Cave Drone): `node tools/glyphite.mjs new <id> --title "…"`.
+New games start from `templates/starter/` (Cave Drone): `node tools/pixelite.mjs new <id> --title "…"`.
 
 ## What the engine does
 
@@ -33,7 +33,7 @@ New games start from `templates/starter/` (Cave Drone): `node tools/glyphite.mjs
   (`tools/sprite2ascii.py` converts images).
 - **Chip**: an NES 2A03-style sound chip that plays Standard MIDI Files, plus procedural sound effects.
 - **Made for AI sessions**: one documented API (`engine/API.md`), a starter game, a scaffold command, tunables
-  the web editor exposes, a probe/test API (`Glyphite.test`) and a smoke test that works for any game.
+  the web editor exposes, a probe/test API (`Pixelite.test`) and a smoke test that works for any game.
 
 ## Use it
 
@@ -67,4 +67,4 @@ Every game has an **EDIT** page with three tabs:
   shows the original art its sprites were made from (every image given, every drawing cut from it).
 - [docs/HISTORY.md](docs/HISTORY.md), [docs/LESSONS.md](docs/LESSONS.md), [docs/ROADMAP.md](docs/ROADMAP.md),
   [docs/TESTING.md](docs/TESTING.md).
-- Skills in `.claude/skills/`: `glyphite-new-game`, `glyphite-verify`, `glyphite-pixel-art-to-ascii`.
+- Skills in `.claude/skills/`: `pixelite-new-game`, `pixelite-verify`, `pixelite-pixel-art-to-ascii`.

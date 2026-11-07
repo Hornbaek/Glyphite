@@ -4,7 +4,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 // text from HISTORY.md is escaped first; then `code`, **bold** and *italic* become tags
 const rich = s => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/(^|[\s(])\*([^*\s][^*]*?)\*(?=[\s).,;:]|$)/g, '$1<i>$2</i>');
-const KEY = 'glyphite.whatsnew.seen';
+const KEY = 'glyphite.whatsnew.seen';   // old name kept across the rename to Pixelite
 const store = {
   get() { try { return +localStorage.getItem(KEY) || 0; } catch { return 0; } },
   set(n) { try { localStorage.setItem(KEY, String(n)); } catch { } }

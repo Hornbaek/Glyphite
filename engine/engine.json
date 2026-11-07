@@ -1,6 +1,6 @@
 {
-  "name": "Glyphite",
-  "version": "0.6.2",
+  "name": "Pixelite",
+  "version": "0.7.0",
   "shell": "shell.html",
   "parts": [
     "01_core.js",

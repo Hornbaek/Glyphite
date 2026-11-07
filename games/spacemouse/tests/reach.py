@@ -24,7 +24,7 @@ with sync_playwright() as p:
     errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
     url = PAGE + (('?tune=' + tune) if tune else '') + '#2d'
     pg.goto(url); pg.wait_for_timeout(600)
-    pg.evaluate(f'() => {{ setDetail({res}); Glyphite.test.start(); Glyphite.test.freeze(); }}')
+    pg.evaluate(f'() => {{ setDetail({res}); Pixelite.test.start(); Pixelite.test.freeze(); }}')
     count = pg.evaluate('() => SECTORS.length')
     for n in sectors or range(1, count + 1):
         r = pg.evaluate(SEARCH, n)

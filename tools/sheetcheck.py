@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check an art sheet from ChatGPT or Gemini before cutting it (the glyphite-art-prompt skill, step 5).
+"""Check an art sheet from ChatGPT or Gemini before cutting it (the pixelite-art-prompt skill, step 5).
 
   python3 tools/sheetcheck.py games/<id>/ref/sheet.png shots/sheet
 

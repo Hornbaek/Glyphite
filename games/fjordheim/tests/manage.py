@@ -4,7 +4,7 @@ A paused workplace loses its worker to other work and makes nothing until it is 
 alone); a fisher out in the boat comes in. With every field paused there is no farmer. Tearing down gives back half of
 what a building cost (all of a site), frees its tiles, lets go of whoever worked or built there, and keeps the tile grid
 pointing at the right buildings. A message stays at least six seconds, and longer ones longer.
-  python3 games/fjordheim/tests/manage.py [renderer]      (needs the build: node tools/glyphite.mjs build fjordheim)"""
+  python3 games/fjordheim/tests/manage.py [renderer]      (needs the build: node tools/pixelite.mjs build fjordheim)"""
 import sys
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -18,7 +18,7 @@ def check(ok, what):
 
 # a homestead in summer: the longhouse, a woodcutter, a sawpit, a fishing hut by the water, two fields; four adults
 SETUP = r'''(() => {
-  Glyphite.test.start(); Glyphite.test.freeze();
+  Pixelite.test.start(); Pixelite.test.freeze();
   const L = LANDING; HOME.season = 1; HOME.stock = { wood: 40, planks: 0, stone: 20, food: 60 };
   for (let j = L[1] - 12; j < L[1] + 1; j++) for (let i = L[0] - 8; i < L[0] + 9; i++) if (inMap(i, j)) { const k = tidx(i, j); if (thing[k] === T_ROCK || thing[k] === T_BUSH) { thing[k] = 0; ref[k] = -1; } }
   const put = (t, i, j) => { const o = placeBuilding(t, i, j); finishBuilding(o); return o; };
@@ -27,7 +27,7 @@ SETUP = r'''(() => {
     const d = Math.hypot(i - near[0], j - near[1]); if (gap && d < bd) { bd = d; best = [i, j]; } } return best; };
   for (const t of ['longhouse', 'woodcutter', 'sawpit', 'fishing', 'field', 'field']) put(t, ...spot(t, [L[0], L[1] - 5]));
   newPerson('father', L[0], L[1] - 1); newPerson('mother', L[0] + 1, L[1] - 1);
-  Glyphite.test.step(120);
+  Pixelite.test.step(120);
   return HOME.buildings.map(b => b.type);
 })()'''
 B = "(t => HOME.buildings.find(b => b.type === t))"
@@ -37,10 +37,10 @@ with sync_playwright() as p:
     b = p.chromium.launch(args=['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'])
     pg = b.new_page(viewport={'width': 1280, 'height': 800})
     errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
-    pg.goto(f'{PAGE}#{r}'); pg.wait_for_function('window.Glyphite && Glyphite.test', timeout=20000)
+    pg.goto(f'{PAGE}#{r}'); pg.wait_for_function('window.Pixelite && Pixelite.test', timeout=20000)
     ev = pg.evaluate
     print('built:', ev(SETUP))
-    step = lambda s: ev(f'Glyphite.test.step({int(s * 60)})')
+    step = lambda s: ev(f'Pixelite.test.step({int(s * 60)})')
     check(ev(f"{B}('sawpit').worker !== null && {B}('woodcutter').worker !== null && {B}('fishing').worker !== null && {job('farmer')} === 1"),
           'every workplace has its worker, and there is a farmer')
     # the longhouse's roof rises far above its footprint: pointing at the roof finds the longhouse, not the tile behind it
@@ -109,9 +109,9 @@ with sync_playwright() as p:
     check(ev(f"thingAt({f[0]}, {f[1]}) === 0 && groundMat({f[0]}, {f[1]}, HOME.season) !== GROUND_MAT[G_SOIL]"), 'a field torn down is grass again')
 
     # through the building's panel: two presses of [TEAR DOWN]
-    ev(f"pickBuilding({B}('fishing')); Glyphite.test.render()")
+    ev(f"pickBuilding({B}('fishing')); Pixelite.test.render()")
     check(ev("MENU.some(m => m.id === 'pause') && MENU.some(m => m.id === 'raze')"), 'the panel has [PAUSE] and [TEAR DOWN]')
-    ev("MENU.find(m => m.id === 'raze').act(); Glyphite.test.render()")
+    ev("MENU.find(m => m.id === 'raze').act(); Pixelite.test.render()")
     check(ev(f"RAZE === {B}('fishing') && !!{B}('fishing')"), 'the first press only asks')
     ev("MENU.find(m => m.id === 'raze').act()")
     check(ev(f"!{B}('fishing') && PICK === null"), 'the second tears it down and closes the panel')

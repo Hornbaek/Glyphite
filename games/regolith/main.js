@@ -51,7 +51,7 @@ function regolithRegenerate() {
   else { spawnLander(); setState('play'); }
 }
 
-Glyphite.run({
+Pixelite.run({
   id: 'regolith',
   detail: { default: 2, narrow: 1.5 },
   touch: [

@@ -1,14 +1,14 @@
 # Architecture
 
-Glyphite renders a 2D world as a grid of character cells, each with one printable ASCII glyph
+Pixelite renders a 2D world as a grid of character cells, each with one printable ASCII glyph
 (32–126) and one RGB colour. Everything is plain JavaScript in one HTML page per game. The engine lives
 in numbered parts under `engine/` (order in `engine/engine.json`); each game lives in `games/<id>/` with a
-`game.json` manifest listing its parts. The build (`tools/glyphite.mjs`, using `tools/assemble.mjs`)
+`game.json` manifest listing its parts. The build (`tools/pixelite.mjs`, using `tools/assemble.mjs`)
 concatenates the engine parts and then the game's parts into one `<script>`, so all top-level
 declarations share one global scope. Function declarations are hoisted, so a later part can be called
 from an earlier one at run time.
 
-The engine never reads a game's globals. Games hand it a hook object (`Glyphite.run`, section 12) and
+The engine never reads a game's globals. Games hand it a hook object (`Pixelite.run`, section 12) and
 fill its registries: materials, particle types, sprites and mounts. The public API is `engine/API.md`;
 this file explains how the parts work inside. Sections 11 and 13 describe Regolith Lander, the reference
 game, as an example of a full game on the engine.
@@ -345,7 +345,7 @@ costs about 1 ms at RES 2.
 
 ## 8. Sprites (`engine/10_sprite.js`)
 
-Pixel art becomes a palette-indexed grid; see the `glyphite-pixel-art-to-ascii` skill and
+Pixel art becomes a palette-indexed grid; see the `pixelite-pixel-art-to-ascii` skill and
 `tools/sprite2ascii.py`. `defineSprite(data, { k, ox, oy, part, paint })` prepares it and
 `drawSprite(spr, x, y, a, { shift, foot, light })` draws it as ASCII (Regolith's lander:
 `games/regolith/lander_art.js`):
@@ -499,7 +499,7 @@ on the title screen and leads the lander in flight. `afterFrame` runs the music 
 
 ## 12. Runtime: loop, camera, detail, boot (`engine/11_loop.js`)
 
-`Glyphite.run(game)` stores the hook object as `GAME` and boots:
+`Pixelite.run(game)` stores the hook object as `GAME` and boots:
 - `boot()`: renderer, resize observer, detail (hot-reload data, `localStorage` `<id>.detail`, or screen
   width), input and touch buttons, `#detailBtn` if the page has one, `GAME.init(data)`, the font
   reload, and the `window.claude.hot` snapshot (hot reload in claude.ai artifacts; harmless elsewhere).
@@ -515,9 +515,9 @@ on the title screen and leads the lander in flight. `afterFrame` runs the music 
 - `state` / `stateT` / `setState`: the game's state machine lives in engine globals; `'paused'` stops
   time and `'title'` shows the title bar.
 - **Tunables** (`TUNE`): loaded from the manifest's tunables (the build embeds `GAME_MANIFEST`), then
-  overridden by `window.GLYPHITE_TUNE` and `?tune=` in the URL; `glyphite:tune` messages from the parent
+  overridden by `window.PIXELITE_TUNE` and `?tune=` in the URL; `pixelite:tune` messages from the parent
   page (the editor) change them live and call `GAME.onTune`.
-- `Glyphite.test`: `start`, `step(n, keys)`, `press`, `freeze`/`unfreeze`, `render`, `probe`.
+- `Pixelite.test`: `start`, `step(n, keys)`, `press`, `freeze`/`unfreeze`, `render`, `probe`.
 
 ## 13. Build, site and deployment
 
@@ -525,10 +525,10 @@ on the title screen and leads the lander in flight. `afterFrame` runs the music 
 running world: it finds each `String.raw` map with a regular expression, edits a copy of its rows, and writes the whole file
 back as a draft (the drafts the CODE tab uses, in localStorage), so rebuilding the preview, the CODE view and the patch all
 follow without any new storage. To play or check a map it sets a pending message, rebuilds the preview, and sends the message
-when the page posts `glyphite:ready`; checks are answered with `glyphite:levelcheck`. The preview is a same-origin `srcdoc`
+when the page posts `pixelite:ready`; checks are answered with `pixelite:levelcheck`. The preview is a same-origin `srcdoc`
 iframe, so a check runs on the editor's thread: the page waits for it (a second or two).
 
-`node tools/glyphite.mjs build` (also `npm run build`):
+`node tools/pixelite.mjs build` (also `npm run build`):
 1. Reads `engine/engine.json` and every `games/*/game.json` (and `templates/*`, built unlisted so they
    stay tested), and validates the manifests.
 2. Refuses game top-level names that repeat an engine name (the shared scope would let a game

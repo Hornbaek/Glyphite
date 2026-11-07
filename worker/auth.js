@@ -90,7 +90,7 @@ export async function requireUser(request, env, deps = {}) {
   const claims = await verifyAccessToken(token, team, aud, deps.fetchKeys);
   if (!claims) throw new AuthError(401, 'Your sign-in is not valid. Please sign in again.');
   const allowed = String(env.ALLOWED_EMAILS || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
-  if (allowed.length && !allowed.includes(String(claims.email || '').toLowerCase())) throw new AuthError(403, 'This account may not use Glyphite.');
+  if (allowed.length && !allowed.includes(String(claims.email || '').toLowerCase())) throw new AuthError(403, 'This account may not use Pixelite.');
   return { email: claims.email || '' };
 }
 

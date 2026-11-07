@@ -39,7 +39,7 @@ export async function handleIdeas(request, env, user) {
   if (id !== null && request.method === 'PUT') {
     // a custom header cannot be sent cross-site without a CORS preflight (this API sends no CORS headers),
     // so a page on another origin cannot change the Access-signed-in user's ideas
-    if (request.headers.get('X-Glyphite') !== '1') return reply(403, { error: 'Missing X-Glyphite header.' });
+    if (request.headers.get('X-Pixelite') !== '1') return reply(403, { error: 'Missing X-Pixelite header.' });
     if (!ID.test(id)) return reply(400, { error: 'Bad idea id.' });
     const text = await request.text();
     if (text.length > 4096) return reply(413, { error: 'Request too large.' });

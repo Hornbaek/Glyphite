@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  // The Glyphite site at https://glyphite.hornbaek.org: a Worker with static assets. Cloudflare serves
+  // The Pixelite site at https://glyphite.hornbaek.org: a Worker with static assets. Cloudflare serves
   // the built dist/ (the game list, the games, the editor), and worker/index.js runs first on every
   // request to check the Cloudflare Access sign-in (worker/auth.js): only the landing page (/welcome/, shown at / to
   // visitors who are not signed in) and its live demo (/games/showcase/) are served without it (docs/DEPLOY.md).

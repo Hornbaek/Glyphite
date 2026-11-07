@@ -26,7 +26,8 @@ go to `shots/` (created on demand; not committed).
 ```sh
 npm ci                             # wrangler (the only dependency, for the Worker)
 pip install playwright==1.56.0 pillow numpy
-python -m playwright install chromium   # not needed in Claude Code cloud sessions: Chromium is preinstalled for 1.56
+python -m playwright install chromium   # not in Claude Code cloud sessions: install the Playwright version that matches the
+                                        # preinstalled Chromium instead (see CLAUDE.md; 1.63.0 in November 2026)
 npm run build                      # must print SYNTAX_OK
 ```
 
@@ -39,11 +40,11 @@ Renderer selection (used in every script):
 
 ## Techniques used throughout
 
-- **Synchronous stepping.** Inside `page.evaluate`, call `Glyphite.test.start()` (or the game's own setup,
-  e.g. Regolith's `startSite(n)` and `L.body` position and velocity), then `Glyphite.test.step(n, keys)` or
+- **Synchronous stepping.** Inside `page.evaluate`, call `Pixelite.test.start()` (or the game's own setup,
+  e.g. Regolith's `startSite(n)` and `L.body` position and velocity), then `Pixelite.test.step(n, keys)` or
   loop `update(DT)`. This is fast and avoids slow headless frames.
-- **Freeze for screenshots.** `Glyphite.test.freeze()` (it saves `window.update` and replaces it), take the
-  screenshot, `Glyphite.test.unfreeze()`. Don't pause: it draws a PAUSED box.
+- **Freeze for screenshots.** `Pixelite.test.freeze()` (it saves `window.update` and replaces it), take the
+  screenshot, `Pixelite.test.unfreeze()`. Don't pause: it draws a PAUSED box.
 - **Engine globals:** `state`, `stateT`, `cam`, `R` (renderer: `cols`, `rows`, `cw`, `chh`, `dpr`, `mode`), `RES`,
   `UNIT_M`, `ASPECT`, `DT`, `TUNE`, `chunks`, `P`, `setDetail(r)`, `explode(x, y, R, power)`, `blastFrom(vx, vy)`,
   `getC(x, y)`, `update`, `draw`. Regolith adds `L` (lander: `body`, `legs`, `touchV`, `reason`), `LEVEL`

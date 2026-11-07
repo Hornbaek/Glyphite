@@ -11,7 +11,7 @@ import { assemble, lineMap } from '../../tools/assemble.mjs';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const DIST = join(ROOT, 'dist');
 const read = p => readFileSync(join(ROOT, p), 'utf8');
-execFileSync(process.execPath, [join(ROOT, 'tools/glyphite.mjs'), 'build'], { cwd: ROOT, stdio: 'pipe' });
+execFileSync(process.execPath, [join(ROOT, 'tools/pixelite.mjs'), 'build'], { cwd: ROOT, stdio: 'pipe' });
 const listing = JSON.parse(readFileSync(join(DIST, 'games.json'), 'utf8'));
 
 test('every game builds into a page and is listed', () => {

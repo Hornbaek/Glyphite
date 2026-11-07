@@ -74,7 +74,7 @@ function gameHud(t) {
   if (state === 'landed' && stateT > .8) msgBox([['404', HC.green], ['PAGE NOT FOUND', HC.txt], [SITE.text, HC.gold], ['', HC.txt], [SHIP.reason, HC.dim], ['', HC.txt], [stateT > 1.2 ? '[ ENTER / TAP ]  AGAIN' : '', HC.amber]]);
 }
 
-Glyphite.run({
+Pixelite.run({
   id: 'notfound',
   touch: [
     [{ label: '[ < ]', aria: 'Drift left', hold: 'left' }, { label: '[ > ]', aria: 'Drift right', hold: 'right' }],

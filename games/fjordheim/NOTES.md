@@ -16,13 +16,13 @@ how to ship), then this file; the engine side is `engine/API.md` ("Isometric map
 | `art.js` | `FJ`: the drawings as engine sprites, sized (`HEIGHT`, footprints) and anchored (`onFoot`); walk frames |
 | `homestead.js` | `BUILDINGS` and their costs, `GOODS` (each good's icon), the stock, placing, finishing, pausing and tearing down, the day, seasons and what each dawn costs, nature growing back, fields, the knarr |
 | `folk.js` | the family: who does what (`assignJobs`), each job step by step (`stepPerson`, `breakStone`), leaving a paused or torn-down workplace (`quitJob`, `releaseFrom`), newcomers; sheep, deer, ravens |
-| `main.js` | the camera, mouse and touch (`tap`, `hoverAt`, `ghostFoot`, `PEND`), one step (`gameUpdate`), the news (`news`), light, drawing back to front (`gameDraw`), the HUD (the BUILD button, the build menu, the placing and building panels), `Glyphite.run` |
+| `main.js` | the camera, mouse and touch (`tap`, `hoverAt`, `ghostFoot`, `PEND`), one step (`gameUpdate`), the news (`news`), light, drawing back to front (`gameDraw`), the HUD (the BUILD button, the build menu, the placing and building panels), `Pixelite.run` |
 | `tools/art.py` | cuts the sheets in `ref/` into `ref/frames/` and `sprites.js` (see Art) |
 | `tools/thumb_scene.js` | the scene for the game list's thumbnail |
 
 **Commands** (from the repo root):
 ```sh
-node tools/glyphite.mjs build fjordheim             # → dist/games/fjordheim/index.html, prints SYNTAX_OK
+node tools/pixelite.mjs build fjordheim             # → dist/games/fjordheim/index.html, prints SYNTAX_OK
 python3 games/fjordheim/tests/playthrough.py        # a bot plays the year through BUILD and the menu (about 20 s):
                                                     # it must win; a player who builds nothing must lose
 python3 games/fjordheim/tests/manage.py             # pausing and tearing down (who works where, what comes back), the news
@@ -34,11 +34,11 @@ python3 tests/smoke.py fjordheim                    # the shared smoke test, 2D 
 python3 games/fjordheim/tools/art.py                # after changing a cut box: frames, sprites.js, ref.json
 python3 tools/thumbnail.py fjordheim --play --eval "$(cat games/fjordheim/tools/thumb_scene.js)" --steps 60
 ```
-**Probing** in a page (`page.evaluate`): `Glyphite.test.start(); Glyphite.test.freeze()`, then
-`Glyphite.test.step(60)` steps a game second and returns the probe (season, day, stock, everyone's job, the buildings,
+**Probing** in a page (`page.evaluate`): `Pixelite.test.start(); Pixelite.test.freeze()`, then
+`Pixelite.test.step(60)` steps a game second and returns the probe (season, day, stock, everyone's job, the buildings,
 trees, hunger, cold, won, lost). Everything is a global: `HOME` (stock, buildings, time), `FOLK`, `BUILDINGS`,
 `placeBuilding(type, i, j)` then `finishBuilding(o)`, `togglePause(o)`, `tearDown(o)`, `select(type)`, `tap(aim)`,
-`centreOn([i, j, w, h])`, `isoToWorld`. The HUD's buttons are in `MENU` after a frame (`Glyphite.test.render()`), each
+`centreOn([i, j, w, h])`, `isoToWorld`. The HUD's buttons are in `MENU` after a frame (`Pixelite.test.render()`), each
 `{ id, c0, c1, r0, r1, act }` in HUD cells: the BUILD button is `'build'`, menu entries the building types, a building's
 panel `'pause'`, `'raze'` and `'close'`.
 Headless frames are slow (the 2D canvas up to a second): wait on game steps (`frameNo`), never on wall time.

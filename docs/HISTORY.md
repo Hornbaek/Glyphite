@@ -634,6 +634,27 @@ stay a little bit longer." Their screenshot showed the build bar filling a fifth
   panel with real mouse and touch events, and `phone.py` checks the menu's two columns fit 54 columns. The thumbnail is
   redrawn.
 
+## 29. Glyphite becomes Pixelite; the ASCII version is kept (Claude Code, 2026-11-07)
+
+> "I'm okay with changing the name to Pixelite. I mean, we can just save it, you know, as an old branch in this in the
+> repo. ... we will convert it completely to pixel art instead, because I don't think it works that well with ASCII as the
+> graphical interface. So yeah, let's do that and keep all the mechanics."
+
+The owner found the ASCII look too dark (a glyph covers only part of its black cell, so even bright colours read dim) and
+chose to move the engine to pixel art under the name **Pixelite**, keeping every mechanic. The plan, in five pull requests:
+this rename; a pixel renderer (solid cells, dithered shading, a bitmap HUD font) with the glyph APIs kept as hints so no game
+breaks; square cells (`ASPECT = 1`); pixel sprites with normal maps and a PIXEL LAB admin page (Pixel Snapper for cleaning
+AI art, our own normal-map generator); Space Mouse converted fully. See `docs/ROADMAP.md`.
+
+- **The ASCII version is kept** on the branch `glyphite-ascii` (the last commit of Glyphite 0.6.2).
+- **Renamed in code and docs**: the global `Glyphite` is now `Pixelite` (`Pixelite.run`, `Pixelite.test`), the CLI is
+  `tools/pixelite.mjs`, the skills are `pixelite-*`, the editor's messages are `pixelite:*`, the idea bank's header is
+  `X-Pixelite`, and the site, the landing page, the showcase word and the logo say PIXELITE. Engine 0.7.0.
+- **Kept on purpose**: the domain glyphite.hornbaek.org, the Worker and D1 database names (`glyphite`), the Access app, the
+  GitHub repository, the idea ids (they key the D1 rows) and the browser storage keys (so drafts, saves and "seen" marks
+  survive). Moving the domain is a later step with the owner. Older entries in this file keep the old name.
+- The Python Playwright for cloud sessions now has to match the preinstalled Chromium, 1.63.0 (CLAUDE.md says how to check).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

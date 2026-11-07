@@ -23,7 +23,7 @@ def check(name, ok, detail=''):
         failures.append(name)
 
 
-FALL = "() => { let t = 0; while (state === 'play' && t < 40) { Glyphite.test.step(1, []); t += DT; } return { t, state, probe: GAME.probe() }; }"
+FALL = "() => { let t = 0; while (state === 'play' && t < 40) { Pixelite.test.step(1, []); t += DT; } return { t, state, probe: GAME.probe() }; }"
 
 
 def run(url, mode, expect_text=None):
@@ -45,14 +45,14 @@ def run(url, mode, expect_text=None):
         check('left alone it crashes within 10 seconds', r['state'] == 'crashed' and r['t'] < 10, (r['state'], r['t']))
         check('the crash breaks some of the address', r['probe']['rockNow'] < r['probe']['letters'], r['probe'])
         check('the crash gives a reason', bool(r['probe']['ship']['reason']))
-        pg.evaluate("() => Glyphite.test.step(150, [])")   # let the debris settle and the message box come up
+        pg.evaluate("() => Pixelite.test.step(150, [])")   # let the debris settle and the message box come up
         pg.keyboard.press('Enter')
         pg.wait_for_timeout(300)
         b2 = pg.evaluate('() => ({ state, probe: GAME.probe() })')
         check('Enter tries again: a new run, a whole address', b2['state'] == 'play' and b2['probe']['ship']['alive'] and b2['probe']['rockNow'] == b2['probe']['letters'], b2)
         # fuel: a long burn lasts a few seconds and then the lander falls anyway
         pg.evaluate("() => { startRun(); }")
-        r2 = pg.evaluate("() => { let t = 0; while (state === 'play' && t < 40) { Glyphite.test.step(1, ['ArrowUp']); t += DT; } return { t, probe: GAME.probe() }; }")
+        r2 = pg.evaluate("() => { let t = 0; while (state === 'play' && t < 40) { Pixelite.test.step(1, ['ArrowUp']); t += DT; } return { t, probe: GAME.probe() }; }")
         check('holding the burn runs the tank dry, then it still ends', r2['probe']['ship']['fuel'] == 0 and 6 < r2['t'] < 25, r2)
         # a hostile address is only ever drawn as rock, never read as markup
         pg.goto(PAGE.as_uri() + '?path=' + '%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E%E2%82%AC' + '#' + mode)

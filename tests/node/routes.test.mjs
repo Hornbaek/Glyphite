@@ -15,7 +15,7 @@ const assets = files => ({ fetch: async req => { const p = new URL(req.url).path
 const env = { ASSETS: assets(FILES) };
 const SIGNED_IN = async () => ({ email: 'me@example.com' });
 const fails = (status, msg = 'Please sign in.') => async () => { throw new AuthError(status, msg); };
-const SIGNED_OUT = fails(401), REFUSED = fails(403, 'This account may not use Glyphite.'), NOT_SET_UP = fails(503, 'Sign-in is not set up yet (Cloudflare Access).');
+const SIGNED_OUT = fails(401), REFUSED = fails(403, 'This account may not use Pixelite.'), NOT_SET_UP = fails(503, 'Sign-in is not set up yet (Cloudflare Access).');
 const get = (path, auth, accept = 'text/html', e = env) => handle(new Request('https://glyphite.hornbaek.org' + path, { headers: { Accept: accept } }), e, { auth });
 
 test('the front door: the game list when signed in, the landing page otherwise, never cached', async () => {

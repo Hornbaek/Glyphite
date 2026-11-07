@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ascii_preview.py - see how a sprite will look as Glyphite ASCII, in a second, without a browser.
+"""ascii_preview.py - see how a sprite will look as Pixelite ASCII, in a second, without a browser.
 
   python3 tools/ascii_preview.py games/<id>/robot_sprite.js --scale 0.56 [--angle 0.3] [--font path.ttf]
   python3 tools/ascii_preview.py games/regolith/lander_sprite.js --k 0.28 --res 1,2,3

@@ -3,7 +3,7 @@
 BUILD and the build menu, tap the map to see where a building would stand and tap there again to build it, tap the
 site and [CALL OFF] twice, [?] and [>>] on the top row. No on-screen arrow buttons, and the texts fit; the build menu has
 two columns. Screenshots: shots/fj_phone_*.png.
-  python3 games/fjordheim/tests/phone.py [renderer]      (needs the build: node tools/glyphite.mjs build fjordheim)"""
+  python3 games/fjordheim/tests/phone.py [renderer]      (needs the build: node tools/pixelite.mjs build fjordheim)"""
 import sys
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -20,7 +20,7 @@ with sync_playwright() as p:
     ctx = b.new_context(**p.devices['Pixel 7'])
     pg = ctx.new_page()
     errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
-    pg.goto(f'{PAGE}#{r}'); pg.wait_for_function('window.Glyphite && Glyphite.test', timeout=20000)
+    pg.goto(f'{PAGE}#{r}'); pg.wait_for_function('window.Pixelite && Pixelite.test', timeout=20000)
     cdp = ctx.new_cdp_session(pg)
     def until(js, ms=5000):
         try: pg.wait_for_function(js, timeout=ms); return True
@@ -55,7 +55,7 @@ with sync_playwright() as p:
     check(pg.evaluate('!MENU.some(m => m.id === "longhouse")'), 'the build menu starts closed: only the BUILD button')
     tap(*hud(spot_of('build')))
     check(until('BUILDMENU === true'), 'a tap on BUILD opens the build menu')
-    steps(2); pg.evaluate('Glyphite.test.freeze(); Glyphite.test.render()'); pg.screenshot(path=str(ROOT / 'shots/fj_phone_menu.png')); pg.evaluate('Glyphite.test.unfreeze()')
+    steps(2); pg.evaluate('Pixelite.test.freeze(); Pixelite.test.render()'); pg.screenshot(path=str(ROOT / 'shots/fj_phone_menu.png')); pg.evaluate('Pixelite.test.unfreeze()')
     check(pg.evaluate('PANELS.every(([c0, r0, c1, r1]) => c1 <= R.hcols && r1 <= R.hrows - 1)'), 'the menu fits the screen, clear of the gesture bar')
     check(pg.evaluate('new Set(MENU.filter(m => BUILDINGS[m.id]).map(m => m.c0)).size') == 2, f"in two columns ({pg.evaluate('R.hcols')} columns wide)")
     tap(*hud(spot_of('longhouse')))
@@ -69,7 +69,7 @@ with sync_playwright() as p:
     pt = pg.evaluate('(t => { const p = isoToWorld(t[0] + .5, t[1] + .5); return [(p[0] - cam.x) / R.cols, (p[1] - cam.y) / (R.rows * ASPECT)]; })', spot)
     tap(*pt)
     check(pg.evaluate('!!PEND && HOME.buildings.length === 0'), 'the first tap on the map shows where it would stand')
-    pg.evaluate('Glyphite.test.freeze(); Glyphite.test.render()'); pg.screenshot(path=str(ROOT / 'shots/fj_phone_place.png')); pg.evaluate('Glyphite.test.unfreeze()')
+    pg.evaluate('Pixelite.test.freeze(); Pixelite.test.render()'); pg.screenshot(path=str(ROOT / 'shots/fj_phone_place.png')); pg.evaluate('Pixelite.test.unfreeze()')
     tap(*pt)
     check(until("HOME.buildings.some(b => b.type === 'longhouse')"), 'a second tap there builds it')
     check(pg.evaluate('SEL === null && PEND === null'), 'and the choice is done')
@@ -79,18 +79,18 @@ with sync_playwright() as p:
         const h = hoverAt(a); if (h && h.building === b) return a; } })()''')
     tap(*pt)
     check(until("PICK && PICK.type === 'longhouse'"), 'a tap on the site opens its panel')
-    steps(2); pg.evaluate('Glyphite.test.freeze(); Glyphite.test.render()'); pg.screenshot(path=str(ROOT / 'shots/fj_phone_panel.png')); pg.evaluate('Glyphite.test.unfreeze()')
+    steps(2); pg.evaluate('Pixelite.test.freeze(); Pixelite.test.render()'); pg.screenshot(path=str(ROOT / 'shots/fj_phone_panel.png')); pg.evaluate('Pixelite.test.unfreeze()')
     tap(*hud(spot_of('raze'))); check(until('RAZE === PICK'), '[CALL OFF] asks first')
     tap(*hud(spot_of('raze'))); check(until('!HOME.buildings.length && PICK === null'), 'a second tap calls it off')
     check(pg.evaluate('HOME.stock.wood === 12 && HOME.stock.stone === 4'), 'and its cost comes back')
     # the top row: [?] opens the help, any tap closes it; [>>] runs time faster
     help_ = pg.evaluate('(() => { const m = MENU.find(m => m.id === "help"); return [m.c0 + 1, m.r0]; })()')
     tap(*hud(help_)); check(until('HELP === true'), '[?] opens the help')
-    pg.evaluate('Glyphite.test.freeze(); Glyphite.test.render()'); pg.screenshot(path=str(ROOT / 'shots/fj_phone_help.png')); pg.evaluate('Glyphite.test.unfreeze()')
+    pg.evaluate('Pixelite.test.freeze(); Pixelite.test.render()'); pg.screenshot(path=str(ROOT / 'shots/fj_phone_help.png')); pg.evaluate('Pixelite.test.unfreeze()')
     tap(.5, .5); check(until('HELP === false'), 'a tap closes it')
     fast = pg.evaluate('(() => { const m = MENU.find(m => m.id === "fast"); return [m.c0 + 2, m.r0]; })()')
     tap(*hud(fast)); check(until('FAST === 3'), '[>>] runs time three times as fast')
-    pg.evaluate('Glyphite.test.freeze(); Glyphite.test.render()'); pg.screenshot(path=str(ROOT / 'shots/fj_phone_play.png'))
+    pg.evaluate('Pixelite.test.freeze(); Pixelite.test.render()'); pg.screenshot(path=str(ROOT / 'shots/fj_phone_play.png'))
     check(not errs, f'no page errors {errs[:3]}')
     b.close()
 print('FAIL: ' + ' | '.join(fail) if fail else 'OK')

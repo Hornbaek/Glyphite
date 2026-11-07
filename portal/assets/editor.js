@@ -1,4 +1,4 @@
-// The Glyphite web editor: tune a game's numbers, edit its code, and preview it, all in the browser.
+// The Pixelite web editor: tune a game's numbers, edit its code, and preview it, all in the browser.
 // The preview is rebuilt here with the same assembler the site build uses (tools/assemble.mjs). Edits
 // are drafts in localStorage; the CLAUDE tab turns them into a prompt plus a git patch for a Claude
 // Code session, which commits them to the repository (the source of truth) through a pull request.
@@ -25,7 +25,7 @@ const S = {
   levelSpec: null, levels: null,   // game.json "levels" and the LEVELS tab, for games with tile maps
   pending: null                    // what to tell the preview once it has started: play a map, check a map
 };
-const KEY = k => `glyphite.edit.v1.${S.id}.${k}`;
+const KEY = k => `glyphite.edit.v1.${S.id}.${k}`;   // old name kept: drafts from before the rename to Pixelite survive
 
 // ---------- sources and drafts ----------
 async function fetchText(url) { const r = await fetch(url, { cache: 'no-store' }); if (!r.ok) throw new Error(`${url}: ${r.status}`); return r.text(); }
@@ -61,7 +61,7 @@ async function load() {
 }
 
 // ---------- building the preview ----------
-const REPORTER = `<script>addEventListener('error',e=>parent.postMessage({type:'glyphite:error',message:e.message,line:e.lineno,col:e.colno},'*'));addEventListener('unhandledrejection',e=>parent.postMessage({type:'glyphite:error',message:'unhandled: '+(e.reason&&e.reason.message||e.reason)},'*'));<\/script>`;
+const REPORTER = `<script>addEventListener('error',e=>parent.postMessage({type:'pixelite:error',message:e.message,line:e.lineno,col:e.colno},'*'));addEventListener('unhandledrejection',e=>parent.postMessage({type:'pixelite:error',message:'unhandled: '+(e.reason&&e.reason.message||e.reason)},'*'));<\/script>`;
 function tuneValues() { const v = {}; for (const k in S.defs) v[k] = k in S.tune ? S.tune[k] : S.defs[k].value; return v; }
 function buildPage() {
   const base = S.entry.path;
@@ -100,10 +100,10 @@ function logError(msg, where) {
 const checks = {};
 addEventListener('message', e => {
   if (e.source !== $('#preview').contentWindow || !e.data) return;
-  if (e.data.type === 'glyphite:ready' && S.pending) { const p = S.pending; S.pending = null; e.source.postMessage(p, '*'); if (p.action === 'play') setTimeout(() => { try { $('#preview').contentWindow.focus(); } catch { } }, 50); }
-  if (e.data.type === 'glyphite:levelcheck' && checks[e.data.id]) { checks[e.data.id](e.data.result); delete checks[e.data.id]; }
+  if (e.data.type === 'pixelite:ready' && S.pending) { const p = S.pending; S.pending = null; e.source.postMessage(p, '*'); if (p.action === 'play') setTimeout(() => { try { $('#preview').contentWindow.focus(); } catch { } }, 50); }
+  if (e.data.type === 'pixelite:levelcheck' && checks[e.data.id]) { checks[e.data.id](e.data.result); delete checks[e.data.id]; }
 });
-function previewDo(msg) { S.pending = { type: 'glyphite:level', ...msg }; run(); }
+function previewDo(msg) { S.pending = { type: 'pixelite:level', ...msg }; run(); }
 function checkLevel(level) {
   return new Promise((resolve, reject) => {
     const id = Math.random().toString(36).slice(2);
@@ -113,7 +113,7 @@ function checkLevel(level) {
   });
 }
 addEventListener('message', e => {
-  if (e.source !== $('#preview').contentWindow || !e.data || e.data.type !== 'glyphite:error') return;
+  if (e.source !== $('#preview').contentWindow || !e.data || e.data.type !== 'pixelite:error') return;
   const where = e.data.line && S.map ? S.map[e.data.line] : null;
   logError(e.data.message, where && where[0] !== 'page' ? where : null);
   setStatus('the game hit an error (see below)', true);
@@ -145,7 +145,7 @@ function setTune(k, v, from) {
   store.set(KEY('tune'), Object.keys(S.tune).length ? S.tune : null);
   document.querySelectorAll(`#tunables input[data-k="${CSS.escape(k)}"]`).forEach(i => { if (i !== from && i.type !== 'checkbox') i.value = v; });
   const c = document.querySelector(`[data-c="${CSS.escape(k)}"]`); if (c) c.textContent = k in S.tune ? `was ${d.value}` : '';
-  if (d.live) { try { $('#preview').contentWindow.postMessage({ type: 'glyphite:tune', values: { [k]: v } }, '*'); } catch { } }
+  if (d.live) { try { $('#preview').contentWindow.postMessage({ type: 'pixelite:tune', values: { [k]: v } }, '*'); } catch { } }
   else runSoon(700);
   refreshMarks();
 }
@@ -222,7 +222,7 @@ function tuneLines() {
 }
 function promptText() {
   const ask = $('#ask').value.trim(), base = S.entry.path, tl = tuneLines(), patch = patchText(), stl = changedFiles().filter(f => stale(f.path));
-  const out = [`Repository: hornbaek/glyphite. Game: "${S.entry.title}" (${base}/).`, '', ask || 'Apply my edits from the Glyphite web editor.', ''];
+  const out = [`Repository: hornbaek/glyphite. Game: "${S.entry.title}" (${base}/).`, '', ask || 'Apply my edits from the Pixelite web editor.', ''];
   if (tl.length || patch) out.push(`My edits from the web editor (${location.origin}/edit/?game=${S.id}), made against the build of ${S.listing.built.slice(0, 16).replace('T', ' ')} UTC:`, '');
   if (tl.length) out.push(`Make these the new tunable defaults in ${base}/game.json:`, ...tl, '');
   if (patch) out.push('Code changes (a unified diff for `git apply`; if it no longer applies cleanly, carry the intent over by hand):', '```diff', patch.replace(/\n$/, ''), '```', '');
@@ -268,7 +268,7 @@ function showTab(name) {
 async function main() {
   try { await load(); }
   catch (e) { $('#gameTitle').textContent = 'not found'; setStatus(e.message, true); document.querySelector('.emain').innerHTML = `<p class="empty" style="margin:16px">${esc(e.message)}. <a href="/">Back to the games</a></p>`; return; }
-  document.title = `${S.entry.title} · Glyphite Editor`;
+  document.title = `${S.entry.title} · Pixelite Editor`;
   $('#gameTitle').textContent = S.entry.title;
   $('#playLink').href = `/games/${S.id}/`;
   if (S.entry.ref) { $('#artLink').href = `/art/?game=${encodeURIComponent(S.id)}`; $('#artLink').hidden = false; }   // the reference art

@@ -21,7 +21,8 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # pinned: ubuntu-latest moved to 26.04 (November 2026), where the pinned Playwright cannot install Chromium
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4

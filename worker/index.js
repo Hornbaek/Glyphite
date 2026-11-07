@@ -1,4 +1,4 @@
-// The Glyphite site Worker: checks the Cloudflare Access login, then serves the static site that
+// The Pixelite site Worker: checks the Cloudflare Access login, then serves the static site that
 // `npm run build` writes to dist/ (the game list, the games, the editor and its sources).
 //
 // Who sees what. Cloudflare Access (Zero Trust) only needs to cover /login; this Worker checks the Access token on every
@@ -24,7 +24,7 @@ const SECURITY = {
 function page(status, title, text) {
   const body = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title>
 <body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#05070c;color:#cdd6e2;font:15px/1.6 ui-monospace,Menlo,Consolas,monospace">
-<main style="max-width:36rem;padding:24px"><p style="color:#ffb340;font-weight:700">GLYPHITE · ${status}</p><p>${text}</p></main></body>`;
+<main style="max-width:36rem;padding:24px"><p style="color:#ffb340;font-weight:700">PIXELITE · ${status}</p><p>${text}</p></main></body>`;
   return new Response(body, { status, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', ...SECURITY } });
 }
 const secure = res => { const out = new Response(res.body, res); for (const [k, v] of Object.entries(SECURITY)) out.headers.set(k, v); return out; };
@@ -57,7 +57,7 @@ export async function handle(request, env, { auth = requireUser } = {}) {
   let user = null, denied = null;
   try { user = await auth(request, env); }
   catch (err) {
-    if (!(err instanceof AuthError)) { console.error('sign-in check failed', err); return page(500, 'Glyphite', 'Something went wrong.'); }
+    if (!(err instanceof AuthError)) { console.error('sign-in check failed', err); return page(500, 'Pixelite', 'Something went wrong.'); }
     denied = err;
   }
 
@@ -81,7 +81,7 @@ export async function handle(request, env, { auth = requireUser } = {}) {
   if (path === '/login') {
     if (user) return new Response(null, { status: 302, headers: { Location: safeNext(url.searchParams.get('next')), 'Cache-Control': 'no-store', ...SECURITY } });
     // Access should have signed the visitor in before this point: if it did not, say so rather than loop
-    return page(denied.status, 'Glyphite', denied.status === 401
+    return page(denied.status, 'Pixelite', denied.status === 401
       ? 'The sign-in did not come through. Cloudflare Access must cover /login (docs/DEPLOY.md).'
       : denied.message);
   }
@@ -95,7 +95,7 @@ export async function handle(request, env, { auth = requireUser } = {}) {
     const msg = denied.status === 503 && /not set up/.test(denied.message)
       ? 'This site is not open yet: Cloudflare Access is not set up for it. See docs/DEPLOY.md in the repository.'
       : denied.message;
-    return page(denied.status, 'Glyphite', msg);
+    return page(denied.status, 'Pixelite', msg);
   }
 
   if (path === '/api/ideas' || path.startsWith('/api/ideas/')) {

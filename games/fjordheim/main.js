@@ -455,7 +455,7 @@ function gameHud(t) {
   if (state === 'lost' && stateT > .5) msgBox(wrapBox([['THE FAMILY SAILED HOME', HC.red], [HOME.lost.split(': ')[1] || '', HC.txt], ['', HC.txt], [`${go}  A NEW SHORE`, HC.amber]], 46));
 }
 
-Glyphite.run({
+Pixelite.run({
   id: 'fjordheim',
   detail: { default: 2.5, narrow: 2 },
   particles: 6000, cameraTop: 0, stars: 1,
