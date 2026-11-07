@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { encodePNG, decodePNG } from '../../tools/png.mjs';
 import { snap } from '../../tools/snap.mjs';
-import { NORMALS, normalIndex, normalsFromShape, normalsFromRGBA, normalsForSprite, normalMapRGBA, relief } from '../../portal/assets/normalmap-core.mjs';
+import { NORMALS, normalIndex, normalsFromShape, normalsFromRGBA, normalsFromMapRGBA, normalsForSprite, normalMapRGBA, relief } from '../../portal/assets/normalmap-core.mjs';
 
 const ROOT = new URL('../../', import.meta.url);
 
@@ -45,6 +45,18 @@ test('Pixel Snapper: finds the pixel size of busy pixel art by itself, and keeps
   }
 });
 
+test('Pixel Snapper: fractional pixel sizes (2.5, 3.2, 4.5: blocks of uneven widths, as AI art) snap exactly when given', async () => {
+  const C = [[200, 40, 30, 255], [250, 220, 60, 255], [40, 90, 200, 255], [30, 30, 40, 255]];
+  let seed = 3; const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  for (const k of [2.5, 3.2, 4.5]) {
+    const n = 14, art = Array.from({ length: n * n }, () => (rnd() * 4) | 0), w = Math.round(n * k), d = new Uint8Array(w * w * 4);
+    for (let y = 0; y < w; y++) for (let x = 0; x < w; x++) d.set(C[art[Math.min(n - 1, Math.floor(y / k)) * n + Math.min(n - 1, Math.floor(x / k))]], (y * w + x) * 4);
+    const out = decodePNG(await snap(encodePNG(w, w, d), { colors: 4, pixelSize: k }));
+    assert.equal(out.width, n, `width at ${k}`); assert.equal(out.height, n, `height at ${k}`);
+    for (let i = 0; i < n * n; i++) assert.ok(C[art[i]].slice(0, 3).every((v, j) => Math.abs(v - out.data[i * 4 + j]) < 24), `pixel ${i} at ${k}`);
+  }
+});
+
 test('Pixel Snapper: a palette is obeyed exactly', async () => {
   const { w, d } = upscaled(5), out = decodePNG(await snap(encodePNG(w, w, d), { pixelSize: 5, palette: 'ff0000,ffff00,000000' }));
   const allowed = new Set(['255,0,0', '255,255,0', '0,0,0']);
@@ -70,6 +82,26 @@ test('normals: the same input always gives the same map, and sprite rows match t
   assert.deepEqual(a, Array.from({ length: 8 }, (_, y) => Array.from({ length: 8 }, (_, x) => idx[y * 8 + x] === 255 ? '.' : idx[y * 8 + x].toString(36)).join('')));
   assert.ok(a.every((r, y) => [...r].every((ch, x) => (ch === '.') === (rows[y][x] === '.'))), 'a normal exactly where there is paint');
   const img = normalMapRGBA(idx, 8, 8); assert.equal(img[3], 0); assert.equal(img[(1 * 8 + 1) * 4 + 3], 255);
+});
+
+test('normals: outlines follow the paint beside them instead of carving ridges (outline merging, as Pixel Art Lighter)', () => {
+  // a 15 x 15 square of mid paint with a dark inner line across its middle
+  const n = 15, mask = new Uint8Array(n * n).fill(1), lum = new Float32Array(n * n).fill(.6);
+  for (let x = 0; x < n; x++) lum[7 * n + x] = .05;
+  const merged = normalsFromShape(n, n, mask, lum), carved = normalsFromShape(n, n, mask, lum, { mergeOutlines: false });
+  const N = (r, x, y) => NORMALS[r.idx[y * n + x]];
+  assert.ok(Math.abs(N(carved, 7, 6)[1]) > .3, 'without merging the paint above the line slopes into it');
+  assert.deepEqual(N(merged, 7, 6), [0, 0, 1], 'with merging the paint stays flat');
+  assert.deepEqual(N(merged, 7, 7), [0, 0, 1], 'and so does the line');
+});
+
+test('normals: a map from elsewhere (green up, Pixel Art Lighter) reads back as the same directions', () => {
+  const w = 33, h = 1, ours = Uint8Array.from(NORMALS.keys()), img = normalMapRGBA(ours, w, h);
+  assert.deepEqual(Array.from(normalsFromMapRGBA(img, w, h)), Array.from(ours), 'our own maps are green up too');
+  const up = [128, 255, 128, 255], idx = normalsFromMapRGBA(Uint8Array.from([...up, ...up, 0, 0, 0, 0]), 3, 1, { mask: [1, 0, 1] });
+  assert.ok(NORMALS[idx[0]][1] < -.5, 'green up = facing up (y down)');
+  assert.equal(idx[1], 255, 'masked out'); assert.equal(idx[2], 255, 'transparent');
+  assert.ok(NORMALS[normalsFromMapRGBA(Uint8Array.from(up), 1, 1, { greenUp: false })[0]][1] > .5, '--green-down flips it');
 });
 
 test('normals: the table has 33 unit directions, each its own nearest entry', () => {

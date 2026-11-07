@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """The PIXEL LAB page (/lab/), in a real browser against the built site (serves dist/ itself): pick a drawing from a game's
 reference art, snap it with a given pixel size (Pixel Snapper in WebAssembly), make its normal map, move the lamp over the
-lit preview, and get a prompt with the exact commands. Build first: npm run build.
+lit preview, get a prompt with the exact commands, load a normal map made elsewhere; and the vendored Pixel Art Lighter
+(/lab/lighter/) opens with no outside requests. Build first: npm run build.
 
   python3 tests/lab.py
 """
-import json, threading, functools
+import io, json, threading, functools
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 failures = []
@@ -64,6 +66,29 @@ with sync_playwright() as p:
     pg.evaluate("() => { const r = document.querySelector('#bevel'); r.value = 4; r.dispatchEvent(new Event('input')); }")
     pg.wait_for_function("() => document.querySelector('#prompt').textContent.includes('--bevel 4')", timeout=5000)
     check('a new bevel goes into the prompt', '--bevel 4' in pg.text_content('#prompt'))
+    # a normal map made elsewhere (Pixel Art Lighter's export: green up): every pixel tipped right, so the lamp on the right
+    # lights it all and the prompt hands over the map instead of the generator settings
+    def png(size, rgb):
+        buf = io.BytesIO(); Image.new('RGBA', size, rgb + (255,)).save(buf, 'PNG'); return buf.getvalue()
+    pg.set_input_files('#nrmFile', files=[{'name': 'small.png', 'mimeType': 'image/png', 'buffer': png((3, 3), (128, 128, 255))}])
+    pg.wait_for_function("() => /That map is 3 x 3/.test(document.querySelector('#nrmInfo').textContent)", timeout=5000)
+    check('a map of the wrong size is refused', 'from-map' not in pg.text_content('#prompt'))
+    pg.set_input_files('#nrmFile', files=[{'name': 'cat_normals.png', 'mimeType': 'image/png', 'buffer': png((w, h), (237, 128, 191))}])
+    pg.wait_for_function("() => document.querySelector('#prompt').textContent.includes('--from-map')", timeout=5000)
+    check('a loaded map goes into the prompt', 'node tools/normalmap.mjs --from-map cat_normals.png --rows' in pg.text_content('#prompt'))
+    total = lambda: pg.evaluate("() => { const c = document.querySelector('#litPic canvas'), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let t = 0; for (let i = 0; i < d.length; i += 4) t += d[i] + d[i + 1] + d[i + 2]; return t; }")
+    pg.mouse.move(box['x'] + 2, box['y'] + box['height'] / 2); m_l = total()
+    pg.mouse.move(box['x'] + box['width'] - 2, box['y'] + box['height'] / 2); m_r = total()
+    check('a map facing right is brighter with the lamp on the right', m_r > m_l * 1.5, [m_l, m_r])
+    # Pixel Art Lighter, vendored: it loads, works offline and makes no request outside the site
+    out = []
+    lp = b.new_page(viewport={'width': 1400, 'height': 1000})
+    lp.on('pageerror', lambda e: errs.append('lighter: ' + str(e)))
+    lp.on('request', lambda r: out.append(r.url) if not r.url.startswith((BASE, 'data:', 'blob:')) else None)
+    lp.goto(f'{BASE}/lab/lighter/'); lp.wait_for_timeout(1500)
+    check('Pixel Art Lighter opens', 'Pixel Art Lighter' in lp.title(), lp.title())
+    check('Pixel Art Lighter makes no outside requests', not out, out)
+    lp.close()
     check('no page errors', not errs, errs)
     b.close()
 srv.shutdown()

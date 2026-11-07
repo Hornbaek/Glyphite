@@ -2,8 +2,9 @@
 # Rebuild Pixel Snapper (Sprite Fusion, MIT, https://github.com/Hugo-Dz/spritefusion-pixel-snapper) as WebAssembly into
 # portal/vendor/pixel-snapper/, where the PIXEL LAB page and tools/snap.mjs load it. The built files are committed, so the
 # site and CI need no Rust; run this only to update it (change COMMIT, then rebuild, test and commit the result).
-# tools/pixel-snapper.patch is applied first: the edge profile used a centred difference, which scores a sharp boundary
-# one pixel early, so every cut landed a pixel short and a one-pixel sliver was left at the end (tests/node/pixeltools.test.mjs).
+# tools/pixel-snapper.patch is applied first (what it changes and why: portal/vendor/pixel-snapper/README). It measures edges
+# with a forward difference (upstream's centred one put every cut a pixel short) and finds the grid by a lattice fit, which
+# handles fractional pixel sizes and follows a given size exactly (tests/node/pixeltools.test.mjs).
 #   bash tools/build-snapper.sh
 set -euo pipefail
 COMMIT=02f9315        # "Update readme", 2026: the version vendored now

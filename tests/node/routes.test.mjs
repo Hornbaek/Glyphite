@@ -30,7 +30,7 @@ test('the front door: the game list when signed in, the landing page otherwise, 
 test('the landing page files and the live demo are public', async () => {
   for (const p of ['/welcome/', '/welcome/welcome.css', '/games/showcase/']) assert.equal((await get(p, SIGNED_OUT)).status, 200, p);
   assert.ok(isPublic('/welcome') && isPublic('/games/showcase'));
-  for (const p of ['/', '/games/', '/games/spacemouse/', '/games/showcase-x/', '/welcomes/', '/edit/', '/lab/', '/vendor/pixel-snapper/spritefusion_pixel_snapper_bg.wasm', '/api/ideas', '/src/engine/engine.json', '/games.json'])
+  for (const p of ['/', '/games/', '/games/spacemouse/', '/games/showcase-x/', '/welcomes/', '/edit/', '/lab/', '/lab/lighter/', '/vendor/pixel-snapper/spritefusion_pixel_snapper_bg.wasm', '/api/ideas', '/src/engine/engine.json', '/games.json'])
     assert.ok(!isPublic(p), p);
 });
 

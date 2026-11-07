@@ -3,11 +3,11 @@
 // preview lights it the way the engine does (sprRelief in engine/10_sprite.js). The page hands the settings to a Claude
 // session as a prompt with the exact commands, so the result is made again from the repository's own files.
 import init, { process_image } from '/vendor/pixel-snapper/spritefusion_pixel_snapper.js';
-import { NORMALS, normalsFromRGBA, normalMapRGBA, relief } from './normalmap-core.mjs';
+import { NORMALS, normalsFromRGBA, normalsFromMapRGBA, normalMapRGBA, relief } from './normalmap-core.mjs';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const S = { name: '', bytes: null, src: null, snapped: null, snapPNG: null, snapArgs: null, idx: null, light: null };
+const S = { name: '', bytes: null, src: null, snapped: null, snapPNG: null, snapArgs: null, idx: null, light: null, mapName: null };
 let snapperReady = null;
 
 // a picture shown enlarged by a whole step, so every pixel stays square
@@ -56,7 +56,21 @@ const opts = () => ({ bevel: +$('#bevel').value, detail: +$('#detail').value, st
 const working = () => $('#skipSnap').checked ? S.src : S.snapped;
 async function normals() {
   const img = working(); if (!img) return;
+  S.mapName = null; $('#nrmInfo').textContent = '';
   S.idx = normalsFromRGBA(img.data, img.width, img.height, opts()).idx;
+  await showNormals(img);
+}
+// a normal map made elsewhere (Pixel Art Lighter): the same size as the picture, green up
+async function loadMap(file) {
+  const img = working(); if (!img) { $('#nrmInfo').textContent = 'Open the picture first.'; return; }
+  const map = await decode(new Uint8Array(await file.arrayBuffer()));
+  if (map.width !== img.width || map.height !== img.height) { $('#nrmInfo').textContent = `That map is ${map.width} x ${map.height}; the picture is ${img.width} x ${img.height}.`; return; }
+  const mask = Uint8Array.from({ length: img.width * img.height }, (_, i) => img.data[i * 4 + 3] > 0 ? 1 : 0);
+  S.idx = normalsFromMapRGBA(map.data, img.width, img.height, { mask }); S.mapName = file.name;
+  $('#nrmInfo').textContent = `Normals from ${file.name} (green up), snapped to the engine's 33 directions.`;
+  await showNormals(img);
+}
+async function showNormals(img) {
   const nm = new ImageData(normalMapRGBA(S.idx, img.width, img.height), img.width, img.height);
   show($('#nrmPic'), nm);
   download($('#nrmDl'), await pngOf(nm), `${stem(S.name)}_normals.png`);
@@ -95,7 +109,8 @@ function prompt() {
       `   (I got ${img.width} x ${img.height} art pixels.)`);
     input = out;
   } else lines.push('1. It is already clean pixel art: no snapping.');
-  lines.push(`2. Normals: node tools/normalmap.mjs ${input} --rows --bevel ${o.bevel} --detail ${o.detail} --strength ${o.strength}${o.smooth ? '' : ' --no-smooth'}`,
+  lines.push(S.mapName ? `2. Normals from Pixel Art Lighter: I attach ${S.mapName}; node tools/normalmap.mjs --from-map ${S.mapName} --rows`
+      : `2. Normals: node tools/normalmap.mjs ${input} --rows --bevel ${o.bevel} --detail ${o.detail} --strength ${o.strength}${o.smooth ? '' : ' --no-smooth'}`,
     '   and give the sprite those rows as its `normals` (engine/API.md, Sprites), so lamps model it.',
     '3. Keep the original image as the reference-art rules say, wire the sprite in, and verify it (pixelite-verify).',
     S.game ? `Game: ${S.game}. What the sprite is for: ` : 'Game and what the sprite is for: ');
@@ -131,6 +146,7 @@ $('#snapBtn').onclick = snap;
 $('#skipSnap').onchange = () => { $('#snapBtn').disabled = $('#skipSnap').checked || !S.bytes; if ($('#skipSnap').checked) normals(); else snap(); };
 for (const id of ['bevel', 'detail', 'strength']) $('#' + id).oninput = () => { $(`#${id}Out`).textContent = $('#' + id).value; normals(); };
 $('#smooth').onchange = normals; $('#flat').onchange = lit;
+$('#nrmFile').onchange = e => { const f = e.target.files[0]; if (f) loadMap(f); };
 $('#copyPrompt').onclick = () => copy(prompt(), 'Prompt');
 $('#copyRows').onclick = () => copy(rows().map(r => `'${r}'`).join(',\n'), 'Normals rows');
 addEventListener('dragover', e => { e.preventDefault(); document.body.classList.add('drag'); });
