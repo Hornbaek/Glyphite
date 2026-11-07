@@ -20,9 +20,11 @@ The owner found ASCII too dark and chose pixel art, keeping every mechanic:
 4. ~~Pixel sprites with normal maps and the PIXEL LAB~~ (Pixel Snapper and our own normal maps, in the browser and as CLI
    tools). Left: drop the glyph field from the sprite palettes (`pixelsprite.py`, Fjordheim's and Space Mouse's art tools);
    offer `tools/pixel-snapper.patch` upstream; Moonfell's normal-map tool if the owner sends its source.
-5. Space Mouse in pixels: art snapped from the original sheets, palettes, normal-mapped characters, pixel decor.
-6. Later: Regolith from `lander_ref.png`, Fjordheim's sheets, the starter, showcase and notfound; moving the site to a
-   pixelite domain with the owner.
+5. ~~Space Mouse in pixels~~: normal-mapped characters and props, sprites drawn small the pixel-art way. Next: art at the size
+   the game shows it (Pip ~14–16 px), the sheet's moss and cobweb drawings as decor, material palettes.
+6. Later: Regolith from `lander_ref.png`, Fjordheim's sheets (their outline colour still carries the magenta tint of the
+   JPEG background, which shows as a reddish rim on trees now that outlines are drawn on the silhouette), the starter,
+   showcase and notfound; moving the site to a pixelite domain with the owner.
 
 ## Principles to keep
 

@@ -149,6 +149,12 @@ way.
 - **Normal maps on outlined art need a wide enough bevel.** A 2-pixel bevel only tilts the dark outline, and brightening
   near-black changes nothing: the lamp made no visible difference. Bevel 3 with the paint's own light and dark (`detail`)
   shades the panels inside; the direction table needed a gentle (20°) ring, or soft slopes rounded to flat.
+- **Drawing pixel art small: outline on the silhouette, paint inside.** Taking each cell's most common colour turned Space
+  Mouse's 28-pixel mouse, drawn at 14, into speckle: one-pixel inner outlines won cells at random. Letting the outline win
+  only where the cell is on the silhouette (some samples off the art) and the paint win inside reads like a hand-made
+  smaller version.
+- **Side-view light comes from the side.** The normal-map light direction first had a large part toward the viewer (0.6),
+  so tilted pixels hardly changed; lamps in a side view stand in the scene's plane, and 0.35 shows the relief.
 - **Test pages with things below the fold by scrolling to them first.** Playwright's mouse moves to page coordinates; an
   element below the window never gets the event.
 

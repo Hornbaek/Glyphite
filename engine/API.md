@@ -304,8 +304,9 @@ portrait) fitted into `w` columns (and `rows`, if given) with its top-left on HU
 box's bottom; it returns the rows it takes. The art's own colours, unlit; `gain` brightens dark art on the HUD's black.
 Worked out once per size (see the build menu in `games/fjordheim/main.js`).
 
-Each world cell the sprite covers becomes one pixel in the colour most of the art under it has (cells less than about
-half covered stay clear), so the art is resampled to the world's pixels, turning with the body. Pixel art looks best at
+Each world cell the sprite covers becomes one pixel (cells less than about half covered stay clear), so the art is
+resampled to the world's pixels, turning with the body: on the silhouette the outline colour wins if it is there at all
+(the shape keeps its dark edge), inside the most common paint colour wins (lines thinner than a pixel don't speckle). Pixel art looks best at
 one art pixel per world pixel at the game's default detail (`k = 1 / RES`); resize the art rather than `k` (see the skill).
 
 **Normal maps.** A sprite's data may carry `normals: ['..0d..', ...]`, the same size as `rows`: for each pixel, in base 36,

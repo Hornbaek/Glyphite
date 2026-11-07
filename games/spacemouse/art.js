@@ -1,12 +1,13 @@
 // ===================== GAME · pixel art: Pip the space mouse, cheese, cat-bots and the station's objects =====================
 // Engine sprite format (engine/10_sprite.js): '.' is empty, every other character indexes pal; pal entries are
-// [r, g, b, ink (0 = outline), dense glyph]. All face right; drawSprite's flip turns them round.
+// [r, g, b, ink (0 = outline), glyph (ignored)]; `normals` is each sprite's normal map, so the station's lamps model the
+// mouse, the cat-bots and the props. All face right; drawSprite's flip turns them round.
 // Everything here comes from the owner's art sheets (ref/) through tools/art.py, which writes sprites.js: the mouse in
 // nineteen frames sharing one palette (origin at the feet under the helmet), the cat-bot in twelve (origin under its
 // legs, with where its eyes are), the checkpoint, the great cheese, lamps, the alarm beacon and the props.
 const MOUSE_K = .25;   // base units per sprite pixel: about 7 units tall, the helmet a little above the mouse's box
 const MOUSE_SPR = {};
-for (const k in MOUSE_FRAMES) { const f = MOUSE_FRAMES[k]; MOUSE_SPR[k] = defineSprite({ w: f.w, h: f.h, pal: MOUSE_PAL, rows: f.rows }, { k: MOUSE_K, ox: f.ox, oy: f.oy }); }
+for (const k in MOUSE_FRAMES) { const f = MOUSE_FRAMES[k]; MOUSE_SPR[k] = defineSprite({ w: f.w, h: f.h, pal: MOUSE_PAL, rows: f.rows, normals: f.normals }, { k: MOUSE_K, ox: f.ox, oy: f.oy }); }
 // props from the same sheets: they stand on the floor of their tile, or hang on the wall in its middle
 const PROP_SPR = {};
 for (const ch in PROP_ART) { const p = PROP_ART[ch]; PROP_SPR[ch] = defineSprite(p, { k: p.k, ox: p.w / 2, oy: p.place === 'floor' ? p.h : p.h / 2 }); }
@@ -19,7 +20,7 @@ const CAT_K = .19;
 const CAT_SPR = {};
 for (const k in CAT_FRAMES) {
   const f = CAT_FRAMES[k];
-  CAT_SPR[k] = defineSprite({ w: f.w, h: f.h, pal: CAT_PAL, rows: f.rows }, { k: CAT_K, ox: f.ox, oy: f.oy });
+  CAT_SPR[k] = defineSprite({ w: f.w, h: f.h, pal: CAT_PAL, rows: f.rows, normals: f.normals }, { k: CAT_K, ox: f.ox, oy: f.oy });
   CAT_SPR[k].eye = f.eye && [(f.eye[0] + .5 - f.ox) * CAT_K, (f.eye[1] + .5 - f.oy) * CAT_K];
 }
 

@@ -241,6 +241,13 @@ def red_spot(rows, pal, w, h):
     return [round(sum(p[0] for p in pts) / len(pts), 1), round(sum(p[1] for p in pts) / len(pts), 1)] if pts else None
 
 
+def normals_of(w, h, pal, rows):
+    """the sprite's normal map (tools/normalmap.mjs, the generator the PIXEL LAB uses, at its defaults), as rows"""
+    r = subprocess.run(['node', str(ROOT / 'tools/normalmap.mjs'), '--sprite'], input=json.dumps({'w': w, 'h': h, 'pal': pal, 'rows': rows}),
+                       capture_output=True, text=True, check=True, cwd=ROOT)
+    return json.loads(r.stdout)
+
+
 def js_rows(rows, ind='    '):
     return [f"{ind}'{r}'," for r in rows[:-1]] + [f"{ind}'{rows[-1]}'"]
 
@@ -257,18 +264,18 @@ def main():
     for name, (a, b) in zip(FRAMES, spans):
         im = cut('a', (a - 3, 745, b + 4, 828))
         w, h, pal_a, rows = convert(save(im, f'mouse_{name}', 'a', (a - 3, 745, b + 4, 828), USE[name]), grid_of(im, 2), HERE / 'mouse_palette.json')
-        frames[name] = {'w': w, 'h': h, 'ox': helmet_x(im, w), 'oy': h, 'rows': rows}
+        frames[name] = {'w': w, 'h': h, 'ox': helmet_x(im, w), 'oy': h, 'rows': rows, 'normals': normals_of(w, h, pal_a, rows)}
     for name, box in ACTIONS.items():
         wall = name.startswith('wall')
         im = cut('act', box, tol=24, also=WALL_PANEL if wall else (), minfrac=.12, fill=(.5, GLASS) if wall else None)
         w, h, pal_b, rows = convert(save(im, f'mouse_{name}', 'act', box, USE[name]), grid_of(im, 1 / SCALE_ACT), HERE / 'mouse_palette_actions.json')
-        frames[name] = {'w': w, 'h': h, 'ox': helmet_x(im, w), 'oy': h, 'rows': rows}
+        frames[name] = {'w': w, 'h': h, 'ox': helmet_x(im, w), 'oy': h, 'rows': rows, 'normals': normals_of(w, h, pal_b, rows)}
     assert pal_b[:len(pal_a)] == pal_a, 'mouse_palette_actions.json must start with the same materials, drawn the same, as mouse_palette.json'
     out.append(f'const MOUSE_PAL = {json.dumps(pal_b)};')
     out.append('const MOUSE_FRAMES = {')
     for name, f in frames.items():
         out.append(f"  {name}: {{ w: {f['w']}, h: {f['h']}, ox: {f['ox']}, oy: {f['oy']}, rows: [")
-        out += js_rows(f['rows']) + ['  ] },']
+        out += js_rows(f['rows']) + ['  ], normals: ['] + js_rows(f['normals']) + ['  ] },']
         print(f"mouse {name}: {f['w']} x {f['h']}")
     out[-1] = '  ] }'; out.append('};')
 
@@ -293,7 +300,7 @@ def main():
             legs = np.array(im)[int(im.height * .65):, :, 3] > 0
             ox = round(float(np.nonzero(legs)[1].mean()) / im.width * w)
             out.append(f"  {name}: {{ w: {w}, h: {h}, ox: {ox}, oy: {h}, eye: {json.dumps(red_spot(rows, cat_pal, w, h))}, rows: [")
-            out += js_rows(rows) + ['  ] },']
+            out += js_rows(rows) + ['  ], normals: ['] + js_rows(normals_of(w, h, cat_pal, rows)) + ['  ] },']
             print(f'cat {name}: {w} x {h}')
         out[-1] = '  ] }'; out.append('};')
 
@@ -303,7 +310,7 @@ def main():
         im = cut('obj', box, tol=tol, minfrac=.05)
         w, h, pal, rows = convert(save(im, name, 'obj', box, USE[name]), grid_of(im, OBJ_PX), colors=10)
         out.append(f"  {name}: {{ w: {w}, h: {h}, k: {json.dumps(round(size / h, 4) if size else None)}, pal: {json.dumps(pal)}, rows: [")
-        out += js_rows(rows) + ['  ] },']
+        out += js_rows(rows) + ['  ], normals: ['] + js_rows(normals_of(w, h, pal, rows)) + ['  ] },']
         print(f'object {name}: {w} x {h}')
     out[-1] = '  ] }'; out.append('};')
 
@@ -314,7 +321,7 @@ def main():
         im = cut(sheet, box, tol=13 if sheet == 'a' else 24, minfrac=None if sheet == 'a' else .05)
         w, h, pal, rows = convert(save(im, f"prop_{name.replace(' ', '_')}", sheet, box, f'prop: map tile "{tile}"'), grid_of(im, 2 if sheet == 'a' else OBJ_PX))
         out.append(f"  {json.dumps(tile)}: {{ name: {json.dumps(name)}, w: {w}, h: {h}, k: {round(height / h, 4)}, place: '{place}', pal: {json.dumps(pal)}, rows: [")
-        out += js_rows(rows) + ['  ] },']
+        out += js_rows(rows) + ['  ], normals: ['] + js_rows(normals_of(w, h, pal, rows)) + ['  ] },']
         print(f'prop {tile} {name}: {w} x {h}')
     out[-1] = '  ] }'; out.append('};')
 

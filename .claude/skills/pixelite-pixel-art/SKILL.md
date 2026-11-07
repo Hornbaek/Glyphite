@@ -116,7 +116,7 @@ lander and Space Mouse too):
 |---|---|---|
 | Samples per cell | 3 × 3 in the object's frame (rotated) | Enough to find the cell's main colour and its average normal. |
 | Empty cell | under 45% of the samples on the art | The sky and the world behind show through the silhouette's edge. |
-| Colour | the palette colour most samples landed on (outline included) | Pixel art keeps its own colours; outlines stay where they are thick enough. |
+| Colour | on the silhouette: the outline if any sample hit it; inside: the most common paint colour | Drawn small, the shape keeps its dark edge and thin inner lines don't speckle (Space Mouse's mouse at 14 px). |
 | Palette in light units | `lin = -ln(1 - min(.93, c/255)) / 1.7` | After the tone map it shows the art's own colours. |
 | Lighting | `colour × relief × (0.75 + 0.4·min(1.3, sceneLight))` | Keeps the art's baked shading and never goes black; lamps and sun tint it. |
 | Relief (normal maps) | `0.5 + 0.5·sprRelief(n, light direction)`, exactly 1 for a flat pixel | Facing the light up to ×1.35, facing away down to ×0.65; the direction comes from the sun, the lamps (`LDX/LDY`) and a little sky from above. |

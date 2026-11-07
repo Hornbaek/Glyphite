@@ -74,7 +74,7 @@ function lit() {
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const i = y * w + x, q = i * 4; if (S.idx[i] === 255) continue;
     const dx = Lx - x - .5, dy = Ly - y - .5, d = Math.hypot(dx, dy) || 1;
-    const f = 1.15 * (.5 + .5 * (flat ? 1 : relief(NORMALS[S.idx[i]], dx / d, dy / d, .6)));
+    const f = 1.15 * (.5 + .5 * (flat ? 1 : relief(NORMALS[S.idx[i]], dx / d, dy / d, .35)));
     out.data[q] = img.data[q] * f; out.data[q + 1] = img.data[q + 1] * f; out.data[q + 2] = img.data[q + 2] * f; out.data[q + 3] = 255;
   }
   const z = zoomFor(w, h), cv = show($('#litPic'), out, z);

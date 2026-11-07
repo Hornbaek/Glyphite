@@ -359,8 +359,10 @@ the world's pixels (Regolith's lander: `games/regolith/lander_art.js`):
 2. **Sample.** For each cell in the bounding box, take 3×6 samples in the body frame (rotated). Parts
    (the lander's legs) are sampled where they were before their `shift` (sliding up their struts by
    the damper compression). `spritePixel` returns the sprite pixel or −1.
-3. **Pick.** A cell with fewer than 45% of its samples on the art stays empty. Otherwise it becomes one pixel in the palette
-   colour most samples landed on (outline colours included, so outlines stay where they are thick enough to show).
+3. **Pick.** A cell with fewer than 45% of its samples on the art stays empty. Otherwise it becomes one pixel, picked the
+   way pixel art is drawn small: on the silhouette (some samples off the art) an outline colour (ink 0) wins if any sample
+   hit one, so the shape keeps its dark edge; inside, the most common paint colour wins, so interior lines thinner than a
+   world pixel vanish instead of turning into speckle (a cell of nothing but outline stays outline).
 4. **Colour.** The palette is linearised through the inverse tone curve, so unlit it shows the art's own colours; lit, it is
    multiplied by `0.75 + 0.4·min(1.3, sceneLight)`, never dark.
 5. **Normal map** (optional `normals` in the data, indices into `SPR_NORMALS`): the cell's normal is the average of its

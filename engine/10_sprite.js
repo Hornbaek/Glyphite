@@ -6,8 +6,10 @@
 // from SPR_NORMALS (made by tools/normalmap.mjs or the PIXEL LAB page), so lamps and the sun model the drawing.
 //
 // Every world cell the sprite covers takes 3 x 3 samples of it in the object's own frame, so the drawing turns with the
-// body. A cell that is mostly covered becomes one pixel in the colour most of its samples land on, lit by the scene; the
-// rest stay clear. Its normal is the average of the samples', turned with the body. Parts (legs, doors, turrets) are looked
+// body. A cell that is mostly covered becomes one pixel, lit by the scene; the rest stay clear. Its colour is picked the way
+// pixel art is drawn small: on the silhouette (some samples off the art) the outline wins if it is there at all, so the shape
+// keeps its dark edge; inside, the paint colour most samples landed on wins, so inner lines thinner than a pixel don't turn
+// into speckle. Its normal is the average of the samples', turned with the body. Parts (legs, doors, turrets) are looked
 // up with their own offset, so they can slide or open without new art.
 //
 // defineSprite(data, opts) → sprite
@@ -59,7 +61,8 @@ function defineSprite(data, opts = {}) {
     for (let r = 0; r < h; r++) for (let c = 0; c < w; c++) { const ch = data.normals[r][c]; if (ch !== '.' && ch !== undefined) nrm[r * w + c] = parseInt(ch, 36); }
   }
   const ox = opts.ox ?? w / 2, oy = opts.oy ?? h / 2;
-  return { w, h, k: opts.k ?? .25, ox, oy, idx, part, parts, lin, nrm,
+  const outline = Uint8Array.from(pal, p => p[3] ? 0 : 1);   // ink 0: an outline colour
+  return { w, h, k: opts.k ?? .25, ox, oy, idx, part, parts, lin, nrm, outline,
     reach: Math.hypot(Math.max(ox, w - ox), Math.max(oy, h - oy)), hist: new Uint16Array(pal.length) };
 }
 
@@ -96,7 +99,7 @@ function sprEmit(cx, cy, glyph, r, g, b, lit, nx = 0, ny = 0, nz = 1) {
   if ((nx || ny) && i >= 0 && j >= 0 && i < R.RW && j < R.RH) {
     const k = j * R.RW + i, sun = SUN_ON && LSUN[k] ? (SUN_C[0] + SUN_C[1] + SUN_C[2]) / 3 : 0, amb = (AMB_C[0] + AMB_C[1] + AMB_C[2]) / 3;
     const lamp = Math.hypot(LDX[k], LDY[k]);
-    f = .5 + .5 * sprRelief(nx, ny, nz, LDX[k] - SUN_L[0] * sun, LDY[k] - SUN_L[1] * sun - .5 * amb, .6 * (sun + lamp + amb));
+    f = .5 + .5 * sprRelief(nx, ny, nz, LDX[k] - SUN_L[0] * sun, LDY[k] - SUN_L[1] * sun - .5 * amb, .35 * (sun + lamp + amb));
   }
   putEmit(cx, cy, glyph, r * f * (.75 + .4 * Math.min(1.3, _sprL[0])), g * f * (.75 + .4 * Math.min(1.3, _sprL[1])), b * f * (.75 + .4 * Math.min(1.3, _sprL[2])));
 }
@@ -128,7 +131,13 @@ function sprCells(spr, bx, by, x0, y0, x1, y1, a, sh, fl, lit, emit, asp = ASPEC
       if (nrm && nrm[px] !== 255) { const v = SPR_NORMALS[nrm[px]]; nx += v[0]; ny += v[1]; nz += v[2]; }
     }
     if (occ < need) continue;
-    let dom = 0; for (let p = 1; p < np; p++) if (hist[p] > hist[dom]) dom = p;
+    let dom = -1, line = -1;
+    for (let p = 0; p < np; p++) {
+      if (!hist[p]) continue;
+      if (spr.outline[p]) { if (line < 0 || hist[p] > hist[line]) line = p; }
+      else if (dom < 0 || hist[p] > hist[dom]) dom = p;
+    }
+    if (line >= 0 && (dom < 0 || occ < SPR_S * sy)) dom = line;   // the silhouette's edge, or nothing but outline
     const q = spr.lin[dom];
     if (nx || ny) {   // the average normal, from the sprite's frame (mirrored, turned) into the world's
       const l = Math.hypot(nx, ny, nz), fx = nx * fl;
