@@ -1,7 +1,7 @@
 # Pixelite
 
-**Pixelite** is an AI-first game engine for the browser that draws everything with the 95 printable ASCII
-characters, each in its own colour. Games are made and changed in Claude Code sessions on this repository, and
+**Pixelite** is an AI-first pixel-art game engine for the browser: every cell of its world is one pixel, over a real
+simulation of rock, sand and light (it began as Glyphite, an ASCII engine, kept on the branch `glyphite-ascii`). Games are made and changed in Claude Code sessions on this repository, and
 live at **glyphite.hornbaek.org**. Anyone can read the landing page about the engine, watch a live demo and play the test
 games; behind the Cloudflare Access login are the web editor, the idea bank and each game's reference art.
 
@@ -27,9 +27,10 @@ New games start from `templates/starter/` (Cave Drone): `node tools/pixelite.mjs
   with shadows, light that soaks into the ground, emissive materials, bloom.
 - **Particles and VFX**: grains that become terrain again, exhaust that scours the ground, fire, sparks, smoke,
   shock rings, flashes, shake, slow motion, and game-defined particle types.
-- **ASCII rendering**: a WebGL glyph-atlas shader (2D canvas fallback), a smooth-scrolling world layer, a
-  parallax sky layer the game can paint, a readable HUD grid, and detail levels from 1x to 3x characters per metre.
-- **Sprites**: pixel art drawn as glyphs that match its shapes, rotated and lit, with moving parts
+- **Pixel rendering**: one WebGL pass (2D canvas fallback), flat pixel-art shading in a few bands per material (or its
+  own palette), a smooth-scrolling world layer, a parallax sky layer the game can paint, a HUD in the engine's own pixel
+  font, and detail levels from 1x to 3x pixels per metre.
+- **Sprites**: pixel art resampled to the world's pixels, rotated and lit, with moving parts
   (`tools/sprite2ascii.py` converts images).
 - **Chip**: an NES 2A03-style sound chip that plays Standard MIDI Files, plus procedural sound effects.
 - **Made for AI sessions**: one documented API (`engine/API.md`), a starter game, a scaffold command, tunables

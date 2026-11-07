@@ -40,17 +40,18 @@ function fbm2(x, y, s, o) { let a = 0, amp = 1, f = 1, n = 0; for (let i = 0; i 
 // everything it needs (falls like sand, blast resistance, how it draws, what a blast throws) is a
 // property here.
 const EMPTY = 0, MAT_MAX = 256;
-const MATS = [{ id: 0, name: 'empty', albedo: [0, 0, 0], ramp: '' }];
-const MAT_NAME = ['empty'], MAT_ALB = [[0, 0, 0]], MAT_RAMP = [''], RAMP_CODES = [[]], MAT_GRAINS = [''], MAT_GLOWS = [null], MAT_PULSE = [null], MAT_BEATGLOW = [0];
+const MATS = [{ id: 0, name: 'empty', albedo: [0, 0, 0] }];
+const MAT_NAME = ['empty'], MAT_ALB = [[0, 0, 0]], MAT_PAL = [null], MAT_GRAINS = [''], MAT_GLOWS = [null], MAT_PULSE = [null], MAT_BEATGLOW = [0];
 const MAT_GRAN = new Uint8Array(MAT_MAX), MAT_CREEP = new Uint8Array(MAT_MAX), MAT_TOUGH = new Float32Array(MAT_MAX);
 const MAT_SHINY = new Float32Array(MAT_MAX), MAT_FRIC = new Float32Array(MAT_MAX), MAT_DENS = new Float32Array(MAT_MAX);
-const MAT_BRITTLE = new Uint8Array(MAT_MAX), MAT_ANCHOR = new Uint8Array(MAT_MAX), MAT_STYLE = new Uint8Array(MAT_MAX);
+const MAT_BRITTLE = new Uint8Array(MAT_MAX), MAT_ANCHOR = new Uint8Array(MAT_MAX), MAT_STYLE = new Uint8Array(MAT_MAX), MAT_SHADES = new Uint8Array(MAT_MAX);
 const MAT_DEBRIS = new Uint8Array(MAT_MAX), MAT_SUBL = new Float32Array(MAT_MAX), MAT_VAPOR = new Uint8Array(MAT_MAX);
 const MAT_FUSE = new Uint8Array(MAT_MAX), MAT_FUSEP = new Float32Array(MAT_MAX), MAT_EJECT = new Uint8Array(MAT_MAX), MAT_ONEWAY = new Uint8Array(MAT_MAX);
 const STYLE = { terrain: 0, deck: 1, mast: 2, crystal: 3, flat: 4 };
 const MAT_DEFAULTS = {
   albedo: [.6, .6, .6],     // surface colour under white light
-  ramp: ' .:;=+*#%@',       // glyphs from dark to bright for this material
+  shades: 5,                // how many flat shades the light is cut into (pixel art's bands), dithered between
+  palette: null,            // [[r, g, b], ...] bytes, dark to bright: its exact colours instead of albedo × light
   granular: false,          // falls and slides like sand
   creep: false,             // granular only: fine dust that also creeps sideways to ~45 degrees
   tough: .5,                // blast resistance (99 = indestructible)
@@ -62,7 +63,7 @@ const MAT_DEFAULTS = {
   oneWay: false,            // characters land on it from above, jump up through it and drop down through it (Character);
                             // to everything else (sand, particles, light, chunks) it is solid
   style: 'terrain',         // 'terrain' | 'deck' | 'mast' | 'crystal' | 'flat' (see renderScene)
-  grainGlyphs: ".,'`:",     // glyphs for its flying grains
+  grainGlyphs: ".,'`:",     // its flying grains: one picked per grain, as bright as the character is dense (see INK)
   debris: false,            // its grains fly as heavier, bouncier debris
   sublimate: 0,             // chance per exhaust hit to turn into vapour
   vaporize: false,          // blasts turn it into vapour instead of grains
@@ -83,9 +84,11 @@ function setMaterial(id, opts) { applyMaterial({ ...MATS[id], ...opts, id }); }
 function applyMaterial(m) {
   const id = m.id;
   if (!(m.style in STYLE)) throw new Error(`material ${m.name}: unknown style ${m.style}`);
-  MATS[id] = m; MAT_NAME[id] = m.name; MAT_ALB[id] = m.albedo; MAT_RAMP[id] = m.ramp; MAT_GRAINS[id] = m.grainGlyphs;
+  MATS[id] = m; MAT_NAME[id] = m.name; MAT_ALB[id] = m.albedo; MAT_GRAINS[id] = m.grainGlyphs;
   MAT_GLOWS[id] = m.glow; MAT_PULSE[id] = m.pulse || [.2, .9, .75]; MAT_BEATGLOW[id] = m.beatGlow;
-  RAMP_CODES[id] = Array.from(m.ramp, c => c.charCodeAt(0));
+  MAT_SHADES[id] = clamp(m.shades | 0, 2, 16);
+  // a palette's bytes in light units, so that after tone mapping the material shows exactly those colours
+  MAT_PAL[id] = m.palette ? m.palette.map(c => c.map(v => -Math.log(1 - Math.min(.97, v / 255)) / 1.7)) : null;
   MAT_GRAN[id] = m.granular ? 1 : 0; MAT_CREEP[id] = m.creep ? 1 : 0; MAT_TOUGH[id] = m.tough; MAT_SHINY[id] = m.shiny;
   MAT_FRIC[id] = m.friction; MAT_DENS[id] = m.density; MAT_BRITTLE[id] = m.brittle ? 1 : 0; MAT_ANCHOR[id] = m.anchor ? 1 : 0; MAT_ONEWAY[id] = m.oneWay ? 1 : 0;
   MAT_STYLE[id] = STYLE[m.style]; MAT_DEBRIS[id] = m.debris ? 1 : 0; MAT_SUBL[id] = m.sublimate; MAT_VAPOR[id] = m.vaporize ? 1 : 0;

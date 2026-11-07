@@ -1,7 +1,7 @@
 # Architecture
 
-Pixelite renders a 2D world as a grid of character cells, each with one printable ASCII glyph
-(32–126) and one RGB colour. Everything is plain JavaScript in one HTML page per game. The engine lives
+Pixelite renders a 2D world as a grid of cells, each one pixel of colour (it began as Glyphite, an ASCII engine that
+drew every cell as a printable character; the move to pixels is HISTORY section 29). Everything is plain JavaScript in one HTML page per game. The engine lives
 in numbered parts under `engine/` (order in `engine/engine.json`); each game lives in `games/<id>/` with a
 `game.json` manifest listing its parts. The build (`tools/pixelite.mjs`, using `tools/assemble.mjs`)
 concatenates the engine parts and then the game's parts into one `<script>`, so all top-level
@@ -52,7 +52,7 @@ world units.
 Materials are a registry: the game calls `defineMaterial(name, props)` at load time and gets an id
 (1..255; 0 is EMPTY). Hot loops read per-id typed arrays filled from the definitions: `MAT_ALB`
 (albedo), `MAT_GRAN` (falls like sand), `MAT_CREEP` (fine dust that creeps sideways), `MAT_TOUGH`
-(blast resistance), `MAT_SHINY` (glints), `RAMP_CODES` (luminance glyph ramp), `MAT_FRIC`, `MAT_DENS`,
+(blast resistance), `MAT_SHINY` (glints), `MAT_SHADES` and `MAT_PAL` (how it is shaded), `MAT_FRIC`, `MAT_DENS`,
 `MAT_BRITTLE`, `MAT_ANCHOR`, `MAT_STYLE`, `MAT_DEBRIS`, `MAT_SUBL`, `MAT_VAPOR`, `MAT_FUSE`/`MAT_FUSEP`,
 `MAT_EJECT`, plus `MAT_GLOWS`, `MAT_PULSE` and the `blast` callback in `MATS[id]`. Engine code only ever
 asks about properties, never about a particular material. `worldMaterials({ edge, rubble, fill })` names
@@ -99,7 +99,7 @@ nothing moves.
 - `PT_WRECK`: hot wreckage that throws sparks.
 - Game-defined types from `defineParticle({ gravity, drag, bounce, friction, update, light, look })`,
   ids from `PT_CUSTOM` (16) up. Regolith's He-3 shards (`PT_PICKUP`) are one: `update` homes them in on the
-  lander and collects them, `light` makes them glow, `look` animates their glyph.
+  lander and collects them, `light` makes them glow, `look` animates their colour.
 
 **Motion.** Particles are sub-stepped so nothing passes through a cell. Collisions find the blocking
 axis and bounce with restitution and friction (`bounce`).
@@ -278,30 +278,35 @@ There are three grids:
 | **World** (`R.wG`, `R.wPix`, size `RW × RH` = screen + 1 margin cell each side) | terrain, particles, objects | the camera's sub-cell offset; `ox, oy = floor(cam) - 1` |
 | **HUD** (`R.hG`, `R.hC`) | text | fixed; coarser cells (`R.hcw`) so text is readable at any detail level |
 
-World glyph codes:
-- **0** is transparent: the sky shows through.
-- **32** is an opaque blank: it hides the sky.
-- **33–126** are visible glyphs.
+Every world and sky cell is one pixel of colour. Cells keep a code (the glyph of the ASCII engine, so the old drawing calls
+still work):
+- **0** is empty: the sky shows through.
+- **32** is filled with the background colour (`BG`, `setBackground`): it hides the sky.
+- **127** (`SOLID`) is a plain pixel; terrain, chunks and sprites write it.
+- **33–126** are pixels as bright as that character is dense in the pixel font (`INK`, 0.45 for `.` up to 1 for `@`), so
+  particles and game objects drawn with characters keep their relative brightness (fine dust stays faint).
 
-HUD cells with code 255 are an opaque box background.
+The colour bytes carry the brightness; the alpha byte only says whether anything is in the cell. HUD cells hold codes of the
+pixel font: the printable characters, 127 a full block, 128..133 box lines that join across cells, 255 an opaque box
+background.
+
+**The pixel font.** 95 characters drawn 5 × 9 (7 rows of capitals, 2 of descenders), kept readable in `tools/pixelfont.py`,
+which packs them into `FONT_DATA` (9 rows of 5 bits per character, base 32). A HUD cell is 6 × 12 font pixels, scaled by a
+whole number `R.hs` chosen so a cell is about the size the old terminal text was (rounded down on phones, so a line holds as
+many characters). No web font is loaded.
 
 **WebGL path.** One full-screen triangle. The fragment shader works per pixel:
-1. If a HUD cell is there, draw it.
-2. Otherwise sample the world grid at `pixel - uOff`. If the world glyph is 0, sample the sky grid
-   at `pixel - uSkyOff`.
-3. Draw the glyph from the atlas: a 16×6 grid of the 95 glyphs, rendered with JetBrains Mono or the
-   monospace fallback.
-4. Add optional bloom from a separate bright-pass texture. Heat shimmer offsets glyphs sideways via
-   the `uShim` texture.
+1. If a HUD cell is there, draw its character from the font texture (scaled by `uHS`) over the background.
+2. Otherwise sample the world grid at `pixel - uOff`, moved sideways by the heat shimmer (`uShim`, up to 0.6 of a cell). If
+   the cell is empty, sample the sky grid at `pixel - uSkyOff`; if that is empty too, the background colour.
+3. Add optional bloom from a separate bright-pass texture.
 
 The sky texture is uploaded only when it changes. If the renderer string matches
 SwiftShader, llvmpipe and similar, WebGL is dropped for 2D unless `#gl` forces it.
 
-**2D path.** Each grid is a "grid layer":
-1. A one-pixel-per-cell colour canvas is scaled up, then cut out by a glyph mask canvas.
-2. The world layer gets an occupancy background, so occupied cells hide the sky.
-3. The sky layer is composed only when dirty.
-4. Draw order: sky, then world, then the HUD, drawn with tinted atlases.
+**2D path.** The sky and the world are each one canvas with a pixel per cell, drawn scaled up without smoothing over the
+background colour (the sky only when it changed); cells that shimmer are drawn once more, pushed sideways; then bloom, then the
+HUD: font characters from a tinted, pre-scaled copy of the font, and full blocks as plain rectangles.
 
 `presentFrame(fracX, fracY, t)` computes both pixel offsets plus screen shake and calls the active
 path.
@@ -312,19 +317,16 @@ path.
 2. Terrain cells. An empty cell with a back-wall material behind it (`backCells`) draws that material instead of staying
    transparent: albedo × the light in the air there × `BACK.dim`, darkened when a world cell lies a short way toward the
    light (`BACK.dir`, `BACK.depth`: a drop shadow that makes rooms look like rooms), with `Z = 0` so particles and rings
-   still draw over it. Its glyph is never 0, so the sky stays hidden behind it. A filled cell: colour = albedo × light
-   (buried cells have a floor), plus texture variation, plus
-   heat glow. The glyph depends on the surface:
-   - normal facing up → luminance ramp;
-   - normal facing down → `~`;
-   - vertical → `|`;
-   - slopes → `/` or `\`.
-   - Material styles (`style` in the registry):
-     - `deck` (Regolith's pad metal): `= -` deck, `# H` body.
-     - `mast` (lamp masts): `| = +` by its neighbours; buried footings draw as the ground around them.
-     - `crystal`: animated `* +` with a colour `pulse`.
-     - `flat` (ice): always the ramp, no slope glyphs.
-     - Shiny glints: `*`.
+   still draw over it. A filled cell: colour = albedo × light (buried cells have a floor), plus heat glow.
+   Both go through `shadeCell`, pixel art's flat shading: the tone-mapped brightness is cut into the material's `shades`
+   bands (or picks a colour of its `palette`, tinted by the light's colour), each shown at its middle brightness, and the
+   cell's texture (from `vari`, ±7%) is applied after the cut, so an evenly lit wall is one flat colour with a little grain
+   and never a dither pattern. A `step` moves the band:
+   - a lit surface facing up: one brighter (a bright top edge); facing down: one darker;
+   - `mast` (girders): joints, where it runs both ways, one brighter; buried footings draw as the ground around them;
+   - `crystal`: facets twinkling between two bands, plus a colour `pulse`;
+   - `flat` (ice): no edges. `deck` shades like terrain.
+   Shiny glints are single white pixels.
 3. Particles, lit by the light buffers and z-tested by luminance against the terrain.
 4. Falling chunks (`drawChunks`), then game objects through the game's `draw` hook, which writes with
    `putEmit` (fixed colour), `putLit` (albedo × light) or `drawSprite`.
@@ -345,38 +347,30 @@ costs about 1 ms at RES 2.
 
 ## 8. Sprites (`engine/10_sprite.js`)
 
-Pixel art becomes a palette-indexed grid; see the `pixelite-pixel-art-to-ascii` skill and
-`tools/sprite2ascii.py`. `defineSprite(data, { k, ox, oy, part, paint })` prepares it and
-`drawSprite(spr, x, y, a, { shift, foot, light })` draws it as ASCII (Regolith's lander:
-`games/regolith/lander_art.js`):
+Pixel art is a palette-indexed grid; see the `pixelite-pixel-art-to-ascii` skill and `tools/sprite2ascii.py`.
+`defineSprite(data, { k, ox, oy, part })` prepares it and `drawSprite(spr, x, y, a, { shift, foot, light })` resamples it to
+the world's pixels (Regolith's lander: `games/regolith/lander_art.js`):
 
 1. **Pin to the grid.** x is pinned to whole cells. Vertically, the `foot` line (the lander's footpad
    soles) snaps to a row boundary.
 2. **Sample.** For each cell in the bounding box, take 3×6 samples in the body frame (rotated). Parts
    (the lander's legs) are sampled where they were before their `shift` (sliding up their struts by
    the damper compression). `spritePixel` returns the sprite pixel or −1.
-3. **Classify the cell.**
-   - Fewer than 4 samples occupied: leave the cell empty.
-   - Fewer than 3 paint samples: draw an opaque blank (silhouette outline).
-   - Panel line filling over 60% of a solid cell: opaque blank.
-4. **Colour.** 65% the cell's main paint plus 35% the average. The palette is linearised through
-   the inverse tone curve. Light factor `0.75 + 0.4·min(1.3, sceneLight)`.
-5. **Glyph.**
-   - 10 or more of 18 samples painted: the palette entry's dense glyph (the lander: `%` foil; `@`
-     window and bright metal; `#` other metal).
-   - Otherwise: the symbol whose 3×6 coverage mask, rendered from the game font, best matches the
-     samples (least squares).
+3. **Pick.** A cell with fewer than 45% of its samples on the art stays empty. Otherwise it becomes one pixel in the palette
+   colour most samples landed on (outline colours included, so outlines stay where they are thick enough to show).
+4. **Colour.** The palette is linearised through the inverse tone curve, so unlit it shows the art's own colours; lit, it is
+   multiplied by `0.75 + 0.4·min(1.3, sceneLight)`, never dark.
 
 `markSpriteDyn` marks the covered cells for shadows; `spriteHull` gives collision points from the
 silhouette. Cost for the lander: about 0.5 ms (RES 1) to 1.6 ms (RES 3) per frame in headless Chromium.
 
 A sprite whose bounding box is off screen is skipped. With `cache: true` (a still sprite: angle 0, no `shift`), steps 1–5
-run once per flip and detail level and the result is kept as a stamp of cells (offset, glyph, colour); each frame only
+run once per flip and detail level and the result is kept as a stamp of cells (offset, code, colour); each frame only
 lights the stamp. Fjordheim draws about 230 trees and its buildings this way in under 1 ms.
 
 **Isometric ground** (`engine/12_iso.js`): `isoInit` sizes the world for a diamond of `ni × nj` tiles, each `tile · RES`
 cells wide and a quarter of that in rows (a 2:1 diamond on 1 × 2 cells). The ground is painted into the back wall
-(`backCells`): never solid, lit by the scene and textured by each material's ramp, while the world grid stays empty so every
+(`backCells`): never solid, lit and shaded by the scene like any material, while the world grid stays empty so every
 light reaches it. `isoToWorld` / `worldToIso` convert between ground coordinates and world units; `isoPick` turns a canvas
 point into a tile through the camera. Standing things are sprites: `isoDraw` sorts them by depth (`u + v`, then `u`) and
 draws them in that order, so nearer ones overwrite farther ones (`drawSprite` overwrites cells).
@@ -415,7 +409,7 @@ The hull points (`LANDER_HULL0`) are traced from the silhouette.
 level (at least 7 and 4 higher than the last frame: kicks, snares and crashes, not most hi-hats), then decays it with a
 0.16 s time constant. `setBeatPulse(k)` scales it into `Beat.pulse()`, which the scene uses three ways: scattered glow
 splats of materials with `beatGlow` are brightened, those materials flash in their own colour (added to the cell colour
-before the glyph is chosen), and the bloom bright-pass threshold drops (0.62 → 0.52) while its gain rises (×2.2).
+before it is shaded), and the bloom bright-pass threshold drops (0.62 → 0.52) while its gain rises (×2.2).
 `Beat.blink` replaces the per-game "beacons follow the music" logic (Regolith's old `beaconOn`).
 
 **Music director** (Regolith's `games/regolith/music.js`): picks the piece by game state (title, descent loop, touchdown
@@ -545,8 +539,7 @@ iframe, so a check runs on the editor's thread: the page waits for it (a second 
    (`tools/changes.mjs`: the numbered sections of `docs/HISTORY.md` — the request quoted, what was done — plus the
    merged pull requests read from `git log --first-parent`, best effort, for the What's new page).
 
-The page uses CSS tokens (`--void`, `--phosphor`, `--amber`...), JetBrains Mono from Google Fonts
-with fallbacks, and a `[hidden]{display:none!important}` guard. The canvas has an `aria-label`
+The page uses CSS tokens (`--void`, `--phosphor`, `--amber`...), the system's monospace font (no web font), and a `[hidden]{display:none!important}` guard. The canvas has an `aria-label`
 describing the controls.
 
 **Portal** (`portal/`): `index.html` lists the games from `games.json`. `edit/` is the editor: it loads

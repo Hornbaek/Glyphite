@@ -151,7 +151,7 @@ function setDetail(r, announce) {
   if (GAME.regenerate) GAME.regenerate();
   updateCamera(0, true);
   const btn = document.getElementById('detailBtn'); if (btn) btn.textContent = `[ DETAIL ${detailLabel()} ]`;
-  if (announce) say(`DETAIL ${detailLabel()} - ${R.cols} x ${R.rows} CHARACTERS`);
+  if (announce) say(`DETAIL ${detailLabel()} - ${R.cols} x ${R.rows} PIXELS`);
 }
 function stepDetail(dir) {
   const i = DETAIL_LEVELS.indexOf(RES), j = clamp(i + dir, 0, DETAIL_LEVELS.length - 1);
@@ -189,7 +189,6 @@ function boot(data) {
   }
   if (GAME.init) GAME.init(data);
   updateCamera(0, true);
-  if (document.fonts && document.fonts.load) document.fonts.load(`700 16px "JetBrains Mono"`).then(() => document.fonts.load(`16px "JetBrains Mono"`)).then(() => { if (R.cw) { buildAtlases(); SPR_SHAPES = null; } }).catch(() => { });
   window.claude?.hot?.snapshot?.(() => ({ detail: RES, ...(GAME.snapshot ? GAME.snapshot() : {}) }));
   if (window.parent !== window) window.parent.postMessage({ type: 'pixelite:ready', id: GAME.id, levels: !!GAME.levels }, '*');   // the editor's preview
   requestAnimationFrame(t => { lastT = t; frame(t); });

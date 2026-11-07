@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pixelite · an AI-first ASCII game engine</title>
-<meta name="description" content="Pixelite is a game engine for the browser that draws everything with the 95 printable ASCII characters, over a real simulation of rock, sand and light. Its games are made by talking to Claude.">
+<title>Pixelite · an AI-first pixel-art game engine</title>
+<meta name="description" content="Pixelite is a pixel-art game engine for the browser where every pixel is part of a real simulation of rock, sand and light. Its games are made by talking to Claude.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap">
@@ -21,11 +21,10 @@
 
 <main>
   <section class="hero wrap">
-    <p class="eyebrow">AN AI-FIRST ASCII GAME ENGINE</p>
-    <h1>Games drawn in 95 characters,<br>made by talking to Claude.</h1>
-    <p class="lede">Pixelite is a game engine for the browser that draws everything with the printable ASCII characters, each in its
-      own colour. Under the letters runs a real simulation: rock that breaks where it is hit, sand that pours and piles, light
-      that casts shadows. And its games are not written by hand: they are made, and changed, in conversations with Claude Code.</p>
+    <p class="eyebrow">AN AI-FIRST PIXEL-ART GAME ENGINE</p>
+    <h1>Pixel art you can break,<br>made by talking to Claude.</h1>
+    <p class="lede">Pixelite is a pixel-art game engine for the browser where every pixel is part of a real simulation: rock that
+      breaks where it is hit, sand that pours and piles, light that casts shadows. And its games are not written by hand: they are made, and changed, in conversations with Claude Code.</p>
     <div class="cta">
       <a class="btn primary" href="#games">[ PLAY THE TEST GAMES ↓ ]</a>
       <a class="btn" href="#can">[ WHAT IT CAN DO ↓ ]</a>
@@ -36,7 +35,7 @@
     <div class="screen">
       <iframe src="/games/showcase/" title="The Pixelite engine running live: the word PIXELITE in rock, sand and meteors. Click to drop a meteor." loading="eager"></iframe>
     </div>
-    <p class="caption">Not a video: this is the engine, running in this page. Every character is a cell of rock, sand or light. Click or tap
+    <p class="caption">Not a video: this is the engine, running in this page. Every pixel is a cell of rock, sand or light. Click or tap
       to drop a meteor; whatever loses its support breaks off and falls.</p>
   </section>
 
@@ -47,16 +46,16 @@
         support breaks off as a rigid chunk that falls, tumbles, chips and settles back into the world.</p></article>
       <article><h3>Sand that flows</h3><p>Sand, dust and rubble pour, pile and slide in a cellular simulation. Debris thrown by a blast becomes
         ground again where it lands.</p></article>
-      <article><h3>Light, in text</h3><p>Sun shadows, lamps that flicker and buzz, ambient occlusion, glowing materials and bloom, all worked
-        out character by character, with eyes that adapt to the dark.</p></article>
+      <article><h3>Light, pixel by pixel</h3><p>Sun shadows, lamps that flicker and buzz, ambient occlusion, glowing materials and bloom, all
+        worked out pixel by pixel, with eyes that adapt to the dark.</p></article>
       <article><h3>Physics underneath</h3><p>Rigid bodies with contacts and friction, and a platformer controller with coyote time, jump buffering,
         wall jumps and floors you can jump up through.</p></article>
-      <article><h3>Pixel art becomes ASCII</h3><p>Art is cut from image sheets and turned into sprites whose characters follow its shapes,
+      <article><h3>Pixel art in the world</h3><p>Art is cut from image sheets and drawn as sprites at the world's own pixels,
         rotated and lit by the scene. Every original drawing is kept beside the game.</p></article>
       <article><h3>Fire, sparks and smoke</h3><p>Particles, shock rings, flashes, screen shake and slow motion, and an NES-style sound chip that
         plays music and makes the booms.</p></article>
       <article><h3>One page per game</h3><p>Each game is a single self-contained web page with nothing to install: WebGL first, a 2D canvas
-        when there is no GPU, and detail from one to three characters per metre.</p></article>
+        when there is no GPU, and detail from one to three pixels per metre.</p></article>
       <article><h3>Built for AI sessions</h3><p>One documented API, a starter game, a test hook every game answers, and checks that prove a
         level can be finished, so a Claude session can build and verify a game on its own.</p></article>
     </div>
@@ -86,7 +85,7 @@
   <section class="wrap" id="goal">
     <h2><span>04</span> The goal</h2>
     <div class="goal">
-      <p>A game engine made for one kind of picture, ASCII, and for one way of working: describing what you want and playing the result.
+      <p>A game engine made for one kind of picture, pixel art, and for one way of working: describing what you want and playing the result.
         Not just one game, but any 2D game: landers, platformers, falling-sand toys, top-down adventures. Physics and light come first,
         every game stays a single page, and the whole loop, from idea to deployed game, runs through AI sessions.</p>
       <p>What comes next is picked from an idea bank of <b id="ideaCount">over a thousand</b> ideas, from climbing and moving platforms to

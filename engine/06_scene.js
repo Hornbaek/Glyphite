@@ -1,6 +1,26 @@
-// ===================== ENGINE · scene shading → glyphs =====================
+// ===================== ENGINE · scene shading → pixels =====================
 const FLAME_GLYPHS = Array.from('.:-=+*#%@', c => c.charCodeAt(0));
 const tone = c => 1 - Math.exp(-c * 1.7);
+const SOLID = 127;   // the cell code of a plain pixel (full colour)
+// Pixel-art shading: the light on a material is cut into its few flat shades (MAT_SHADES, or the colours of its palette), each
+// shown at its middle brightness, so even the darkest is not black. No dither: an evenly lit wall stays one flat colour.
+// `step` moves the shade up or down (a lit top edge one brighter, an underside one darker); `tex` is the cell's own texture,
+// applied after the cut so it only varies a shade a little and never flips a cell into the next one. Colours in and out are in
+// light units; lr, lg, lb is the light on the cell, which tints a palette.
+function shadeCell(m, r, g, b, lr, lg, lb, tex, step, out) {
+  const lum = .3 * r + .59 * g + .11 * b, E = EYE.e, t = tone(lum * E), pal = MAT_PAL[m];
+  if (pal) {
+    const c = pal[clamp(Math.floor(t * pal.length) + step, 0, pal.length - 1)], lm = Math.max(lr, lg, lb, 1e-4), f = tex / E;
+    out[0] = c[0] * (.5 + .5 * lr / lm) * f; out[1] = c[1] * (.5 + .5 * lg / lm) * f; out[2] = c[2] * (.5 + .5 * lb / lm) * f;
+    return out;
+  }
+  const n = MAT_SHADES[m], q = clamp((Math.floor(t * n) + step + .5) / n, .4 / n, .97);
+  const f = lum > 1e-5 ? -Math.log(1 - q) / 1.7 / E / lum * tex : 0;
+  out[0] = r * f; out[1] = g * f; out[2] = b * f;
+  return out;
+}
+const texOf = v => .93 + (v & 31) / 31 * .14;   // a cell's texture from its random byte
+const _shd = [0, 0, 0];
 // Eye adaptation: the exposure eases toward what the scene calls for, measured each frame as the geometric mean brightness of
 // the visible cells before tone mapping (so exposure cannot feed back into its own measurement). A dark scene brightens slowly
 // (`up` seconds, like eyes in a cave), a bright one darkens quickly (`down`), so stepping from shadow into sun dazzles for a
@@ -14,13 +34,15 @@ function setEyeAdaptation(strength, opts) {
 function adaptEye(G, n, time) {
   if (EYE.s <= 0) return;
   let sum = 0, cnt = 0;
-  for (let k = 0; k < n; k += 5) if (G[k]) { sum += Math.log(.3 * cR[k] + .59 * cG[k] + .11 * cB[k] + .03); cnt++; }
+  for (let k = 0; k < n; k += 5) if (G[k]) { sum += Math.log((cL[k] >= 0 ? cL[k] : .3 * cR[k] + .59 * cG[k] + .11 * cB[k]) + .03); cnt++; }
   const dt = EYE.t < 0 ? 0 : clamp(time - EYE.t, 0, .1); EYE.t = time;
   if (cnt < 12) return;                            // almost nothing on screen to judge by: keep what we have
   const target = clamp(Math.exp(EYE.s * Math.log(EYE.key / Math.max(.02, Math.exp(sum / cnt) - .03))), EYE.min, EYE.max);
   EYE.e += (target - EYE.e) * (1 - Math.exp(-dt / (target > EYE.e ? EYE.up : EYE.down)));
 }
-let cR, cG, cB, vig;
+// cL: a shaded cell's brightness before it was cut into shades (which depend on the exposure, so the eye must not measure
+// them); -1 where something drew its own colour
+let cR, cG, cB, cL, vig;
 // cells (dx, dy) toward the light from a back-wall cell, nearest first: a world cell there shades it
 const BK_OFF = new Int16Array(64);
 function backShadowOffsets() {
@@ -46,19 +68,19 @@ function flameCol(t, out) {   // t: 1 = fresh/hot … 0 = spent
 // world-space writers used by games to draw their objects (cell coordinates; colours in light units)
 function putEmit(cx, cy, code, r, g, b) {
   const i = cx - L_OX, j = cy - L_OY; if (i < 0 || j < 0 || i >= R.RW || j >= R.RH) return;
-  const k = j * R.RW + i; R.wG[k] = code; cR[k] = r; cG[k] = g; cB[k] = b; R.wZ[k] = 9;
+  const k = j * R.RW + i; R.wG[k] = code; cR[k] = r; cG[k] = g; cB[k] = b; cL[k] = -1; R.wZ[k] = 9;
 }
 function putLit(cx, cy, code, ar, ag, ab, floor = .1) {
   const i = cx - L_OX, j = cy - L_OY; if (i < 0 || j < 0 || i >= R.RW || j >= R.RH) return;
   const k = j * R.RW + i;
-  R.wG[k] = code; cR[k] = ar * Math.max(LR[k], floor); cG[k] = ag * Math.max(LG[k], floor); cB[k] = ab * Math.max(LB[k], floor * 1.2); R.wZ[k] = 9;
+  R.wG[k] = code; cL[k] = -1; cR[k] = ar * Math.max(LR[k], floor); cG[k] = ag * Math.max(LG[k], floor); cB[k] = ab * Math.max(LB[k], floor * 1.2); R.wZ[k] = 9;
 }
 const lightAtCell = (cx, cy, out) => { const i = cx - L_OX, j = cy - L_OY; if (i < 0 || j < 0 || i >= R.RW || j >= R.RH) { out[0] = out[1] = out[2] = 0; return out; } const k = j * R.RW + i; out[0] = LR[k]; out[1] = LG[k]; out[2] = LB[k]; return out; };
 
 function renderScene(ox, oy, time, drawExtras) {
   const RW = R.RW, RH = R.RH, n = RW * RH, G = R.wG, Z = R.wZ, SH = R.wShim;
   if (!cR || cR.length !== n) {
-    cR = new Float32Array(n); cG = new Float32Array(n); cB = new Float32Array(n); vig = new Float32Array(n);
+    cR = new Float32Array(n); cG = new Float32Array(n); cB = new Float32Array(n); cL = new Float32Array(n); vig = new Float32Array(n);
     for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) { const u = i / RW * 2 - 1, v = j / RH * 2 - 1; vig[j * RW + i] = 1 - .42 * (u * u * .55 + v * v * .8); }
   }
   SH.fill(0);
@@ -92,21 +114,23 @@ function renderScene(ox, oy, time, drawExtras) {
     }
   }
 
-  // 2) terrain (empty cells stay glyph 0: transparent, so the sky layer shows through them)
+  // 2) terrain (empty cells stay code 0: transparent, so the sky layer shows through them)
   for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) {
     const k = j * RW + i, cx = ox + i, cy = oy + j; let m = getC(cx, cy);
     const lr = LR[k], lg = LG[k], lb = LB[k];
-    let glyph = 0, r = 0, g = 0, b = 0;
+    let glyph = 0, r = 0, g = 0, b = 0, raw = -1;
     if (m === EMPTY) {
       Z[k] = 0;   // particles and rings always draw over the back wall
       const bm = cx >= 0 && cx < W && cy >= 0 && cy < H ? backCells[cy * W + cx] : 0;
       if (bm) {   // the back wall: the light in the air in front of it, dimmer, with a drop shadow from the world cells
         let f = BACK.dim;
         for (let s = 0; s < bkN; s++) if (getC(cx - BK_OFF[2 * s], cy - BK_OFF[2 * s + 1]) !== EMPTY) { f *= 1 - BACK.shadow * (1 - s / bkN); break; }
-        const alb = MAT_ALB[bm], v = vari[cy * W + cx], tv = (.86 + (v & 31) / 31 * .28) * f;
-        r = alb[0] * lr * tv; g = alb[1] * lg * tv; b = alb[2] * lb * tv;
-        if (MAT_STYLE[bm] === 2) { const vt = getBack(cx, cy - 1) === bm || getBack(cx, cy + 1) === bm, hz = getBack(cx - 1, cy) === bm || getBack(cx + 1, cy) === bm; glyph = vt && hz ? 43 : hz ? 61 : 124; }
-        else { const ramp = RAMP_CODES[bm], rl = ramp.length; glyph = ramp[clamp(((.3 * r + .59 * g + .11 * b) * rl * 1.2 + ((v & 15) / 15 - .5) * .9) | 0, 0, rl - 1)]; }
+        const alb = MAT_ALB[bm];
+        // a mast-style back wall (girders) shows its joints one shade brighter
+        const joint = MAT_STYLE[bm] === 2 && (getBack(cx, cy - 1) === bm || getBack(cx, cy + 1) === bm) && (getBack(cx - 1, cy) === bm || getBack(cx + 1, cy) === bm);
+        raw = (.3 * alb[0] * lr + .59 * alb[1] * lg + .11 * alb[2] * lb) * f;
+        shadeCell(bm, alb[0] * lr * f, alb[1] * lg * f, alb[2] * lb * f, lr, lg, lb, texOf(vari[cy * W + cx]), joint ? 1 : 0, _shd);
+        r = _shd[0]; g = _shd[1]; b = _shd[2]; glyph = SOLID;
       }
     } else {
       if (MAT_STYLE[m] === 2 && LSURF[k] === 1) {   // buried mast footings look like the ground they're in
@@ -117,24 +141,21 @@ function renderScene(ox, oy, time, drawExtras) {
       const alb = MAT_ALB[m], v = inW ? vari[ci] : 77, h = inW ? heat[ci] : 0, s = LSURF[k], st = MAT_STYLE[m];
       if (s === 1) { const fl = .1 + .13 * LAOD[k]; r = alb[0] * Math.max(lr, fl); g = alb[1] * Math.max(lg, fl); b = alb[2] * Math.max(lb, fl * 1.25); }
       else { r = alb[0] * lr; g = alb[1] * lg; b = alb[2] * lb; }
-      const tv = .86 + (v & 31) / 31 * .28; r *= tv; g *= tv; b *= tv;
       if (h > .02) { r += h * 1.35; g += h * h * .6; b += h * h * h * .3; }
       if (bp > 0 && MAT_BEATGLOW[m]) { const q = MAT_BEATGLOW[m] * bp * .9; r += alb[0] * q; g += alb[1] * q; b += alb[2] * q; }   // flashes in its own colour on the beat
-      const lum = .3 * r + .59 * g + .11 * b, ramp = RAMP_CODES[m], rl = ramp.length;
-      if (st === 1) glyph = s === 2 && LNY[k] < -.5 ? (lum < .16 ? 45 : 61) : (v & 1 ? 35 : 72);   // deck: = - on top, # H in the body
-      else if (st === 2) { const vt = getC(cx, cy - 1) === m || getC(cx, cy + 1) === m, hz = getC(cx - 1, cy) === m || getC(cx + 1, cy) === m; glyph = vt && hz ? 43 : hz ? 61 : 124; }
-      else if (st === 3) { const p = .6 + .4 * Math.sin(time * 3 + v), pc = MAT_PULSE[m]; glyph = ((time * 2 + v * .1) | 0) & 1 ? 42 : 43; r += pc[0] * p; g += pc[1] * p; b += pc[2] * p; }
-      else if (s === 2 && st !== 4) {
-        const nx = LNX[k], ny = LNY[k];
-        if (ny < -.8) glyph = ramp[clamp((lum * rl * 1.2 + (v & 7) / 8) | 0, 2, rl - 1)];
-        else if (ny > .55) glyph = 126;
-        else if (Math.abs(ny) < .36) glyph = 124;
-        else glyph = nx < 0 ? 47 : 92;
-      } else glyph = ramp[clamp((lum * rl * 1.2 + ((v & 15) / 15 - .5) * .9) | 0, 1, rl - 1)];
-      if (MAT_SHINY[m] > 0 && s === 2 && (LSUN[k] || lum > .85) && hash2(cx, cy, (time * 2.5) | 0) < MAT_SHINY[m] * .07) { glyph = 42; r = g = b = 1.7; }
-      Z[k] = lum;
+      // the shade step: deck tops and lit surfaces facing up get a bright edge, undersides a dark one; girder joints and
+      // twinkling crystal facets one brighter
+      let step = 0;
+      if (st === 2) step = (getC(cx, cy - 1) === m || getC(cx, cy + 1) === m) && (getC(cx - 1, cy) === m || getC(cx + 1, cy) === m) ? 1 : 0;
+      else if (st === 3) { const p = .6 + .4 * Math.sin(time * 3 + v), pc = MAT_PULSE[m]; step = ((time * 2 + v * .1) | 0) & 1; r += pc[0] * p; g += pc[1] * p; b += pc[2] * p; }
+      else if (s === 2 && st !== 4) step = LNY[k] < -.5 ? (lr + lg + lb > .3 ? 1 : 0) : LNY[k] > .55 ? -1 : 0;
+      raw = .3 * r + .59 * g + .11 * b;   // also the occlusion key particles test against: free of the exposure, like theirs
+      shadeCell(m, r, g, b, lr, lg, lb, texOf(v), step, _shd);
+      r = _shd[0]; g = _shd[1]; b = _shd[2]; glyph = SOLID;
+      if (MAT_SHINY[m] > 0 && s === 2 && (LSUN[k] || raw > .85) && hash2(cx, cy, (time * 2.5) | 0) < MAT_SHINY[m] * .07) r = g = b = 1.7;
+      Z[k] = raw;
     }
-    G[k] = glyph; cR[k] = r; cG[k] = g; cB[k] = b;
+    G[k] = glyph; cR[k] = r; cG[k] = g; cB[k] = b; cL[k] = raw;
   }
 
   // 3) particles, lit by the same buffers
@@ -164,7 +185,7 @@ function renderScene(ox, oy, time, drawExtras) {
     }
     const lum = .3 * r + .59 * g + .11 * b;
     if (Z[k] > 0 && lum < Z[k]) continue;
-    G[k] = glyph; cR[k] = r; cG[k] = g; cB[k] = b; Z[k] = lum;
+    G[k] = glyph; cR[k] = r; cG[k] = g; cB[k] = b; cL[k] = -1; Z[k] = lum;
   }
 
   // 4) falling chunks, then the game's own objects
@@ -182,19 +203,20 @@ function renderScene(ox, oy, time, drawExtras) {
       const d = Math.abs(Math.hypot(cx + .5 - rg.x, (cy + .5) * ASPECT - rg.y) - rad); if (d > band) continue;
       const q = fade * (1 - d / band);
       if (q * 1.2 < Z[k]) continue;
-      G[k] = q > .7 ? 79 : q > .35 ? 111 : 46; cR[k] = rg.c[0] * q; cG[k] = rg.c[1] * q; cB[k] = rg.c[2] * q; Z[k] = q;
+      G[k] = q > .7 ? 79 : q > .35 ? 111 : 46; cR[k] = rg.c[0] * q; cG[k] = rg.c[1] * q; cB[k] = rg.c[2] * q; cL[k] = -1; Z[k] = q;
     }
   }
 
-  // 6) tone map + vignette → bytes (and optional bloom bright-pass)
+  // 6) tone map + vignette → bytes (alpha: is anything in the cell; and the optional bloom bright-pass)
   adaptEye(G, n, time);
-  const D = R.wPix, BL = R.bloomPix, bloom = R.bloom, glA = R.mode === 'gl', OC = R.occPix, E = EYE.e;
+  const D = R.wPix, BL = R.bloomPix, bloom = R.bloom, E = EYE.e;
   const bt = .62 - .1 * bp, bg = 460 * (1 + 1.2 * bp);   // the bloom bright-pass: on a drum hit its threshold drops and its gain rises
   for (let k = 0; k < n; k++) {
-    const vv = vig[k], r = tone(cR[k] * E) * vv, g = tone(cG[k] * E) * vv, b = tone(cB[k] * E) * vv, q = k * 4;
-    D[q] = r * 255; D[q + 1] = g * 255; D[q + 2] = b * 255; D[q + 3] = glA ? G[k] : 255;   // GL reads the glyph code from alpha
-    if (!glA) { OC[q] = 5; OC[q + 1] = 7; OC[q + 2] = 12; OC[q + 3] = G[k] ? 255 : 0; }  // 2D: occupied cells are opaque
-    if (bloom) { const on = G[k] > 32; BL[q] = on ? Math.max(0, r - bt) * bg : 0; BL[q + 1] = on ? Math.max(0, g - bt) * bg : 0; BL[q + 2] = on ? Math.max(0, b - bt) * bg : 0; BL[q + 3] = 255; }
+    const code = G[k], vv = vig[k] * INK[code], q = k * 4;
+    let r = tone(cR[k] * E) * vv, g = tone(cG[k] * E) * vv, b = tone(cB[k] * E) * vv;
+    if (code === 32) { r = BG[0] / 255; g = BG[1] / 255; b = BG[2] / 255; }   // a filled cell of plain background
+    D[q] = r * 255; D[q + 1] = g * 255; D[q + 2] = b * 255; D[q + 3] = code ? 255 : 0;
+    if (bloom) { const on = code > 32; BL[q] = on ? Math.max(0, r - bt) * bg : 0; BL[q + 1] = on ? Math.max(0, g - bt) * bg : 0; BL[q + 2] = on ? Math.max(0, b - bt) * bg : 0; BL[q + 3] = 255; }
   }
   renderSky(time);
 }
@@ -220,7 +242,7 @@ function renderSky(time) {
   const ox = ix - 1, oy = iy - 1, key = `${ox},${oy},${RW},${RH},${step},${Math.round(E * 24)}`;
   if (key === skyKey) return;
   skyKey = key; R.skyDirty = true;
-  const SG = R.sG, D = R.sPix, glA = R.mode === 'gl', paint = GAME.sky, starP = .011 * (GAME.stars ?? 1) / (RES * RES);
+  const SG = R.sG, D = R.sPix, paint = GAME.sky, starP = .011 * (GAME.stars ?? 1) / (RES * RES);
   if (paint && GAME.skyBegin) GAME.skyBegin(ox, oy, time);
   for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) {
     const k = j * RW + i, q = k * 4; let glyph = 0, r = 0, g = 0, b = 0;
@@ -237,7 +259,7 @@ function renderSky(time) {
       r *= f; g *= f; b *= f;
       if (f < .5) glyph = 46;              // a faint star shrinks to a dot
     }
-    const vv = vig[k];
-    SG[k] = glyph; D[q] = tone(r * E) * vv * 255; D[q + 1] = tone(g * E) * vv * 255; D[q + 2] = tone(b * E) * vv * 255; D[q + 3] = glA ? glyph : 255;
+    const vv = vig[k] * INK[glyph];
+    SG[k] = glyph; D[q] = tone(r * E) * vv * 255; D[q + 1] = tone(g * E) * vv * 255; D[q + 2] = tone(b * E) * vv * 255; D[q + 3] = glyph > 32 ? 255 : 0;
   }
 }
