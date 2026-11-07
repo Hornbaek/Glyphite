@@ -6,7 +6,7 @@
   python3 tools/thumbnail.py regolith --eval "startSite(2)"   # set up any scene first
   python3 tools/thumbnail.py regolith --play --keys ArrowUp --auto 24 --every 15   # let it pick the frame
 
-Build first (node tools/glyphite.mjs build). Uses the 2D renderer in headless Chromium, freezes the
+Build first (node tools/pixelite.mjs build). Uses the 2D renderer in headless Chromium, freezes the
 loop and takes a 1280 x 800 screenshot, scaled down. Set "thumbnail": "thumb.png" in game.json.
 Look at the result before committing it.
 
@@ -55,7 +55,7 @@ def pick_best(stats, weights=WEIGHTS):
 async def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('game')
-    ap.add_argument('--play', action='store_true', help='start the game first (Glyphite.test.start())')
+    ap.add_argument('--play', action='store_true', help='start the game first (Pixelite.test.start())')
     ap.add_argument('--steps', type=int, default=90, help='simulation steps before the shot')
     ap.add_argument('--keys', default='', help='comma-separated KeyboardEvent codes held while stepping')
     ap.add_argument('--eval', default='', help='JavaScript to run before stepping')
@@ -72,20 +72,20 @@ async def main():
         page = await b.new_page(viewport={'width': 1280, 'height': 800})
         await page.goto(f'file://{ROOT}/dist/games/{a.game}/index.html#2d')
         await page.wait_for_timeout(a.wait)
-        if a.play: await page.evaluate('Glyphite.test.start()')
+        if a.play: await page.evaluate('Pixelite.test.start()')
         if a.eval: await page.evaluate(a.eval)
         keys = [k for k in a.keys.split(',') if k]
-        await page.evaluate(f'Glyphite.test.step({a.steps}, {json.dumps(keys)})')
+        await page.evaluate(f'Pixelite.test.step({a.steps}, {json.dumps(keys)})')
         tmp = ROOT / 'shots' / f'thumb_{a.game}_full.png'
         tmp.parent.mkdir(exist_ok=True)
         cands = []   # (image, state, particles)
         for i in range(max(1, a.auto)):
-            if i: await page.evaluate(f'Glyphite.test.step({a.every}, {json.dumps(keys)})')
-            await page.evaluate('Glyphite.test.freeze(); Glyphite.test.render()')
+            if i: await page.evaluate(f'Pixelite.test.step({a.every}, {json.dumps(keys)})')
+            await page.evaluate('Pixelite.test.freeze(); Pixelite.test.render()')
             await page.screenshot(path=str(tmp))
             info = await page.evaluate('({ state: typeof state === "string" ? state : "", particles: typeof P !== "undefined" ? P.n : 0 })')
             cands.append((Image.open(tmp).convert('RGB').copy(), info['state'], info['particles']))
-            if a.auto: await page.evaluate('Glyphite.test.unfreeze()')
+            if a.auto: await page.evaluate('Pixelite.test.unfreeze()')
         await b.close()
     best = cands[0][0]
     if a.auto:

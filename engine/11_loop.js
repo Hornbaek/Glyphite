@@ -1,6 +1,6 @@
 // ===================== ENGINE · runtime: loop, camera, detail, boot =====================
-// A game is one object of hooks handed to Glyphite.run() (see engine/API.md for the full contract):
-//   Glyphite.run({
+// A game is one object of hooks handed to Pixelite.run() (see engine/API.md for the full contract):
+//   Pixelite.run({
 //     id: 'mygame',                       saved settings are keyed by it
 //     touch: [[...], [...]],              on-screen buttons (see setupInput)
 //     keys: { detail, bloom, mute, pause } built-in keys; each defaults to true
@@ -32,11 +32,11 @@
 let state = 'title', stateT = 0, perfAvg = 16, toastMsg = null;
 function setState(s) { state = s; stateT = 0; }
 function say(text) { toastMsg = { text: text.slice(0, Math.max(10, R.hcols - 6)), t0: performance.now() / 1000 }; }
-const storeKey = k => `${GAME.id || 'glyphite'}.${k}`;
+const storeKey = k => `${GAME.id || 'glyphite'}.${k}`;   // the old name stays in the key, so saves made before the rename to Pixelite survive
 const detailLabel = () => `${RES.toFixed(1)}x`;
 
 // ---------- tunables: numbers a game exposes in game.json, editable live from the web editor ----------
-// TUNE.<key> starts at the manifest value, overridden by window.GLYPHITE_TUNE (set by the editor's
+// TUNE.<key> starts at the manifest value, overridden by window.PIXELITE_TUNE (set by the editor's
 // preview) and by ?tune={"key":value} in the page URL. The editor sends changes while the game runs;
 // GAME.onTune(key, value) hears them.
 const TUNE = {};
@@ -44,24 +44,24 @@ function loadTunables(manifest) {
   const defs = (manifest && manifest.tunables) || {};
   for (const k in defs) TUNE[k] = defs[k].value;
   let url = null; try { url = JSON.parse(new URLSearchParams(location.search).get('tune') || 'null'); } catch (e) { }
-  for (const src of [window.GLYPHITE_TUNE, url]) if (src && typeof src === 'object') for (const k in src) if (k in defs && typeof src[k] === typeof defs[k].value) TUNE[k] = src[k];
+  for (const src of [window.PIXELITE_TUNE, url]) if (src && typeof src === 'object') for (const k in src) if (k in defs && typeof src[k] === typeof defs[k].value) TUNE[k] = src[k];
 }
 loadTunables(typeof GAME_MANIFEST !== 'undefined' ? GAME_MANIFEST : null);
 window.addEventListener('message', e => {
   const d = e.data;
-  if (e.source !== window.parent || !d || d.type !== 'glyphite:tune' || !d.values) return;
+  if (e.source !== window.parent || !d || d.type !== 'pixelite:tune' || !d.values) return;
   for (const k in d.values) if (k in TUNE && typeof d.values[k] === typeof TUNE[k]) { TUNE[k] = d.values[k]; if (GAME.onTune) GAME.onTune(k, TUNE[k]); }
 });
-// The editor's LEVELS tab drives the preview: { type: 'glyphite:level', action: 'play', level, tile } starts that map (at that
-// tile) and 'check' asks the game whether it can be finished; the answer goes back as 'glyphite:levelcheck'.
+// The editor's LEVELS tab drives the preview: { type: 'pixelite:level', action: 'play', level, tile } starts that map (at that
+// tile) and 'check' asks the game whether it can be finished; the answer goes back as 'pixelite:levelcheck'.
 window.addEventListener('message', e => {
   const d = e.data;
-  if (e.source !== window.parent || !d || d.type !== 'glyphite:level' || !GAME.levels) return;
+  if (e.source !== window.parent || !d || d.type !== 'pixelite:level' || !GAME.levels) return;
   if (d.action === 'play' && GAME.levels.play) { GAME.levels.play(d.level | 0, d.tile || null); updateCamera(0, true); try { R.canvas.focus({ preventScroll: true }); } catch (err) { } }
   else if (d.action === 'check') {
     let result;
     try { result = GAME.levels.check ? GAME.levels.check(d.level | 0) : { error: 'this game cannot check its levels' }; } catch (err) { result = { error: String(err && err.message || err) }; }
-    window.parent.postMessage({ type: 'glyphite:levelcheck', id: d.id, level: d.level, result }, '*');
+    window.parent.postMessage({ type: 'pixelite:levelcheck', id: d.id, level: d.level, result }, '*');
   }
 });
 
@@ -191,13 +191,13 @@ function boot(data) {
   updateCamera(0, true);
   if (document.fonts && document.fonts.load) document.fonts.load(`700 16px "JetBrains Mono"`).then(() => document.fonts.load(`16px "JetBrains Mono"`)).then(() => { if (R.cw) { buildAtlases(); SPR_SHAPES = null; } }).catch(() => { });
   window.claude?.hot?.snapshot?.(() => ({ detail: RES, ...(GAME.snapshot ? GAME.snapshot() : {}) }));
-  if (window.parent !== window) window.parent.postMessage({ type: 'glyphite:ready', id: GAME.id, levels: !!GAME.levels }, '*');   // the editor's preview
+  if (window.parent !== window) window.parent.postMessage({ type: 'pixelite:ready', id: GAME.id, levels: !!GAME.levels }, '*');   // the editor's preview
   requestAnimationFrame(t => { lastT = t; frame(t); });
 }
 
 // ---------- the public object: run a game, and drive it from tests ----------
 const _engineUpdate = update;
-const Glyphite = {
+const Pixelite = {
   version: '0.5.0',
   run(game) {
     GAME = game;
@@ -213,10 +213,10 @@ const Glyphite = {
       for (const k of keys) Input.keys.add(k);
       for (let i = 0; i < n; i++) _engineUpdate(DT);
       for (const k of keys) Input.keys.delete(k);
-      return Glyphite.test.probe();
+      return Pixelite.test.probe();
     },
-    freeze() { if (!window.__glyphiteUpdate) { window.__glyphiteUpdate = window.update; window.update = () => { }; } },
-    unfreeze() { if (window.__glyphiteUpdate) { window.update = window.__glyphiteUpdate; window.__glyphiteUpdate = null; } },
+    freeze() { if (!window.__pixeliteUpdate) { window.__pixeliteUpdate = window.update; window.update = () => { }; } },
+    unfreeze() { if (window.__pixeliteUpdate) { window.update = window.__pixeliteUpdate; window.__pixeliteUpdate = null; } },
     render(t = performance.now() / 1000) { draw(t); },
     probe() {
       return { state, stateT: +stateT.toFixed(2), frame: frameNo, res: RES, renderer: R.mode, cols: R.cols, rows: R.rows,
@@ -225,4 +225,4 @@ const Glyphite = {
     }
   }
 };
-window.Glyphite = Glyphite;
+window.Pixelite = Pixelite;

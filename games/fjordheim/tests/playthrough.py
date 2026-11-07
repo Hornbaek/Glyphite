@@ -2,7 +2,7 @@
 """Fjordheim: a simple player builds a homestead through the BUILD button, the build menu and the map clicks; the family
 must live to the second spring. Checks that every building gets built, that the jobs produce, and that winter can be
 survived.
-  python3 games/fjordheim/tests/playthrough.py [renderer]      (needs the build: node tools/glyphite.mjs build fjordheim)
+  python3 games/fjordheim/tests/playthrough.py [renderer]      (needs the build: node tools/pixelite.mjs build fjordheim)
 Prints a line per game day and fails (exit 1) if the family sails home, a building stays unbuilt or the page errors."""
 import sys, json
 from pathlib import Path
@@ -35,8 +35,8 @@ BOT = r'''(() => {
   centreOn([t[0], t[1], 1, 1]); updateCamera(0, true);
   const aim = [(p[0] - cam.x) / R.cols, (p[1] - cam.y) / (R.rows * ASPECT)];
   // click BUILD, then the building's entry in the menu (the HUD as drawn), then the map
-  const button = id => { Glyphite.test.render(); const m = MENU.find(m => m.id === id); return [(m.c0 + m.c1) / 2 / R.hcols, (m.r0 + m.r1 + 1) / 2 / R.hrows]; };
-  tap(button('build')); tap(button(type)); Glyphite.test.render(); tap(aim);
+  const button = id => { Pixelite.test.render(); const m = MENU.find(m => m.id === id); return [(m.c0 + m.c1) / 2 / R.hcols, (m.r0 + m.r1 + 1) / 2 / R.hrows]; };
+  tap(button('build')); tap(button(type)); Pixelite.test.render(); tap(aim);
   if (SEL === type) SEL = null;
   const ok = HOME.buildings.some(x => x.type === type && x.i === best[0] && x.j === best[1]);
   if (ok) bot.n++;
@@ -47,13 +47,13 @@ with sync_playwright() as p:
     b = p.chromium.launch(args=['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'])
     pg = b.new_page(viewport={'width': 1280, 'height': 800})
     errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
-    pg.goto(f'{PAGE}#{r}'); pg.wait_for_function('window.Glyphite && Glyphite.test', timeout=20000); pg.wait_for_timeout(300)
-    pg.evaluate('Glyphite.test.start(); Glyphite.test.freeze()')
+    pg.goto(f'{PAGE}#{r}'); pg.wait_for_function('window.Pixelite && Pixelite.test', timeout=20000); pg.wait_for_timeout(300)
+    pg.evaluate('Pixelite.test.start(); Pixelite.test.freeze()')
     fail, last_day, log = [], None, []
     for tick in range(4000):   # a step of 1 s; the game takes 4 seasons × 3 days × 40 s = 480 s
         msg = pg.evaluate(BOT)
         if msg: print('   ', msg); fail += [msg] if 'FAILED' in msg or 'no room' in msg else []
-        g = pg.evaluate('Glyphite.test.step(60).game')
+        g = pg.evaluate('Pixelite.test.step(60).game')
         day = (g['year'], g['season'], g['day'])
         if day != last_day:
             last_day = day
@@ -61,13 +61,13 @@ with sync_playwright() as p:
                   f"built {sum(x['done'] for x in g['buildings'])}/{len(g['buildings'])}  hunger {g['hunger']} cold {g['cold']}  "
                   + ', '.join(f"{f['name']}:{f['job']}" for f in g['folk']))
         if g['won'] or g['lost']: break
-    g = pg.evaluate('Glyphite.test.probe().game')
+    g = pg.evaluate('Pixelite.test.probe().game')
     # and a player who builds nothing: the family must give up (hungry, or cold without a roof) before the second spring
     pg2 = b.new_page(viewport={'width': 1280, 'height': 800}); pg2.on('pageerror', lambda e: errs.append(str(e)))
-    pg2.goto(f'{PAGE}#{r}'); pg2.wait_for_function('window.Glyphite && Glyphite.test', timeout=20000)
-    pg2.evaluate('Glyphite.test.start(); Glyphite.test.freeze()')
+    pg2.goto(f'{PAGE}#{r}'); pg2.wait_for_function('window.Pixelite && Pixelite.test', timeout=20000)
+    pg2.evaluate('Pixelite.test.start(); Pixelite.test.freeze()')
     for tick in range(600):
-        g2 = pg2.evaluate('Glyphite.test.step(60).game')
+        g2 = pg2.evaluate('Pixelite.test.step(60).game')
         if g2['won'] or g2['lost']: break
     print('idle player:', g2['season'], g2['day'], 'won' if g2['won'] else g2['lost'] or 'still playing')
     if not g2['lost']: fail.append('an idle player did not lose')

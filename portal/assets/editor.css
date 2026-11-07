@@ -1,4 +1,4 @@
-/* CodeMirror in the Glyphite palette */
+/* CodeMirror in the Pixelite palette */
 .CodeMirror{color:var(--phosphor);background:var(--void);font-variant-ligatures:none}
 .CodeMirror-gutters{background:var(--panel);border-right:1px solid var(--rim)}
 .CodeMirror-linenumber{color:#3b4659}

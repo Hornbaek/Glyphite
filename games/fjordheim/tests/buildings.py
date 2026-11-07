@@ -2,7 +2,7 @@
 """Fjordheim: every building (and a building site, a ripe field, the knarr sailing and moored) drawn alone on a cleared
 meadow, its footprint outlined in yellow, zoomed: a contact sheet in shots/fj_buildings.png. Look at it after changing
 art, sizes or anchors (art.js: onFoot): each drawing must stand on its outline, its long side along the footprint's.
-  python3 games/fjordheim/tests/buildings.py [renderer]      (needs the build: node tools/glyphite.mjs build fjordheim)"""
+  python3 games/fjordheim/tests/buildings.py [renderer]      (needs the build: node tools/pixelite.mjs build fjordheim)"""
 import sys, io
 from pathlib import Path
 from PIL import Image, ImageDraw
@@ -16,8 +16,8 @@ with sync_playwright() as p:
     b = p.chromium.launch(args=['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'])
     pg = b.new_page(viewport={'width': 1280, 'height': 800}, device_scale_factor=2)
     errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
-    pg.goto(f'{PAGE}#{r}'); pg.wait_for_function('window.Glyphite && Glyphite.test', timeout=20000)
-    pg.evaluate('Glyphite.test.start(); Glyphite.test.freeze()')
+    pg.goto(f'{PAGE}#{r}'); pg.wait_for_function('window.Pixelite && Pixelite.test', timeout=20000)
+    pg.evaluate('Pixelite.test.start(); Pixelite.test.freeze()')
     # the footprints' outlines, drawn over everything
     pg.evaluate('(() => { const og = GAME.draw; GAME.draw = t => { og(t); for (const b of HOME.buildings) isoOutline(b.i, b.j, b.w, b.h, [1.6, 1.2, .3]); }; })()')
     for t in SHOWN:
@@ -36,7 +36,7 @@ with sync_playwright() as p:
             if (t === 'field') { o.stage = 3; isoPaintFoot(o); }
             centreOn([ci, cj - 1, BUILDINGS[type].w, BUILDINGS[type].h]);
           }
-          Glyphite.test.step(1); NEWS = []; Glyphite.test.render(); })''', t)
+          Pixelite.test.step(1); NEWS = []; Pixelite.test.render(); })''', t)
         crops.append((t, Image.open(io.BytesIO(pg.screenshot(clip={'x': 440, 'y': 200, 'width': 400, 'height': 300})))))
     b.close()
 w, h = crops[0][1].size; cols = 4

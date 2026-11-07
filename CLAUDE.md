@@ -1,6 +1,6 @@
-# Glyphite — guide for Claude Code sessions
+# Pixelite — guide for Claude Code sessions
 
-Glyphite is an **AI-first ASCII game engine**: games are made and changed in Claude Code sessions on this
+Pixelite is an **AI-first ASCII game engine**: games are made and changed in Claude Code sessions on this
 repository. It draws *only* the 95 printable ASCII characters (codes 32–126), each in its own colour, in one
 self-contained HTML page per game. It has a destructible voxel world with falling sand, rigid bodies,
 structures that break where they are hit, ray-traced light, particles, sprites drawn from pixel art and an
@@ -26,39 +26,40 @@ portal/                 the website: game list (index.html), editor (edit/: tune
                         reference art (art/), the public landing page (welcome/), assets/, vendor/codemirror
 worker/                 the Cloudflare Worker: Access login check + static site + idea bank API (ideas.js)
                         wrangler.jsonc: its config (incl. the D1 binding)     migrations/: the D1 schema
-tools/                  glyphite.mjs (CLI: build, new, list, serve), assemble.mjs (page assembler, shared with the
+tools/                  pixelite.mjs (CLI: build, new, list, serve), assemble.mjs (page assembler, shared with the
                         editor), ideas.mjs (docs/ideas.json → docs/IDEAS.md), changes.mjs (HISTORY.md → What's new), thumbnail.py
                         (--auto picks the best frame), sprite2ascii.py +
                         ascii_preview.py (pixel art → sprites), sheetcheck.py (check an AI art sheet before cutting it)
 tests/                  smoke.py (any game, both renderers), node/ (unit tests: build, editor patches, Access)
 docs/                   ARCHITECTURE (how it works), HISTORY, LESSONS, ROADMAP (the plan), IDEAS (the idea bank),
                         TESTING, DEPLOY
-.claude/skills/         glyphite-new-game, glyphite-verify, glyphite-art-prompt (the prompt for an art sheet), glyphite-pixel-art-to-ascii
+.claude/skills/         pixelite-new-game, pixelite-verify, pixelite-art-prompt (the prompt for an art sheet), pixelite-pixel-art-to-ascii
 dist/                   build output = the deployed site (git-ignored)
 ```
 
 ## Commands
 
 ```sh
-npm run build                          # = node tools/glyphite.mjs build: engine + every game → dist/; prints SYNTAX_OK
-node tools/glyphite.mjs build <id>     # just one game (faster while iterating)
-node tools/glyphite.mjs new <id> --title "My Game"   # scaffold games/<id>/ from templates/starter
-node tools/glyphite.mjs list           # games and their status
+npm run build                          # = node tools/pixelite.mjs build: engine + every game → dist/; prints SYNTAX_OK
+node tools/pixelite.mjs build <id>     # just one game (faster while iterating)
+node tools/pixelite.mjs new <id> --title "My Game"   # scaffold games/<id>/ from templates/starter
+node tools/pixelite.mjs list           # games and their status
 npm test                               # unit tests (node --test)
 python3 tests/smoke.py <id>            # loads, starts, runs and screenshots the game in 2D and GL → shots/
 python3 tools/thumbnail.py <id> --play --steps 120 --keys ArrowUp   # games/<id>/thumb.png for the game list
 npm run serve                          # build and serve dist/ on http://localhost:8787 (no login locally)
 ```
-Python tests need `pip install playwright==1.56.0 pillow numpy` (1.56 matches the Chromium preinstalled in
-Claude Code cloud sessions; elsewhere run `python -m playwright install chromium`). A game's own regression
+Python tests need `pip install playwright==<v> pillow numpy`, where `<v>` matches the Chromium preinstalled in Claude Code
+cloud sessions (`node -e "console.log(require('playwright/package.json').version)"`, 1.63.0 in November 2026; CI pins
+1.56.0 and installs its own); elsewhere run `python -m playwright install chromium`. A game's own regression
 scripts live in `games/<id>/tests/` (see `docs/TESTING.md`).
 
 ## Making a new game
 
-Use the **`glyphite-new-game`** skill. In short:
+Use the **`pixelite-new-game`** skill. In short:
 1. Pin down the idea in a few lines (player, goal, controls, look). Ask only what changes the design.
-   If it needs drawn art, write the owner a prompt for ChatGPT or Gemini first (**`glyphite-art-prompt`**).
-2. `node tools/glyphite.mjs new <id> --title "…"`, then fill in `game.json` (tagline, description, controls,
+   If it needs drawn art, write the owner a prompt for ChatGPT or Gemini first (**`pixelite-art-prompt`**).
+2. `node tools/pixelite.mjs new <id> --title "…"`, then fill in `game.json` (tagline, description, controls,
    tunables) and replace the starter's code with the game, keeping its structure.
 3. Build, smoke-test, look at the screenshots, iterate. Add a thumbnail. Write `games/<id>/NOTES.md`.
 4. Commit and open a pull request; merging deploys it.
@@ -82,7 +83,7 @@ has a note or is marked [?]. Statuses: `idea` (default, no row), `planned` (the 
   ON CONFLICT(id) DO UPDATE SET status = excluded.status, note = excluded.note, updated_at = excluded.updated_at, updated_by = excluded.updated_by;`
 - **Explain the ideas marked [?]** when the owner asks (e.g. "explain the marked ideas"):
   `SELECT id, note FROM idea_state WHERE ask = 1;`, find each in `docs/ideas.json`, and explain it in the chat, one by one:
-  what it is in plain words, how it would work in Glyphite (which engine parts, which game it would show off), what it would
+  what it is in plain words, how it would work in Pixelite (which engine parts, which game it would show off), what it would
   take (its size), and what could go wrong; answer the owner's note if there is one. Then clear the mark, and the row if
   nothing else is left in it:
   `UPDATE idea_state SET ask = 0, updated_at = ?, updated_by = 'claude-session' WHERE id = ?;`
@@ -136,13 +137,13 @@ Apply the diff with `git apply` (if it no longer applies, carry the intent over 
 ## Verify before saying it's done
 
 1. `npm run build` prints `SYNTAX_OK`; `npm test` passes.
-2. Probe the behaviour synchronously: `page.evaluate` with `Glyphite.test.start()` / `Glyphite.test.step(n, keys)`
+2. Probe the behaviour synchronously: `page.evaluate` with `Pixelite.test.start()` / `Pixelite.test.step(n, keys)`
    (or the game's own globals and `update(DT)` in a loop). Check outcomes, not exact positions (particles and
    blasts use `Math.random`).
 3. `python3 tests/smoke.py <id>`, then **look at the screenshots** in `shots/`. Zoom in on what changed:
-   `device_scale_factor=3` and a clip; freeze first with `Glyphite.test.freeze()` (never pause: it draws a box).
+   `device_scale_factor=3` and a clip; freeze first with `Pixelite.test.freeze()` (never pause: it draws a box).
 4. Run the game's regression scripts that the change could break. Treat any `pageerror` as a failure.
-The **`glyphite-verify`** skill walks through this loop.
+The **`pixelite-verify`** skill walks through this loop.
 
 ## Shipping changes
 

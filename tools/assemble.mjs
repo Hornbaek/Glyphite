@@ -1,6 +1,6 @@
-// Assemble a Glyphite game into one self-contained HTML page: the engine's shell, the game's own
+// Assemble a Pixelite game into one self-contained HTML page: the engine's shell, the game's own
 // HTML, and one <script> holding the engine parts followed by the game parts, in order. Shared by the
-// Node build (tools/glyphite.mjs) and the web editor (which rebuilds its preview in the browser),
+// Node build (tools/pixelite.mjs) and the web editor (which rebuilds its preview in the browser),
 // so both produce exactly the same page. No dependencies; runs in Node and in browsers.
 
 const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -23,8 +23,8 @@ export function assemble({ shell, engine, manifest, head = '', parts, tune = nul
   const id = manifest.id;
   const pre = [
     `const GAME_MANIFEST = ${scriptJSON({ id, title: manifest.title, tunables: manifest.tunables || {} })};`,
-    tune ? `window.GLYPHITE_TUNE = ${scriptJSON(tune)};` : '',
-    renderer ? `window.GLYPHITE_RENDERER = ${scriptJSON(renderer)};` : ''
+    tune ? `window.PIXELITE_TUNE = ${scriptJSON(tune)};` : '',
+    renderer ? `window.PIXELITE_RENDERER = ${scriptJSON(renderer)};` : ''
   ].filter(Boolean).join('\n');
   const section = (path, code) => `\n// ----- ${path} -----\n${code.replace(/\s+$/, '')}\n`;
   const script = pre + '\n'

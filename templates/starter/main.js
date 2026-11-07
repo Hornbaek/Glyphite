@@ -58,7 +58,7 @@ function gameHud(t) {
   if (state === 'cleared' && stateT > .8) msgBox([['CAVE CLEARED', HC.green], [`SCORE ${score}`, HC.gold], ['', HC.txt], ['[ ENTER / TAP ]  NEXT CAVE', HC.amber]]);
 }
 
-Glyphite.run({
+Pixelite.run({
   id: 'starter',
   touch: [
     [{ label: '[ < ]', aria: 'Rotate left', hold: 'left' }, { label: '[ > ]', aria: 'Rotate right', hold: 'right' }],

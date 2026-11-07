@@ -1,5 +1,5 @@
 /* =====================================================================
-   GLYPHITE — a 2D game engine that only draws printable ASCII (32..126):
+   PIXELITE — a 2D game engine that only draws printable ASCII (32..126):
    voxel world + granular sim, particles, rigid bodies, breakable
    structures, ray-traced light, an 8-bit sound chip. Games are built on
    top of it (see engine/API.md). Units: 1 base unit = 0.5 m; a character
@@ -17,7 +17,7 @@ function setResVars(r) { RES = r; UNIT_M = .5 / r; G = GRAVITY / UNIT_M; }
 function setGravity(mps2) { GRAVITY = mps2; G = GRAVITY / UNIT_M; }
 setResVars(2);
 const DT = 1 / 60;
-let GAME = {};   // the running game's hooks (set by Glyphite.run)
+let GAME = {};   // the running game's hooks (set by Pixelite.run)
 const CALM = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;

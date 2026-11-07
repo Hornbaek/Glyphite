@@ -77,7 +77,7 @@ void main() {
 function renderInit(canvas) {
   R.canvas = canvas;
   // WebGL unless it would be software-emulated (then the 2D canvas is faster); #gl / #2d force a path
-  const force = (location.hash || '').slice(1) || window.GLYPHITE_RENDERER || '';
+  const force = (location.hash || '').slice(1) || window.PIXELITE_RENDERER || '';
   if (force !== '2d' && glSetup(canvas, force === 'gl')) return;
   if (R.gl) { const fresh = canvas.cloneNode(false); canvas.replaceWith(fresh); R.canvas = fresh; R.gl = null; }
   R.mode = '2d'; R.ctx = R.canvas.getContext('2d');

@@ -77,11 +77,11 @@ function gameDraw(t) {
   for (const m of METEORS) putEmit(Math.floor(m.x), Math.floor(m.y / ASPECT), 64, 2, 1.3, .5);
 }
 function gameHud(t) {
-  hudText(1, 0, 'LIVE: THE GLYPHITE ENGINE, RUNNING IN THIS PAGE', HC.dim);
+  hudText(1, 0, 'LIVE: THE PIXELITE ENGINE, RUNNING IN THIS PAGE', HC.dim);
   if (!clicked) { const h = 'CLICK OR TAP TO DROP A METEOR'; hudText(Math.max(0, (R.hcols - h.length) >> 1), R.hrows - 2, h, (t * 2 | 0) & 1 ? HC.amber : HC.dim); }
 }
 
-Glyphite.run({
+Pixelite.run({
   id: 'showcase',
   detail: { default: 2, narrow: 1.5 },
   keys: { detail: true, bloom: true, mute: true, pause: false },

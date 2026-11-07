@@ -19,7 +19,7 @@ test('random edits round-trip through git apply', () => {
     let a = src, b = lines.join('\n');
     if (trial % 7 === 3) b = b.replace(/\n$/, '');
     if (trial % 11 === 5) a = a.replace(/\n$/, '');
-    const dir = mkdtempSync(join(tmpdir(), 'glyphite-diff-'));
+    const dir = mkdtempSync(join(tmpdir(), 'pixelite-diff-'));
     try {
       mkdirSync(join(dir, 'g')); writeFileSync(join(dir, 'g/f.js'), a);
       execFileSync('git', ['init', '-q'], { cwd: dir });

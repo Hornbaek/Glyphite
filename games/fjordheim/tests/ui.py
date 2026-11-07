@@ -3,7 +3,7 @@
 drifted into the top-left corner: mouseAim gave [0, 0] before any mouse movement), scroll while the mouse rests on an
 edge and stop off it; BUILD opens the build menu, a click on an entry picks a building, a click on the map places it,
 a right click cancels; a click on a building opens its panel, and [CALL OFF] (twice) gives the site's cost back.
-  python3 games/fjordheim/tests/ui.py [renderer]      (needs the build: node tools/glyphite.mjs build fjordheim)"""
+  python3 games/fjordheim/tests/ui.py [renderer]      (needs the build: node tools/pixelite.mjs build fjordheim)"""
 import sys, json
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -19,7 +19,7 @@ with sync_playwright() as p:
     b = p.chromium.launch(args=['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'])
     pg = b.new_page(viewport={'width': 1280, 'height': 800})
     errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
-    pg.goto(f'{PAGE}#{r}'); pg.wait_for_function('window.Glyphite && Glyphite.test', timeout=20000)
+    pg.goto(f'{PAGE}#{r}'); pg.wait_for_function('window.Pixelite && Pixelite.test', timeout=20000)
     # headless frames are slow and uneven: wait for game steps (frameNo) or for the outcome, never a fixed time
     def until(js, ms=5000):
         try: pg.wait_for_function(js, timeout=ms); return True
@@ -45,7 +45,7 @@ with sync_playwright() as p:
     check(hud('longhouse') is None, 'the build menu starts closed: only the BUILD button')
     pg.mouse.click(*at(*hud('build')))
     check(until('BUILDMENU === true'), 'a click on BUILD opens the build menu')
-    steps(2); pg.evaluate('Glyphite.test.freeze(); Glyphite.test.render()'); pg.screenshot(path=str(ROOT / 'shots/fj_ui_menu.png')); pg.evaluate('Glyphite.test.unfreeze()')
+    steps(2); pg.evaluate('Pixelite.test.freeze(); Pixelite.test.render()'); pg.screenshot(path=str(ROOT / 'shots/fj_ui_menu.png')); pg.evaluate('Pixelite.test.unfreeze()')
     pg.mouse.click(*at(*hud('longhouse')))
     check(until("SEL === 'longhouse' && !BUILDMENU"), 'a click on its entry picks the longhouse and closes the menu')
     pg.mouse.click(*at(.5, .5), button='right')
@@ -64,7 +64,7 @@ with sync_playwright() as p:
     check(pg.evaluate('(() => { const t = isoPick(pointer()); return !!t && t[0] === %d && t[1] === %d; })()' % tuple(spot)), f'the tile under the mouse is the one aimed at {spot}')
     pg.mouse.click(*at(*pt))
     check(until("HOME.buildings.some(b => b.type === 'longhouse')"), 'a click on the map places the longhouse')
-    g = pg.evaluate('Glyphite.test.probe().game')
+    g = pg.evaluate('Pixelite.test.probe().game')
     check(g['stock']['wood'] == 4 and g['stock']['stone'] == 0, f"its cost is paid {g['stock']}")
     steps(60)   # a game second: jobs are handed out twice a second
     check(pg.evaluate("FOLK.some(p => p.job && p.job.type === 'build')"), 'someone goes to build it')
@@ -75,12 +75,12 @@ with sync_playwright() as p:
         const h = hoverAt(a); if (h && h.building === b) return a; } })()''')
     pg.mouse.move(*at(*pt)); steps(2); pg.mouse.click(*at(*pt))
     check(until("PICK && PICK.type === 'longhouse'"), 'a click on the site opens its panel')
-    steps(2); pg.evaluate('Glyphite.test.freeze(); Glyphite.test.render()'); pg.screenshot(path=str(ROOT / 'shots/fj_ui_panel.png')); pg.evaluate('Glyphite.test.unfreeze()')
+    steps(2); pg.evaluate('Pixelite.test.freeze(); Pixelite.test.render()'); pg.screenshot(path=str(ROOT / 'shots/fj_ui_panel.png')); pg.evaluate('Pixelite.test.unfreeze()')
     check(hud('pause') is None and hud('raze') is not None, 'a site has [CALL OFF] and no [PAUSE]')
     pg.mouse.click(*at(*hud('raze'))); check(until('RAZE === PICK'), 'the first click asks')
     steps(2); pg.mouse.click(*at(*hud('raze')))
     check(until("!HOME.buildings.length"), 'the second calls it off')
-    g = pg.evaluate('Glyphite.test.probe().game')
+    g = pg.evaluate('Pixelite.test.probe().game')
     check(g['stock']['wood'] == 12 and g['stock']['stone'] == 4, f"and its cost comes back {g['stock']}")
     check(not errs, f'no page errors {errs[:3]}')
     b.close()

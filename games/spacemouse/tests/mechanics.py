@@ -4,7 +4,7 @@ the mouse eats through a cheese wall, rust gives way under it, catwalks hold it 
 stomping a cat-bot shorts it out (and touching one from the side does not end well), live cables kill, and the great
 cheese clears the sector. Cat-bots are switched off except for the cat-bot checks.
 
-  python3 games/spacemouse/tests/mechanics.py [2d|gl] [res ...]      (build first: node tools/glyphite.mjs build spacemouse)
+  python3 games/spacemouse/tests/mechanics.py [2d|gl] [res ...]      (build first: node tools/pixelite.mjs build spacemouse)
 """
 import sys, json
 from pathlib import Path
@@ -22,7 +22,7 @@ def check(name, ok, detail=''):
 # put the mouse with its feet on the floor of tile (tx, ty) (the tile below it is the floor)
 SETUP = """
 window.tp = (tx, ty) => { const c = MOUSE.ch; c.x = (tx + .5) * SEC.tw; c.y = (ty + 1) * SEC.th * ASPECT; c.vx = c.vy = 0; c.onGround = false; MOUSE.alive = true; setState('play'); updateCamera(0, true); };
-window.run = (n, keys) => { for (let i = 0; i < n && state !== 'dead'; i++) Glyphite.test.step(1, keys); return MOUSE; };   // stops when the mouse dies
+window.run = (n, keys) => { for (let i = 0; i < n && state !== 'dead'; i++) Pixelite.test.step(1, keys); return MOUSE; };   // stops when the mouse dies
 window.T = () => [MOUSE.ch.x / SEC.tw, MOUSE.ch.y / ASPECT / SEC.th];
 """
 
@@ -32,7 +32,7 @@ def run(mode, res):
         b = p.chromium.launch(args=ARGS[mode]); pg = b.new_page(viewport={'width': 1100, 'height': 640})
         errs = []; pg.on('pageerror', lambda e: errs.append(str(e)))
         pg.goto(PAGE + '#' + mode); pg.wait_for_timeout(600)
-        pg.evaluate(f'() => {{ setDetail({res}); Glyphite.test.start(); {SETUP} CATS.forEach(k => k.alive = false); }}')
+        pg.evaluate(f'() => {{ setDetail({res}); Pixelite.test.start(); {SETUP} CATS.forEach(k => k.alive = false); }}')
         # jump: hold for a full jump from the start room floor, measure the apex; a tap goes about half as high
         r = pg.evaluate("""() => { tp(4, 19); run(10, []); const y0 = MOUSE.ch.y; let top = y0;
           for (let i = 0; i < 50; i++) { run(1, ['ArrowUp']); top = Math.min(top, MOUSE.ch.y); }

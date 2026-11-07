@@ -68,7 +68,7 @@ deploys. Vars that are in `wrangler.jsonc` are overwritten by every deploy: chan
 ### 5. The public landing page: Access on /login only
 
 Do this after the pull request that adds the landing page has deployed (until then the old Worker turns away everyone
-without a token, and nobody could sign in). Zero Trust → **Access** → **Applications** → the Glyphite application →
+without a token, and nobody could sign in). Zero Trust → **Access** → **Applications** → the Glyphite application (it keeps the old name) →
 **Configure**:
 - **Application domain** (Public hostname): keep `glyphite.hornbaek.org`, and set the **path** to `login`. Keep the same
   application: its AUD tag stays the same, so nothing in `wrangler.jsonc` changes.

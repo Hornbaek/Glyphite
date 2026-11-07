@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// Glyphite command line: build the site, scaffold games, serve locally. No dependencies.
+// Pixelite command line: build the site, scaffold games, serve locally. No dependencies.
 //
-//   node tools/glyphite.mjs build [ids...]        engine + every game → dist/ (the deployable site)
-//   node tools/glyphite.mjs new <id> [--title T]  scaffold games/<id>/ from templates/starter
-//   node tools/glyphite.mjs list                  the games and their status
-//   node tools/glyphite.mjs serve [--port 8787]   serve dist/ on http://localhost:8787
+//   node tools/pixelite.mjs build [ids...]        engine + every game → dist/ (the deployable site)
+//   node tools/pixelite.mjs new <id> [--title T]  scaffold games/<id>/ from templates/starter
+//   node tools/pixelite.mjs list                  the games and their status
+//   node tools/pixelite.mjs serve [--port 8787]   serve dist/ on http://localhost:8787
 //
 // dist/ layout (served by the Cloudflare Worker in worker/):
 //   index.html, edit/, ideas/, whats-new/, assets/   the portal (from portal/), the editor, the idea bank (+ ideas/ideas.json), What's new, shared scripts
@@ -195,15 +195,15 @@ function scaffold(id, title) {
   const mp = join(dst, 'game.json'), m = JSON.parse(readFileSync(mp, 'utf8'));
   const order = Math.max(0, ...gameDirs().filter(g => g.base === 'games' && g.name !== id).map(g => readJSON(`${g.path}/game.json`).order || 0)) + 1;
   Object.assign(m, { id, title: title || id.replace(/(^|-)(\w)/g, (_, d, c) => (d ? ' ' : '') + c.toUpperCase()), listed: true, status: 'draft', order,
-    tagline: 'A new Glyphite game (draft)', description: 'Copied from the starter; not made yet.' });
+    tagline: 'A new Pixelite game (draft)', description: 'Copied from the starter; not made yet.' });
   delete m.thumbnail; rmSync(join(dst, 'thumb.png'), { force: true });   // make one with tools/thumbnail.py
   writeFileSync(mp, JSON.stringify(m, null, 2) + '\n');
   for (const f of readdirSync(dst)) if (f.endsWith('.js')) { const p = join(dst, f); writeFileSync(p, readFileSync(p, 'utf8').replace(/id: 'starter'/g, `id: '${id}'`)); }
   console.log(`created games/${id}/ from templates/starter
 next:
   1. edit games/${id}/game.json (title, tagline, description, controls, tunables)
-  2. make the game in games/${id}/*.js (see engine/API.md and the glyphite-new-game skill)
-  3. node tools/glyphite.mjs build ${id} && python3 tests/smoke.py ${id}`);
+  2. make the game in games/${id}/*.js (see engine/API.md and the pixelite-new-game skill)
+  3. node tools/pixelite.mjs build ${id} && python3 tests/smoke.py ${id}`);
 }
 
 function list() {

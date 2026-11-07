@@ -1,12 +1,12 @@
 ---
-name: glyphite-art-prompt
-description: Write the prompt the owner pastes into ChatGPT or Gemini to generate a pixel-art sheet for a Glyphite game (characters and their animation frames, buildings, props, nature, animals, vehicles, goods), so the sheet converts into ASCII sprites cleanly the first time. Use when a new game needs art, when the owner asks what art to make or for a prompt for an image model, when a follow-up sheet must match an earlier one, and to check a sheet that came back before converting it.
+name: pixelite-art-prompt
+description: Write the prompt the owner pastes into ChatGPT or Gemini to generate a pixel-art sheet for a Pixelite game (characters and their animation frames, buildings, props, nature, animals, vehicles, goods), so the sheet converts into ASCII sprites cleanly the first time. Use when a new game needs art, when the owner asks what art to make or for a prompt for an image model, when a follow-up sheet must match an earlier one, and to check a sheet that came back before converting it.
 ---
 
-# Write an art-sheet prompt for a Glyphite game
+# Write an art-sheet prompt for a Pixelite game
 
 The owner makes the art in ChatGPT or Gemini from a prompt we write, then gives us the sheet. The
-`glyphite-pixel-art-to-ascii` skill turns it into sprites and keeps every original (CLAUDE.md, "Reference art"). A loose
+`pixelite-pixel-art-to-ascii` skill turns it into sprites and keeps every original (CLAUDE.md, "Reference art"). A loose
 prompt costs hours later: hand-cut labels, tolerances tuned per drawing, palettes remapped between sheets. Every rule
 below fixes something that went wrong on the four Space Mouse sheets (`games/spacemouse/ref/`, `tools/art.py`).
 **Target: the sheet converts with default settings.**
@@ -15,7 +15,7 @@ below fixes something that went wrong on the four Space Mouse sheets (`games/spa
 
 - **The art list follows the mechanics.** Work out who acts and what each does: every action is a row of frames. Then
   list what can be built or placed, and what changes state (on and off, growth stages, damage, seasons). Pin the idea
-  down with the owner first, as `glyphite-new-game` says; ask only what changes the art.
+  down with the owner first, as `pixelite-new-game` says; ask only what changes the art.
 - **The view.** Side view (orthographic profile, every item on a ground line) is the engine's home: gravity, falling
   sand, collapsing structures, sun shadows, the sky.
 
@@ -162,7 +162,7 @@ present, missing, extra, wrong frame count, wrong facing. Then check:
 - no effects, see-through glass or scenery behind characters.
 
 If something is off, the cheapest fix is a reply in the same chat ("the same sheet, but …"); keep both images. Then
-continue with `glyphite-pixel-art-to-ascii`. With a magenta background the flood fill in the cut can use a wide
+continue with `pixelite-pixel-art-to-ascii`. With a magenta background the flood fill in the cut can use a wide
 tolerance (40–60) without eating into dark outlines.
 
 ## Why each rule

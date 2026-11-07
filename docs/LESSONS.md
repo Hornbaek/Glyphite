@@ -1,6 +1,6 @@
 # Lessons and decisions
 
-This file collects the knowledge gathered while building Glyphite and Regolith Lander: bugs we hit,
+This file collects the knowledge gathered while building Pixelite and Regolith Lander: bugs we hit,
 why the code is the way it is, and traps to avoid. Add to it whenever you learn something the hard
 way.
 

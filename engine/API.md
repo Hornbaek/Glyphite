@@ -1,4 +1,4 @@
-# Glyphite engine API
+# Pixelite engine API
 
 Everything a game can call or hook into. The engine parts (`engine/*.js`, in `engine/engine.json` order)
 and the game's parts (its `game.json` "parts") are concatenated into **one classic script**, so every
@@ -26,12 +26,12 @@ Helpers: `clamp(v, a, b)`, `lerp(a, b, t)`, `rr(a, b)` (random in range), `smoot
 `rng()`, `hash2(x, y, s)`, `vnoise1/2`, `fbm1(x, seed, octaves)`, `fbm2(x, y, seed, octaves)`, `ch('*')` → 42,
 `pick('abc')` → a random char code from the string, `b64buf(base64)` → ArrayBuffer.
 
-## Running a game: `Glyphite.run(game)`
+## Running a game: `Pixelite.run(game)`
 
 Call it once, from the game's last part. Every key is optional.
 
 ```js
-Glyphite.run({
+Pixelite.run({
   id: 'mygame',                          // keys saved settings (detail level) in localStorage
   detail: { default: 2, narrow: 1.5 },   // starting RES on wide / narrow (< 640 px) screens
   particles: 9000,                       // particle budget at RES 1 (scaled by RES)
@@ -86,7 +86,7 @@ recomputed, e.g. `setGravity`); other values apply on restart.
 ```json
 "tunables": { "gravity": { "label": "Gravity", "unit": "m/s²", "value": 1.62, "min": 0.4, "max": 9.81, "step": 0.01, "live": true, "help": "..." } }
 ```
-Overrides come from `window.GLYPHITE_TUNE` (the editor) and `?tune={"gravity":3}` in the page URL.
+Overrides come from `window.PIXELITE_TUNE` (the editor) and `?tune={"gravity":3}` in the page URL.
 
 ## Materials
 
@@ -291,7 +291,7 @@ World cells are `cx = floor(x)`, `cy = floor(y / ASPECT)`. Inside `GAME.draw`:
 - `putLit(cx, cy, code, ar, ag, ab, floor)`: albedo × the scene light at that cell.
 - `slopeGlyph(dx, dy)`: `- \ | /` for a direction.
 
-**Sprites** (pixel art → ASCII; data from `tools/sprite2ascii.py`, see the `glyphite-pixel-art-to-ascii` skill):
+**Sprites** (pixel art → ASCII; data from `tools/sprite2ascii.py`, see the `pixelite-pixel-art-to-ascii` skill):
 ```js
 const SHIP = defineSprite(SPRITE_SHIP, { k: .3, ox: 12, oy: 10, part: (c, r) => 0, paint: (c, r, p) => false });
 drawSprite(SHIP, b.x, b.y, b.a, { shift: [dx1, dy1], foot: 4 * RES, light: true });   // in GAME.draw
@@ -409,22 +409,22 @@ Two optional hooks let the editor drive the preview: `GAME.levels.play(i, tile)`
 `[x, y]` when given) and `GAME.levels.check(i)` returns whether it can be finished:
 `{ ok, goal, crumbs: [reached, total], missing: { crumbs: [[x, y]], ... }, spots: [[x, y], ...] }` (the editor circles what is
 missing and dots `spots`, the tiles the player can stand on). The editor talks to the preview with messages the engine
-handles: the page posts `{ type: 'glyphite:ready' }` to its parent once booted, takes `{ type: 'glyphite:level', action:
-'play' | 'check', level, tile, id }`, and answers a check with `{ type: 'glyphite:levelcheck', id, result }`.
+handles: the page posts `{ type: 'pixelite:ready' }` to its parent once booted, takes `{ type: 'pixelite:level', action:
+'play' | 'check', level, tile, id }`, and answers a check with `{ type: 'pixelite:levelcheck', id, result }`.
 See `games/spacemouse/` (`main.js` and `levelcheck.js`).
 
-## Tests and probes: `Glyphite.test`
+## Tests and probes: `Pixelite.test`
 
 Headless checks and AI sessions drive a game through these (they work while the loop is frozen and run much
 faster than real time):
 
 | | |
 |---|---|
-| `Glyphite.test.start()` | Leave the title screen (`GAME.start`, else Enter). |
-| `Glyphite.test.step(n, ['ArrowUp'])` | n fixed steps with these keys held → `probe()`. |
-| `Glyphite.test.press(code)` | A one-shot key press. |
-| `Glyphite.test.freeze()` / `unfreeze()` | Stop / resume the frame loop (for screenshots). |
-| `Glyphite.test.render()` | Draw one frame now. |
-| `Glyphite.test.probe()` | `{ state, frame, res, renderer, cols, rows, world, cam, particles, chunks, perfMs, tune, game: GAME.probe() }` |
+| `Pixelite.test.start()` | Leave the title screen (`GAME.start`, else Enter). |
+| `Pixelite.test.step(n, ['ArrowUp'])` | n fixed steps with these keys held → `probe()`. |
+| `Pixelite.test.press(code)` | A one-shot key press. |
+| `Pixelite.test.freeze()` / `unfreeze()` | Stop / resume the frame loop (for screenshots). |
+| `Pixelite.test.render()` | Draw one frame now. |
+| `Pixelite.test.probe()` | `{ state, frame, res, renderer, cols, rows, world, cam, particles, chunks, perfMs, tune, game: GAME.probe() }` |
 
 `tests/smoke.py <id>` uses exactly this for any game. URL hash `#2d` / `#gl` forces a renderer.

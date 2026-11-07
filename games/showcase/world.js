@@ -1,5 +1,5 @@
 // ===================== GAME · the word in rock, the ground, the sand =====================
-// The showcase on the public landing page (unlisted): GLYPHITE spelled in rock standing on the ground, sand pouring onto it,
+// The showcase on the public landing page (unlisted): PIXELITE spelled in rock standing on the ground, sand pouring onto it,
 // meteors breaking it into chunks. The word is drawn by the browser into a tiny canvas and every lit pixel becomes rock, as
 // in the 404 game, so it breaks like any other terrain. It is sized to the view, so a phone sees the whole word too.
 const SAND = defineMaterial('sand', { albedo: [.86, .76, .52], ramp: ' .,:;=+*#%', granular: true, creep: true, tough: .1, friction: .7 });
@@ -9,7 +9,7 @@ const BEDROCK = defineMaterial('bedrock', { albedo: [.28, .29, .34], ramp: ' .:;
 const RUBBLE = defineMaterial('rubble', { albedo: [.7, .52, .34], ramp: ' .,o%&', granular: true, tough: .2, grainGlyphs: 'o%&', debris: true });
 worldMaterials({ edge: BEDROCK, rubble: RUBBLE, fill: GROUND });
 
-const WORD = 'GLYPHITE';
+const WORD = 'PIXELITE';
 function wordBitmap(text, px) {
   const c = document.createElement('canvas'), g = c.getContext('2d'), font = `700 ${px}px "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace`;
   g.font = font; const w = Math.ceil(g.measureText(text).width) + 2, h = Math.ceil(px * 1.3);

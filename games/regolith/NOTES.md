@@ -15,7 +15,7 @@ lunar sites; blast basalt for He-3; bring lamp posts and the x3 roof down.
 | `view.js` | lights, world drawing, HUD, title screen, the Earth on the sky layer |
 | `lander_sprite.js`, `lander_art.js` | the pixel-art lander (from `ref/lander_ref.png` via `tools/art.py`) and its sprite setup |
 | `music.js` | the music director, MIDI file loading and MIDI IN, chip meters |
-| `main.js` | states, keys, camera, and the hooks handed to `Glyphite.run` |
+| `main.js` | states, keys, camera, and the hooks handed to `Pixelite.run` |
 
 ## Light features to try (engine 0.3.0)
 Two tunables in the editor, both live: **Atmosphere (test)** (0 = the real Moon; above 0 the stars twinkle and a low sun turns

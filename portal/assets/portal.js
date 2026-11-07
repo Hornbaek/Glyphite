@@ -1,4 +1,4 @@
-// The game list: renders games.json (written by tools/glyphite.mjs build).
+// The game list: renders games.json (written by tools/pixelite.mjs build).
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const day = iso => iso ? new Date(iso).toISOString().slice(0, 10) : null;
@@ -12,7 +12,7 @@ export async function copyText(text, btn) {
 
 // "updated" badges: the date each game was last changed is remembered per game in this browser, when you open it. The
 // first time a game is seen it is simply remembered, so a new visitor sees no badges.
-const SEEN = id => `glyphite.seen.${id}`;
+const SEEN = id => `glyphite.seen.${id}`;   // old name kept, like every storage key, across the rename to Pixelite
 const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { } } };
 function isUpdated(g) {
   if (!g.updated) return false;

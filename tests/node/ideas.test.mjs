@@ -43,7 +43,7 @@ beforeEach(() => {
   env = { DB: sqlite ? d1() : null, ASSETS: { fetch: async () => new Response(ideasJson, { headers: { 'Content-Type': 'application/json' } }) } };
 });
 const user = { email: 'me@example.com' };
-const put = (id, body, headers = { 'X-Glyphite': '1' }) =>
+const put = (id, body, headers = { 'X-Pixelite': '1' }) =>
   handleIdeas(new Request(`https://glyphite.hornbaek.org/api/ideas/${id}`, { method: 'PUT', headers, body: typeof body === 'string' ? body : JSON.stringify(body) }), env, user);
 const list = async () => (await (await handleIdeas(new Request('https://glyphite.hornbaek.org/api/ideas'), env, user)).json()).items;
 
@@ -85,7 +85,7 @@ test('an idea back at its defaults loses its row', { skip }, async () => {
 
 test('bad requests are refused and change nothing', { skip }, async () => {
   const cases = [
-    [put(ID, { starred: true }, {}), 403],                        // no X-Glyphite header
+    [put(ID, { starred: true }, {}), 403],                        // no X-Pixelite header
     [put(ID, 'not json'), 400],
     [put(ID, '[1]'), 400],
     [put(ID, {}), 400],
@@ -111,7 +111,7 @@ test('without the D1 binding the API says so instead of failing', async () => {
 
 test('the Worker serves the API only to a signed-in user', { skip }, async () => {
   const devEnv = { ...env, DEV_EMAIL: 'dev@example.com' };
-  const res = await worker.fetch(new Request(`http://localhost:8787/api/ideas/${ID}`, { method: 'PUT', headers: { 'X-Glyphite': '1' }, body: '{"starred":true}' }), devEnv);
+  const res = await worker.fetch(new Request(`http://localhost:8787/api/ideas/${ID}`, { method: 'PUT', headers: { 'X-Pixelite': '1' }, body: '{"starred":true}' }), devEnv);
   assert.equal(res.status, 200);
   assert.equal(res.headers.get('Cache-Control'), 'no-store');
   assert.equal(env.DB.raw.prepare('SELECT updated_by FROM idea_state').get().updated_by, 'dev@example.com');

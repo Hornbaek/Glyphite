@@ -1,11 +1,11 @@
 ---
-name: glyphite-pixel-art-to-ascii
-description: Convert a 2D pixel-art image (character, vehicle, prop, tile) into an ASCII sprite for a Glyphite game, wire it into the game, verify it at every detail level, then self-review and improve this skill.
+name: pixelite-pixel-art-to-ascii
+description: Convert a 2D pixel-art image (character, vehicle, prop, tile) into an ASCII sprite for a Pixelite game, wire it into the game, verify it at every detail level, then self-review and improve this skill.
 ---
 
-# Pixel art → Glyphite ASCII sprite
+# Pixel art → Pixelite ASCII sprite
 
-Glyphite draws everything with the 95 printable ASCII characters, one colour per cell. A cell is
+Pixelite draws everything with the 95 printable ASCII characters, one colour per cell. A cell is
 1 unit wide and 2 units tall, and the detail scale `RES` ∈ {1, 1.5, 2, 2.5, 3} sets how many cells
 show one metre. This skill turns a pixel-art image into a palette sprite and draws it as glyphs whose
 shapes follow the art, rotated with the object and lit by the scene.
@@ -16,7 +16,7 @@ fewer.**
 
 ## Before you start
 
-- Work in the Glyphite repo; `CLAUDE.md` describes the layout. The tools used here live in `tools/`:
+- Work in the Pixelite repo; `CLAUDE.md` describes the layout. The tools used here live in `tools/`:
   `sprite2ascii.py` (image → sprite data) and `ascii_preview.py` (sprite → ASCII preview, offline).
 - The engine draws sprites: `defineSprite` / `drawSprite` / `markSpriteDyn` / `spriteHull` in
   `engine/10_sprite.js` (documented in `engine/API.md`, "Sprites"). The reference use is the lander:
@@ -29,7 +29,7 @@ fewer.**
   - Where it touches the ground.
   Take everything else from the image.
 - Copy the image into `games/<id>/ref/<name>.png`. Never edit the user's original.
-- A whole sheet the owner generated from a prompt: check it first with the `glyphite-art-prompt` skill (step 5). On the
+- A whole sheet the owner generated from a prompt: check it first with the `pixelite-art-prompt` skill (step 5). On the
   flat magenta background that skill asks for, the cut can use a wide tolerance (40–60) without eating into outlines.
 - **Keep every original drawing** (the owner's standing rule): each drawing you cut, trace or crop from the image is
   saved at its original pixels in `games/<id>/ref/frames/`, including the ones the game does not use yet, and listed in
@@ -169,9 +169,9 @@ Physics from the same art:
 
 ### 5. Verify (one pass)
 
-- `node tools/glyphite.mjs build <id>` must print SYNTAX_OK.
+- `node tools/pixelite.mjs build <id>` must print SYNTAX_OK.
 - Render at RES 1/2/3 in both renderers, zoomed: start from `games/regolith/tests/test18.py`, freeze the
-  loop with `Glyphite.test.freeze()`, use `device_scale_factor=3`, and clip around the object.
+  loop with `Pixelite.test.freeze()`, use `device_scale_factor=3`, and clip around the object.
 - Put the reference next to the RES 2 and RES 3 renders with Pillow, and look at them. Ask:
   - Are the main colour regions in the same places?
   - Are the signature details (window, emblem, eyes) visible at RES 3?
@@ -197,7 +197,7 @@ Then **improve this file**:
 - Append a dated line to the Lessons log below.
 - Keep the skill short. Replace outdated advice instead of piling on.
 
-In Claude Code this file is part of the repo (`.claude/skills/glyphite-pixel-art-to-ascii/SKILL.md`):
+In Claude Code this file is part of the repo (`.claude/skills/pixelite-pixel-art-to-ascii/SKILL.md`):
 edit it directly and mention the change. In the Claude app, propose the updated skill.
 
 ## Efficiency review of the first conversion (2026-10-14, lander)

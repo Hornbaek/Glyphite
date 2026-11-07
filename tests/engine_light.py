@@ -23,7 +23,7 @@ def check(name, ok, detail=''):
 
 
 QUERIES = """() => {
-  Glyphite.test.start(); Glyphite.test.step(3, []); const o = {};
+  Pixelite.test.start(); Pixelite.test.step(3, []); const o = {};
   const tp = xx => { let t = 0; while (cells[t * W + xx] === EMPTY) t++; return t; };
   let x = 0, best = 1e9;   // a flat stretch of ground, so the test geometry is the same at every detail level
   for (let xx = 80; xx < W - 40; xx += 4) { let dev = 0; for (let dx = -30; dx <= 30; dx += 3) dev = Math.max(dev, Math.abs(tp(xx + dx) - tp(xx))); if (dev < best) { best = dev; x = xx; } }
@@ -51,7 +51,7 @@ COLOURS = """() => {
 }"""
 
 SKY = """() => {
-  TUNE.atmosphere = 0; startSite(2); Glyphite.test.step(3, []); Glyphite.test.freeze();
+  TUNE.atmosphere = 0; startSite(2); Pixelite.test.step(3, []); Pixelite.test.freeze();
   const sky = () => { skyKey = ''; draw(performance.now() / 1000 + Math.random()); };
   sky();
   let base = -1, bk = -1;
@@ -63,11 +63,11 @@ SKY = """() => {
   FX.flash = .7; sky(); o.flash = R.sPix[bk * 4]; FX.flash = 0;
   const series = air => { setAtmosphere(air); const v = []; for (let i = 0; i < 14; i++) { skyKey = ''; draw(1000 + i * .09); v.push(R.sPix[bk * 4]); } return v; };
   o.vacuum = series(0); o.air = series(1); setAtmosphere(0);
-  Glyphite.test.unfreeze(); return o;
+  Pixelite.test.unfreeze(); return o;
 }"""
 
 EYE = """() => {
-  TUNE.atmosphere = 0; startSite(1); Glyphite.test.step(3, []); Glyphite.test.freeze();
+  TUNE.atmosphere = 0; startSite(1); Pixelite.test.step(3, []); Pixelite.test.freeze();
   const tp = xx => { let t = 0; while (cells[t * W + xx] === EMPTY) t++; return t; };
   const x = Math.floor(W / 2), top = tp(x), o = {};
   const dark = () => { cam.x = x - R.cols / 2; cam.y = (top + 14) * ASPECT; };
@@ -78,7 +78,7 @@ EYE = """() => {
   const before = EYE.e; run(dark, .5, t); o.rise_in_half_second = EYE.e - before;
   t = run(sunny, 3, t + .5); o.sunny = EYE.e;
   setEyeAdaptation(0); o.off_again = EYE.e;
-  Glyphite.test.unfreeze(); return o;
+  Pixelite.test.unfreeze(); return o;
 }"""
 
 

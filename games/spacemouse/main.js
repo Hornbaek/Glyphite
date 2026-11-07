@@ -142,7 +142,7 @@ function gameRegenerate() {
   spawnCats();
 }
 
-Glyphite.run({
+Pixelite.run({
   id: 'spacemouse',
   touch: [
     [{ label: '[ < ]', aria: 'Run left', hold: 'left' }, { label: '[ > ]', aria: 'Run right', hold: 'right' }],

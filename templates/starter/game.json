@@ -1,7 +1,7 @@
 {
   "id": "starter",
   "title": "Cave Drone",
-  "tagline": "The starter game every new Glyphite game is copied from",
+  "tagline": "The starter game every new Pixelite game is copied from",
   "description": "Fly a small drone through a dark cave, blast the rock and catch the glowing gems that fly out. Small on purpose: it shows each engine feature once (materials, world generation, a rigid body drawn from a sprite, lights without a sun, projectiles and explosions, custom particles, HUD, tunables).",
   "order": 99,
   "listed": false,

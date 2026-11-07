@@ -81,7 +81,7 @@ function save(el, change) {
   paint(el); stats(); apply(); mark(el, 'saving…');
   const run = async () => {
     try {
-      const r = await api(`/api/ideas/${encodeURIComponent(id)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Glyphite': '1' }, body: JSON.stringify(change) });
+      const r = await api(`/api/ideas/${encodeURIComponent(id)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Pixelite': '1' }, body: JSON.stringify(change) });
       confirmed.set(id, keep(r));
       mark(el, 'saved'); banner('');
     } catch (e) { mark(el, 'not saved', true); banner(`Could not save: ${e.message}`); }

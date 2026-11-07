@@ -41,7 +41,7 @@ export function renderMarkdown(data) {
   const total = validate(data);
   const lines = [
     '# Idea bank', '',
-    `Every feature Glyphite could have, from one-glyph polish to moonshots: ${total} ideas in ${data.categories.length} categories.`,
+    `Every feature Pixelite could have, from one-glyph polish to moonshots: ${total} ideas in ${data.categories.length} categories.`,
     `Generated ${data.generated} by a multi-agent brainstorm (14 angles, curated, gap-hunted, then de-duplicated). Nothing here is planned or`,
     'promised: `docs/ROADMAP.md` is the plan. Use this as a quarry: pick an idea, check it against `CLAUDE.md`',
     '(engine vs game, ASCII only, both renderers), and build it in a session.', '',
