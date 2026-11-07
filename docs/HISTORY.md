@@ -701,6 +701,35 @@ stretched. Engine 0.9.0.
   Mouse's mechanics (jump, speed, eating, rust, catwalks at RES 1–3) and reachability, all of Fjordheim's tests, Regolith's
   floating-island, x3-clearance, lamp-post, roof-drop, real-time and lander-sprite checks.
 
+## 32. Pixel sprites with normal maps, and the PIXEL LAB (Claude Code, 2026-11-07)
+
+> "I will also attach some repos which I want you to implement as tools in the admin interface, like so you can use them to
+> refine your pixel art. One of them is making AI-generated pixel art more crisp and pixel art correct, and the other one is
+> to create a like a normal map onto the pixel sprites, so you can, when you have lighting in the scene, they actually
+> respond to it a bit more realistic, even though it's still pixel art."
+
+The owner pointed at Sprite Fusion's Pixel Snapper and at Moonfell's normal-map tool. Moonfell's site could not be reached
+from the session, so the owner chose a normal-map generator of our own. Engine 0.10.0.
+
+- **Normal maps in the engine.** A sprite may carry `normals` (base 36 into `SPR_NORMALS`: facing the viewer and rings
+  tipped 20°, 42° and 65°). The light pass keeps where each cell's lamp light comes from (`LDX/LDY`); a lit sprite pixel is
+  brighter where its normal faces the light (the sun, the lamps, a little sky from above) and darker facing away, up to about
+  a third either way; a flat pixel is lit exactly as before. `tests/engine_light.py` checks it in both renderers.
+- **The generator** (`portal/assets/normalmap-core.mjs`, also `node tools/normalmap.mjs`): height from the distance to the
+  silhouette (a rounded bevel) plus the paint's own light and dark, then the slope. Defaults bevel 3, detail .8,
+  strength 2.5: a 2-pixel bevel only tilted the dark outline and hardly showed.
+- **Pixel Snapper** (MIT) built to WebAssembly into `portal/vendor/pixel-snapper/` (`tools/build-snapper.sh`), also
+  `node tools/snap.mjs`. It cut every grid line a pixel short (a sliver at the end of every image); our patch
+  (`tools/pixel-snapper.patch`) fixes it, and is worth offering upstream.
+- **The PIXEL LAB** (`/lab/`, behind the login; linked from the game list and the ART page): open an image or pick a drawing
+  from a game's reference art, snap it (colours, pixel size, palette), tune the normals with a lamp that follows the pointer,
+  download the PNGs, and copy a prompt with the exact commands for a session. `tests/lab.py` drives it in CI.
+- `tools/sprite2ascii.py` is now `tools/pixelsprite.py` (same output; the palette's glyph field is ignored);
+  `tools/ascii_preview.py` is gone. The `pixelite-pixel-art-to-ascii` skill became `pixelite-pixel-art` (snap, palette,
+  normals, one art pixel per world pixel); `pixelite-art-prompt` asks for sprites at the size the game shows them.
+- **Tests:** `tests/node/pixeltools.test.mjs` (PNG, snapping, the generator, the engine's table and relief rule are the
+  generator's), `tests/lab.py`, the normal-map checks in `tests/engine_light.py`; the routes test pins `/lab/` behind the login.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

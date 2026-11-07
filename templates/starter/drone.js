@@ -1,5 +1,5 @@
 // ===================== GAME · the drone, its bolts, and gem shards =====================
-// Pixel art in the engine's sprite format (tools/sprite2ascii.py writes the same thing from a PNG).
+// Pixel art in the engine's sprite format (tools/pixelsprite.py writes the same thing from a PNG).
 // pal entries: [r, g, b, ink (0 = outline), dense glyph for solid areas]
 const SPRITE_DRONE = {
   w: 16, h: 8,

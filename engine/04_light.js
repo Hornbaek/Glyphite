@@ -41,6 +41,9 @@ function setAtmosphere(thickness) { ATMOS = Math.max(0, +thickness || 0); sunTin
 function setAmbient(color) { AMB_C[0] = color[0]; AMB_C[1] = color[1]; AMB_C[2] = color[2]; }
 let LMX = 8, LMY = 5, L_RW = 0, L_RH = 0, LOW = 0, LOH = 0, L_OX = 0, L_OY = 0;
 let LR, LG, LB, LSURF, LNX, LNY, LSUN, LAO, LAOD, LOCC, LSAT, LSTAMP, LSSAT, colTop, rayBuf = new Uint8Array(4096);
+// LDX, LDY: where the lamps' light at a cell comes from (toward the lights, weighted by how much each gives), for sprites with
+// normal maps; the sun's direction is SUN_L
+let LDX, LDY;
 let stampGen = 0;
 const LBOX = { nI: 3, nJ: 2, aI: 2, aJ: 1, dI: 7, dJ: 4 };
 function lightAlloc(rw, rh) {
@@ -52,7 +55,7 @@ function lightAlloc(rw, rh) {
   LMX = Math.max(LBOX.nI, LBOX.dI) + 1; LMY = Math.max(LBOX.nJ, LBOX.dJ) + 1;
   L_RW = rw; L_RH = rh; LOW = rw + 2 * LMX; LOH = rh + 2 * LMY;
   const n = rw * rh;
-  LR = new Float32Array(n); LG = new Float32Array(n); LB = new Float32Array(n);
+  LR = new Float32Array(n); LG = new Float32Array(n); LB = new Float32Array(n); LDX = new Float32Array(n); LDY = new Float32Array(n);
   LSURF = new Uint8Array(n); LNX = new Float32Array(n); LNY = new Float32Array(n);
   LSUN = new Uint8Array(n); LAO = new Float32Array(n); LAOD = new Float32Array(n); LSTAMP = new Uint32Array(n);
   LOCC = new Uint8Array(LOW * LOH); LSAT = new Int32Array((LOW + 1) * (LOH + 1)); LSSAT = new Int32Array((rw + 1) * (rh + 1));
@@ -120,6 +123,7 @@ function computeLighting(ox, oy, lights, dynTop) {
     LR[k] = r; LG[k] = g; LB[k] = b;
   }
   // 4) point & cone lights, shadowed by voxels
+  LDX.fill(0); LDY.fill(0);
   for (const L of lights) addPointLight(L, ox, oy);
   // 5) global flash
   if (FX.flash > 0) { const f = FX.flash * (CALM ? .3 : 1), c = FX.flashCol; for (let k = 0; k < RW * RH; k++) { LR[k] += f * c[0]; LG[k] += f * c[1]; LB[k] += f * c[2]; } }
@@ -193,7 +197,14 @@ function addPointLight(L, ox, oy) {
         if (inWin && s === 1 && LSTAMP[kk] !== gen) { LSTAMP[kk] = gen; const f = 1 - depth / soakLen, a = entry * f * f * .75; LR[kk] += cr * a; LG[kk] += cg * a; LB[kk] += cb * a; }
         continue;
       }
-      if (inWin && s !== 1 && LSTAMP[kk] !== gen) { LSTAMP[kk] = gen; const a = shade(kk, cx, cy, s); if (a > 0) { LR[kk] += cr * a; LG[kk] += cg * a; LB[kk] += cb * a; } }
+      if (inWin && s !== 1 && LSTAMP[kk] !== gen) {
+        LSTAMP[kk] = gen; const a = shade(kk, cx, cy, s);
+        if (a > 0) {
+          LR[kk] += cr * a; LG[kk] += cg * a; LB[kk] += cb * a;
+          const ux = L.x - cx - .5, uy = L.y - (cy + .5) * ASPECT, w = (cr + cg + cb) * a / (Math.hypot(ux, uy) || 1);
+          LDX[kk] += ux * w; LDY[kk] += uy * w;
+        }
+      }
       if (solid && L.shadow && t > skip) { if (!inWin || s === 1) break; depth = 0; entry = shade(kk, cx, cy, s); }
     }
   }

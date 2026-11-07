@@ -31,7 +31,7 @@ New games start from `templates/starter/` (Cave Drone): `node tools/pixelite.mjs
   own palette), a smooth-scrolling world layer, a parallax sky layer the game can paint, a HUD in the engine's own pixel
   font, and detail levels from 1x to 3x pixels per metre.
 - **Sprites**: pixel art resampled to the world's pixels, rotated and lit, with moving parts
-  (`tools/sprite2ascii.py` converts images).
+  (`tools/pixelsprite.py` converts images).
 - **Chip**: an NES 2A03-style sound chip that plays Standard MIDI Files, plus procedural sound effects.
 - **Made for AI sessions**: one documented API (`engine/API.md`), a starter game, a scaffold command, tunables
   the web editor exposes, a probe/test API (`Pixelite.test`) and a smoke test that works for any game.
@@ -68,4 +68,4 @@ Every game has an **EDIT** page with three tabs:
   shows the original art its sprites were made from (every image given, every drawing cut from it).
 - [docs/HISTORY.md](docs/HISTORY.md), [docs/LESSONS.md](docs/LESSONS.md), [docs/ROADMAP.md](docs/ROADMAP.md),
   [docs/TESTING.md](docs/TESTING.md).
-- Skills in `.claude/skills/`: `pixelite-new-game`, `pixelite-verify`, `pixelite-pixel-art-to-ascii`.
+- Skills in `.claude/skills/`: `pixelite-new-game`, `pixelite-verify`, `pixelite-pixel-art`.

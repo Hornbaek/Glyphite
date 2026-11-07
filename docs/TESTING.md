@@ -8,7 +8,8 @@ Three layers:
    detail changes, no page errors, a screenshot per renderer in `shots/`. CI runs it for every game.
 3. **Each game's own probes** in `games/<id>/tests/` (Regolith's are below).
 4. **Engine feature probes** in `tests/` (not tied to one game): `engine_light.py [2d|gl ...]` checks `sunAt` / `isLitBy`, the
-   sun's colour from an atmosphere or a blackbody, star twinkle and lamp glare, and eye adaptation, in both renderers. It
+   sun's colour from an atmosphere or a blackbody, star twinkle and lamp glare, eye adaptation, and that a sprite's normal
+   map lights the side facing a lamp (more than distance alone does), in both renderers. It
    uses Regolith as the host game and asserts properties (redder, dimmer, steady vs. varying), not exact pixels.
    `engine_audio.py [2d|gl ...]` checks sound through air (delay, volume and dullness with distance, only with an atmosphere;
    `explode()` passing it on; the listener hook) by spying on `Sfx.burst`, and the beat (drum-hit edges from a faked chip
@@ -99,6 +100,8 @@ They wait on game steps (`frameNo`), not on time: headless frames are slow. See 
 | Script | What it checks |
 |---|---|
 | `tests/editor_levels.py [game]` | The editor's LEVELS tab against the built site (it serves `dist/` itself): the maps are listed and drawn, painting writes the map file's draft and the CLAUDE tab's patch carries it, undo, PLAY THIS MAP and the TEST tool start the preview on that map and tile, CHECK passes the shipped map and catches one with the goal walled off, the start tile stays one of a kind. Runs in CI. |
+| `tests/lab.py` | The PIXEL LAB against the built site: picks a drawing from a game's reference art, snaps it with a given pixel size (Pixel Snapper in WebAssembly), makes the normal map and the lit preview, checks the lamp lights the side it is on (and makes no difference with normals off), and that the prompt carries the exact commands and settings. Runs in CI. |
+| `tests/node/pixeltools.test.mjs` | The pixel tools: the PNG reader and writer, Pixel Snapper (an upscaled drawing snaps back to its grid and colours, alone and with a palette), the normal-map generator (a disc faces outward, the same input gives the same map, sprite rows match the image path), and that the engine's `SPR_NORMALS` and `sprRelief` are the generator's own. |
 | `tests/node/levels.test.mjs` | The level editor's core (`portal/assets/levels-core.mjs`): finding maps, writing one back without touching the others, marks, the edits, and the PNG round trip. |
 
 ## Regolith Lander: historical tests (written for earlier versions; may need updating)

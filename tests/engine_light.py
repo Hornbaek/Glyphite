@@ -83,6 +83,25 @@ EYE = """() => {
   Pixelite.test.unfreeze(); return o;
 }"""
 
+# sprites with normal maps: a grey block whose left column faces left and right column faces right (normal-map indices 19
+# and 13), beside the same block without normals, each lit by a lamp on its left and then on its right
+NORMALS = """() => {
+  TUNE.atmosphere = 0; startSite(2); Pixelite.test.step(3, []); Pixelite.test.freeze(); setSun(null); setEyeAdaptation(0);
+  const rows = Array(9).fill('000000000'), pal = [[150, 150, 150, 1]];
+  const bumpy = defineSprite({ w: 9, h: 9, pal, rows, normals: Array(9).fill('j0000000d') }, { k: 1 / RES });
+  const flat = defineSprite({ w: 9, h: 9, pal, rows }, { k: 1 / RES });
+  const x = Math.round(cam.x + R.cols * .25) + .5, y = cam.y + R.rows * ASPECT * .25, g0 = GAME.draw, out = {};
+  for (const [name, spr] of [['bumpy', bumpy], ['flat', flat]]) for (const side of [-1, 1]) {
+    FX.lights.length = 0; addLight(x + side * 14 * RES, y, 40 * RES, [1, 1, 1], 1.5, 99, false);
+    GAME.draw = t => { if (g0) g0(t); drawSprite(spr, x, y, 0); };
+    draw(500);
+    const j = Math.floor(y / ASPECT) - L_OY; let l = -1, r = -1;   // the outermost pixels of the block's middle row
+    for (let i = 0; i < R.RW; i++) { const k = (j * R.RW + i) * 4; if (R.wPix[k + 3] && Math.abs(L_OX + i - x) < 7) { if (l < 0) l = R.wPix[k]; r = R.wPix[k]; } }
+    out[name + (side < 0 ? 'L' : 'R')] = [l, r];
+  }
+  GAME.draw = g0; FX.lights.length = 0; Pixelite.test.unfreeze(); return out;
+}"""
+
 
 def run(mode):
     print(f'--- {mode}')
@@ -121,6 +140,10 @@ def run(mode):
         check('eye: a dark view is brightened', e['dark'] > 1.5, e['dark'])
         check('eye: it takes time (a second or two, not a frame)', 0 < e['rise_in_half_second'] < .25, e['rise_in_half_second'])
         check('eye: a bright view brings it back down', e['sunny'] < e['dark'], e)
+        n = pg.evaluate(NORMALS)
+        ratio = lambda v: v[0] / max(1, v[1])
+        check('normal maps: a lamp on the left lights the left-facing side, more than distance alone does', ratio(n['bumpyL']) > ratio(n['flatL']) * 1.2, n)
+        check('normal maps: a lamp on the right lights the right-facing side', 1 / ratio(n['bumpyR']) > 1 / ratio(n['flatR']) * 1.2, n)
         check('no page errors', not errs, errs[:2])
         b.close()
 

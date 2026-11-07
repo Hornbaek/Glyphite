@@ -139,7 +139,20 @@ way.
 - **Big chunks are cheap.** A 700-cell roof chunk costs about 5 ms per *second* of simulation and
   drawing. Headless frame time is dominated by canvas presentation, not physics.
 
-## Sprites (pixel art → ASCII)
+## Sprites (pixel art)
+
+- **Pixel Snapper cut every grid line one pixel short.** Its edge profile used a centred difference, which scores a sharp
+  boundary equally one pixel early; the cut-walker keeps the first of equal peaks, so every cut landed early and a
+  one-pixel sliver was left at the end (an 8-pixel drawing came back 9 wide). `tools/pixel-snapper.patch` measures the
+  change where the new pixel starts; with it, clean art snaps exactly and its own pixel-size guess works on clean art too.
+  On small AI drawings the guess can still be far off: give `--pixel-size`.
+- **Normal maps on outlined art need a wide enough bevel.** A 2-pixel bevel only tilts the dark outline, and brightening
+  near-black changes nothing: the lamp made no visible difference. Bevel 3 with the paint's own light and dark (`detail`)
+  shades the panels inside; the direction table needed a gentle (20°) ring, or soft slopes rounded to flat.
+- **Test pages with things below the fold by scrolling to them first.** Playwright's mouse moves to page coordinates; an
+  element below the window never gets the event.
+
+## Sprites (the ASCII engine's pixel art → glyphs; kept for history)
 
 - **AI-made pixel art has an irregular grid.** Periodicity fits gave inconsistent periods for x and
   y. Sampling block centres at an approximate grid (48×50 for the lander) worked immediately. Flat

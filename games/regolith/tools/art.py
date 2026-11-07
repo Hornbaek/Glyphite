@@ -1,5 +1,5 @@
 """Turn ref/lander_ref.png (pixel-art lunar module) into lander_sprite.js (the lander-specific,
-hand-tuned version of tools/sprite2ascii.py: fixed 48 x 50 grid and a curated, named palette).
+hand-tuned version of tools/pixelsprite.py: fixed 48 x 50 grid and a curated, named palette).
 
 The reference is resampled onto its 48 x 50 pixel grid (block centres only, so the
 anti-aliased seams between blocks are ignored) and every pixel is snapped to a small

@@ -233,6 +233,8 @@ per-cell RGB light in `LR, LG, LB`, plus:
 - `LNX, LNY`: surface normals.
 - `LSUN`: sunlit or not.
 - `LAO, LAOD`: ambient occlusion at two radii.
+- `LDX, LDY`: where the lamps' light at the cell comes from (toward the lights, weighted by what each gives): sprites
+  with normal maps use it.
 
 Steps in `computeLighting(ox, oy, lights, dynTop)`:
 1. **Occupancy** `LOCC` from terrain only, then a summed-area table `LSAT`. Box sums give AO at two
@@ -347,7 +349,8 @@ costs about 1 ms at RES 2.
 
 ## 8. Sprites (`engine/10_sprite.js`)
 
-Pixel art is a palette-indexed grid; see the `pixelite-pixel-art-to-ascii` skill and `tools/sprite2ascii.py`.
+Pixel art is a palette-indexed grid; see the `pixelite-pixel-art` skill, `tools/pixelsprite.py`, `tools/snap.mjs` (Pixel
+Snapper) and `tools/normalmap.mjs`.
 `defineSprite(data, { k, ox, oy, part })` prepares it and `drawSprite(spr, x, y, a, { shift, foot, light })` resamples it to
 the world's pixels (Regolith's lander: `games/regolith/lander_art.js`):
 
@@ -360,6 +363,10 @@ the world's pixels (Regolith's lander: `games/regolith/lander_art.js`):
    colour most samples landed on (outline colours included, so outlines stay where they are thick enough to show).
 4. **Colour.** The palette is linearised through the inverse tone curve, so unlit it shows the art's own colours; lit, it is
    multiplied by `0.75 + 0.4·min(1.3, sceneLight)`, never dark.
+5. **Normal map** (optional `normals` in the data, indices into `SPR_NORMALS`): the cell's normal is the average of its
+   samples', mirrored with `flip` and turned with the body; `sprEmit` builds the light direction at the cell from the sun
+   (`SUN_L`, when `LSUN`), the lamps (`LDX/LDY`) and ambient from above, and multiplies by `0.5 + 0.5·sprRelief`. The
+   generator (`portal/assets/normalmap-core.mjs`) builds the same table; a unit test pins both and the relief rule.
 
 `markSpriteDyn` marks the covered cells for shadows; `spriteHull` gives collision points from the
 silhouette. Cost for the lander: about 0.5 ms (RES 1) to 1.6 ms (RES 3) per frame in headless Chromium.

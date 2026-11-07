@@ -1,5 +1,5 @@
 // ===================== GAME · sprites cut from the art sheets (generated) =====================
-// Made by tools/art.py from the owner's art sheets in ref/: cut out, converted with tools/sprite2ascii.py. Edit the
+// Made by tools/art.py from the owner's art sheets in ref/: cut out, converted with tools/pixelsprite.py. Edit the
 // palettes or the tool and rerun it, not this file.
 const MOUSE_PAL = [[8, 7, 11, 0, "#"], [42, 34, 44, 0, "#"], [70, 104, 156, 1, ":"], [118, 158, 214, 1, ":"], [200, 226, 250, 1, "o"], [96, 92, 102, 1, "@"], [140, 128, 130, 1, "@"], [184, 92, 86, 1, "&"], [222, 124, 114, 1, "&"], [246, 150, 136, 1, "&"], [206, 204, 206, 1, "#"], [248, 247, 244, 1, "@"], [196, 64, 34, 1, "%"], [236, 120, 60, 1, "%"], [112, 70, 64, 1, "%"], [150, 152, 162, 1, "#"], [8, 7, 11, 0, "#"], [42, 34, 44, 0, "#"], [70, 104, 156, 1, ":"], [70, 104, 156, 1, ":"], [118, 158, 214, 1, ":"], [140, 128, 130, 1, "@"], [222, 124, 114, 1, "&"], [112, 70, 64, 1, "%"], [250, 196, 72, 1, "#"], [196, 120, 36, 1, "o"], [255, 226, 140, 1, "@"]];
 const MOUSE_FRAMES = {
