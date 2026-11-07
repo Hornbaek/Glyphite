@@ -1,8 +1,8 @@
 # Pixelite — guide for Claude Code sessions
 
-Pixelite is an **AI-first ASCII game engine**: games are made and changed in Claude Code sessions on this
-repository. It draws *only* the 95 printable ASCII characters (codes 32–126), each in its own colour, in one
-self-contained HTML page per game. It has a destructible voxel world with falling sand, rigid bodies,
+Pixelite is an **AI-first pixel-art game engine**: games are made and changed in Claude Code sessions on this
+repository. Every cell of its world is one pixel of colour, drawn in one self-contained HTML page per game (it began
+as Glyphite, an ASCII engine; that version is kept on the branch `glyphite-ascii`). It has a destructible voxel world with falling sand, rigid bodies,
 structures that break where they are hit, ray-traced light, particles, sprites drawn from pixel art and an
 NES-style sound chip.
 
@@ -113,8 +113,10 @@ Apply the diff with `git apply` (if it no longer applies, carry the intent over 
   `tools/art.py` writes all of it (see `games/spacemouse/tools/art.py`); the build publishes it and the site's **ART** page
   (`/art/?game=<id>`, linked from the game list and the editor) shows it. `tests/node/ref.test.mjs` fails if an image in
   `ref/` is not listed.
-- **Printable ASCII only** (32–126) for every glyph. World glyph 0 = transparent (sky shows), 32 = opaque blank.
-- **One page per game, no runtime dependencies.** The only external request is the JetBrains Mono stylesheet.
+- **Pixels, not characters.** A world cell is one pixel; terrain and sprites write `SOLID` (127). Cell code 0 = empty (sky
+  shows), 32 = background colour; a printable character as a code only sets brightness (see `engine/API.md`, Cell codes). HUD
+  text uses the engine's pixel font (`tools/pixelfont.py`), printable ASCII only.
+- **One page per game, no runtime dependencies.** A game page makes no external requests at all (no web font).
 - **Units.** Author sizes and speeds in base units × `RES` (`const S = RES`); `UNIT_M = 0.5/RES` m per unit; a
   cell is 1 unit wide and 2 tall (`ASPECT`). The same world must behave the same at RES 1–3: check physics at
   several detail levels.

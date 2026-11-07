@@ -1,6 +1,6 @@
 ---
 name: pixelite-new-game
-description: Make a new game on the Pixelite ASCII engine from an idea - pin down the design, scaffold it from the starter, build it with the engine API, expose tunables for the web editor, verify it in both renderers, add a thumbnail and notes, and open a pull request that puts it on glyphite.hornbaek.org. Also use it for big reworks of an existing game.
+description: Make a new game on the Pixelite pixel-art engine from an idea - pin down the design, scaffold it from the starter, build it with the engine API, expose tunables for the web editor, verify it in both renderers, add a thumbnail and notes, and open a pull request that puts it on glyphite.hornbaek.org. Also use it for big reworks of an existing game.
 ---
 
 # Make a new Pixelite game

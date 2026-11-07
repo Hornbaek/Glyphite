@@ -344,20 +344,12 @@ function drawChunks() {
       const lx = cx + .5 - b.x, ly = (cy + .5) * ASPECT - b.y, gx = Math.floor(ch.X0 + lx * c + ly * s) - ch.ox, gy = Math.floor((ch.Y0 - lx * s + ly * c) / ASPECT) - ch.oy;
       const v = hash2(gx, gy, ch.n & 7), a = MAT_ALB[m], st = MAT_STYLE[m];
       let r, g, bl;
-      if (buried) { r = a[0] * .1; g = a[1] * .1; bl = a[2] * .12; }
-      else { lightAtCell(cx, cy, tmp); r = a[0] * Math.max(tmp[0], .1); g = a[1] * Math.max(tmp[1], .1); bl = a[2] * Math.max(tmp[2], .12); }
-      const tv = .86 + v * .28; r *= tv; g *= tv; bl *= tv;
-      let glyph;
-      if (st === 2 && !buried) {   // poles and arms keep their direction as they tumble
-        const at = (i, j) => i >= 0 && j >= 0 && i < ch.gw && j < ch.gh && ch.grid[j * ch.gw + i] === m;
-        const horiz = at(gx - 1, gy) || at(gx + 1, gy);
-        glyph = slopeGlyph(horiz ? c : -s, horiz ? s : c);
-      } else if (st === 3) glyph = 42;
-      else {
-        const ramp = RAMP_CODES[m], rl = ramp.length, lum = .3 * r + .59 * g + .11 * bl;
-        glyph = ramp[clamp((lum * rl * 1.2 + (v - .5) * .9) | 0, buried ? 1 : 2, rl - 1)];
-      }
-      putEmit(cx, cy, glyph, r, g, bl);
+      if (buried) { tmp[0] = tmp[1] = .1; tmp[2] = .12; }
+      else { lightAtCell(cx, cy, tmp); tmp[0] = Math.max(tmp[0], .1); tmp[1] = Math.max(tmp[1], .1); tmp[2] = Math.max(tmp[2], .12); }
+      r = a[0] * tmp[0]; g = a[1] * tmp[1]; bl = a[2] * tmp[2];
+      // shaded like the ground, in the piece's own frame: girders and crystals keep their brighter joints and facets
+      shadeCell(m, r, g, bl, tmp[0], tmp[1], tmp[2], .93 + v * .14, !buried && (st === 2 || st === 3) ? 1 : 0, tmp);
+      putEmit(cx, cy, SOLID, tmp[0], tmp[1], tmp[2]);
     }
   }
 }

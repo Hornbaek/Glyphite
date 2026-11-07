@@ -1,21 +1,17 @@
-// ===================== ENGINE · sprites: pixel art drawn as ASCII =====================
+// ===================== ENGINE · sprites: pixel art in the world =====================
 // A sprite is palette-indexed pixel art, in the format tools/sprite2ascii.py writes:
-//   { w, h, pal: [[r, g, b, ink, glyph], ...], rows: ['..01..', ...] }
-// '.' is empty; any other character indexes pal in base 36. ink 0 marks an outline colour, drawn
-// as the dark gap between characters; glyph is the dense character for solid areas of that colour.
+//   { w, h, pal: [[r, g, b, ink], ...], rows: ['..01..', ...] }
+// '.' is empty; any other character indexes pal in base 36. ink 0 marks an outline colour (a fifth entry, the glyph the
+// ASCII engine used, is ignored).
 //
-// Every character cell the sprite covers takes 3 x 6 samples of it in the object's own frame, so
-// the drawing turns with the body. Where the cell is solidly painted it gets the palette's dense
-// glyph in the average paint colour, lit by the scene; along the silhouette, the samples that land
-// on paint pick the symbol whose shape matches them best. Outline pixels inside the body count as
-// paint ("panel lines") and simply darken their cell. Parts (legs, doors, turrets) are looked up
-// with their own offset, so they can slide or open without new art.
+// Every world cell the sprite covers takes 3 x 6 samples of it in the object's own frame, so the drawing turns with the
+// body. A cell that is mostly covered becomes one pixel in the colour most of its samples land on, lit by the scene; the
+// rest stay clear. Parts (legs, doors, turrets) are looked up with their own offset, so they can slide or open without new art.
 //
 // defineSprite(data, opts) → sprite
 //   k        base units per sprite pixel (its size in the world; RES is applied when drawing)
 //   ox, oy   origin pixel, the body's centre of mass (default: the middle)
 //   part(c, r)        → 0 for the main body, 1..n for parts drawn with their own offset
-//   paint(c, r, part) → true to make a pixel count as paint (e.g. footpad soles)
 // drawSprite(spr, x, y, a, o)  draw at (x, y) world units, rotated by a radians. Options:
 //   shift  [dx1, dy1, dx2, dy2, ...]: each part's offset in units, in the sprite's frame
 //   foot   units below the origin that snap to a row boundary (feet stand right on the ground)
@@ -23,14 +19,12 @@
 //   flip   true: mirrored left to right in its own frame (a character facing the other way)
 //   cache  true: a still sprite (a = 0, no shift) is worked out once per detail level and then only lit (trees, buildings)
 // markSpriteDyn(spr, x, y, a, o) → top row; marks the covered cells as dynamic shadow casters.
-const SPR_SX = 3, SPR_SY = 6, SPR_N = SPR_SX * SPR_SY;
-const SPR_EDGE = ".,'`-_=:;|/\\()[]<>^v+~\"!*", SPR_DENSE = 10;   // edge glyphs; from this many painted samples a cell is solid
-let SPR_SHAPES = null;
+const SPR_SX = 3, SPR_SY = 6, SPR_N = SPR_SX * SPR_SY, SPR_FILL = SPR_N * .45;   // samples per cell; how many must land on the art
 const _sprNoShift = [];
 
 function defineSprite(data, opts = {}) {
   const { w, h, pal, rows } = data, n = w * h;
-  const idx = new Uint8Array(n).fill(255), part = new Uint8Array(n), paint = new Uint8Array(n);
+  const idx = new Uint8Array(n).fill(255), part = new Uint8Array(n);
   let parts = 0;
   for (let r = 0; r < h; r++) for (let c = 0; c < w; c++) {
     const ch = rows[r][c]; if (ch === '.' || ch === undefined) continue;
@@ -38,36 +32,11 @@ function defineSprite(data, opts = {}) {
     const p = opts.part ? opts.part(c, r) | 0 : 0;
     part[r * w + c] = p; if (p > parts) parts = p;
   }
-  const solid = (c, r, p) => c >= 0 && r >= 0 && c < w && r < h && idx[r * w + c] !== 255 && part[r * w + c] === p;
-  for (let r = 0; r < h; r++) for (let c = 0; c < w; c++) {
-    const k = r * w + c, i = idx[k]; if (i === 255) continue;
-    const p = part[k];
-    paint[k] = pal[i][3] || (opts.paint && opts.paint(c, r, p)) || (solid(c - 1, r, p) && solid(c + 1, r, p) && solid(c, r - 1, p) && solid(c, r + 1, p)) ? 1 : 0;
-  }
   // palette in the renderer's light units, so that after tone mapping it shows the sprite's own colours
   const lin = pal.map(([r, g, b]) => [r, g, b].map(v => -Math.log(1 - Math.min(.93, v / 255)) / 1.7));
-  const inkPal = [], outlinePal = [];
-  pal.forEach((p, i) => (p[3] ? inkPal : outlinePal).push(i));
-  const dense = pal.map(p => (p[4] || '#').charCodeAt(0));
   const ox = opts.ox ?? w / 2, oy = opts.oy ?? h / 2;
-  return { w, h, k: opts.k ?? .25, ox, oy, idx, part, paint, parts, lin, inkPal, outlinePal, dense,
-    reach: Math.hypot(Math.max(ox, w - ox), Math.max(oy, h - oy)), V: new Uint8Array(SPR_N), hist: new Uint16Array(pal.length) };
-}
-
-// the shape of each candidate edge glyph as 3 x 6 coverage, from the game font
-function spriteShapes() {
-  const bw = 6, cw = SPR_SX * bw, chh = SPR_SY * bw, cv = makeCanvas(cw, chh), x = cv.getContext('2d', { willReadFrequently: true });
-  x.font = `700 ${Math.round(chh * .8)}px ${R.fontFamily}`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#fff';
-  return Array.from(SPR_EDGE, ch => {
-    x.clearRect(0, 0, cw, chh); x.fillText(ch, cw / 2, chh * .54);
-    const d = x.getImageData(0, 0, cw, chh).data, m = new Float32Array(SPR_N); let mx = 0;
-    for (let j = 0; j < SPR_SY; j++) for (let i = 0; i < SPR_SX; i++) {
-      let s = 0; for (let y = j * bw; y < (j + 1) * bw; y++) for (let q = i * bw; q < (i + 1) * bw; q++) s += d[(y * cw + q) * 4 + 3];
-      m[j * SPR_SX + i] = s / (bw * bw * 255); mx = Math.max(mx, m[j * SPR_SX + i]);
-    }
-    if (mx > 0) for (let k = 0; k < SPR_N; k++) m[k] = Math.min(1, m[k] / mx);
-    return { code: ch.charCodeAt(0), m };
-  });
+  return { w, h, k: opts.k ?? .25, ox, oy, idx, part, parts, lin,
+    reach: Math.hypot(Math.max(ox, w - ox), Math.max(oy, h - oy)), hist: new Uint16Array(pal.length) };
 }
 
 // sprite pixel under a point of the sprite's frame (units at the current detail), or -1; parts are
@@ -98,7 +67,6 @@ function sprEmit(cx, cy, glyph, r, g, b, lit) {
   else putEmit(cx, cy, glyph, r, g, b);
 }
 function drawSprite(spr, x, y, a, o = {}) {
-  if (!SPR_SHAPES) SPR_SHAPES = spriteShapes();
   const sh = o.shift || _sprNoShift, [bx, by, x0, y0, x1, y1] = spriteBox(spr, x, y, o), fl = o.flip ? -1 : 1, lit = o.light !== false;
   if (x1 < L_OX || y1 < L_OY || x0 >= L_OX + R.RW || y0 >= L_OY + R.RH) return;   // nothing of it on screen
   if (o.cache && !a && !sh.length) {
@@ -114,50 +82,31 @@ function drawSprite(spr, x, y, a, o = {}) {
   sprCells(spr, bx, by, x0, y0, x1, y1, a, sh, fl, lit, sprEmit);
 }
 function sprCells(spr, bx, by, x0, y0, x1, y1, a, sh, fl, lit, emit) {
-  const c = Math.cos(a), s = Math.sin(a);
-  const V = spr.V, hist = spr.hist, shapes = SPR_SHAPES, inkPal = spr.inkPal, outPal = spr.outlinePal;
+  const c = Math.cos(a), s = Math.sin(a), hist = spr.hist, np = hist.length;
   for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {
-    let occ = 0, ink = 0, r = 0, g = 0, bl = 0; hist.fill(0);
+    let occ = 0; hist.fill(0);
     for (let j = 0; j < SPR_SY; j++) for (let i = 0; i < SPR_SX; i++) {
-      const k = j * SPR_SX + i, wx = cx + (i + .5) / SPR_SX - bx, wy = (cy + (j + .5) / SPR_SY) * ASPECT - by;
+      const wx = cx + (i + .5) / SPR_SX - bx, wy = (cy + (j + .5) / SPR_SY) * ASPECT - by;
       const px = spritePixel(spr, (wx * c + wy * s) * fl, -wx * s + wy * c, sh);
-      V[k] = 0; if (px < 0) continue;
-      occ++; if (!spr.paint[px]) continue;
-      const p = spr.idx[px]; V[k] = 1; ink++; hist[p]++; const q = spr.lin[p]; r += q[0]; g += q[1]; bl += q[2];
+      if (px >= 0) { occ++; hist[spr.idx[px]]++; }
     }
-    if (occ < 4) continue;
-    if (ink < 3) { emit(cx, cy, 32, 0, 0, 0, false); continue; }   // outline: a dark gap that still hides what is behind
-    // main paint of the cell; a panel line (interior outline) only wins when it fills most of the cell
-    let dom = inkPal[0] ?? 0, lines = 0;
-    for (const p of inkPal) if (hist[p] > hist[dom]) dom = p;
-    for (const p of outPal) lines += hist[p];
-    if (lines > ink * .6) {
-      if (ink >= SPR_DENSE) { emit(cx, cy, 32, 0, 0, 0, false); continue; }
-      dom = outPal[0]; for (const p of outPal) if (hist[p] > hist[dom]) dom = p;
-    }
-    // colour leans on the cell's main paint, so thin bright parts (rails, jets) stay crisp
-    const q = spr.lin[dom]; r = r / ink * .35 + q[0] * .65; g = g / ink * .35 + q[1] * .65; bl = bl / ink * .35 + q[2] * .65;
-    let glyph = 0;
-    if (ink < SPR_DENSE) {   // edge or detail: best-fitting shape
-      let best = 1e9;
-      for (const sp of shapes) { let d = 0; const m = sp.m; for (let k = 0; k < SPR_N; k++) { const e = V[k] - m[k]; d += e * e; } if (d < best) { best = d; glyph = sp.code; } }
-    } else glyph = spr.dense[dom];
-    emit(cx, cy, glyph, r, g, bl, lit);
+    if (occ < SPR_FILL) continue;
+    let dom = 0; for (let p = 1; p < np; p++) if (hist[p] > hist[dom]) dom = p;
+    const q = spr.lin[dom];
+    emit(cx, cy, SOLID, q[0], q[1], q[2], lit);
   }
 }
 
 // the sprite as a small picture on the HUD grid (an icon in a menu, a portrait), fitted into w columns (and o.rows rows,
 // if given) with its top-left on HUD cell (c, r), centred and standing on the box's bottom; returns the rows it takes.
-// o.flip mirrors it, o.gain brightens it (dark art on the HUD's black). Worked out once per size; the art's own colours,
-// unlit, rounded to steps of 32 so the 2D renderer's cache of tinted glyph sheets stays small.
+// o.flip mirrors it, o.gain brightens it (dark art on the HUD's black). Worked out once per size; the art's own colours, unlit.
 function hudSprite(spr, c, r, w, o = {}) {
-  if (!SPR_SHAPES) SPR_SHAPES = spriteShapes();
   const fl = o.flip ? -1 : 1, gain = o.gain || 1, key = `${w}|${o.rows}|${fl}|${gain}`, icons = spr.icons || (spr.icons = new Map());
   let ic = icons.get(key);
   if (!ic) {
     // a copy at the scale that fits the box, its origin at the middle of its bottom edge
     const s = Math.min(w / spr.w, o.rows ? o.rows * ASPECT / spr.h : 1e9), rows = o.rows || Math.ceil(spr.h * s / ASPECT);
-    const q = v => Math.min(255, Math.round(255 * tone(v * gain) / 32) * 32);
+    const q = v => Math.min(255, Math.round(255 * tone(v * gain)));
     ic = { rows, cells: [] };
     sprCells({ ...spr, k: s / RES, ox: spr.w / 2, oy: spr.h }, w / 2, rows * ASPECT, 0, 0, w - 1, rows - 1, 0, _sprNoShift, fl, false,
       (cx, cy, g, cr, cg, cb) => ic.cells.push(cx, cy, g, q(cr), q(cg), q(cb)));

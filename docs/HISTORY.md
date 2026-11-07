@@ -655,6 +655,29 @@ AI art, our own normal-map generator); Space Mouse converted fully. See `docs/RO
   survive). Moving the domain is a later step with the owner. Older entries in this file keep the old name.
 - The Python Playwright for cloud sessions now has to match the preinstalled Chromium, 1.63.0 (CLAUDE.md says how to check).
 
+## 30. The pixel renderer (Claude Code, 2026-11-07)
+
+The second step of the move to pixel art (section 29): the engine draws pixels instead of characters, and every game runs on
+it unchanged. Cells are still 1 unit wide and 2 tall (square cells come next, so the physics is untouched in this step).
+
+- **Every world cell is one pixel.** The glyph atlas is gone: the WebGL shader and the 2D canvas draw each cell as a block of
+  its colour, and the alpha byte only says whether the cell holds anything. Cell codes stay, so old drawing calls work: 0
+  empty, 32 the background colour, `SOLID` (127) a plain pixel, and a printable character a pixel as bright as that
+  character is dense (`INK`), so dust drawn with `.` stays fainter than a `#`.
+- **Pixel-art shading** (`shadeCell`): the light on a material is cut into a few flat shades (`shades`, default 5) or picks a
+  colour of its own `palette`, with a bright top edge on lit surfaces, a dark underside, brighter girder joints and
+  twinkling crystal facets; the cell's texture is applied after the cut, so walls are flat colour with a little grain. The
+  glyph `ramp` is ignored. This is the idea bank's *Cel-shaded light bands*.
+- **The HUD uses the engine's own pixel font**: 95 characters drawn 5 × 9 in `tools/pixelfont.py` (which writes the packed
+  data into the engine and can draw a preview sheet), scaled by whole pixels, with box lines that join across cells. Game
+  pages load no web font any more: they make no external requests at all.
+- **Sprites** are resampled to the world's pixels (each cell the colour most of the art under it has).
+- `setBackground(r, g, b)` sets the colour behind everything (it was fixed near-black).
+- **Fixed on the way:** the eye adaptation measured the shaded colours, which depend on the exposure, and stuck at its
+  maximum (`tests/engine_light.py` caught it); it now measures the brightness before shading.
+- **Verified:** build, unit tests, the smoke test of every game in both renderers, `tests/engine_light.py`,
+  `tests/editor_levels.py`, Space Mouse's `mechanics.py` and `reach.py`, all of Fjordheim's tests, Regolith's checks.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

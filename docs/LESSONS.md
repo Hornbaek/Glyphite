@@ -75,6 +75,14 @@ way.
   "transparent" while 32 means an opaque blank.
 - **Stars in caves.** A 2D cross-section has no back wall, so caves show sky. This was true before
   the sky layer too. It is on the backlog in `ROADMAP.md`.
+- **No ordered dither on flat surfaces.** The first pixel shading dithered between bands with a 4 × 4 Bayer matrix. Any
+  evenly lit wall whose light fell between two bands became a checkerboard from edge to edge, and the per-cell texture
+  (applied before the cut) flipped random cells into the next band. Pixel-art shading is flat bands with hard edges; apply
+  texture after the cut, as a small multiplier.
+- **Shading that depends on the exposure must not feed the eye.** Bands are cut after tone mapping (so they look even), and
+  their colours are stored divided by the exposure; the eye adaptation measured those colours and saw the scene darker the
+  higher the exposure, so it stuck at its maximum. The eye now measures each shaded cell's brightness before the cut (`cL`),
+  and the particles' occlusion key is that brightness too.
 - **Toast placement.** A centred toast covered the lander; during play it sits at about 76% of the
   screen height.
 
@@ -220,8 +228,9 @@ way.
   painted pixels (frontmost first, with slack for a finger), and give people a hit box the size of their figure.
 - **Lay out the HUD for the narrowest phone.** The same Pixel 7 has 55 HUD columns in WebGL and 54 in 2D (rounding), and a
   menu that needed 55 for two columns fell back to one column four screens tall. Check the layout at the smallest width.
-- **The 2D renderer caches a tinted glyph sheet per HUD colour**, and clears it past 96 colours. Pictures and fades on the
-  HUD must use few colours: `hudSprite` rounds its colours to steps of 32, the news fades in three steps.
+- **The 2D renderer caches a tinted font sheet per HUD text colour**, and clears it past 96 colours, so fades of text should
+  use few colours (the news fades in three steps). HUD pictures (`hudSprite`) are full blocks drawn as plain rectangles and
+  need no sheet.
 - **A worker taken off a job lets go of everything.** Pausing or tearing down a workplace has to bring in the fisher's
   boat, what anyone carries, the builder's way back to a workplace that may be gone, and the farmer once no field is left;
   the tile grid points at buildings by their index, so removing one re-points every tile after it.

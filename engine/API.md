@@ -14,12 +14,12 @@ feature once) and `games/regolith/` (big, everything).
 | Name | Meaning |
 |---|---|
 | `ASPECT = 2` | A cell is 1 unit wide and 2 units tall. World x is in cells; world y in units = `row * ASPECT`. |
-| `RES` | Detail scale, one of `DETAIL_LEVELS = [1, 1.5, 2, 2.5, 3]`. **Author every size and speed in base units and multiply by `RES`** (alias `const S = RES`). A finer RES adds characters; it does not zoom out. |
+| `RES` | Detail scale, one of `DETAIL_LEVELS = [1, 1.5, 2, 2.5, 3]`. **Author every size and speed in base units and multiply by `RES`** (alias `const S = RES`). A finer RES adds pixels; it does not zoom out. |
 | `UNIT_M = 0.5 / RES` | Metres per world unit. Show speeds to the player as `v * UNIT_M` m/s. |
 | `G` | Gravity in units/s², downward. Set it in m/s² with `setGravity(mps2)` (`GRAVITY` holds the m/s² value; default 1.62, the Moon). |
 | `DT = 1/60` | The fixed step. `update(dt)` always gets `DT`. |
 | `CALM` | The player prefers reduced motion (the engine already tones down shake and flashes). |
-| Glyphs | Printable ASCII only: codes 32..126. In the world grid 0 = transparent (sky shows), 32 = opaque blank. |
+| Cell codes | Every world cell is one pixel. Its code (the glyph of the ASCII engine, kept so old calls work): 0 = empty (the sky shows), 32 = filled with the background colour, `SOLID` (127) = a plain pixel in the given colour, a printable character 33..126 = a pixel as bright as that character is dense (`INK`: `@` full colour, `.` about half), so dust drawn with `.` stays fainter than a `#`. |
 | Colours | World colours are in *light units* (0..~2, tone-mapped later); HUD colours are bytes `[r, g, b]` 0..255. |
 
 Helpers: `clamp(v, a, b)`, `lerp(a, b, t)`, `rr(a, b)` (random in range), `smooth(t)`, `mulberry32(seed)` → seeded
@@ -100,17 +100,18 @@ Returns the id (1..255; `EMPTY = 0` is built in). Define materials at load time,
 | Property | Default | Meaning |
 |---|---|---|
 | `albedo` | `[.6,.6,.6]` | Colour under white light. |
-| `ramp` | `' .:;=+*#%@'` | Glyphs from dark to bright. |
+| `shades` | 5 | How many flat shades the light on it is cut into (pixel art's bands; a lit top edge gets one brighter, an underside one darker). |
+| `palette` | null | `[[r, g, b], ...]` bytes, dark to bright: the material shows exactly these colours, picked by how much light falls on it (coloured light still tints them). `ramp`, the ASCII engine's glyph ramp, is ignored. |
 | `granular` | false | Falls and slides like sand. `creep: true` also lets it creep sideways to ~45°. |
 | `tough` | .5 | Blast resistance; 99 = indestructible. |
-| `shiny` | 0 | Chance of `*` glints on lit surfaces. |
+| `shiny` | 0 | Chance of white glint pixels on lit surfaces. |
 | `friction` | .95 | Friction for foot hull points (kind 1) standing on it. |
 | `density` | 1 | Relative density in falling chunks. |
 | `brittle` | true | Chips apart on hard impacts (false: bends and bounces, like steel). |
 | `anchor` | false | Never falls; supports any structure touching it (bedrock, pad metal). |
 | `oneWay` | false | A `Character` lands on it from above, jumps up through it and drops down through it (catwalks, ledges). To everything else (sand, particles, light, chunks) it is solid. |
-| `style` | `'terrain'` | `'terrain'` (slope glyphs `/ \ | ~` at surfaces), `'flat'` (always the ramp), `'deck'` (`= -` top, `# H` body), `'mast'` (`| = +` by neighbours; buried parts look like the ground), `'crystal'` (animated `* +` with a colour `pulse`). |
-| `grainGlyphs` | `".,'`:"` | Glyphs of its flying grains; `debris: true` makes them heavier, bouncier debris. |
+| `style` | `'terrain'` | `'terrain'` (bright top edges, dark undersides), `'flat'` (no edges), `'deck'` (like terrain: a bright top), `'mast'` (girders: joints one shade brighter; buried parts look like the ground), `'crystal'` (twinkling facets with a colour `pulse`). |
+| `grainGlyphs` | `".,'`:"` | Codes of its flying grains (their brightness, see Cell codes); `debris: true` makes them heavier, bouncier debris. |
 | `sublimate` | 0 | Chance per exhaust-gas hit to turn into vapour. `vaporize: true`: blasts turn it into vapour. |
 | `fuseTo`, `fuseChance` | 0 | Blast rims sometimes turn it into another material (regolith → glass). |
 | `ejecta` | itself if granular, else the world's rubble | What a blast throws. |
@@ -224,7 +225,7 @@ and freeze back into the grid when they rest. `STRUCTURES = false` turns this of
 `PT_GRAIN` and `PT_DEBRIS` (sand and rubble; they become cells again when they land), `PT_GAS` (hot exhaust:
 scours sand, sublimates ice, heats), `PT_FIRE`, `PT_SPARK`, `PT_SMOKE`, `PT_VAPOR`, `PT_DUST`, `PT_WRECK` (hot
 wreckage throwing sparks). `spawnGrain(x, y, vx, vy, material)`. Storage is struct-of-arrays: `P.n`, `P.x[i]`,
-`P.y`, `P.vx`, `P.vy`, `P.age`, `P.life`, `P.g` (glyph), `P.m` (material). Kill one by `P.age[i] = P.life[i]`.
+`P.y`, `P.vx`, `P.vy`, `P.age`, `P.life`, `P.g` (cell code), `P.m` (material). Kill one by `P.age[i] = P.life[i]`.
 
 Custom types:
 ```js
@@ -232,7 +233,7 @@ const PT_SHARD = defineParticle({
   gravity: 1, drag: 0, bounce: .5, friction: .6,
   update(i, dt) { /* steer, collect: P.age[i] = P.life[i] */ },
   light(i, cx, cy, life) { splatLight(cx, cy, .3, .05, .25, 4); },              // optional glow
-  look(i, k, life, time, out) { out[0] = 1.3; out[1] = .3; out[2] = 1; return 42; }   // colour + glyph
+  look(i, k, life, time, out) { out[0] = 1.3; out[1] = .3; out[2] = 1; return SOLID; }   // colour + cell code
 });
 ```
 
@@ -275,7 +276,7 @@ screen) and consider terrain and frozen chunks, not moving bodies:
 **Flicker and pulse.** Any light may carry `flicker: 'candle' | 'fluorescent' | 'dying' | 'strobe' | 'alarm' | 'pulse'` and a
 `seed`; its intensity is then multiplied by `flickerAt(flicker, time, seed)` (0..1): a candle wavers, a fluorescent tube is
 steady with the odd stutter, a dying tube has long dark spells and bursts of stuttering light, an alarm turns like a beacon. It
-is a pure function of time and seed, so the game can draw the lamp's own glyph in step with its light (and buzz with
+is a pure function of time and seed, so the game can draw the lamp's own pixels in step with its light (and buzz with
 `Sfx.buzz`), and lamps with different seeds don't blink together.
 
 **Eye adaptation.** `setEyeAdaptation(strength 0..1, opts?)` lets the exposure follow the scene (off by default; 0 = off,
@@ -287,13 +288,13 @@ aims for). It applies to the world and the sky, not to the HUD, in both renderer
 ## Drawing into the world
 
 World cells are `cx = floor(x)`, `cy = floor(y / ASPECT)`. Inside `GAME.draw`:
-- `putEmit(cx, cy, code, r, g, b)`: fixed colour (light units).
+- `putEmit(cx, cy, code, r, g, b)`: fixed colour (light units). `code` is usually `SOLID`; see Cell codes.
 - `putLit(cx, cy, code, ar, ag, ab, floor)`: albedo × the scene light at that cell.
-- `slopeGlyph(dx, dy)`: `- \ | /` for a direction.
+- `slopeGlyph(dx, dy)`: the code of `- \ | /` for a direction (a thin line's brightness).
 
-**Sprites** (pixel art → ASCII; data from `tools/sprite2ascii.py`, see the `pixelite-pixel-art-to-ascii` skill):
+**Sprites** (pixel art drawn as world pixels; data from `tools/sprite2ascii.py`, see the `pixelite-pixel-art-to-ascii` skill):
 ```js
-const SHIP = defineSprite(SPRITE_SHIP, { k: .3, ox: 12, oy: 10, part: (c, r) => 0, paint: (c, r, p) => false });
+const SHIP = defineSprite(SPRITE_SHIP, { k: .3, ox: 12, oy: 10, part: (c, r) => 0 });
 drawSprite(SHIP, b.x, b.y, b.a, { shift: [dx1, dy1], foot: 4 * RES, light: true });   // in GAME.draw
 markSpriteDyn(SHIP, b.x, b.y, b.a, opts);   // in GAME.markDyn (casts shadows); returns the top row
 spriteHull(SHIP, 3)                          // hull points (base units: multiply by RES) for new Body()
@@ -303,6 +304,8 @@ portrait) fitted into `w` columns (and `rows`, if given) with its top-left on HU
 box's bottom; it returns the rows it takes. The art's own colours, unlit; `gain` brightens dark art on the HUD's black.
 Worked out once per size (see the build menu in `games/fjordheim/main.js`).
 
+Each world cell the sprite covers becomes one pixel in the colour most of the art under it has (cells less than about
+half covered stay clear), so the art is resampled to the world's pixels, turning with the body.
 `k` = base units per pixel, `(ox, oy)` the origin pixel (centre of mass). `part(c, r)` gives movable parts (1..n)
 their own offset `shift[2p-2], shift[2p-1]`. `foot` snaps that line to a row boundary so feet stand on the ground.
 `flip: true` mirrors it left to right in its own frame (draw characters facing right, flip them to face left). Animation
@@ -313,7 +316,7 @@ flip, then only lit each frame, so hundreds of trees and houses stay cheap (`gam
 ## Isometric maps
 
 `engine/12_iso.js`, for games seen from above at an angle (`games/fjordheim/`). The ground is a grid of `ni × nj` tiles
-drawn as 2:1 diamonds into the back wall (never solid, lit by the scene, textured by each material's glyph ramp); the world
+drawn as 2:1 diamonds into the back wall (never solid, lit and shaded by the scene like any material); the world
 grid stays empty, so every light reaches the ground. Everything standing on it is a sprite, drawn back to front.
 ```js
 isoInit(30, 30, { tile: 8, top: 20, bottom: 14 });   // the world for 30 × 30 tiles (top/bottom: room for tall sprites, boats)
@@ -321,7 +324,7 @@ isoGround((i, j) => GRASS);                          // paint every tile with a 
 isoSetTile(i, j, SOIL);                              // repaint one
 isoToWorld(u, v, out); worldToIso(x, y, out);        // ground point (tile i spans u = i .. i + 1) ⇄ world [x, y]
 isoPick(mouseAim())                                  // the tile [i, j] under a canvas point, or null
-isoOutline(i, j, 2, 2, [.5, 1.6, .6]);               // trace a 2 × 2 footprint with / \ (a cursor, a selection)
+isoOutline(i, j, 2, 2, [.5, 1.6, .6]);               // trace a 2 × 2 footprint in pixels (a cursor, a selection)
 isoDraw([{ u, v, draw() { drawSprite(TREE, x, y, 0, { cache: true }); } }, ...]);   // sorted by u + v, then u
 ```
 A tile is `tile · RES` cells wide and a quarter of that in rows; keep `tile` a multiple of 8 so diamonds have whole cells
@@ -334,16 +337,23 @@ The sky is its own slow-scrolling layer behind empty world cells: stars (`GAME.s
 the game paints. Stars twinkle only when the game has an atmosphere (`setAtmosphere`), never in a vacuum, and are dimmed by
 the light of nearby lamps and flashes, read from the frame's light buffer minus sun and ambient (`GAME.starGlare`, default 1,
 0 = off; the layer then rebuilds a few times a second instead of once). `GAME.skyBegin(ox, oy, time)` runs once per rebuild; `GAME.sky(i, j, out)` is asked for every
-sky cell and returns a glyph code (0 = nothing, -1 = dark body that hides stars) with `out = [r, g, b]`.
+sky cell and returns a cell code (0 = nothing, -1 = dark body that hides stars, `SOLID` or a character's brightness, see
+Cell codes) with `out = [r, g, b]`. Stars are single pixels.
 See `earthBegin` / `earthCell` in `games/regolith/view.js`.
 
 ## HUD
 
-A fixed grid of readable cells (`R.hcols × R.hrows`), redrawn every frame inside `GAME.hud(t)`.
+A fixed grid of readable cells (`R.hcols × R.hrows`), redrawn every frame inside `GAME.hud(t)`. Text is drawn in the
+engine's own pixel font (5 × 9 characters in 6 × 12 cells, scaled by whole pixels, from `tools/pixelfont.py`), so a page
+loads no web font. Codes: the printable characters, `SOLID` (127) a full block, 128..133 box lines `─ │ ┌ ┐ └ ┘` that join
+across cells, 255 the background (a box's inside).
 `hudText(col, row, text, [r,g,b])`, `hudPut(col, row, code, r, g, b)`, `hudFill`, `hudBox(c, r, w, h, col, bg)`,
 `msgBox([[text, colour], ...], topRow?)` (centred box), `hudFlow(row, [[text, colour], ...])` → next row,
 `fmtS(v, width, decimals)` (signed, zero-padded), `worldToHud(x, y, out)`, colours `HC.txt dim amber red cyan green gold`,
 `hudSprite(spr, c, r, w, o)` (a sprite as a small picture: see Sprites).
+
+`setBackground(r, g, b)` (bytes) sets the colour behind everything: empty space without sky, code-32 cells and the HUD's
+boxes. Default `[5, 7, 12]`, near black.
 
 ## Input
 

@@ -11,9 +11,22 @@ deployment exist. Next: prove the engine with a second real game (phase 4).
 This file is the plan. [`IDEAS.md`](IDEAS.md) is the idea bank: a large brainstorm of everything the engine
 could have, to pick from when planning. Move an idea here when it is chosen.
 
+## Now: the move to pixel art (2026-11-07, HISTORY sections 29 and up)
+
+The owner found ASCII too dark and chose pixel art, keeping every mechanic:
+1. ~~Rename to Pixelite~~ (#23; the domain, Worker, D1 and Access keep the old name for now).
+2. ~~The pixel renderer~~: solid cells, flat shading bands or palettes, the pixel-font HUD, glyph codes kept as brightness.
+3. Square cells (`ASPECT = 1`): the world's rows double; fix every place that assumes 2:1 (sand angles, light splats,
+   blasts, iso diamonds, sprites), keep physics the same at RES 1–3, watch the frame time.
+4. Pixel sprites with normal maps (lamps model them), and the PIXEL LAB admin page: Pixel Snapper (cleans AI pixel art to a
+   true grid and palette) and our own normal-map generator, both also as CLI tools for sessions.
+5. Space Mouse in pixels: art snapped from the original sheets, palettes, normal-mapped characters, pixel decor.
+6. Later: Regolith from `lander_ref.png`, Fjordheim's sheets, the starter, showcase and notfound; moving the site to a
+   pixelite domain with the owner.
+
 ## Principles to keep
 
-- Printable ASCII only (32–126) for everything drawn, and one colour per cell.
+- One pixel per cell, one colour per pixel; pixel art keeps one art pixel per world pixel where it can.
 - One self-contained HTML file per game, with no runtime dependencies. The engine can still be
   developed as separate files and bundled.
 - Physics and lighting first. Every subsystem is authored in base units and scaled by detail
