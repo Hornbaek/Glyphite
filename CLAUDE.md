@@ -6,7 +6,7 @@ as Glyphite, an ASCII engine; that version is kept on the branch `glyphite-ascii
 structures that break where they are hit, ray-traced light, particles, sprites drawn from pixel art and an
 NES-style sound chip.
 
-The site **https://glyphite.hornbaek.org** shows visitors a landing page about the engine, where anyone can play the
+The site **https://glyphite.hornbaek.org** (also **https://pixelite.hornbaek.org**, the same Worker) shows visitors a landing page about the engine, where anyone can play the
 games (as test games, a work in progress). Behind a Cloudflare Access login it lists the games, and each one opens in a web **editor**: tune its numbers, edit its code with a live preview, then hand the
 edits to a Claude session as a prompt plus a patch. **The repository is the source of truth**: merging to
 `main` builds and deploys the site.

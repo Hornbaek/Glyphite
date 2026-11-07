@@ -1,8 +1,8 @@
 # Deploying glyphite.hornbaek.org
 
-Set up the same way as horn-dev and hornbaek-site. The site is a Cloudflare Worker named `glyphite` with
+Set up the same way as horn-dev and hornbaek-site. The site is a Cloudflare Worker named `pixelite` (until 2026-11-07 `glyphite`) with
 static assets (`wrangler.jsonc`, `worker/`), serving what `npm run build` writes to `dist/` on the custom
-domain **glyphite.hornbaek.org**.
+domain **glyphite.hornbaek.org**, and since the rename to Pixelite also on **pixelite.hornbaek.org** (section 6).
 
 - **Cloudflare Workers Builds deploys it.** Cloudflare pulls `main`, runs `npm run build:cloudflare` (the
   unit tests, then the build) and `npx wrangler deploy`. No deploy token lives in GitHub; the GitHub workflow
@@ -41,7 +41,7 @@ Cloudflare dashboard → **Workers & Pages** → **Create** → **Import a repos
 
 | Setting | Value |
 |---|---|
-| Worker name | `glyphite` (must match `name` in `wrangler.jsonc`) |
+| Worker name | `pixelite` (must match `name` in `wrangler.jsonc`) |
 | Production branch | `main` |
 | Build command | `npm run build:cloudflare` |
 | Deploy command | `npx wrangler deploy` (the default) |
@@ -82,12 +82,26 @@ without a token, and nobody could sign in). Zero Trust → **Access** → **Appl
 To close it again, remove the path (the application covers the whole hostname again). With Access on `/login` only,
 the Worker's token check is what guards the private pages, so keep `worker/auth.js`, `isPublic` and `isPublicGame` strict.
 
+### 6. The second address: pixelite.hornbaek.org
+
+The engine was renamed Pixelite. The owner renamed the Worker to `pixelite` in the dashboard, and `wrangler.jsonc`'s
+`name` followed in the same change (they must match, or every build fails); the D1 database keeps the name `glyphite`
+(the binding uses its id). In the dashboard, once: the existing Access application gets a second public
+hostname, `pixelite.hornbaek.org` with the path `login`, beside `glyphite.hornbaek.org/login` (same application, so the
+same AUD tag and policy; Cookie Path Attribute off). The custom domain itself is in `wrangler.jsonc` (`routes`) and is
+attached by the deploy; `pixelite.hornbaek.org` must have no DNS record of its own before that.
+
+Both addresses serve the same site. The sign-in cookie belongs to one hostname, so each address asks for the login once.
+Check it in a private window on `pixelite.hornbaek.org`: the landing page, a game's PLAY, then LOG IN back to the game
+list. Only after that may a later change send glyphite.hornbaek.org to the new address (`docs/ROADMAP.md`); until then
+the old address is the safe way in.
+
 ## Where things show up
 
 | What | Where |
 |---|---|
-| Did this commit deploy? | GitHub: the "Workers Builds: glyphite" check on the commit. |
-| Why did it fail? | Dashboard → Workers & Pages → `glyphite` → **Deployments** → **View build history** → the build log. |
+| Did this commit deploy? | GitHub: the "Workers Builds: pixelite" check on the commit. |
+| Why did it fail? | Dashboard → Workers & Pages → `pixelite` → **Deployments** → **View build history** → the build log. |
 | What is live? | The same **Deployments** tab: the active deployment and its commit. |
 
 **A failed build changes nothing**: the site keeps serving the previous version.
@@ -96,7 +110,7 @@ the Worker's token check is what guards the private pages, so keep `worker/auth.
 |---|---|---|
 | The build fails in `npm test` or the build | The code; CI runs the same steps on the PR, so it should have been red there first. | Fix it in a PR. |
 | It fails installing dependencies | `package-lock.json` disagrees with `package.json`. | `npm install`, commit the lockfile. |
-| Name mismatch | The dashboard Worker isn't called `glyphite`. | Rename one to match; don't merge a PR Cloudflare offers that renames `wrangler.jsonc`. |
+| Name mismatch | The dashboard Worker isn't called `pixelite`. | Rename one to match; don't merge a PR Cloudflare offers that renames `wrangler.jsonc`. |
 | The PR check fails at `npx wrangler preview` | The `previews` block is missing from `wrangler.jsonc`. | Restore `"previews": {}`. |
 | The site says **503 … not open yet** | `ACCESS_AUD` is still empty in `wrangler.jsonc`. | Step 1. |
 | **401 "not valid"** after signing in | The AUD tag or team domain doesn't match the Access application. | Copy the AUD again. |
@@ -104,6 +118,8 @@ the Worker's token check is what guards the private pages, so keep `worker/auth.
 | **401 "the sign-in did not come through"** on `/login` | Access does not cover `/login` (section 5). | Set the application's path to `login`. |
 | LOG IN goes round in a loop | **Cookie Path Attribute** is on, so the cookie is only sent for `/login`. | Turn it off (section 5). |
 | `glyphite.hornbaek.org` doesn't answer | The custom domain didn't attach. | The Worker → **Settings** → **Domains & Routes**. |
+| The deploy fails attaching `pixelite.hornbaek.org` | A DNS record already exists on that hostname. | Remove it in the hornbaek.org zone (after checking what it was), then retry the build. |
+| **401 "the sign-in did not come through"** on `pixelite.hornbaek.org/login` only | The Access application lacks the second hostname. | Section 6. |
 | The idea bank says "could not be read" or "not saved" | The `DB` binding or the `idea_state` table is missing. | Section 3 above; the message names the cause. |
 
 Roll back from **Deployments** (promote the previous one), then fix forward.

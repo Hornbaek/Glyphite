@@ -778,6 +778,16 @@ The last step of the move to pixel art for now: Space Mouse, the game the owner 
 - **Verified:** build, unit tests, `lab.py`, the smoke test of every game in both renderers, the light test, Space
   Mouse's mechanics and reachability, the level editor test.
 
+## 35. The site on pixelite.hornbaek.org too (Claude Code, 2026-11-07)
+
+> "I think I fixed the steps in cloudflare. Is it ready to deploy?"
+
+The owner added `pixelite.hornbaek.org/login` to the existing Access application in the dashboard (same AUD) and renamed
+the Worker from `glyphite` to `pixelite` (same Worker, same id). Here, `wrangler.jsonc` takes the new name (they must match
+or every build fails; the D1 database keeps its old name and id) and the second custom domain, so the deploy attaches it; both addresses serve the same site, and
+glyphite.hornbaek.org keeps working as before. No redirect yet: it waits until the owner has signed in on the new address
+(`docs/DEPLOY.md` section 6, `docs/ROADMAP.md`). The Worker's code is unchanged; it never depended on the hostname.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

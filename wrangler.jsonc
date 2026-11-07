@@ -13,13 +13,19 @@
   // The build command is a package.json script because Workers Builds ignores wrangler's build
   // settings, and a script can be changed in a pull request where a dashboard field cannot.
 
-  // Must match the Worker's name in the Cloudflare dashboard, or the build fails.
-  "name": "glyphite",
+  // Must match the Worker's name in the Cloudflare dashboard, or the build fails. The owner renamed it from "glyphite"
+  // (2026-11-07); the D1 database below keeps its old name, which nothing depends on (the binding uses its id).
+  "name": "pixelite",
   "main": "worker/index.js",
   "compatibility_date": "2026-10-01",
 
-  // Attached by the deploy itself: the hornbaek.org zone is on the same account.
-  "routes": [{ "pattern": "glyphite.hornbaek.org", "custom_domain": true }],
+  // Attached by the deploy itself: the hornbaek.org zone is on the same account. pixelite.hornbaek.org is the new name
+  // (the engine was renamed); both serve the same site, and the one Access application covers /login on both
+  // (docs/DEPLOY.md, section 6). The deploy fails if another DNS record already holds a hostname here.
+  "routes": [
+    { "pattern": "glyphite.hornbaek.org", "custom_domain": true },
+    { "pattern": "pixelite.hornbaek.org", "custom_domain": true }
+  ],
   // Only the custom domain (behind Access) serves production: no workers.dev or version URLs.
   "workers_dev": false,
   "preview_urls": false,
