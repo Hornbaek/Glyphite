@@ -13,8 +13,9 @@
   // The build command is a package.json script because Workers Builds ignores wrangler's build
   // settings, and a script can be changed in a pull request where a dashboard field cannot.
 
-  // Must match the Worker's name in the Cloudflare dashboard, or the build fails.
-  "name": "glyphite",
+  // Must match the Worker's name in the Cloudflare dashboard, or the build fails. The owner renamed it from "glyphite"
+  // (2026-11-07); the D1 database below keeps its old name, which nothing depends on (the binding uses its id).
+  "name": "pixelite",
   "main": "worker/index.js",
   "compatibility_date": "2026-10-01",
 

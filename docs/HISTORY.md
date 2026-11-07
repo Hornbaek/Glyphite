@@ -782,8 +782,9 @@ The last step of the move to pixel art for now: Space Mouse, the game the owner 
 
 > "I think I fixed the steps in cloudflare. Is it ready to deploy?"
 
-The owner added `pixelite.hornbaek.org/login` to the existing Access application in the dashboard (same AUD). Here,
-`wrangler.jsonc` gets the second custom domain, so the deploy attaches it; both addresses serve the same site, and
+The owner added `pixelite.hornbaek.org/login` to the existing Access application in the dashboard (same AUD) and renamed
+the Worker from `glyphite` to `pixelite` (same Worker, same id). Here, `wrangler.jsonc` takes the new name (they must match
+or every build fails; the D1 database keeps its old name and id) and the second custom domain, so the deploy attaches it; both addresses serve the same site, and
 glyphite.hornbaek.org keeps working as before. No redirect yet: it waits until the owner has signed in on the new address
 (`docs/DEPLOY.md` section 6, `docs/ROADMAP.md`). The Worker's code is unchanged; it never depended on the hostname.
 

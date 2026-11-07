@@ -1,6 +1,6 @@
 # Deploying glyphite.hornbaek.org
 
-Set up the same way as horn-dev and hornbaek-site. The site is a Cloudflare Worker named `glyphite` with
+Set up the same way as horn-dev and hornbaek-site. The site is a Cloudflare Worker named `pixelite` (until 2026-11-07 `glyphite`) with
 static assets (`wrangler.jsonc`, `worker/`), serving what `npm run build` writes to `dist/` on the custom
 domain **glyphite.hornbaek.org**, and since the rename to Pixelite also on **pixelite.hornbaek.org** (section 6).
 
@@ -41,7 +41,7 @@ Cloudflare dashboard → **Workers & Pages** → **Create** → **Import a repos
 
 | Setting | Value |
 |---|---|
-| Worker name | `glyphite` (must match `name` in `wrangler.jsonc`) |
+| Worker name | `pixelite` (must match `name` in `wrangler.jsonc`) |
 | Production branch | `main` |
 | Build command | `npm run build:cloudflare` |
 | Deploy command | `npx wrangler deploy` (the default) |
@@ -84,8 +84,9 @@ the Worker's token check is what guards the private pages, so keep `worker/auth.
 
 ### 6. The second address: pixelite.hornbaek.org
 
-The engine was renamed Pixelite; the Worker, the D1 database and the Access application keep the name `glyphite` (renaming
-the Worker would break Workers Builds). In the dashboard, once: the existing Access application gets a second public
+The engine was renamed Pixelite. The owner renamed the Worker to `pixelite` in the dashboard, and `wrangler.jsonc`'s
+`name` followed in the same change (they must match, or every build fails); the D1 database keeps the name `glyphite`
+(the binding uses its id). In the dashboard, once: the existing Access application gets a second public
 hostname, `pixelite.hornbaek.org` with the path `login`, beside `glyphite.hornbaek.org/login` (same application, so the
 same AUD tag and policy; Cookie Path Attribute off). The custom domain itself is in `wrangler.jsonc` (`routes`) and is
 attached by the deploy; `pixelite.hornbaek.org` must have no DNS record of its own before that.
@@ -99,8 +100,8 @@ the old address is the safe way in.
 
 | What | Where |
 |---|---|
-| Did this commit deploy? | GitHub: the "Workers Builds: glyphite" check on the commit. |
-| Why did it fail? | Dashboard → Workers & Pages → `glyphite` → **Deployments** → **View build history** → the build log. |
+| Did this commit deploy? | GitHub: the "Workers Builds: pixelite" check on the commit. |
+| Why did it fail? | Dashboard → Workers & Pages → `pixelite` → **Deployments** → **View build history** → the build log. |
 | What is live? | The same **Deployments** tab: the active deployment and its commit. |
 
 **A failed build changes nothing**: the site keeps serving the previous version.
@@ -109,7 +110,7 @@ the old address is the safe way in.
 |---|---|---|
 | The build fails in `npm test` or the build | The code; CI runs the same steps on the PR, so it should have been red there first. | Fix it in a PR. |
 | It fails installing dependencies | `package-lock.json` disagrees with `package.json`. | `npm install`, commit the lockfile. |
-| Name mismatch | The dashboard Worker isn't called `glyphite`. | Rename one to match; don't merge a PR Cloudflare offers that renames `wrangler.jsonc`. |
+| Name mismatch | The dashboard Worker isn't called `pixelite`. | Rename one to match; don't merge a PR Cloudflare offers that renames `wrangler.jsonc`. |
 | The PR check fails at `npx wrangler preview` | The `previews` block is missing from `wrangler.jsonc`. | Restore `"previews": {}`. |
 | The site says **503 … not open yet** | `ACCESS_AUD` is still empty in `wrangler.jsonc`. | Step 1. |
 | **401 "not valid"** after signing in | The AUD tag or team domain doesn't match the Access application. | Copy the AUD again. |
