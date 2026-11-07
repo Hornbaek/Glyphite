@@ -730,6 +730,24 @@ from the session, so the owner chose a normal-map generator of our own. Engine 0
 - **Tests:** `tests/node/pixeltools.test.mjs` (PNG, snapping, the generator, the engine's table and relief rule are the
   generator's), `tests/lab.py`, the normal-map checks in `tests/engine_light.py`; the routes test pins `/lab/` behind the login.
 
+## 33. Space Mouse in pixels (Claude Code, 2026-11-07)
+
+The last step of the move to pixel art for now: Space Mouse, the game the owner asked to convert first. Engine 0.11.0.
+
+- **Normal maps on every sprite**: `games/spacemouse/tools/art.py` now gives each sprite its `normals` (through
+  `tools/normalmap.mjs`, the PIXEL LAB's generator); the mouse's and cat-bots' frames pass them to `defineSprite`. The
+  drawings themselves are unchanged (the rerun rewrote `sprites.js` with the same rows, plus the normals).
+- **Sprites drawn small, the pixel-art way** (engine): Pip's 28-pixel drawing is 14 pixels tall at RES 2, and taking each
+  cell's most common colour made speckle of its thin inner outlines. Now the outline wins only on the silhouette and the
+  paint wins inside. This helps every game's sprites (the lander, Fjordheim's people).
+- **Light from the side**: the light a normal map sees now leans less toward the viewer (0.35 instead of 0.6 of its
+  strength), so lamps model the drawings visibly; the PIXEL LAB preview uses the same.
+- **What it still needs** (NOTES, ROADMAP): art drawn at the size the game shows it, the sheet's moss and cobwebs as decor,
+  palettes for the station's materials.
+- **Verified:** build, unit tests, the smoke test of every game in both renderers, the light and lab tests, Space Mouse's
+  mechanics (RES 1–3) and reachability, Fjordheim's UI test, Regolith's lander renders; zoomed screenshots of Pip at RES 2
+  and 3 before and after.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

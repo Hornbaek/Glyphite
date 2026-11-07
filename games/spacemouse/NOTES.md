@@ -35,8 +35,16 @@ shows them. The mouse's frames share one palette: `tools/mouse_palette.json` for
 first sheet, and `tools/mouse_palette_actions.json` for the second, which lists the same materials in the same order matched
 against that sheet's colours but drawn in the first sheet's, so the suit doesn't change colour between moves (the tool checks
 this), plus the cheese the mouse holds. The cat-bot's palette is made from all its frames (only near-black is outline).
-A new prop: add its box to `PROPS` (tile character, sheet, box, height in base units, floor or wall), rerun, and give the
-tile a legend entry with its own colour in game.json.
+Every sprite also gets a normal map (`normals`, from `tools/normalmap.mjs` at its defaults), so the station's lamps model
+Pip, the cat-bots and the props from the side they are on; tune the look in the site's PIXEL LAB and pass the same numbers
+to `normals_of` in the tool. A new prop: add its box to `PROPS` (tile character, sheet, box, height in base units, floor or
+wall), rerun, and give the tile a legend entry with its own colour in game.json.
+
+**Pixels.** The game is pixel art now (engine 0.8 and up): one square pixel per cell, the stations' materials shaded in flat
+bands, the HUD in the engine's pixel font. Pip is 14 pixels tall at the default detail (RES 2) and 21 at RES 3, while the
+sheet draws it 28 tall: the engine draws it small the way pixel art is (outline on the silhouette, paint inside), but
+the drawing cannot keep all its detail. Art drawn at the size the game shows it would be crisper: a new sheet with
+Pip about 14–16 pixels tall (`pixelite-art-prompt`), or the same drawing snapped smaller in the PIXEL LAB and touched up.
 
 **Animation.** The mouse: walk and run alternate in a stride; standing still it looks up now and then; Down looks down;
 sliding down a wall it clings facing the wall; a fall longer than 1.3 jump heights tumbles; a landing faster than a jump's
@@ -71,5 +79,7 @@ checkpoint reachable: it runs `checkSector` from `levelcheck.js`). Run `reach.py
 - Cat-bots don't jump or use catwalks; a jump-link navgraph (idea bank) would let them follow.
 - The gantry falls straight down; a hinge (one bracket going first) would swing it.
 - The darkness is a mood choice; the Station light tunable raises it.
+- Pip and the cat-bots are drawn from art twice their on-screen size (see Pixels); the decor (moss, cables, cobwebs) is
+  still drawn as lines from map tiles, and the sheet's own moss and cobweb drawings are not used yet.
 - The sheets have a ladder and a lift; the controller has no climbing or moving platforms yet (general engine features).
 - The half-open hatch on the objects sheet is not used (a door that opens would need a reason to: a switch, a key).
