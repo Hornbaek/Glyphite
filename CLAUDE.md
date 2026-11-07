@@ -23,7 +23,8 @@ games/<id>/             one folder per game: game.json (manifest), head.html (op
                         thumb.png, plus the game's own tools/, tests/, ref/ (reference art: see the rules), music/, NOTES.md
 templates/starter/      the game `new` copies: small, uses every engine feature once (Cave Drone)
 portal/                 the website: game list (index.html), editor (edit/: tune, code, LEVELS for tile maps), idea bank (ideas/), what's new (whats-new/),
-                        reference art (art/), the PIXEL LAB (lab/: snap AI art, make normal maps), the public landing page (welcome/), assets/,
+                        reference art (art/), the PIXEL LAB (lab/: snap AI art, make normal maps; lab/lighter/: Pixel Art Lighter,
+                        vendored, for hand-made normals), the public landing page (welcome/), assets/,
                         vendor/ (codemirror, pixel-snapper)
 worker/                 the Cloudflare Worker: Access login check + static site + idea bank API (ideas.js)
                         wrangler.jsonc: its config (incl. the D1 binding)     migrations/: the D1 schema

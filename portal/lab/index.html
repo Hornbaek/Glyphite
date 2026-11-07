@@ -66,7 +66,14 @@
       <label class="check"><input type="checkbox" id="flat"> compare flat</label>
     </div>
     <p class="meta">Bevel: how far in from the edge the shape rounds off (pixels). Detail: how much light paint stands out and dark
-      lines sink in. Strength: how steep it all is. Move the pointer over the lit picture to move the lamp.</p>
+      paint sinks in (outlines follow the paint beside them). Strength: how steep it all is. Move the pointer over the lit picture
+      to move the lamp.</p>
+    <div class="row">
+      <a class="btn small" href="/lab/lighter/" target="_blank" rel="noopener">[ PIXEL ART LIGHTER ↗ ]</a>
+      <label class="btn small file">[ LOAD A NORMAL MAP ]<input type="file" id="nrmFile" accept="image/png"></label>
+      <span class="meta" id="nrmInfo">Hand-made normals: open the snapped PNG in Pixel Art Lighter (Moonfell RPG's tool: faceted
+        surfaces, a brush to fix any area; best for buildings and hard shapes), export its normal map and load it here.</span>
+    </div>
     <div class="pics">
       <figure><div class="pic" id="nrmPic"></div><figcaption>normal map <a href="#" id="nrmDl" hidden>download PNG</a></figcaption></figure>
       <figure><div class="pic lamp" id="litPic"></div><figcaption>lit by a lamp</figcaption></figure>

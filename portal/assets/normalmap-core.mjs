@@ -4,7 +4,10 @@
 //
 // The shape comes from the drawing itself: every pixel gets a height from its distance to the silhouette (a rounded bevel
 // `bevel` pixels wide, so the edges slope away and the middle is flat) plus a little from its brightness (`detail`: light
-// paint stands out, dark lines sink in). The slope of that height field (Sobel, scaled by `strength`) is the normal.
+// paint stands out, dark paint sinks in). The slope of that height field (Sobel, scaled by `strength`) is the normal.
+// Outlines (paint darker than `outline`) are a drawing style, not shape, as Pixel Art Lighter (Moonfell RPG; in the PIXEL
+// LAB at /lab/lighter/) puts it: they take the brightness of the paint around them, so they don't carve ridges, and then
+// the direction of that paint (`mergeOutlines`).
 // Normals are kept as indices into NORMALS, a fixed table of 33 directions, so a sprite's normal map is text like its rows
 // (`normals: ['..0g1..', ...]`, base 36) and the engine (engine/10_sprite.js, SPR_NORMALS) reads the same table.
 //
@@ -28,7 +31,7 @@ export function normalIndex(x, y, z) {
   return best;
 }
 
-export const DEFAULTS = { bevel: 3, detail: .8, strength: 2.5, smooth: true };
+export const DEFAULTS = { bevel: 3, detail: .8, strength: 2.5, smooth: true, mergeOutlines: true, outline: .16 };
 
 // mask: 1 where the drawing is; lum: 0..1 brightness per pixel. Returns { idx: Uint8Array (255 = no pixel), height }.
 export function normalsFromShape(w, h, mask, lum, opts = {}) {
@@ -41,9 +44,15 @@ export function normalsFromShape(w, h, mask, lum, opts = {}) {
     d[i] = Math.min(d[i], at(x - 1, y) + 3, at(x, y - 1) + 3, at(x - 1, y - 1) + 4, at(x + 1, y - 1) + 4); }
   for (let y = h - 1; y >= 0; y--) for (let x = w - 1; x >= 0; x--) { const i = y * w + x; if (!mask[i]) continue;
     d[i] = Math.min(d[i], at(x + 1, y) + 3, at(x, y + 1) + 3, at(x + 1, y + 1) + 4, at(x - 1, y + 1) + 4); }
+  // outlines: dark paint; they take the mean brightness of the other paint next to them
+  const line = new Uint8Array(n), nb8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
+  if (o.mergeOutlines) for (let i = 0; i < n; i++) line[i] = mask[i] && lum[i] < o.outline ? 1 : 0;
+  const around = (x, y, f) => { let sum = 0, c = 0; for (const [dx, dy] of nb8) { const xx = x + dx, yy = y + dy, j = yy * w + xx; if (xx >= 0 && yy >= 0 && xx < w && yy < h && mask[j] && !line[j]) { sum += f(j); c++; } } return c ? sum / c : null; };
+  lum = Float32Array.from(lum);
   // height: a rounded bevel up from the edge, plus the paint's own light and dark
-  let mean = 0, cnt = 0; for (let i = 0; i < n; i++) if (mask[i]) { mean += lum[i]; cnt++; }
+  let mean = 0, cnt = 0; for (let i = 0; i < n; i++) if (mask[i] && !line[i]) { mean += lum[i]; cnt++; }
   mean = cnt ? mean / cnt : .5;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x; if (line[i]) lum[i] = around(x, y, j => lum[j]) ?? mean; }
   let hf = new Float32Array(n);
   for (let i = 0; i < n; i++) if (mask[i]) {
     const b = Math.min(d[i] / 3, o.bevel) / Math.max(o.bevel, 1e-3);
@@ -67,7 +76,14 @@ export function normalsFromShape(w, h, mask, lum, opts = {}) {
     const gy = (H(x - 1, y + 1) + 2 * H(x, y + 1) + H(x + 1, y + 1) - H(x - 1, y - 1) - 2 * H(x, y - 1) - H(x + 1, y - 1)) / 8;
     idx[i] = normalIndex(-gx * o.strength, -gy * o.strength, 1);
   }
-  return { idx, height: hf };
+  // an outline faces where the paint beside it faces
+  const merged = Uint8Array.from(idx);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x; if (!line[i]) continue;
+    const v = [0, 1, 2].map(c => around(x, y, j => NORMALS[idx[j]][c]));
+    if (v[0] !== null) merged[i] = normalIndex(v[0], v[1], v[2]);
+  }
+  return { idx: merged, height: hf };
 }
 
 const lumOf = (r, g, b) => (.3 * r + .59 * g + .11 * b) / 255;
@@ -88,6 +104,18 @@ export function normalsForSprite(spr, opts) {
   }
   const { idx } = normalsFromShape(w, h, mask, lum, opts);
   return Array.from({ length: h }, (_, y) => Array.from({ length: w }, (_, x) => idx[y * w + x] === 255 ? '.' : idx[y * w + x].toString(36)).join(''));
+}
+
+// a normal map made elsewhere (Pixel Art Lighter in the PIXEL LAB, Aseprite, Laigter...) as our indices: each pixel's
+// colour is a direction, (n + 1) × 127.5 per channel; green points up unless greenUp is false. Transparent pixels and
+// pixels with no paint in `mask` (if given) get none.
+export function normalsFromMapRGBA(rgba, w, h, { greenUp = true, mask = null } = {}) {
+  const idx = new Uint8Array(w * h).fill(255), f = v => v / 127.5 - 1;
+  for (let i = 0; i < w * h; i++) {
+    if (rgba[i * 4 + 3] === 0 || (mask && !mask[i])) continue;
+    idx[i] = normalIndex(f(rgba[i * 4]), greenUp ? -f(rgba[i * 4 + 1]) : f(rgba[i * 4 + 1]), f(rgba[i * 4 + 2]));
+  }
+  return idx;
 }
 
 // the normal map as a picture (the usual colours: red = right, green = up, blue = toward you; empty pixels transparent)

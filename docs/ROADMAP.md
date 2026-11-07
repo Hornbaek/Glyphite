@@ -19,7 +19,10 @@ The owner found ASCII too dark and chose pixel art, keeping every mechanic:
 3. ~~Square cells~~ (`ASPECT = 1`): rows doubled, everything that counted cells fixed, physics the same at RES 1–3.
 4. ~~Pixel sprites with normal maps and the PIXEL LAB~~ (Pixel Snapper and our own normal maps, in the browser and as CLI
    tools). Left: drop the glyph field from the sprite palettes (`pixelsprite.py`, Fjordheim's and Space Mouse's art tools);
-   offer `tools/pixel-snapper.patch` upstream; Moonfell's normal-map tool if the owner sends its source.
+   offer `tools/pixel-snapper.patch` upstream (the forward difference and the lattice fit, with the benchmark); try
+   Sprite Fusion's sister project (github.com/Hugo-Dz/spritefusion-sprite-normals) against ours. Pixel Art Lighter is in
+   the PIXEL LAB (/lab/lighter/); its **light masks** (which pixels a light may reach, e.g. a window glowing at night) would
+   be a general engine feature: a per-sprite emissive/mask layer beside `normals`.
 5. ~~Space Mouse in pixels~~: normal-mapped characters and props, sprites drawn small the pixel-art way. Next: art at the size
    the game shows it (Pip ~14–16 px), the sheet's moss and cobweb drawings as decor, material palettes.
 6. Later: Regolith from `lander_ref.png`, Fjordheim's sheets (their outline colour still carries the magenta tint of the

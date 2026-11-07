@@ -129,7 +129,7 @@ def run(mode):
         check('kelvin + atmosphere: the base is the blackbody, then dimmed by the air', c['air_k'][2] < c['air_k'][0] < 1.15)
         check('atmosphere set later recolours the sun without another setSun', c['off'][2] > .9 and c['on'][2] < .3, (c['off'], c['on']))
         s = pg.evaluate(SKY)
-        near = lambda a, b: abs(a - b) <= .03 * b   # the level's own beacons and lamps pulse a little
+        near = lambda a, b: abs(a - b) <= .05 * b   # the level's own beacons and lamps pulse a little (3% was flaky: 112 vs 116)
         check('stars: a lamp right on a star dims it a lot, and glare 0 leaves it', s['glare1'] < .5 * s['base'] and near(s['glare0'], s['base']), s)
         check('stars: back to normal when the light is gone', near(s['normal'], s['base']), s)
         check('stars: a flash dims them', s['flash'] < .8 * s['base'], s['flash'])

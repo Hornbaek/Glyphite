@@ -146,6 +146,17 @@ way.
   one-pixel sliver was left at the end (an 8-pixel drawing came back 9 wide). `tools/pixel-snapper.patch` measures the
   change where the new pixel starts; with it, clean art snaps exactly and its own pixel-size guess works on clean art too.
   On small AI drawings the guess can still be far off: give `--pixel-size`.
+- **AI pixel art has no single grid, so measure the pixel size and give it.** A benchmark of 262 images (synthetic
+  sprites with a known answer, clean / blurred / JPEG / jittered, and the games' sheets) showed upstream's own guess
+  right on 26 and its grid right on 20; on the real Gemini sheets the "true" 3.2 is not even a local peak of any score.
+  What helped was a **lattice fit**: one square step for both axes and a phase per axis, scored by the edge energy the
+  grid lines explain minus a cost per line (0.7; without it the finest grid always wins), searched over fractional steps,
+  then each cut nudged to the strongest edge within a fifth of a pixel. Guessing went to 139 sizes / 115 grids, and with
+  the size given to 197 grids (every clean and jittered sprite exact). Scoring by mean contrast or a t-statistic instead
+  picked huge steps; a scoring window that changed shape at step 4 clustered every guess around 4.
+- **Outlines are style, not shape** (Pixel Art Lighter's idea). The bevel generator read a dark inner line as a trench,
+  so the paint on both sides sloped into it and lamps drew ridges along every line. Outline pixels (darker than .16) now
+  take the brightness of the paint beside them for the height, and then that paint's direction.
 - **Normal maps on outlined art need a wide enough bevel.** A 2-pixel bevel only tilts the dark outline, and brightening
   near-black changes nothing: the lamp made no visible difference. Bevel 3 with the paint's own light and dark (`detail`)
   shades the panels inside; the direction table needed a gentle (20°) ring, or soft slopes rounded to flat.

@@ -1,5 +1,13 @@
 Pixel Snapper by Sprite Fusion (Hugo Duprez), MIT licence (LICENSE): https://github.com/Hugo-Dz/spritefusion-pixel-snapper
-Built to WebAssembly from commit 02f9315 by tools/build-snapper.sh (wasm-bindgen 0.2.105, --target web), with one fix
-(tools/pixel-snapper.patch): edges are measured where a new pixel starts, so cuts no longer land a pixel short.
+Built to WebAssembly from commit 02f9315 by tools/build-snapper.sh (wasm-bindgen 0.2.105, --target web), with our patch
+(tools/pixel-snapper.patch):
+ - edges are measured where a new pixel starts (a forward difference), so cuts no longer land a pixel short;
+ - the grid is found by a lattice fit instead of upstream's step guess and walker: one square pixel size for both axes and
+   a phase per axis, chosen by how much of the image's edge energy the grid lines explain minus a cost per line, then
+   each cut nudged to the strongest edge within a fifth of a pixel. Fractional sizes (3.2 image pixels per art pixel, as AI
+   art has) work, and a given --pixel-size is followed exactly.
+On a benchmark of 262 images (synthetic sprites at 2-8 px per art pixel, clean / blurred / JPEG / jittered, plus the
+games' AI sheets) it finds the right grid in 115 against upstream's 20 when guessing, and 197 against 63 when given the
+size. Guessing stays unreliable on real AI sheets (they have no single exact grid): give the pixel size.
 It snaps AI-made "pixel art" to the grid it was meant to have and to a palette: process_image(pngBytes, colours?,
 pixelSize?, paletteHex?) → PNG bytes. Used by the PIXEL LAB page (portal/lab/) and tools/snap.mjs.

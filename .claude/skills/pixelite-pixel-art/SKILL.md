@@ -15,9 +15,11 @@ normal map, brighter where it faces a lamp or the sun. This skill takes art from
 
 - Work in the Pixelite repo; `CLAUDE.md` describes the layout. The tools:
   - `tools/snap.mjs`: Pixel Snapper (Sprite Fusion, WebAssembly in `portal/vendor/pixel-snapper/`): finds the grid an
-    AI-made image was meant to have and snaps it to that grid and a palette (`--pixel-size` when its guess is off).
+    AI-made image was meant to have and snaps it to that grid and a palette (give `--pixel-size` for AI art: it may be
+    fractional, e.g. 3.2, and is followed exactly; the guess is good on clean art, unreliable on AI sheets).
   - `tools/pixelsprite.py`: image → sprite data (`{ w, h, pal, rows }`), with its own grid estimate and palette.
-  - `tools/normalmap.mjs`: a normal map for clean pixel art (`--rows` prints the sprite's `normals`).
+  - `tools/normalmap.mjs`: a normal map for clean pixel art (`--rows` prints the sprite's `normals`); `--from-map` reads
+    one made by hand in **Pixel Art Lighter** (`/lab/lighter/`, linked from the PIXEL LAB).
   - The **PIXEL LAB** page (`/lab/` on the site) does snapping and normals with sliders and a lamp you move, and hands
     the settings back as a prompt with these exact commands: when the owner sends one, run it as given.
 - The engine: `defineSprite` / `drawSprite` / `markSpriteDyn` / `spriteHull` in `engine/10_sprite.js` (`engine/API.md`,
@@ -38,9 +40,9 @@ normal map, brighter where it faces a lamp or the sun. This skill takes art from
 
 AI-made "pixel art" is drawn several screen pixels per art pixel, irregularly, with soft seams and stray colours.
 - **Snap it** (best on AI sheets): `node tools/snap.mjs in.png clean.png --colors 12 [--pixel-size P] [--palette hex,...]`.
-  Measure P once on the sheet (sheet pixels per art pixel); the automatic guess is right on most big drawings and wrong
-  on small ones (Space Mouse's 51 × 55 mouse came out 11 × 12 instead of 26 × 28 until P = 2 was given). Check the
-  printed size: the art should come out at the pixel count it was drawn with.
+  Measure P once on the sheet (sheet pixels per art pixel; fractions are fine) and always give it for AI art: no
+  version of the guess is reliable on AI sheets, which have no single exact grid. Check the printed size: the art should
+  come out at the pixel count it was drawn with.
 - **Or let pixelsprite.py resample it** (step 2): it averages the middle half of each block, which also ignores seams;
   give `--grid WxH` (box size / pixel size) when its estimate is off.
 - **Lock the palette** for a character's frames (one palette for all, so colours don't flicker between moves): snap with
@@ -88,6 +90,13 @@ Put the printed rows in the sprite as `normals: [...]` (same size as `rows`; bas
 plus the paint's brightness (`detail`: light paint stands out, dark lines sink in), slope × `strength` → normal. The
 defaults suit 15–60 px sprites with dark outlines: a thinner bevel only tilts the outline, which hardly shows. Tune them
 in the PIXEL LAB with the lamp, then use the same numbers here. Skip normals for flat things (signs, decals, UI).
+Dark outlines (luminance under .16) take the paint beside them, so they don't carve ridges.
+
+**By hand, for hard shapes** (buildings, machines, anything with flat faces): open the clean PNG in Pixel Art Lighter
+(`/lab/lighter/`: Architecture / Character / Object / Terrain presets, faceted surfaces, a brush to fix any area), export
+its normal map (green up), check it in the PIXEL LAB ([ LOAD A NORMAL MAP ]), then
+`node tools/normalmap.mjs --from-map normals.png --rows` (`--green-down` for maps from tools that point green down).
+Keep the exported map in the game's `ref/` with the art.
 
 ### 4. Scale, origin and parts (game decisions)
 
@@ -169,3 +178,6 @@ Code edit it directly (`.claude/skills/pixelite-pixel-art/SKILL.md`) and mention
   Pixel Snapper (`tools/snap.mjs`) and normal maps (`tools/normalmap.mjs`, the PIXEL LAB page) joined the tools. Normal
   maps with a 2 px bevel only tilted the dark outline and hardly showed: the defaults are now bevel 3, detail .8, strength
   2.5, and the direction table has a gentle 20° ring so soft slopes keep their direction.
+- 2026-11-07: Pixel Snapper got a lattice fit (fractional pixel sizes, a given size followed exactly; benchmark in
+  `docs/LESSONS.md`), the generator merges outlines into the paint beside them, and Pixel Art Lighter (Moonfell RPG's
+  tool) joined the PIXEL LAB for hand-made normals, read with `--from-map`.
