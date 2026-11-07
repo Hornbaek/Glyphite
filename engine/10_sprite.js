@@ -4,7 +4,7 @@
 // '.' is empty; any other character indexes pal in base 36. ink 0 marks an outline colour (a fifth entry, the glyph the
 // ASCII engine used, is ignored).
 //
-// Every world cell the sprite covers takes 3 x 6 samples of it in the object's own frame, so the drawing turns with the
+// Every world cell the sprite covers takes 3 x 3 samples of it in the object's own frame, so the drawing turns with the
 // body. A cell that is mostly covered becomes one pixel in the colour most of its samples land on, lit by the scene; the
 // rest stay clear. Parts (legs, doors, turrets) are looked up with their own offset, so they can slide or open without new art.
 //
@@ -19,7 +19,8 @@
 //   flip   true: mirrored left to right in its own frame (a character facing the other way)
 //   cache  true: a still sprite (a = 0, no shift) is worked out once per detail level and then only lit (trees, buildings)
 // markSpriteDyn(spr, x, y, a, o) → top row; marks the covered cells as dynamic shadow casters.
-const SPR_SX = 3, SPR_SY = 6, SPR_N = SPR_SX * SPR_SY, SPR_FILL = SPR_N * .45;   // samples per cell; how many must land on the art
+const SPR_S = 3, SPR_FILL = .45;   // samples across a cell (and per unit of its height); the share that must land on the art
+const HUD_ASPECT = FONT_H / FONT_W;   // a HUD cell is twice as tall as wide, unlike the world's square cells
 const _sprNoShift = [];
 
 function defineSprite(data, opts = {}) {
@@ -81,16 +82,17 @@ function drawSprite(spr, x, y, a, o = {}) {
   }
   sprCells(spr, bx, by, x0, y0, x1, y1, a, sh, fl, lit, sprEmit);
 }
-function sprCells(spr, bx, by, x0, y0, x1, y1, a, sh, fl, lit, emit) {
-  const c = Math.cos(a), s = Math.sin(a), hist = spr.hist, np = hist.length;
+// asp: the cell's height in units (the world's ASPECT, or HUD_ASPECT for a picture on the HUD)
+function sprCells(spr, bx, by, x0, y0, x1, y1, a, sh, fl, lit, emit, asp = ASPECT) {
+  const c = Math.cos(a), s = Math.sin(a), hist = spr.hist, np = hist.length, sy = Math.round(SPR_S * asp), need = SPR_FILL * SPR_S * sy;
   for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {
     let occ = 0; hist.fill(0);
-    for (let j = 0; j < SPR_SY; j++) for (let i = 0; i < SPR_SX; i++) {
-      const wx = cx + (i + .5) / SPR_SX - bx, wy = (cy + (j + .5) / SPR_SY) * ASPECT - by;
+    for (let j = 0; j < sy; j++) for (let i = 0; i < SPR_S; i++) {
+      const wx = cx + (i + .5) / SPR_S - bx, wy = (cy + (j + .5) / sy) * asp - by;
       const px = spritePixel(spr, (wx * c + wy * s) * fl, -wx * s + wy * c, sh);
       if (px >= 0) { occ++; hist[spr.idx[px]]++; }
     }
-    if (occ < SPR_FILL) continue;
+    if (occ < need) continue;
     let dom = 0; for (let p = 1; p < np; p++) if (hist[p] > hist[dom]) dom = p;
     const q = spr.lin[dom];
     emit(cx, cy, SOLID, q[0], q[1], q[2], lit);
@@ -105,11 +107,11 @@ function hudSprite(spr, c, r, w, o = {}) {
   let ic = icons.get(key);
   if (!ic) {
     // a copy at the scale that fits the box, its origin at the middle of its bottom edge
-    const s = Math.min(w / spr.w, o.rows ? o.rows * ASPECT / spr.h : 1e9), rows = o.rows || Math.ceil(spr.h * s / ASPECT);
+    const s = Math.min(w / spr.w, o.rows ? o.rows * HUD_ASPECT / spr.h : 1e9), rows = o.rows || Math.ceil(spr.h * s / HUD_ASPECT);
     const q = v => Math.min(255, Math.round(255 * tone(v * gain)));
     ic = { rows, cells: [] };
-    sprCells({ ...spr, k: s / RES, ox: spr.w / 2, oy: spr.h }, w / 2, rows * ASPECT, 0, 0, w - 1, rows - 1, 0, _sprNoShift, fl, false,
-      (cx, cy, g, cr, cg, cb) => ic.cells.push(cx, cy, g, q(cr), q(cg), q(cb)));
+    sprCells({ ...spr, k: s / RES, ox: spr.w / 2, oy: spr.h }, w / 2, rows * HUD_ASPECT, 0, 0, w - 1, rows - 1, 0, _sprNoShift, fl, false,
+      (cx, cy, g, cr, cg, cb) => ic.cells.push(cx, cy, g, q(cr), q(cg), q(cb)), HUD_ASPECT);
     icons.set(key, ic);
   }
   const k = ic.cells;

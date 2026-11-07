@@ -153,7 +153,7 @@ function moonBegin(ox, oy, time) {
 }
 function moonCell(i, j, out) {
   // the planet: ocean and cloud bands turning slowly, lit from the upper left, a glowing rim
-  let ex = (i + .5 - _sky.px) / _sky.pr, ey = (j + .5 - _sky.py) / (_sky.pr / 2), e2 = ex * ex + ey * ey;
+  let ex = (i + .5 - _sky.px) / _sky.pr, ey = (j + .5 - _sky.py) / (_sky.pr / ASPECT), e2 = ex * ex + ey * ey;
   if (e2 < 1.06) {
     if (e2 >= 1) { const g = (1.06 - e2) / .06 * .5; out[0] = .15 * g; out[1] = .45 * g; out[2] = 1.1 * g; return 46; }   // the haze beyond the limb
     const nz = Math.sqrt(1 - e2), lit = Math.max(0, ex * -.55 + ey * -.6 + nz * .58);
@@ -164,7 +164,7 @@ function moonCell(i, j, out) {
     return SKY_RAMP[clamp(((lit + rim * .6) * 10) | 0, 1, 9)];
   }
   // the cheese moon: small, far, full of holes
-  ex = (i + .5 - _sky.mx) / _sky.mr; ey = (j + .5 - _sky.my) / (_sky.mr / 2); e2 = ex * ex + ey * ey;
+  ex = (i + .5 - _sky.mx) / _sky.mr; ey = (j + .5 - _sky.my) / (_sky.mr / ASPECT); e2 = ex * ex + ey * ey;
   if (e2 >= 1) return 0;
   const nz = Math.sqrt(1 - e2), lit = Math.max(0, ex * -.6 + ey * -.45 + nz * .66);
   if (lit <= .04) return -1;

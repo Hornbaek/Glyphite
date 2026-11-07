@@ -678,6 +678,29 @@ it unchanged. Cells are still 1 unit wide and 2 tall (square cells come next, so
 - **Verified:** build, unit tests, the smoke test of every game in both renderers, `tests/engine_light.py`,
   `tests/editor_levels.py`, Space Mouse's `mechanics.py` and `reach.py`, all of Fjordheim's tests, Regolith's checks.
 
+## 31. Square pixels (Claude Code, 2026-11-07)
+
+The third step of the move to pixel art: a cell is now one square pixel, 1 unit each way (`ASPECT = 1`; the ASCII engine's
+cells were 2 units tall). The world is the same size in units and metres, with twice the rows, so pixel art is no longer
+stretched. Engine 0.9.0.
+
+- **Engine.** Everything written in units carried over. What counted cells was fixed: sand rests at the same angle (it
+  slides down a side only while two cells below are free), the normal and ambient-occlusion boxes keep their size in units,
+  light splats are round, glowing materials and hot ground give the same light per area, stars keep their density, blast
+  pushes and chunk sampling use the cell's real shape, characters keep their 2-unit step and unstick reach, sprites take
+  3 × 3 samples per cell (HUD pictures keep 1 × 2 cells).
+- **Games.** Every level generator measured heights in rows; those numbers doubled (Regolith's world is 300 rows tall at
+  RES 1, its craters, mesas, pads, masts, caves and the x3 roof keep their size; the starter cave; the 404 page), the letters
+  of the showcase and the 404 page are square pixels, Earth and Space Mouse's planet and moon are round, and Space Mouse's
+  bites eat an area, not a number of cells.
+- **Speed.** Twice the cells cost about 40% more per frame in Regolith (shading and light); the tone curve and the shade
+  bands are now lookup tables, which took most of the rest back.
+- **Tests.** The star twinkle check in `tests/engine_light.py` now holds the exposure still: with more ground on screen,
+  Regolith's eye adaptation eased during the series and dimmed the stars by 4%, which the check read as twinkling.
+- **Verified:** build, unit tests, the smoke test of every game in both renderers, the light, editor and 404 tests, Space
+  Mouse's mechanics (jump, speed, eating, rust, catwalks at RES 1–3) and reachability, all of Fjordheim's tests, Regolith's
+  floating-island, x3-clearance, lamp-post, roof-drop, real-time and lander-sprite checks.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

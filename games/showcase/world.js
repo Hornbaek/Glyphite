@@ -24,18 +24,18 @@ function wordBitmap(text, px) {
 let SITE = null;
 function genSite() {
   const S = RES, cols = R.cols || 200, rows = R.rows || 80;
-  // a letter pixel is 2k cells wide and k tall (cells are 1 x 2 units, so it stays square); the word takes about 70% of the
-  // view, from a smaller font when the view is narrow (a phone), so it always fits
+  // a letter pixel is k x k cells; the word takes about 70% of the view, from a smaller font when the view is narrow (a
+  // phone), so it always fits
   let bmp = wordBitmap(WORD, 11);
-  for (const px of [9, 7]) if (bmp.w * 2 > cols * .85) bmp = wordBitmap(WORD, px);
-  const k = Math.max(1, Math.min(Math.floor(cols * .85 / (bmp.w * 2)), Math.round(cols * .7 / (bmp.w * 2)))), letterCols = bmp.w * 2 * k;
+  for (const px of [9, 7]) if (bmp.w > cols * .85) bmp = wordBitmap(WORD, px);
+  const k = Math.max(1, Math.min(Math.floor(cols * .85 / bmp.w), Math.round(cols * .7 / bmp.w))), letterCols = bmp.w * k;
   worldInit(Math.max(cols + 8, letterCols + Math.round(40 * S)), Math.max(rows + 6, bmp.h * k * 3 + Math.round(30 * S)));
   setSun(30, { kelvin: 4800 }); setAtmosphere(.25);
   const gy = Math.floor(H * .8), x0 = Math.floor((W - letterCols) / 2), y0 = gy - bmp.h * k;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
-    cells[y * W + x] = x < 2 || x >= W - 2 || y >= H - 3 ? BEDROCK : y < gy ? EMPTY : y < gy + 2 * S ? SAND : GROUND;
+    cells[y * W + x] = x < 2 || x >= W - 2 || y >= H - 3 ? BEDROCK : y < gy ? EMPTY : y < gy + 4 * S ? SAND : GROUND;
   for (let r = 0; r < bmp.h; r++) for (let c = 0; c < bmp.w; c++) if (bmp.rows[r][c] === '#')
-    for (let dy = 0; dy < k; dy++) for (let dx = 0; dx < 2 * k; dx++) cells[(y0 + r * k + dy) * W + x0 + c * 2 * k + dx] = SLAB;
+    for (let dy = 0; dy < k; dy++) for (let dx = 0; dx < k; dx++) cells[(y0 + r * k + dy) * W + x0 + c * k + dx] = SLAB;
   updateSkyline();
   SITE = { gy, x0, x1: x0 + letterCols, y0, k, letters: 0, t: 0 };
   SITE.letters = countLetters();

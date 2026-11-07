@@ -19,7 +19,7 @@ game, as an example of a full game on the engine.
 
 | Name | Meaning |
 |---|---|
-| `ASPECT = 2` | A cell is 1 unit wide and 2 units tall. World x is in cells; world y in units is `row * ASPECT`. |
+| `ASPECT = 1` | A cell is one square pixel, 1 unit each way (the ASCII engine's were 2 tall). World x is in cells; world y in units is `row * ASPECT`. |
 | `RES` | Detail scale, one of `DETAIL_LEVELS = [1, 1.5, 2, 2.5, 3]` (often aliased `S`). |
 | base unit | Physical sizes are authored in base units and multiplied by `RES`. At RES 1 one unit is 0.5 m. |
 | `UNIT_M = 0.5 / RES` | Metres per world unit. |
@@ -27,7 +27,7 @@ game, as an example of a full game on the engine.
 | `DT = 1/60` | Fixed simulation step. The frame loop runs at most 3 steps per frame and drops the rest. |
 | `CALM` | `prefers-reduced-motion`: weaker shake and flashes. |
 
-A finer RES gives a bigger grid of the same world (Regolith: `WORLD_W = 560`, `WORLD_H = 150` base
+A finer RES gives a bigger grid of the same world (Regolith: `WORLD_W = 560`, `WORLD_H = 300` base
 cells, times RES). The renderer shrinks the cell size to match (`renderResize`: cell width ≈
 `cssWidth / (150·RES)` device pixels, never under 4 px). Speeds, radii, light ranges and particle
 counts all scale with RES, so a level plays the same at every detail level. Changing detail
@@ -369,7 +369,7 @@ run once per flip and detail level and the result is kept as a stamp of cells (o
 lights the stamp. Fjordheim draws about 230 trees and its buildings this way in under 1 ms.
 
 **Isometric ground** (`engine/12_iso.js`): `isoInit` sizes the world for a diamond of `ni × nj` tiles, each `tile · RES`
-cells wide and a quarter of that in rows (a 2:1 diamond on 1 × 2 cells). The ground is painted into the back wall
+cells wide and half of that in rows (a 2:1 diamond). The ground is painted into the back wall
 (`backCells`): never solid, lit and shaded by the scene like any material, while the world grid stays empty so every
 light reaches it. `isoToWorld` / `worldToIso` convert between ground coordinates and world units; `isoPick` turns a canvas
 point into a tile through the camera. Standing things are sprites: `isoDraw` sorts them by depth (`u + v`, then `u`) and

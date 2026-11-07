@@ -87,7 +87,7 @@ function stepGantries(dt) {
       const cx = i % W, cy = (i / W) | 0, gx = Math.floor(cx / SEC.tw), gy = Math.floor(cy / SEC.th);
       if (!g.brackets.some(([x, y]) => x === gx && y === gy)) continue;
       setC(cx, cy, EMPTY);
-      if (Math.random() < .25) spawnGrain(cx + .5, cy * ASPECT + 1, rr(-4, 4) * S, rr(-2, 3) * S, FLAKES);
+      if (Math.random() < .25) spawnGrain(cx + .5, (cy + .5) * ASPECT, rr(-4, 4) * S, rr(-2, 3) * S, FLAKES);
     }
     Sfx.burst(.6, 300, 60, .4, 'lowpass', 4); Sfx.burst(.3, 2400, 600, .2, 'bandpass', 3);
     FX.shake = Math.min(1, FX.shake + .4);

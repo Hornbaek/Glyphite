@@ -28,16 +28,16 @@ function pathBitmap(text) {
 
 let SITE = null;
 function genSite() {
-  const S = RES, k = Math.max(1, Math.round(RES)), text = missingPath(), bmp = pathBitmap(text);
-  const letterCols = bmp.w * 2 * k;                       // a pixel is 2k cells wide and k tall: cells are 1 x 2 units, so it stays square
-  worldInit(Math.max(Math.round(260 * S), letterCols + Math.round(90 * S)), Math.round(150 * S));
+  const S = RES, k = 2 * Math.max(1, Math.round(RES)), text = missingPath(), bmp = pathBitmap(text);
+  const letterCols = bmp.w * k;                           // a letter pixel is k x k cells
+  worldInit(Math.max(Math.round(260 * S), letterCols + Math.round(90 * S)), Math.round(300 * S));
   setSun(13); setAtmosphere(0);
   const gy = Math.floor(H * .8), x0 = Math.floor((W - letterCols) / 2), y0 = gy - bmp.h * k;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    cells[y * W + x] = x < 3 * S || x >= W - 3 * S || y >= H - 4 * S ? BEDROCK : y < gy ? EMPTY : y < gy + 3 * S ? REGO : ROCK;
+    cells[y * W + x] = x < 3 * S || x >= W - 3 * S || y >= H - 8 * S ? BEDROCK : y < gy ? EMPTY : y < gy + 6 * S ? REGO : ROCK;
   }
   for (let r = 0; r < bmp.h; r++) for (let c = 0; c < bmp.w; c++) if (bmp.rows[r][c] === '#')
-    for (let dy = 0; dy < k; dy++) for (let dx = 0; dx < 2 * k; dx++) cells[(y0 + r * k + dy) * W + x0 + c * 2 * k + dx] = SLAB;
+    for (let dy = 0; dy < k; dy++) for (let dx = 0; dx < k; dx++) cells[(y0 + r * k + dy) * W + x0 + c * k + dx] = SLAB;
   updateSkyline();
   SITE = { text, gy, x0, x1: x0 + letterCols, y0, letters: 0 };
   SITE.letters = countLetters();

@@ -1,21 +1,25 @@
 // ===================== ENGINE · scene shading → pixels =====================
 const FLAME_GLYPHS = Array.from('.:-=+*#%@', c => c.charCodeAt(0));
 const tone = c => 1 - Math.exp(-c * 1.7);
+// the same curve as a table, for the per-cell loops (light units 0..8 in steps of 1/512; brighter is white)
+const TONE_LUT = Float32Array.from({ length: 4097 }, (_, i) => tone(i / 512));
+const toneF = c => c <= 0 ? 0 : c >= 8 ? 1 : TONE_LUT[(c * 512) | 0];
 const SOLID = 127;   // the cell code of a plain pixel (full colour)
 // Pixel-art shading: the light on a material is cut into its few flat shades (MAT_SHADES, or the colours of its palette), each
 // shown at its middle brightness, so even the darkest is not black. No dither: an evenly lit wall stays one flat colour.
 // `step` moves the shade up or down (a lit top edge one brighter, an underside one darker); `tex` is the cell's own texture,
 // applied after the cut so it only varies a shade a little and never flips a cell into the next one. Colours in and out are in
 // light units; lr, lg, lb is the light on the cell, which tints a palette.
+// the light-unit brightness of band `level` (0..n-1) of n, at its middle: SHADE_LIN[n * 17 + level]
+const SHADE_LIN = Float32Array.from({ length: 17 * 17 }, (_, i) => { const n = (i / 17) | 0, l = i % 17; return n ? -Math.log(1 - Math.min(.97, (l + .5) / n)) / 1.7 : 0; });
 function shadeCell(m, r, g, b, lr, lg, lb, tex, step, out) {
-  const lum = .3 * r + .59 * g + .11 * b, E = EYE.e, t = tone(lum * E), pal = MAT_PAL[m];
+  const lum = .3 * r + .59 * g + .11 * b, E = EYE.e, t = toneF(lum * E), pal = MAT_PAL[m];
   if (pal) {
     const c = pal[clamp(Math.floor(t * pal.length) + step, 0, pal.length - 1)], lm = Math.max(lr, lg, lb, 1e-4), f = tex / E;
     out[0] = c[0] * (.5 + .5 * lr / lm) * f; out[1] = c[1] * (.5 + .5 * lg / lm) * f; out[2] = c[2] * (.5 + .5 * lb / lm) * f;
     return out;
   }
-  const n = MAT_SHADES[m], q = clamp((Math.floor(t * n) + step + .5) / n, .4 / n, .97);
-  const f = lum > 1e-5 ? -Math.log(1 - q) / 1.7 / E / lum * tex : 0;
+  const n = MAT_SHADES[m], f = lum > 1e-5 ? SHADE_LIN[n * 17 + clamp(Math.floor(t * n) + step, 0, n - 1)] / E / lum * tex : 0;
   out[0] = r * f; out[1] = g * f; out[2] = b * f;
   return out;
 }
@@ -100,7 +104,8 @@ function renderScene(ox, oy, time, drawExtras) {
     splatLight(cx, cy, _fc[0] * k, _fc[1] * k, _fc[2] * k, t === PT_SPARK ? 2 : 3);
     if (t !== PT_SPARK) { const q = j * RW + i; SH[q] = Math.min(1, SH[q] + .25 * life); if (j > 0) SH[q - RW] = Math.min(1, SH[q - RW] + .2 * life); }
   }
-  const hk = 1 / (RES * RES), cmod = Math.max(3, Math.round(3 * RES * RES));
+  // per cell, so a hot or glowing area gives the same light at any detail and cell size (cells are ASPECT units tall)
+  const hk = ASPECT / (2 * RES * RES), cmod = Math.max(3, Math.round(6 * RES * RES / ASPECT));
   for (let j = 0; j < RH; j++) {
     const cy = oy + j; if (cy < 0 || cy >= H) continue;
     for (let i = 0; i < RW; i++) {
@@ -213,7 +218,7 @@ function renderScene(ox, oy, time, drawExtras) {
   const bt = .62 - .1 * bp, bg = 460 * (1 + 1.2 * bp);   // the bloom bright-pass: on a drum hit its threshold drops and its gain rises
   for (let k = 0; k < n; k++) {
     const code = G[k], vv = vig[k] * INK[code], q = k * 4;
-    let r = tone(cR[k] * E) * vv, g = tone(cG[k] * E) * vv, b = tone(cB[k] * E) * vv;
+    let r = toneF(cR[k] * E) * vv, g = toneF(cG[k] * E) * vv, b = toneF(cB[k] * E) * vv;
     if (code === 32) { r = BG[0] / 255; g = BG[1] / 255; b = BG[2] / 255; }   // a filled cell of plain background
     D[q] = r * 255; D[q + 1] = g * 255; D[q + 2] = b * 255; D[q + 3] = code ? 255 : 0;
     if (bloom) { const on = code > 32; BL[q] = on ? Math.max(0, r - bt) * bg : 0; BL[q + 1] = on ? Math.max(0, g - bt) * bg : 0; BL[q + 2] = on ? Math.max(0, b - bt) * bg : 0; BL[q + 3] = 255; }
@@ -242,7 +247,7 @@ function renderSky(time) {
   const ox = ix - 1, oy = iy - 1, key = `${ox},${oy},${RW},${RH},${step},${Math.round(E * 24)}`;
   if (key === skyKey) return;
   skyKey = key; R.skyDirty = true;
-  const SG = R.sG, D = R.sPix, paint = GAME.sky, starP = .011 * (GAME.stars ?? 1) / (RES * RES);
+  const SG = R.sG, D = R.sPix, paint = GAME.sky, starP = .0055 * ASPECT * (GAME.stars ?? 1) / (RES * RES);
   if (paint && GAME.skyBegin) GAME.skyBegin(ox, oy, time);
   for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) {
     const k = j * RW + i, q = k * 4; let glyph = 0, r = 0, g = 0, b = 0;
@@ -260,6 +265,6 @@ function renderSky(time) {
       if (f < .5) glyph = 46;              // a faint star shrinks to a dot
     }
     const vv = vig[k] * INK[glyph];
-    SG[k] = glyph; D[q] = tone(r * E) * vv * 255; D[q + 1] = tone(g * E) * vv * 255; D[q + 2] = tone(b * E) * vv * 255; D[q + 3] = glyph > 32 ? 255 : 0;
+    SG[k] = glyph; D[q] = toneF(r * E) * vv * 255; D[q + 1] = toneF(g * E) * vv * 255; D[q + 2] = toneF(b * E) * vv * 255; D[q + 3] = glyph > 32 ? 255 : 0;
   }
 }

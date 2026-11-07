@@ -88,6 +88,13 @@ way.
 
 ## Physics
 
+- **Square cells change every count made in cells.** Going from 2-unit to 1-unit rows kept everything written in units
+  (bodies, light, particles) but silently changed what was counted in cells: sand slid at 45° instead of about 63° (it now
+  needs two free cells below the side it slides to), the mouse ate half as fast (a bite took a number of cells: now an area),
+  hot ground and glowing materials gave twice the light (light per cell), stars doubled, sprite samples, the chunk-cell
+  sampler read the next cell down, and every game's level code that measured heights in rows built a world half as tall.
+  Per-cell chances that turn into matter (ejecta, crumbs) stay as they are: each grain refills one cell, so mass is kept.
+
 - **Resting contacts need a skin.** Landings never registered while contact required real
   penetration. Hull points now count as touching within `SKIN = 0.3` units.
 - **Leg dampers: don't differentiate a quantised measurement.**
@@ -178,8 +185,8 @@ way.
   standing spot. On the first pass it found five mistakes in three sectors: catwalks 4–7 tiles apart when a jump is 3.6, a
   cable jump that bumped a low ceiling and fell short, a crate wall in front of the goal. Run it after every map edit.
 - **Model running jumps.** A search that only jumps from a standstill under-reaches; players run up to a gap.
-- **Tiles must be whole rows at every detail level.** A cell is 2 units tall, so a square tile of T base units is T·RES/2
-  rows: T = 4 is the smallest that is a whole number at RES 1, 1.5, 2, 2.5 and 3.
+- **Tiles must be whole rows at every detail level.** A square tile of T base units is T·RES cells each way: T = 2 is the
+  smallest that is a whole number at RES 1, 1.5, 2, 2.5 and 3 (on the ASCII engine's 2-unit rows it was 4).
 - **Anything floating breaks off at the next structural check.** Catwalks hanging in mid-room fell the first time a gantry
   collapsed nearby (any `explode()` or `checkSupport()` checks a wide region). Things that are bolted in place are `anchor`.
 - **A gantry is everything joined to its brackets.** The game finds gantry decks by flood-filling deck tiles from the `B`

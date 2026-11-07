@@ -38,7 +38,7 @@ function stepCats(dt) {
     if (wall || ledge) { if (k.alert > 0) go = 0; else k.dir = go = -k.dir; }
     c.step(dt, { x: k.spotT > 0 ? 0 : go });   // it stops for a moment when it spots the mouse
     k.anim += Math.abs(c.vx) * dt / S;
-    if (c.blocked(c.x, c.y)) c.unstick(3 * ASPECT);
+    if (c.blocked(c.x, c.y)) c.unstick(6);
     if (c.ground === RUST) crumbleAt(c);
     if (c.y > H * ASPECT + 10 * S) { k.alive = false; continue; }
     // the mouse: on top of it (stomp) or anywhere else (caught)

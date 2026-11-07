@@ -45,9 +45,10 @@ let stampGen = 0;
 const LBOX = { nI: 3, nJ: 2, aI: 2, aJ: 1, dI: 7, dJ: 4 };
 function lightAlloc(rw, rh) {
   // box sizes are authored for RES 1 and grow with detail so shading reads the same physically
-  LBOX.nI = Math.max(2, Math.round(3 * RES)); LBOX.nJ = Math.max(1, Math.round(2 * RES));
-  LBOX.aI = Math.max(1, Math.round(2 * RES)); LBOX.aJ = Math.max(1, Math.round(RES));
-  LBOX.dI = Math.round(7 * RES); LBOX.dJ = Math.round(4 * RES);
+  // (in cells: the J sizes are rows, ASPECT units each)
+  LBOX.nI = Math.max(2, Math.round(3 * RES)); LBOX.nJ = Math.max(1, Math.round(4 * RES / ASPECT));
+  LBOX.aI = Math.max(1, Math.round(2 * RES)); LBOX.aJ = Math.max(1, Math.round(2 * RES / ASPECT));
+  LBOX.dI = Math.round(7 * RES); LBOX.dJ = Math.round(8 * RES / ASPECT);
   LMX = Math.max(LBOX.nI, LBOX.dI) + 1; LMY = Math.max(LBOX.nJ, LBOX.dJ) + 1;
   L_RW = rw; L_RH = rh; LOW = rw + 2 * LMX; LOH = rh + 2 * LMY;
   const n = rw * rh;
@@ -257,7 +258,7 @@ function flickerAt(kind, t, seed = 0) {
 // cheap unshadowed glow for emissive things (flames, hot rock, crystals); rad in base cells
 function splatLight(cx, cy, r, g, b, rad) {
   rad = Math.max(1, Math.round(rad * RES));
-  const i0 = cx - L_OX, j0 = cy - L_OY, RW = L_RW, RH = L_RH, ry = Math.max(1, rad >> 1);
+  const i0 = cx - L_OX, j0 = cy - L_OY, RW = L_RW, RH = L_RH, ry = Math.max(1, Math.round(rad / ASPECT));
   for (let j = -ry; j <= ry; j++) {
     const jj = j0 + j; if (jj < 0 || jj >= RH) continue;
     for (let i = -rad; i <= rad; i++) {

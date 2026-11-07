@@ -13,7 +13,7 @@ function checkSector(n) {
   const S = RES, opts = mouseOpts(), seen = new Set(), queue = [], tiles = new Set();
   const crumbs = SEC.crumbs.map(() => false), checks = SEC.checkpoints.map(() => false); let goal = false;
   const add = c => {
-    const k = Math.round(c.x / 2) + ',' + Math.round(c.y / ASPECT);
+    const k = Math.round(c.x / 2) + ',' + Math.round(c.y / 2);   // states on a 2-unit grid
     if (seen.has(k)) return;
     seen.add(k); queue.push([c.x, c.y]); tiles.add(Math.floor(c.x / SEC.tw) + ',' + (Math.round(c.y / ASPECT / SEC.th) - 1));
   };

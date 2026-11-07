@@ -29,7 +29,7 @@ function stepMouse(dt) {
   m.low = applyGravityZone(c, TUNE.jumpHeight * MOUSE_H * S);
   if (m.low) hint('lowg', 'LOW GRAVITY: THE GENERATOR IS FAILING. JUMPS GO TWICE AS HIGH');
   c.step(dt, inp);
-  if (c.blocked(c.x, c.y)) c.unstick(3 * ASPECT);   // sand (peas, flakes, crumbs) poured onto the mouse: climb out on top
+  if (c.blocked(c.x, c.y)) c.unstick(6);   // sand (peas, flakes, crumbs) poured onto the mouse: climb out on top
   if (c.jumped || c.wallJumped) {
     Sfx.tone(c.wallJumped ? 560 : 440, .07, .05); Sfx.tone(c.wallJumped ? 840 : 660, .09, .04, 'square', .03);
     puff(c.x - (c.wallJumped ? c.facing * c.o.w / 2 : 0), c.y, 5, c.ground || HULL);
@@ -119,14 +119,14 @@ function bite(c, dir) {
   for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) if (EDIBLE.has(getC(cx, cy))) cand.push([(cx + .5 - mx) ** 2 + ((cy + .5) * ASPECT - my) ** 2, cx, cy]);
   if (!cand.length) return;
   cand.sort((a, b) => a[0] - b[0]);
-  const n = Math.min(cand.length, Math.max(1, Math.round(1.4 * S * S)));
+  const n = Math.min(cand.length, Math.max(1, Math.round(2.8 * S * S / ASPECT)));   // a bite is 2.8 units² of cheese
   for (let k = 0; k < n; k++) {
     const [, cx, cy] = cand[k];
     setC(cx, cy, EMPTY);
-    if (Math.random() < .22) spawnGrain(cx + .5, cy * ASPECT + 1, rr(-4, 4) * S, -rr(0, 5) * S, CRUMBS);
-    else if (Math.random() < .3) spawnP(PT_DUST, cx + .5, cy * ASPECT + 1, rr(-5, 5) * S, -rr(1, 6) * S, rr(.2, .5), pick(".,'"), CHEESE);
+    if (Math.random() < .22) spawnGrain(cx + .5, (cy + .5) * ASPECT, rr(-4, 4) * S, -rr(0, 5) * S, CRUMBS);
+    else if (Math.random() < .3) spawnP(PT_DUST, cx + .5, (cy + .5) * ASPECT, rr(-5, 5) * S, -rr(1, 6) * S, rr(.2, .5), pick(".,'"), CHEESE);
   }
-  grams += n * 10 / (S * S);
+  grams += n * 5 * ASPECT / (S * S);   // 5 g per unit² at RES 1
   Sfx.burst(.05, rr(1600, 2400), 500, .1, 'bandpass', 2);
 }
 
