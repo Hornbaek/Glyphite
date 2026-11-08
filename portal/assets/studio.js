@@ -1,6 +1,7 @@
 // The SOUND STUDIO (/studio/): a small DAW for 16-bit (Super Nintendo style) music. The sound is the engine's own Sampler
 // (engine/13_sampler.js, loaded before this file), so a game plays a song exactly as it sounds here. Songs are plain data
 // (Sampler.check); they save to the site (worker/songs.js, D1) and a draft is kept in this browser as you work.
+import { findLevels, toPixels } from './levels-core.mjs';
 const S = Sampler, PPQ = S.PPQ;
 const $ = q => document.querySelector(q);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -8,7 +9,10 @@ const NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const noteName = n => NAMES[n % 12] + (Math.floor(n / 12) - 1);
 const isBlack = n => [1, 3, 6, 8, 10].includes(n % 12);
 const COLORS = ['#ffb340', '#78dcff', '#8ceb96', '#ffd678', '#ff8a6a', '#c79bff', '#6af0c8', '#ff7ab8'];
-const DRAFT = 'pixelite.studio.draft';
+// the project: the game the songs are for (?game=<id>), 'none' for sketches, no ?game at all: choose one first
+const PROJECT = new URLSearchParams(location.search).get('game');
+const GAME_ID = PROJECT && PROJECT !== 'none' && /^[a-z][a-z0-9-]{1,31}$/.test(PROJECT) ? PROJECT : '';
+const DRAFT = `pixelite.studio.draft.${GAME_ID || 'none'}`;   // one draft per project
 
 // ---------- state ----------
 const st = {
@@ -16,12 +20,13 @@ const st = {
   dirty: false, undo: [], redo: [], pending: null, clip: null, rec: null, click: false, countIn: true, quant: true,
   keys: false, octave: 4, view: { x: 0, zoom: .7, top: 84 }, live: new Map(), pedal: false, bend: 0, follow: true
 };
+let project = { id: '', title: '' };   // the game this studio is working for (from /games.json)
 const song = () => st.song, track = () => st.song.tracks[st.sel];
 const end = () => S.songEnd(st.song);
 const snapAt = (t, g = st.grid) => Math.round(t / g) * g;
 
 function template() {
-  const s = S.check({ format: 'pixelite-song', title: 'New song', bpm: 110, bars: 8, loop: { on: true, start: 0, end: 8 * 4 * PPQ }, tracks: [] });
+  const s = S.check({ format: 'pixelite-song', title: project.title ? `${project.title} song` : 'New song', bpm: 110, bars: 8, loop: { on: true, start: 0, end: 8 * 4 * PPQ }, tracks: [] });
   s.tracks = [
     Object.assign(S.newTrack('piano'), { name: 'Piano' }),
     Object.assign(S.newTrack('fingerbass'), { name: 'Bass', sends: { echo: 0, reverb: .1 } }),
@@ -48,7 +53,9 @@ function changed({ rebuild = false } = {}) {
   clearTimeout(changed.t); changed.t = setTimeout(saveDraft, 600);
 }
 // an edit that undo can take back as one step
-function edit(fn, opts) { st.undo.push(snap()); if (st.undo.length > 150) st.undo.shift(); st.redo = []; fn(); changed(opts); }
+function edit(fn, opts) { pushUndo(snap()); st.redo = []; fn(); changed(opts); }
+// at most 150 steps, and about 60 MB of them (a song with samples is large)
+function pushUndo(j) { st.undo.push(j); let total = st.undo.reduce((n, u) => n + u.length, 0); while (st.undo.length > 150 || (total > 3e7 && st.undo.length > 3)) total -= st.undo.shift().length; }
 // slider drags: many small changes, one undo step (settle() when the drag ends)
 function tweak(fn) { if (!st.pending) st.pending = snap(); fn(); st.dirty = true; showSaved(); if (S.ctx) S.sync(); clearTimeout(changed.t); changed.t = setTimeout(saveDraft, 600); }
 function settle() { if (st.pending) { st.undo.push(st.pending); st.redo = []; st.pending = null; } drawArr(); drawRoll(); }
@@ -62,7 +69,7 @@ function saveDraft() { try { localStorage.setItem(DRAFT, JSON.stringify({ song: 
 function showSaved(text) {
   $('#saved').textContent = text ?? (st.dirty ? (st.meta.id ? 'changed since saved' : 'not saved yet') : st.meta.id ? 'saved' : '');
 }
-function load(s, meta = { id: null, updated_at: null, game: '' }, dirty = false) {
+function load(s, meta = { id: null, updated_at: null, game: GAME_ID }, dirty = false) {
   if (S.playing) stopAll();
   st.song = S.check(s); st.meta = { ...meta }; st.sel = 0; st.picked.clear(); st.undo = []; st.redo = []; st.dirty = dirty; st.start = 0;
   st.view.x = 0; st.view.top = st.song.tracks[0]?.instrument === 'kit' ? 60 : 84;
@@ -73,7 +80,7 @@ function load(s, meta = { id: null, updated_at: null, game: '' }, dirty = false)
 
 // ---------- the track list ----------
 function renderTracks() {
-  const opts = S.INSTRUMENTS.map(i => `<option value="${i.id}">${esc(i.group)} · ${esc(i.name)}</option>`).join('');
+  const opts = insOptions(true);
   $('#trackList').innerHTML = st.song.tracks.map((t, i) => `
     <li class="trk${i === st.sel ? ' sel' : ''}" data-i="${i}" style="--c:${COLORS[i % COLORS.length]}">
       <div class="r1"><input class="tname" value="${esc(t.name)}" aria-label="Track name" spellcheck="false">
@@ -97,10 +104,18 @@ function renderTracks() {
     pan.ondblclick = () => edit(() => { t.pan = 0; }, { rebuild: true });
   });
 }
+function insOptions(load) {
+  const own = Object.entries(st.song.samples || {});
+  return S.INSTRUMENTS.map(i => `<option value="${i.id}">${esc(i.group)} · ${esc(i.name)}</option>`).join('')
+    + (own.length ? `<optgroup label="This song's samples">${own.map(([id, sm]) => `<option value="sample:${esc(id)}">Sample · ${esc(sm.name)}</option>`).join('')}</optgroup>` : '')
+    + (load ? '<option value="__load">+ Load a sample…</option>' : '');
+}
+const insName = id => id.startsWith('sample:') ? st.song.samples[id.slice(7)]?.name : S.INSTRUMENTS.find(x => x.id === id)?.name;
 function setInstrument(i, id) {
+  if (id === '__load') { renderTracks(); return pickSample(i); }
   edit(() => {
-    const t = st.song.tracks[i], was = S.INSTRUMENTS.find(x => x.id === t.instrument);
-    if (!t.name || t.name === 'Track' || (was && t.name === was.name)) t.name = S.INSTRUMENTS.find(x => x.id === id).name;
+    const t = st.song.tracks[i], was = insName(t.instrument);
+    if (!t.name || t.name === 'Track' || t.name === was) t.name = insName(id) || 'Track';
     t.instrument = id; t.sound.attack = t.sound.decay = t.sound.sustain = t.sound.fall = t.sound.release = t.sound.vibrato = null;
   }, { rebuild: true });
   if (i === st.sel) focusTrack();
@@ -148,8 +163,10 @@ function renderStrip() {
       <button class="btn small" data-a="dup" title="Duplicate the track">DUP</button><button class="btn small" data-a="del" title="Delete the track">DEL</button>`;
     head.querySelectorAll('[data-a]').forEach(b => b.onclick = () => trackAction(b.dataset.a));
     box.append(head);
-    const sound = section('SOUND',
-      pick('Grit', S.RATES.map(r => [r, `${r / 1000} kHz${r === 32000 ? ' (SNES)' : ''}`]), () => s.rate, v => { s.rate = +v; S.prepare(st.song); }));
+    const own = t.instrument.startsWith('sample:');
+    if (own) box.append(sampleSection(t.instrument.slice(7)));
+    const sound = section('SOUND');
+    if (!own) sound.append(pick('Grit', S.RATES.map(r => [r, `${r / 1000} kHz${r === 32000 ? ' (SNES)' : ''}`]), () => s.rate, v => { s.rate = +v; S.prepare(st.song); }));
     if (!kit) sound.append(
       ctl('Octave', () => s.octave, v => { s.octave = Math.round(v); }, { min: -3, max: 3, step: 1, fmt: v => (v > 0 ? '+' : '') + v }),
       ctl('Fine', () => s.fine, v => { s.fine = Math.round(v); }, { min: -100, max: 100, step: 1, fmt: v => `${v} ct` }),
@@ -227,6 +244,7 @@ function drawEq() {
 // ---------- the song overview: bar ruler, loop, start mark, every track's notes ----------
 const A = { cv: $('#arr'), RULER: 18, TH: 14 };
 function drawArr() {
+  if (!st.song) return;
   const cv = A.cv, dpr = devicePixelRatio || 1, T = st.song.tracks, H = A.RULER + T.length * A.TH + 4;
   const W = cv.clientWidth; cv.style.height = H + 'px';
   if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
@@ -287,6 +305,7 @@ function sizeRoll() {
   R.cv.width = Math.round(R.w * dpr); R.cv.height = Math.round(R.h * dpr); R.cv.style.width = R.w + 'px'; R.cv.style.height = R.h + 'px';
 }
 function drawRoll() {
+  if (!st.song) return;
   const x = R.cv.getContext('2d'), dpr = devicePixelRatio || 1, t = track(); if (!t) return;
   x.setTransform(dpr, 0, 0, dpr, 0, 0);
   const W = R.w, H = R.h, gB = H - R.VEL, kit = t.instrument === 'kit', bar = st.song.beatsPerBar * PPQ, E = end();
@@ -590,7 +609,7 @@ async function api(path, opts = {}) {
   return j;
 }
 async function save(copy = false) {
-  if (!st.meta.id || copy) st.meta = { id: `${slug(st.song.title)}-${Math.random().toString(36).slice(2, 6)}`, updated_at: null, game: st.meta.game };
+  if (!st.meta.id || copy) st.meta = { id: `${slug(st.song.title)}-${Math.random().toString(36).slice(2, 6)}`, updated_at: null, game: st.meta.game || GAME_ID };
   showSaved('saving…');
   try {
     const r = await api(`/api/songs/${st.meta.id}`, { method: 'PUT', body: JSON.stringify({ song: st.song, game: st.meta.game, base: st.meta.updated_at }) });
@@ -605,7 +624,9 @@ async function save(copy = false) {
 async function listSongs() {
   try {
     const { items } = await api('/api/songs');
-    $('#songs').innerHTML = '<option value="">songs…</option>' + items.map(s => `<option value="${esc(s.id)}">${esc(s.title)}${s.game ? ' · ' + esc(s.game) : ''} · ${new Date(s.updated_at).toLocaleDateString()}</option>`).join('');
+    const mine = items.filter(s => (s.game || '') === GAME_ID);   // this project's songs
+    $('#songs').innerHTML = `<option value="">${mine.length ? `songs (${mine.length})…` : 'no songs saved yet'}</option>` + mine.map(s => `<option value="${esc(s.id)}">${esc(s.title)} · ${new Date(s.updated_at).toLocaleDateString()}</option>`).join('');
+    return items;
   } catch { $('#songs').innerHTML = '<option value="">no saved songs here</option>'; }
 }
 async function openSong(id) {
@@ -635,9 +656,8 @@ async function importFile(f) {
 }
 
 // the prompt that hands a saved song to a Claude session, to put it into a game
-let gamesList = [];
 async function promptDialog() {
-  if (!gamesList.length) try { gamesList = (await (await fetch('/games.json', { cache: 'no-store' })).json()).games.filter(g => g.status !== 'template'); } catch { }
+  await games();
   const sel = $('#gameSel');
   sel.innerHTML = '<option value="">choose…</option>' + gamesList.map(g => `<option value="${esc(g.id)}">${esc(g.title)}</option>`).join('');
   sel.value = st.meta.game || '';
@@ -649,15 +669,238 @@ async function promptDialog() {
       `1. Read it with the D1 connector: SELECT data FROM songs WHERE id = '${id}';`,
       `   and save it as games/${g}/music/${id}.song.json`,
       `2. node tools/song.mjs ${g}   (writes games/${g}/songs.js; add it to game.json's parts if it is new)`,
-      `3. Play it in the game: Sampler.play(SONGS['${id}']) (engine/API.md, Sampler); prepare it early with Sampler.prepare.`,
-      `4. Verify it (pixelite-verify) and open a pull request.`,
-      'When and where it should play: '].join('\n');
+      `3. It plays ${placesText()} (its places, set under WHERE IT PLAYS, are in the song: tools/song.mjs writes them to SONG_AT).`,
+      `   Make sure the game plays SONG_AT's songs there (engine/API.md, Sampler; Space Mouse's stationMusic() is an example).`,
+      `4. Verify it (pixelite-verify) and open a pull request.`].join('\n');
   };
   sel.onchange = () => { if (st.meta.game !== sel.value) { st.meta.game = sel.value; st.dirty = true; showSaved(); } $('#promptText').textContent = text(); };
   $('#promptText').textContent = text();
   $('#copyPrompt').onclick = async () => { try { await navigator.clipboard.writeText($('#promptText').textContent); $('#copyPrompt').textContent = '[ COPIED ]'; } catch { } };
   $('#promptDlg').showModal();
 }
+
+// ---------- projects: the games songs are for ----------
+let gamesList = [];
+async function games() {
+  if (!gamesList.length) try { gamesList = (await (await fetch('/games.json', { cache: 'no-store' })).json()).games.filter(g => g.listed && !g.template); } catch { }
+  return gamesList;
+}
+async function showProjects() {
+  let items = []; try { items = (await api('/api/songs')).items; } catch { }
+  const count = id => items.filter(s => (s.game || '') === id).length, n = c => `${c} song${c === 1 ? '' : 's'}`;
+  $('#projList').innerHTML = gamesList.map(g => `<a class="proj" href="/studio/?game=${esc(g.id)}">
+      ${g.thumbnail ? `<img src="/${esc(g.thumbnail)}" alt="">` : '<span class="ph"></span>'}<b>${esc(g.title)}</b><span class="muted">${n(count(g.id))}</span></a>`).join('')
+    + `<a class="proj" href="/studio/?game=none"><span class="ph">♪</span><b>Sketches</b><span class="muted">${n(count(''))} · for no game yet</span></a>`;
+  $('#projects').hidden = false;
+}
+
+// ---------- samples: your own sounds, kept in the song as SNES BRR ----------
+const MAX_SECS = 6, sources = new Map();   // sample id → the sound as loaded ({ pcm, sr }): re-made from it at another rate or length
+let sampleFor = 0;
+function pickSample(i) { sampleFor = i; $('#sampleFile').value = ''; $('#sampleFile').click(); }
+async function decodeFile(file) {
+  const b = await new OfflineAudioContext(1, 1, 44100).decodeAudioData(await file.arrayBuffer());
+  const n = b.length, pcm = new Float32Array(n);
+  for (let c = 0; c < b.numberOfChannels; c++) { const d = b.getChannelData(c); for (let i = 0; i < n; i++) pcm[i] += d[i] / b.numberOfChannels; }
+  let peak = 0; for (const v of pcm) peak = Math.max(peak, Math.abs(v));
+  if (!peak) throw new Error('it is silent');
+  let a = 0; while (a < n - 1 && Math.abs(pcm[a]) < peak * .02) a++;   // from where it starts sounding
+  return { pcm: pcm.slice(a), sr: b.sampleRate };
+}
+// the source at `rate` (the browser's own resampler), `secs` long at most, its peak at .95
+async function resample({ pcm, sr }, rate, secs) {
+  const n = Math.max(16, Math.min(pcm.length, Math.round(secs * sr))), oc = new OfflineAudioContext(1, Math.max(16, Math.round(n * rate / sr)), rate);
+  const b = oc.createBuffer(1, n, sr); b.copyToChannel(pcm.subarray(0, n), 0);
+  const src = oc.createBufferSource(); src.buffer = b; src.connect(oc.destination); src.start();
+  const out = (await oc.startRendering()).getChannelData(0);
+  let peak = 0; for (const v of out) peak = Math.max(peak, Math.abs(v));
+  if (peak) for (let i = 0; i < out.length; i++) out[i] *= .95 / peak;
+  return out;
+}
+// the note a sound plays (autocorrelation: the first lag nearly as alike as the best one), as a MIDI note with cents
+function detectRoot(x, sr) {
+  const a = Math.floor(x.length * .1), N = Math.min(4096, x.length - a);
+  if (N < 256) return null;
+  const lo = Math.floor(sr / 1800), hi = Math.min(Math.floor(sr / 35), N >> 1), r = new Float32Array(hi + 2);
+  for (let L = lo; L <= hi + 1; L++) { let s = 0; for (let i = 0; i < N - L; i++) s += x[a + i] * x[a + i + L]; r[L] = s / (N - L); }
+  let m = 0; for (let L = lo; L <= hi; L++) m = Math.max(m, r[L]);
+  if (m <= 0) return null;
+  for (let L = lo + 1; L <= hi; L++) if (r[L] >= .9 * m && r[L] >= r[L - 1] && r[L] >= r[L + 1]) {
+    const d = (r[L - 1] - r[L + 1]) / (2 * (r[L - 1] - 2 * r[L] + r[L + 1]) || 1), f = sr / (L + d);
+    return Math.round((69 + 12 * Math.log2(f / 440)) * 100) / 100;
+  }
+  return null;
+}
+async function makeSample(id, opts = {}) {
+  const sm = st.song.samples[id], src = sources.get(id) || { pcm: S.brrDecode(S.fromB64(sm.brr)), sr: sm.rate };
+  const data = await resample(src, opts.rate ?? sm.rate, opts.secs ?? sm.secs ?? MAX_SECS);
+  return { brr: S.toB64(S.brrEncode(data)), length: data.length };
+}
+$('#sampleFile').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  audio(); showSaved('loading the sample…');
+  try {
+    const src = await decodeFile(f), name = f.name.replace(/\.[a-z0-9]+$/i, '').slice(0, 40) || 'sample';
+    let id = slug(name).slice(0, 24) || 'sample'; for (let k = 2; st.song.samples[id]; k++) id = `${slug(name).slice(0, 20)}-${k}`;
+    sources.set(id, src);
+    const rate = 32000, data = await resample(src, rate, MAX_SECS), root = detectRoot(data, rate) ?? 60;
+    edit(() => {
+      st.song.samples[id] = { name, rate, root, loop: -1, brr: S.toB64(S.brrEncode(data)) };
+      const t = st.song.tracks[sampleFor]; t.instrument = `sample:${id}`; t.name = name;
+      t.sound.attack = t.sound.decay = t.sound.sustain = t.sound.fall = t.sound.release = t.sound.vibrato = null;
+    }, { rebuild: true });
+    st.sel = sampleFor; renderAll(); S.prepare(st.song);
+    showSaved(`sample "${name}": ${(data.length / rate).toFixed(2)} s, plays ${noteName(Math.round(root))}`);
+  } catch (err) { showSaved(`could not use that sound: ${err.message || err}`); }
+};
+const sampleSecs = sm => Math.floor(sm.brr.length * 3 / 4 / 9) * 16 / sm.rate;
+function drawWave(cv, sm) {
+  const x = cv.getContext('2d'), W = cv.width, H = cv.height, d = S.brrDecode(S.fromB64(sm.brr)), n = d.length;
+  x.fillStyle = '#05070c'; x.fillRect(0, 0, W, H);
+  if (sm.loop >= 0) { x.fillStyle = 'rgba(255,179,64,.18)'; x.fillRect(sm.loop / n * W, 0, W, H); x.fillStyle = '#ffb340'; x.fillRect(sm.loop / n * W, 0, 2, H); }
+  x.fillStyle = '#78dcff';
+  for (let c = 0; c < W; c++) {
+    let lo = 1, hi = -1; for (let i = Math.floor(c / W * n); i < Math.floor((c + 1) / W * n); i++) { lo = Math.min(lo, d[i]); hi = Math.max(hi, d[i]); }
+    if (hi >= lo) x.fillRect(c, H / 2 - hi * H / 2, 1, Math.max(1, (hi - lo) * H / 2));
+  }
+}
+function sampleSection(id) {
+  const sm = st.song.samples[id], sec = section('SAMPLE');
+  if (!sm) return sec;
+  const used = st.song.tracks.filter(t => t.instrument === `sample:${id}`).length;
+  const kb = Math.round(sm.brr.length / 1024), total = Math.round(Object.values(st.song.samples).reduce((n, x) => n + x.brr.length, 0) / 1024);
+  const cv = document.createElement('canvas'); cv.className = 'wave'; cv.width = 520; cv.height = 90;
+  cv.title = 'The sample as the console stores it. With LOOP on, click where the loop should start: the note holds by repeating from there to the end.';
+  const info = document.createElement('p'); info.className = 'meta';
+  info.textContent = `${sampleSecs(sm).toFixed(2)} s at ${sm.rate / 1000} kHz · ${kb} KB (all samples ${total} KB) · ${used} track${used === 1 ? '' : 's'}`;
+  const remake = async (opts, apply) => { showSaved('making the sample…'); const r = await makeSample(id, opts); edit(() => { apply(); sm.brr = r.brr; if (sm.loop >= r.length) sm.loop = -1; }, { rebuild: true }); S.prepare(st.song); showSaved(); };
+  cv.onpointerdown = e => {
+    if (sm.loop < 0) return;
+    const r = cv.getBoundingClientRect(), n = Math.floor(sm.brr.length * 3 / 4 / 9) * 16, at = Math.floor((e.clientX - r.left) / r.width * n / 16) * 16;
+    edit(() => { sm.loop = Math.max(0, Math.min(n - 16, at)); }, { rebuild: true }); S.prepare(st.song);
+  };
+  const name = document.createElement('label'); name.className = 'ctl';
+  name.innerHTML = `<span>Name</span><input value="${esc(sm.name)}" maxlength="40">`;
+  name.querySelector('input').onchange = e => edit(() => { sm.name = e.target.value || id; }, { rebuild: true });
+  const root = document.createElement('label'); root.className = 'ctl'; root.title = 'The note the sample plays as recorded: notes are pitched from it';
+  root.innerHTML = `<span>Its note</span><input type="number" min="0" max="127" step=".01" value="${sm.root}"><output>${noteName(Math.round(sm.root))}</output>`;
+  root.querySelector('input').onchange = e => { edit(() => { sm.root = Math.max(0, Math.min(127, +e.target.value || 60)); }, { rebuild: true }); S.prepare(st.song); };
+  const row = document.createElement('div'); row.className = 'srow';
+  row.innerHTML = `<button class="btn small" data-a="detect" title="Listen for the note it plays">[ DETECT ]</button>
+    <button class="btn small${sm.loop >= 0 ? ' on' : ''}" data-a="loop" title="Loop: a held note repeats the end part (strings, organs); off: it plays once (drums, plucks)">[ LOOP ]</button>
+    <button class="btn small" data-a="hear" title="Hear it at its own note">[ ▶ ]</button>
+    <button class="btn small" data-a="replace">[ REPLACE… ]</button><button class="btn small" data-a="remove">[ REMOVE ]</button>`;
+  row.querySelectorAll('[data-a]').forEach(b => b.onclick = async () => {
+    const a = b.dataset.a;
+    if (a === 'detect') { const r = detectRoot(S.brrDecode(S.fromB64(sm.brr)), sm.rate); if (r === null) return showSaved('no clear note in it'); edit(() => { sm.root = r; }, { rebuild: true }); S.prepare(st.song); showSaved(`it plays ${noteName(Math.round(r))} (${r.toFixed(2)})`); }
+    if (a === 'loop') { const n = Math.floor(sm.brr.length * 3 / 4 / 9) * 16; edit(() => { sm.loop = sm.loop >= 0 ? -1 : Math.floor(n / 2 / 16) * 16; }, { rebuild: true }); S.prepare(st.song); }
+    if (a === 'hear') { audio(); const v = S.noteOn(st.sel, Math.round(sm.root), 110); setTimeout(() => S.noteOff(v), 900); }
+    if (a === 'replace') { sources.delete(id); replaceId = id; $('#replaceFile').click(); }
+    if (a === 'remove') {
+      if (!confirm(`Remove the sample "${sm.name}" from this song?${used ? ` The ${used} track(s) playing it go back to the piano.` : ''}`)) return;
+      edit(() => { delete st.song.samples[id]; for (const t of st.song.tracks) if (t.instrument === `sample:${id}`) t.instrument = 'piano'; }, { rebuild: true });
+    }
+  });
+  sec.append(cv, info, name, root, row,
+    pick('Grit', S.RATES.map(r => [r, `${r / 1000} kHz${r === 32000 ? ' (SNES)' : ''}`]), () => sm.rate, v => {}),
+    ctl('Length', () => sm.secs ?? Math.min(sampleSecs(sm), MAX_SECS), v => { sm.secs = v; }, { min: .05, max: MAX_SECS, step: .05, fmt: v => `${v.toFixed(2)} s`, title: 'Shorter keeps the song small; the rest is cut off' }));
+  // grit and length re-make the sample from the sound as loaded (or, after a reload, from what is kept)
+  const gritSel = sec.querySelector('select');
+  gritSel.onchange = () => remake({ rate: +gritSel.value }, () => { sm.rate = +gritSel.value; });
+  const len = sec.querySelector('.ctl:last-child input');
+  len.onchange = () => { const secs = sm.secs; delete sm.secs; st.pending = null; remake({ secs }, () => {}); };
+  requestAnimationFrame(() => drawWave(cv, sm));
+  return sec;
+}
+let replaceId = null;
+const rf = document.createElement('input'); rf.type = 'file'; rf.accept = 'audio/*'; rf.id = 'replaceFile'; rf.hidden = true; document.body.append(rf);
+rf.onchange = async () => {
+  const f = rf.files[0], id = replaceId; rf.value = ''; if (!f || !id) return;
+  try {
+    const src = await decodeFile(f), sm = st.song.samples[id]; sources.set(id, src);
+    const data = await resample(src, sm.rate, MAX_SECS), root = detectRoot(data, sm.rate) ?? sm.root;
+    edit(() => { sm.brr = S.toB64(S.brrEncode(data)); sm.root = root; sm.loop = -1; }, { rebuild: true }); S.prepare(st.song);
+  } catch (err) { showSaved(`could not use that sound: ${err.message || err}`); }
+};
+
+// ---------- WHERE IT PLAYS: the places in the game, its levels to look at, and a live preview with the song inside ----------
+let LEVELS = [], LEGEND = {}, preview = { ready: false, want: null };
+async function loadLevels() {
+  if (!GAME_ID) return renderWhere();
+  try {
+    const m = await (await fetch(`/games/${GAME_ID}/game.json`, { cache: 'no-store' })).json();
+    if (m.levels) { LEGEND = m.levels.legend || {}; LEVELS = findLevels(await (await fetch(`/src/games/${GAME_ID}/${m.levels.file}`, { cache: 'no-store' })).text()); }
+  } catch { }
+  renderWhere();
+}
+const levelName = i => LEVELS[i] ? LEVELS[i].name.replace(/\b\w+/g, w => w[0] + w.slice(1).toLowerCase()) : `level ${i + 1}`;
+function placesText() {
+  const p = st.song.places, at = [p.title && 'on the title screen', ...p.levels.map(l => `in ${levelName(l)}`)].filter(Boolean);
+  return (at.length ? at.join(', ') : 'nowhere yet') + (p.note ? ` (${p.note})` : '');
+}
+function renderWhere() {
+  const box = $('#where');
+  if (!GAME_ID) { box.innerHTML = `<p class="muted pad">A sketch belongs to no game. Open a project (<a href="/studio/">SOUND STUDIO</a>) to place a song in its game and play it there.</p>`; return; }
+  const p = st.song.places;
+  box.innerHTML = `<div class="places">
+      <h3>WHERE "${esc(st.song.title)}" PLAYS IN ${esc(project.title.toUpperCase())}</h3>
+      <label class="place"><input type="checkbox" data-place="title"${p.title ? ' checked' : ''}><span class="pname">Title screen</span>
+        <button class="btn small" data-go="title" title="Open the game's title screen with this song">[ ▶ HERE ]</button></label>
+      ${LEVELS.map((l, i) => `<label class="place"><input type="checkbox" data-place="${i}"${p.levels.includes(i) ? ' checked' : ''}>
+        <canvas class="mini" data-mini="${i}" title="${esc(l.name)}"></canvas><span class="pname">${esc(levelName(i))}</span>
+        <button class="btn small" data-go="${i}" title="Play this level with this song">[ ▶ HERE ]</button></label>`).join('')}
+      ${LEVELS.length ? '' : '<p class="muted">This game has no level maps; say where in the note.</p>'}
+      <label class="pnote"><span>When exactly? (for the session that wires it in)</span>
+        <textarea maxlength="300" placeholder="e.g. when a cat-bot chases Pip; quieter in the spacewalk">${esc(p.note)}</textarea></label>
+    </div>
+    <div class="pv">
+      <div class="pvbar"><span class="muted" id="pvInfo">Pick a place and press ▶ HERE: the game opens there and plays this song (click the game once for sound).</span>
+        <button class="btn small" id="pvOwn" title="Give the game its own music back">[ GAME'S OWN MUSIC ]</button></div>
+      <iframe id="pvFrame" title="The game, playing this song" allow="autoplay"></iframe>
+    </div>`;
+  box.querySelectorAll('[data-place]').forEach(c => c.onchange = () => edit(() => {
+    const k = c.dataset.place;
+    if (k === 'title') p.title = c.checked;
+    else { const i = +k; p.levels = c.checked ? [...new Set([...p.levels, i])].sort((a, b) => a - b) : p.levels.filter(l => l !== i); }
+  }));
+  box.querySelector('textarea').onchange = e => edit(() => { p.note = e.target.value.slice(0, 300); });
+  box.querySelectorAll('[data-go]').forEach(b => b.onclick = e => { e.preventDefault(); previewAt(b.dataset.go === 'title' ? null : +b.dataset.go); });
+  box.querySelector('#pvOwn').onclick = () => send({ type: 'pixelite:music', song: null });
+  // each level as a little picture, one pixel per tile
+  box.querySelectorAll('[data-mini]').forEach(cv => {
+    const rows = LEVELS[+cv.dataset.mini].rows, w = rows[0].length, h = rows.length;
+    cv.width = w; cv.height = h; cv.getContext('2d').putImageData(new ImageData(toPixels(rows, LEGEND), w, h), 0, 0);
+  });
+  preview.ready = false;
+}
+const send = msg => { const f = $('#pvFrame'); if (f && f.contentWindow) f.contentWindow.postMessage(msg, '*'); };
+function previewAt(level) {
+  if (S.playing) stopAll();
+  const f = $('#pvFrame');
+  preview.want = level;
+  $('#pvInfo').textContent = level === null ? 'The title screen, with this song. Click the game for sound; Enter starts it.' : `${levelName(level)}, with this song. Click the game for sound, then play.`;
+  const go = () => {
+    if (level !== null) send({ type: 'pixelite:level', action: 'play', level });
+    send({ type: 'pixelite:music', song: JSON.parse(JSON.stringify(st.song)) });
+    try { f.contentWindow.focus(); } catch { }
+  };
+  if (preview.ready && level !== null) return go();
+  preview.go = go; preview.ready = false;
+  f.src = `/games/${GAME_ID}/?studio=${Date.now()}`;   // a fresh game (the title screen) each time
+}
+addEventListener('message', e => {
+  const f = $('#pvFrame');
+  if (!f || e.source !== f.contentWindow || !e.data || e.data.type !== 'pixelite:ready') return;
+  preview.ready = true; if (preview.go) { const g = preview.go; preview.go = null; g(); }
+});
+function showTab(where) {
+  $('#where').hidden = !where; $('#arr').hidden = where; $('.rollWrap').hidden = where; $('#hint').hidden = where;
+  $('#tabWhere').classList.toggle('on', where); $('#tabNotes').classList.toggle('on', !where);
+  $('#tabWhere').setAttribute('aria-selected', String(where)); $('#tabNotes').setAttribute('aria-selected', String(!where));
+  if (where) renderWhere(); else { send({ type: 'pixelite:music', song: null }); const f = $('#pvFrame'); if (f) f.src = 'about:blank'; drawArr(); drawRoll(); }
+}
+$('#tabNotes').onclick = () => showTab(false);
+$('#tabWhere').onclick = () => showTab(true);
 
 // ---------- the transport bar ----------
 function syncTransport() {
@@ -667,7 +910,7 @@ function syncTransport() {
   tog('#loopBtn', s.loop.on); tog('#clickBtn', st.click); tog('#countBtn', st.countIn); tog('#quantBtn', st.quant); tog('#snesBtn', s.snes); tog('#keysBtn', st.keys);
   $('#grid').value = String(st.grid);
 }
-function renderAll() { syncTransport(); renderTracks(); renderStrip(); drawArr(); sizeRoll(); drawRoll(); showPos(); }
+function renderAll() { syncTransport(); renderTracks(); renderAddIns(); renderStrip(); drawArr(); sizeRoll(); drawRoll(); showPos(); if (!$('#where').hidden) renderWhere(); }
 $('#title').onchange = e => edit(() => { st.song.title = e.target.value.slice(0, 80) || 'Untitled'; });
 $('#bpm').onchange = e => edit(() => { st.song.bpm = Math.max(30, Math.min(300, +e.target.value || 120)); }, { rebuild: true });
 $('#bars').onchange = e => edit(() => { const s = st.song; s.bars = Math.max(1, Math.min(512, Math.round(+e.target.value) || 8)); const E = S.songEnd(s); s.loop.end = Math.min(s.loop.end, E); s.loop.start = Math.min(s.loop.start, s.loop.end - PPQ); }, { rebuild: true });
@@ -682,9 +925,8 @@ $('#grid').onchange = e => { st.grid = +e.target.value; st.len = Math.max(st.gri
 $('#playBtn').onclick = play; $('#recBtn').onclick = record; $('#stopBtn').onclick = () => { if (S.playing) stopAll(); else { st.start = 0; showPos(); drawRoll(); drawArr(); } };
 $('#midiBtn').onclick = connectMidi;
 $('#helpBtn').onclick = () => $('#help').showModal();
-$('#addIns').innerHTML = S.INSTRUMENTS.map(i => `<option value="${i.id}">${esc(i.group)} · ${esc(i.name)}</option>`).join('');
-$('#addIns').value = 'strings';
-$('#addTrack').onclick = () => { if (st.song.tracks.length >= 32) return; const id = $('#addIns').value; edit(() => { st.song.tracks.push(S.newTrack(id)); st.sel = st.song.tracks.length - 1; }, { rebuild: true }); focusTrack(); drawRoll(); S.prepare(st.song); };
+function renderAddIns() { const v = $('#addIns').value || 'strings'; $('#addIns').innerHTML = insOptions(false); $('#addIns').value = v; if (!$('#addIns').value) $('#addIns').value = 'strings'; }
+$('#addTrack').onclick = () => { if (st.song.tracks.length >= 32) return; const id = $('#addIns').value; edit(() => { st.song.tracks.push(Object.assign(S.newTrack(id), { name: insName(id) || 'Track' })); st.sel = st.song.tracks.length - 1; }, { rebuild: true }); focusTrack(); drawRoll(); S.prepare(st.song); };
 $('#newBtn').onclick = () => { if (st.dirty && !confirm('Start a new song? This one has changes that are not saved to the site.')) return; load(template()); };
 $('#saveBtn').onclick = () => save();
 const menu = $('#more');
@@ -706,12 +948,19 @@ addEventListener('resize', () => drawArr());
 addEventListener('beforeunload', e => { saveDraft(); });
 document.addEventListener('pointerdown', () => { if (!S.ctx) audio(); }, { once: true, capture: true });
 
-// ---------- start: the draft from last time, else a new song ----------
-(() => {
+// ---------- start: the project, then the draft from last time, else a new song ----------
+(async () => {
+  await games();
+  project = gamesList.find(g => g.id === GAME_ID) || { id: '', title: GAME_ID ? GAME_ID : 'Sketches' };
+  $('#projName').textContent = project.title;
+  document.title = `${project.title} · Sound studio · Pixelite`;
   let d = null; try { d = JSON.parse(localStorage.getItem(DRAFT)); } catch { }
-  try { if (d && d.song) return load(d.song, d.meta, !!d.dirty); } catch { }
-  load(template());
+  let loaded = false;
+  try { if (d && d.song) { load(d.song, d.meta, !!d.dirty); loaded = true; } } catch { }
+  if (!loaded) load(template());
+  if (PROJECT === null) showProjects();
+  listSongs();
+  loadLevels();
 })();
-listSongs();
 requestAnimationFrame(frame);
 window.studio = { st, S };   // for tests and curious hands in the console

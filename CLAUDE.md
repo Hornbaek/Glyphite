@@ -101,11 +101,14 @@ has a note or is marked [?]. Statuses: `idea` (default, no row), `planned` (the 
 ## Songs (the SOUND STUDIO)
 
 The owner composes at **/studio/** (16-bit, Super Nintendo style: the engine's `Sampler`, `engine/13_sampler.js`, the same
-file the games run). Songs save to D1, table `songs` (id, title, game, data = the song as JSON, updated_at, updated_by).
+file the games run). The studio opens on a **project** (a game, or Sketches: `game = ''`); songs save to D1, table `songs` (id,
+title, game = the project, data = the song as JSON, updated_at, updated_by). A song can carry its own **samples** (BRR, in
+`song.samples`) and its **places** (`song.places`: the title screen, level indices, a note), set in the WHERE IT PLAYS tab.
 - **List them**: `SELECT id, title, game, updated_at FROM songs ORDER BY updated_at DESC;`
 - **Put one into a game** (the studio's [ MORE ] menu writes this prompt): `SELECT data FROM songs WHERE id = ?;`, save it as
-  `games/<game>/music/<id>.song.json`, run `node tools/song.mjs <game>` (writes `songs.js`; add it to game.json's parts), play it
-  with `Sampler.play(SONGS['<id>'])` after `Sampler.prepare` at load (`engine/API.md`, Sampler). The repository's copy is what the
+  `games/<game>/music/<id>.song.json`, run `node tools/song.mjs <game>` (writes `songs.js` with `SONGS` and `SONG_AT`, which song
+  plays where; add it to game.json's parts), and make the game play `SONG_AT`'s songs at their places after `Sampler.prepare` at
+  load (`engine/API.md`, Sampler; Space Mouse's `stationMusic()`). Do what the place's note asks. The repository's copy is what the
   game plays; a later save in the studio changes nothing until a session brings it over again.
 - A session may also write a song itself (the format is `Sampler.check`'s; see `games/spacemouse/music/cargo-bay.song.json`)
   and save it to D1 for the owner to open: `INSERT INTO songs (id, title, game, data, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, 'claude-session')`.

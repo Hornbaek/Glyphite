@@ -80,3 +80,42 @@ dialog .row{display:flex;gap:10px;align-items:center}
   .desk{grid-template-columns:1fr;grid-template-rows:auto 520px auto}
   .tracks,.strip{border:0;border-bottom:1px solid var(--rim)}
 }
+
+/* the project picker: shown when the studio is opened without a project */
+.projects{position:fixed;inset:0;z-index:20;background:var(--void);overflow:auto}
+.pwrap{max-width:980px;margin:0 auto;padding:48px 16px}
+.pwrap h1{margin:0 0 6px;color:var(--bright);font-size:22px}
+.projList{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-top:22px}
+.proj{display:flex;flex-direction:column;gap:6px;padding:10px;background:var(--panel);border:1px solid var(--rim);border-radius:3px;color:var(--phosphor)}
+.proj:hover{border-color:var(--amber);text-decoration:none}
+.proj img,.proj .ph{width:100%;aspect-ratio:16/10;object-fit:cover;background:#000;border-radius:2px;display:grid;place-items:center;color:var(--dim);font-size:28px}
+.proj b{color:var(--bright)}
+
+/* NOTES / WHERE IT PLAYS */
+.tabs{display:flex;gap:2px;padding:6px 10px 0;border-bottom:1px solid var(--rim);background:var(--panel)}
+.tab{font:700 11px var(--mono);letter-spacing:.08em;color:var(--dim);background:transparent;border:1px solid transparent;border-bottom:0;border-radius:2px 2px 0 0;padding:7px 12px;cursor:pointer}
+.tab.on{color:var(--amber);background:var(--void);border-color:var(--rim)}
+.where{flex:1;min-height:0;display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr);overflow:hidden}
+.where .pad{padding:20px}
+.places{overflow:auto;padding:12px;border-right:1px solid var(--rim)}
+.places h3{margin:0 0 10px;font-size:11px;letter-spacing:.1em;color:var(--dim)}
+.place{display:grid;grid-template-columns:auto 72px 1fr auto;align-items:center;gap:8px;padding:6px;border:1px solid var(--rim);border-radius:2px;margin-bottom:6px;cursor:pointer}
+.place:has(input:checked){border-color:var(--amber);background:rgba(255,179,64,.06)}
+.place input{accent-color:var(--amber)}
+.place .mini{width:72px;height:auto;image-rendering:pixelated;background:#000;border:1px solid var(--rim)}
+.place:first-of-type{grid-template-columns:auto 1fr auto}
+.pname{color:var(--bright);font-size:12px}
+.place .btn.small{padding:4px 7px;font-size:11px}
+.pnote{display:grid;gap:6px;margin-top:10px;font-size:12px;color:var(--dim)}
+.pnote textarea{min-height:70px;font:12px var(--mono);color:var(--phosphor);background:var(--void);border:1px solid var(--rim2);border-radius:2px;padding:6px;resize:vertical}
+.pv{display:flex;flex-direction:column;min-width:0;min-height:0}
+.pvbar{display:flex;align-items:center;gap:10px;padding:8px 12px;font-size:12px;border-bottom:1px solid var(--rim)}
+.pvbar span{flex:1}
+.pv iframe{flex:1;width:100%;border:0;background:#000}
+
+/* a sample's picture and buttons */
+.wave{display:block;width:100%;height:70px;margin:2px 0 4px;border:1px solid var(--rim);border-radius:2px;cursor:crosshair}
+.srow{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.srow .btn.small{padding:4px 7px;font-size:11px;margin:0}
+.sec .meta{margin:0 0 6px;font-size:11px;color:var(--dim)}
+.ctl input:not([type=range]){grid-column:2;font:12px var(--mono);color:var(--phosphor);background:var(--void);border:1px solid var(--rim2);border-radius:2px;padding:3px 5px;min-width:0}

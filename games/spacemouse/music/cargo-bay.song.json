@@ -11,6 +11,11 @@
   "start": 0,
   "end": 6144
  },
+ "places": {
+  "title": true,
+  "levels": [0,1,2],
+  "note": "The station's theme: the title screen and every sector until each has its own."
+ },
  "master": {
   "volume": 0.8,
   "echo": {
@@ -866,5 +871,6 @@
     [6096,24,46,70]
    ]
   }
- ]
+ ],
+ "samples": {}
 }

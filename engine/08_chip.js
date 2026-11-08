@@ -116,7 +116,7 @@ const Chip = {
   load(buf) { return parseMidi(buf); },
   // play a parsed song; loop by default; onEnd fires when a non-looping song finishes playing
   play(song, opts = {}) {
-    if (!this.ctx) return;
+    if (!this.ctx || Sampler.forced) return;
     this.halt(); this.tok++;
     const sr = this.sr;
     for (const e of song.events) e.s = Math.round(e.t * sr);

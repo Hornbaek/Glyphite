@@ -3,11 +3,13 @@
 a stand-in for the songs API). The sound is checked by rendering offline: pitch, the SNES voice limit, the echo dying away,
 the EQ, every instrument at a like loudness. The studio is driven like a person would: notes with the mouse, undo, a fake
 MIDI keyboard recording with the sustain pedal, the computer keyboard, saving (and a save that clashes), the draft
-surviving a reload, a WAV export. Build first: npm run build.
+surviving a reload, a WAV export. Projects: the picker, songs kept per game. Samples: a recorded tone loaded, its note heard,
+played at the right pitch, looped. WHERE IT PLAYS: the places saved in the song, the level opened in the game with the song inside.
+Build first: npm run build.
 
   python3 tests/studio.py
 """
-import json, threading, functools, struct
+import io, json, threading, functools, struct, wave, math
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -94,7 +96,12 @@ with sync_playwright() as p:
     pg.on('dialog', lambda d: d.accept())
     pg.route('**/api/songs**', api)
     pg.route('**/fonts.g*/**', lambda r: r.abort())
-    pg.goto(f'{BASE}/studio/'); pg.wait_for_function('window.studio && studio.st.song')
+    # no project yet: the picker, the listed games and the sketches
+    pg.goto(f'{BASE}/studio/'); pg.wait_for_selector('#projects:not([hidden]) .proj')
+    names = pg.eval_on_selector_all('#projects .proj b', 'bs => bs.map(b => b.textContent)')
+    check('without a project the studio asks for one: the listed games and the sketches', 'Space Mouse' in names and 'Sketches' in names and 'Cave Drone' not in names, names)
+    pg.click('#projects .proj:has-text("Space Mouse")'); pg.wait_for_function('window.studio && studio.st.song')
+    check('a project opens its studio', 'game=spacemouse' in pg.url and pg.text_content('#projName') == 'Space Mouse')
 
     # ---- the sound itself ----
     snd = pg.evaluate(SOUND)
@@ -178,6 +185,51 @@ with sync_playwright() as p:
     data = Path(dl.value.path()).read_bytes()
     pcm = struct.unpack('<%dh' % ((len(data) - 44) // 2), data[44:44 + (len(data) - 44) // 2 * 2])
     check('WAV export: a 16-bit stereo file with music in it', data[:4] == b'RIFF' and data[8:12] == b'WAVE' and max(abs(v) for v in pcm) > 1000, len(data))
+
+    # ---- samples: a tone a little sharp of A4 (440 Hz + 2 harmonics), loaded onto a new track ----
+    pg.goto(f'{BASE}/studio/?game=spacemouse'); pg.wait_for_function('window.studio && studio.st.song')
+    sr, f0 = 44100, 440 * 2 ** (30 / 1200)
+    frames = b''.join(struct.pack('<h', int(32000 * math.exp(-i / sr / 1.2) * (.6 * math.sin(2 * math.pi * f0 * i / sr) + .25 * math.sin(4 * math.pi * f0 * i / sr)))) for i in range(int(sr * 2)))
+    buf = io.BytesIO(); w = wave.open(buf, 'wb'); w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr); w.writeframes(b'\0\0' * 3000 + frames); w.close()
+    pg.select_option('#addIns', 'strings'); pg.click('#addTrack'); n = st('st.song.tracks.length')
+    pg.select_option(f'#trackList .trk:nth-child({n}) .tins', '__load')
+    pg.set_input_files('#sampleFile', files=[{'name': 'Glass hum.wav', 'mimeType': 'audio/wav', 'buffer': buf.getvalue()}])
+    pg.wait_for_function('Object.keys(studio.st.song.samples).length === 1', timeout=15000)
+    sm = st('Object.values(st.song.samples)[0]')
+    check('a sound loads as a sample: named after the file, the note it plays heard (A4 + 30 cents)', sm['name'] == 'Glass hum' and abs(sm['root'] - 69.3) < .12, {k: sm[k] for k in ('name', 'root', 'rate', 'loop')})
+    check('the track plays it', st(f'st.song.tracks[{n - 1}].instrument') == 'sample:glass-hum' and st(f'st.song.tracks[{n - 1}].name') == 'Glass hum')
+    pitch = pg.evaluate('''async () => {
+      const s = JSON.parse(JSON.stringify(studio.st.song)); const t = s.tracks.find(t => t.instrument.startsWith('sample:'));
+      s.tracks = [{ ...t, notes: [[0, 192, 76, 110]], sends: { echo: 0, reverb: 0 }, chorus: { mix: 0, rate: 1, depth: 0 } }];
+      const b = await Sampler.render(s, { seconds: .8, loop: false }), d = b.getChannelData(0), sr = b.sampleRate, a = Math.round(.1 * sr), n = Math.round(.4 * sr);
+      let best = 0, bf = 0; for (let f = 500; f < 900; f *= 1.0005) { let re = 0, im = 0; for (let i = 0; i < n; i += 2) { const w = 2 * Math.PI * f * i / sr; re += d[a + i] * Math.cos(w); im += d[a + i] * Math.sin(w); } if (re * re + im * im > best) { best = re * re + im * im; bf = f; } }
+      return bf; }''')
+    check('played as an E5 it sounds at 659 Hz (pitched from the note it plays)', abs(pitch / 659.26 - 1) < .01, pitch)
+    pg.click('#strip [data-a="loop"]')
+    check('LOOP holds a note by repeating the sample\'s end', st('Object.values(st.song.samples)[0].loop') > 0)
+    pg.select_option('#strip .sec select', '16000'); pg.wait_for_function('Object.values(studio.st.song.samples)[0].rate === 16000', timeout=10000)
+    check('more grit: the sample made again at 16 kHz, half the size', st('Object.values(st.song.samples)[0].brr.length') < sm['brr'].__len__() * .6)
+    pg.click('#saveBtn'); pg.wait_for_function("document.querySelector('#saved').textContent === 'saved'")
+    saved = DB[st('st.meta.id')]
+    check('the sample is saved inside the song, for the project', 'glass-hum' in saved['song']['samples'] and saved['game'] == 'spacemouse')
+
+    # ---- WHERE IT PLAYS: the places, and the level opened in the game with this song inside ----
+    pg.click('#tabWhere'); pg.wait_for_selector('#where .place')
+    places = pg.eval_on_selector_all('#where .pname', 'p => p.map(x => x.textContent)')
+    check('the places: the title screen and every level by name', places[:2] == ['Title screen', 'Cargo Bay'] and len(places) == 4, places)
+    pg.check('#where [data-place="title"]'); pg.check('#where [data-place="1"]')
+    pg.fill('#where textarea', 'when the peas start falling'); pg.dispatch_event('#where textarea', 'change')
+    check('ticked places are kept in the song', st('st.song.places') == {'title': True, 'levels': [1], 'note': 'when the peas start falling'}, st('st.song.places'))
+    pg.click('#where [data-go="1"]')
+    pg.wait_for_function("document.querySelector('#pvFrame').contentWindow.location.pathname.startsWith('/games/spacemouse/')", timeout=10000)
+    game = next(f for f in pg.frames if '/games/spacemouse/' in f.url)   # the engine's names are the page's own (const), not window's
+    game.wait_for_function("typeof Sampler !== 'undefined' && Sampler.forced && SEC && SEC.n === 2", timeout=15000)
+    check('▶ HERE opens that level in the game, playing this song instead of its own', game.evaluate('SEC.n') == 2 and game.evaluate('Sampler.forced.title') == st('st.song.title'))
+    game.click('canvas'); pg.wait_for_timeout(600)
+    check('one click in the game and the song sounds there', game.evaluate('Sampler.playing') and game.evaluate("Sampler.song.tracks.some(t => t.instrument === 'sample:glass-hum')"))
+    pg.click('#pvOwn'); pg.wait_for_timeout(200)
+    check("GAME'S OWN MUSIC gives the music back", game.evaluate('Sampler.forced') is None)
+    pg.click('#tabNotes')
     check('no page errors', not errs, errs)
     b.close()
 srv.shutdown()

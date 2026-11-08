@@ -16,7 +16,7 @@
 </head>
 <body class="studio">
 <header class="ebar">
-  <div class="crumb"><a href="/">PIXELITE</a> / SOUND STUDIO</div>
+  <div class="crumb"><a href="/">PIXELITE</a> / <a href="/studio/" title="Choose another project">SOUND STUDIO</a> / <span id="projName">…</span></div>
   <input id="title" class="title" value="New song" aria-label="Song title" maxlength="80" spellcheck="false">
   <span id="saved" class="saved muted" aria-live="polite"></span>
   <span class="spacer"></span>
@@ -67,12 +67,27 @@
     </div>
   </aside>
   <section class="editor">
+    <div class="tabs" role="tablist">
+      <button role="tab" class="tab on" id="tabNotes" aria-selected="true">NOTES</button>
+      <button role="tab" class="tab" id="tabWhere" aria-selected="false" title="Where in the game this song plays, with the level to look at and play">WHERE IT PLAYS</button>
+    </div>
+    <div id="where" class="where" hidden></div>
     <canvas id="arr" class="arr" aria-label="Song overview: every track, the bar ruler and the loop"></canvas>
     <div class="rollWrap"><canvas id="roll" class="roll" tabindex="0" aria-label="Piano roll of the selected track"></canvas></div>
     <p class="hint muted" id="hint">Click to add a note, drag it to move, drag its end to lengthen. Shift-drag selects. Right-click deletes.</p>
   </section>
   <aside class="strip" id="strip" aria-label="The selected track's sound and the master effects"></aside>
 </main>
+
+<input type="file" id="sampleFile" accept="audio/*,.wav,.mp3,.ogg,.flac,.m4a" hidden>
+
+<div id="projects" class="projects" hidden>
+  <div class="pwrap">
+    <h1>Sound studio</h1>
+    <p class="muted">Every song belongs to a project: the game it is for. Choose one to see its songs, or keep a sketch.</p>
+    <div id="projList" class="projList"></div>
+  </div>
+</div>
 
 <dialog id="help">
   <h2>Sound studio</h2>
@@ -95,6 +110,8 @@
     <dt>wheel</dt><dd>scroll the notes (<kbd>Shift</kbd>: sideways, <kbd>Ctrl</kbd>: zoom)</dd>
     <dt>bar ruler</dt><dd>click: where play starts; drag: the loop</dd>
     <dt>velocity lane</dt><dd>drag up and down under a note to make it louder or softer</dd>
+    <dt>instrument ▸ Load a sample…</dt><dd>your own sound (WAV, MP3, OGG): set its note, loop and grit under SAMPLE</dd>
+    <dt>WHERE IT PLAYS</dt><dd>the places in the game the song is for; play the level with the song inside the game</dd>
   </dl>
   <p class="muted">A MIDI keyboard plays the selected track (sustain pedal and pitch bend work). Without one, turn on KEYS and
     play the computer keyboard. Songs save to the site; a Claude session puts one into a game ([ MORE ] has the prompt).</p>
