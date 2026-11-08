@@ -390,6 +390,26 @@ near the lamp is).
 `Chip.stop(fade)`, `Chip.setVolume(v)`, `Chip.meter()` (lanes and beat, for visualisers), `Chip.connectMidi()`.
 Embed songs as base64 (`b64buf`); see `games/regolith/music.js` for a music director.
 
+`Sampler` (16-bit, Super Nintendo style, `engine/13_sampler.js`): sampled instruments made from recipes (piano, strings,
+choir, brass, flute, synths, basses, guitars, a General MIDI drum kit: `Sampler.INSTRUMENTS`, `Sampler.KIT`), each squeezed
+through the SNES's 4-bit BRR compression at 32 kHz or less (a track's `sound.rate`: grit). Per track: an SNES envelope (attack,
+decay, sustain, `fall` while held, release), vibrato, octave and fine tune, a 3-band EQ, a filter, chorus, pan, volume, and
+sends to the master's SNES echo (a delay fed back through its 8-tap FIR filter) and reverb; the master also has EQ and a
+compressor. `song.snes` keeps only what the console had: 8 voices and the echo. Songs are plain data, made in the SOUND
+STUDIO (`/studio/`, which runs this same file) and kept in a game as `music/<id>.song.json`; `node tools/song.mjs <game>`
+writes them into the game's `songs.js` as `SONGS['<id>']`.
+- `Sampler.prepare(song)`: makes its instruments a few frames apart (~30-100 ms each); do it at load, so the music starts
+  smoothly. `Sampler.play(song, { from = 0, loop = true, fadeIn, onEnd })`: plays from tick `from` (`Sampler.PPQ` = 96 per
+  beat), looping the song's loop region (or the whole song); called before the first input, it starts with the sound.
+- `Sampler.stop(fade)`, `Sampler.setVolume(v)` (`Sampler.vol`), `Sampler.playing`, `Sampler.position()` (the tick heard now).
+- `Sampler.track(nameOrIndex, { volume, fade })`: brings a track in or out, for music that follows the game (drums when the
+  danger starts, a melody in the safe room).
+- `Sampler.meter()`: `{ beat, drum, tracks: [level 0..1] }`; `Beat` follows the Sampler's song when one plays (kick and
+  snare hits fire `Beat.v`), else the Chip's.
+- Live notes (a MIDI keyboard): `Sampler.noteOn(track, note, vel)` returns a voice for `noteOff(voice)`, `bend(voice, semis)`.
+- `Sampler.render(song, { from, seconds, sampleRate, loop })` → an `AudioBuffer`, rendered offline (exports, tests).
+- `Sampler.check(song)` fills in a song's defaults and keeps only valid notes (`[tick, length, note, velocity]`).
+
 **Sound through air.** In a vacuum (`setAtmosphere(0)`, the default) every sound is heard at once at full volume, as if felt
 through the ground, exactly as before. With an atmosphere, `Sfx.heard(x, y)` says how a sound at that point (body
 coordinates) reaches the listener: `{ delay: distance / 343 m/s in seconds, gain, muffle, m: metres }`, quieter and duller

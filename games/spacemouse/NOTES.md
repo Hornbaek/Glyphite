@@ -25,6 +25,12 @@ twelve, cheese, checkpoint, the great cheese, lamps, alarm, props), `mouse.js` (
 death, which frame to show), `catbots.js` (patrol, sight, chase, stomp, wrecks), `main.js` (states, lamps, HUD, hints,
 camera, hooks).
 
+**Music.** "Cargo Bay" (`music/cargo-bay.song.json`, made for the SOUND STUDIO's first version: 16 bars in D minor at 104
+BPM, flute, harp, strings, finger bass, drums) plays from the first key or tap, at the Music volume tunable, quieter while
+paused (`gameAfterFrame`). `songs.js` is generated: change the song file (or open it in the studio, save, and bring it back:
+CLAUDE.md, "Songs"), then `node tools/song.mjs spacemouse`. Ideas: a calmer piece for the spacewalk, drums that come in when a
+cat-bot gives chase (`Sampler.track`).
+
 **Art.** The owner's art sheets are in `ref/`: `art_sheet.png` (the mouse's first six moves, a cheese wedge, ten props),
 `mouse_actions_sheet.jpg` (wall slide, falling, landing, eating, zapped, victory), `catbot_sheet.png` (patrol, alert, chase,
 shorted out) and `objects_sheet.jpg` (checkpoint, the great cheese, lamps, alarm, hatches; its ladder and lift wait for

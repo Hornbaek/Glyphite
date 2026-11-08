@@ -97,7 +97,11 @@ function gameDraw(t) {
   drawMouse();
 }
 function gameMarkDyn() { return Math.min(markMouse(), markCats()); }
-function gameAfterFrame(t) { Sfx.buzz(buzzLevel(t)); }
+function gameAfterFrame(t) {
+  Sfx.buzz(buzzLevel(t));
+  const music = TUNE.music * (state === 'paused' ? .35 : 1);   // quieter while paused
+  if (music !== Sampler.vol) Sampler.setVolume(music);
+}
 
 // ---------- HUD ----------
 const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
@@ -149,7 +153,11 @@ Pixelite.run({
     [{ label: '[ v ]', aria: 'Down', hold: 'down' }, { label: '[ JUMP ]', aria: 'Jump', hold: 'jump' }]
   ],
   stars: 1,
-  init() { setGravity(GRAV_BASE * .5 * TUNE.gravity); setEyeAdaptation(.55, { max: 2.2 }); setBackdrop({ dim: .5 }); showTitle(); },
+  init() {
+    setGravity(GRAV_BASE * .5 * TUNE.gravity); setEyeAdaptation(.55, { max: 2.2 }); setBackdrop({ dim: .5 }); showTitle();
+    // the music: its instruments are made now, a few frames apart; it starts with the first key or tap (the browser's rule)
+    Sampler.prepare(SONGS['cargo-bay']); Sampler.setVolume(TUNE.music); Sampler.play(SONGS['cargo-bay'], { fadeIn: 2 });
+  },
   regenerate: gameRegenerate,
   update: gameUpdate, onKey: gameKey, lights: gameLights, draw: gameDraw, hud: gameHud, markDyn: gameMarkDyn, afterFrame: gameAfterFrame,
   skyBegin: moonBegin, sky: moonCell,

@@ -1,0 +1,82 @@
+/* The SOUND STUDIO (/studio/): a full-window desk. Uses the palette and header of site.css. */
+html,body.studio{height:100%}
+body.studio{display:flex;flex-direction:column;overflow:hidden}
+.ebar .title{font:700 14px var(--mono);color:var(--bright);background:transparent;border:1px solid transparent;border-radius:2px;padding:4px 6px;min-width:8em;max-width:26em}
+.ebar .title:hover,.ebar .title:focus{border-color:var(--rim2);background:var(--void)}
+.ebar .saved{font-size:12px}
+.ebar select,.transport input,.transport select{font:12px var(--mono);color:var(--phosphor);background:var(--void);border:1px solid var(--rim2);border-radius:2px;padding:5px 6px}
+.ebar{position:relative}
+.menu{position:absolute;right:90px;top:46px;z-index:5;display:flex;flex-direction:column;background:var(--panel2);border:1px solid var(--rim2);border-radius:2px;min-width:300px;box-shadow:0 8px 24px #000a}
+.menu button,.menu label{all:unset;cursor:pointer;padding:9px 14px;font:13px var(--mono);color:var(--phosphor)}
+.menu button:hover,.menu label:hover{background:var(--rim);color:var(--bright)}
+.menu .file input{display:none}
+
+.transport{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 16px;border-bottom:1px solid var(--rim);background:var(--panel2);font-size:12px}
+.transport label{display:inline-flex;align-items:center;gap:6px;color:var(--dim)}
+.transport input[type=number]{width:4.4em}
+.transport .spacer{flex:1}
+.tbtn{width:38px;height:32px;border:1px solid var(--rim2);background:var(--void);color:var(--phosphor);border-radius:2px;cursor:pointer;font-size:15px}
+.tbtn:hover{border-color:var(--dim);color:var(--bright)}
+.tbtn.play.on{color:var(--void);background:var(--green);border-color:var(--green)}
+.tbtn.rec{color:var(--red)} .tbtn.rec.on{color:var(--void);background:var(--red);border-color:var(--red)}
+.pos{font:700 16px var(--mono);color:var(--amber);min-width:6.5em;text-align:center}
+.tog{font:700 11px var(--mono);letter-spacing:.06em;color:var(--dim);background:var(--void);border:1px solid var(--rim2);border-radius:2px;padding:7px 9px;cursor:pointer}
+.tog.on{color:var(--void);background:var(--amber);border-color:var(--amber)}
+.tog.snes.on{background:#c79bff;border-color:#c79bff}
+.btn.on{border-color:var(--green);color:var(--green)}
+.midi{max-width:22em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.desk{flex:1;min-height:0;display:grid;grid-template-columns:230px minmax(0,1fr) 300px}
+.tracks{border-right:1px solid var(--rim);background:var(--panel);overflow:auto;display:flex;flex-direction:column}
+.tracks ol{list-style:none;margin:0;padding:0}
+.trk{position:relative;padding:8px 10px 10px 14px;border-bottom:1px solid var(--rim);cursor:pointer}
+.trk::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+.trk.sel{background:var(--panel2);box-shadow:inset 0 0 0 1px var(--rim2)}
+.trk .r1{display:flex;gap:4px;align-items:center}
+.trk .tname{flex:1;min-width:0;font:700 12px var(--mono);color:var(--bright);background:transparent;border:1px solid transparent;border-radius:2px;padding:3px 4px}
+.trk .tname:focus{border-color:var(--rim2);background:var(--void)}
+.trk .mbtn,.trk .sbtn{width:24px;height:22px;font:700 11px var(--mono);border:1px solid var(--rim2);background:var(--void);color:var(--dim);border-radius:2px;cursor:pointer}
+.trk .mbtn.on{background:var(--red);color:var(--void);border-color:var(--red)}
+.trk .sbtn.on{background:var(--gold);color:var(--void);border-color:var(--gold)}
+.trk .tins{width:100%;margin:6px 0;font:12px var(--mono);color:var(--phosphor);background:var(--void);border:1px solid var(--rim2);border-radius:2px;padding:4px}
+.trk .r3{display:grid;grid-template-columns:1.6fr 1fr;gap:8px}
+.trk input[type=range]{width:100%;accent-color:var(--c)}
+.trk .meter{display:block;height:3px;margin-top:6px;background:var(--void);border-radius:2px;overflow:hidden}
+.trk .meter i{display:block;height:100%;width:0;background:var(--c);transition:width .06s linear}
+.trackAdd{display:flex;gap:6px;padding:10px;flex-wrap:wrap}
+.trackAdd select{flex:1;min-width:0;font:12px var(--mono);color:var(--phosphor);background:var(--void);border:1px solid var(--rim2);border-radius:2px;padding:4px}
+
+.editor{display:flex;flex-direction:column;min-width:0;min-height:0}
+.arr{display:block;width:100%;border-bottom:1px solid var(--rim);cursor:pointer;flex:none}
+.rollWrap{flex:1;min-height:0;position:relative}
+.roll{display:block;position:absolute;inset:0;outline:none;touch-action:none}
+.hint{margin:0;padding:5px 12px;font-size:11px;border-top:1px solid var(--rim)}
+
+.strip{border-left:1px solid var(--rim);background:var(--panel);overflow:auto;padding:0 0 20px}
+.shead{display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--rim);position:sticky;top:0;background:var(--panel);z-index:1}
+.shead .spacer{flex:1}
+.shead .btn.small{padding:4px 7px;font-size:11px}
+.sec{padding:8px 12px 10px;border-bottom:1px solid var(--rim)}
+.sec h3{margin:2px 0 6px;font-size:11px;letter-spacing:.12em;color:var(--dim)}
+.sec.off{opacity:.4}
+.sec .btn.small{margin-top:6px}
+.ctl{display:grid;grid-template-columns:8.6em 1fr 5.2em;align-items:center;gap:6px;font-size:12px;margin:3px 0}
+.ctl span{color:var(--phosphor)}
+.ctl input[type=range]{width:100%;accent-color:var(--amber)}
+.ctl output{color:var(--amber);text-align:right;font-size:11px}
+.ctl select{grid-column:2 / 4;font:12px var(--mono);color:var(--phosphor);background:var(--void);border:1px solid var(--rim2);border-radius:2px;padding:3px}
+.eqc{display:block;width:100%;height:60px;margin:2px 0 6px;border:1px solid var(--rim);border-radius:2px}
+
+dialog{background:var(--panel);color:var(--phosphor);border:1px solid var(--rim2);border-radius:3px;max-width:640px;padding:18px 22px}
+dialog::backdrop{background:#0009}
+dialog h2{margin:0 0 10px;color:var(--bright);font-size:17px}
+.keys{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;font-size:12px}
+.keys dt{color:var(--bright)} .keys dd{margin:0;color:var(--phosphor)}
+.prompt{white-space:pre-wrap;background:var(--void);border:1px solid var(--rim);border-radius:2px;padding:10px;font-size:12px;margin:10px 0;overflow-wrap:anywhere}
+dialog .row{display:flex;gap:10px;align-items:center}
+
+@media (max-width:1000px){
+  body.studio{overflow:auto}
+  .desk{grid-template-columns:1fr;grid-template-rows:auto 520px auto}
+  .tracks,.strip{border:0;border-bottom:1px solid var(--rim)}
+}
