@@ -38,7 +38,8 @@ tests/                  smoke.py (any game, both renderers), lab.py (the PIXEL L
                         node/ (unit tests: build, editor patches, Access, pixel tools, songs)
 docs/                   ARCHITECTURE (how it works), HISTORY, LESSONS, ROADMAP (the plan), IDEAS (the idea bank),
                         TESTING, DEPLOY
-.claude/skills/         pixelite-new-game, pixelite-verify, pixelite-art-prompt (the prompt for an art sheet), pixelite-pixel-art
+.claude/skills/         pixelite-new-game, pixelite-verify, pixelite-art-prompt (the prompt for an art sheet), pixelite-pixel-art,
+                        pixelite-song (compose a song: plan, write as code, check levels, ship)
 dist/                   build output = the deployed site (git-ignored)
 ```
 
@@ -110,7 +111,8 @@ title, game = the project, data = the song as JSON, updated_at, updated_by). A s
   plays where; add it to game.json's parts), and make the game play `SONG_AT`'s songs at their places after `Sampler.prepare` at
   load (`engine/API.md`, Sampler; Space Mouse's `stationMusic()`). Do what the place's note asks. The repository's copy is what the
   game plays; a later save in the studio changes nothing until a session brings it over again.
-- A session may also write a song itself (the format is `Sampler.check`'s; see `games/spacemouse/music/cargo-bay.song.json`)
+- A session may also write a song itself: use the **`pixelite-song`** skill (it plans the song, writes it as code, checks its levels
+  by rendering it, and ships it; the format is `Sampler.check`'s, see `games/spacemouse/music/cargo-bay.song.json`)
   and save it to D1 for the owner to open: `INSERT INTO songs (id, title, game, data, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, 'claude-session')`.
 
 ## Changing a game, or applying edits from the web editor

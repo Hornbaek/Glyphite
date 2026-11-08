@@ -878,6 +878,26 @@ sign-in, and offering the snapper patch upstream speaks for the owner). Engine 0
   and the tracks are within a few dB of each other (a track's gain is `volume` squared, so a first mix had the drums at twice the
   lead's level).
 
+## 40. The pixelite-song skill, and Cheese Moon, a sketch (Claude Code, 2026-11-08)
+
+> "Make the following into a skill we can use to create new songs with. Also, create a new song sketch from this new knowledge."
+> (the owner's report "The Craft of Epic Cinematic and Game Music: A Composer's and Critic's Playbook")
+
+- **The skill** (`.claude/skills/pixelite-song/`): `SKILL.md` (the workflow from a brief to a shipped song, what the Sampler gives and
+  where it trips you up, the playbook's rules as checks), `craft.md` (harmony, melody, rhythm, orchestration, psychology, game
+  use, mapped to the Sampler's instruments and labelled [E]/[C]/[O] as the report does), `recipes.md` (a plan per kind of cue: fast
+  loop, main theme, calm loop, boss, platformer, horror, cozy), `rubric.md` (the 100-point critique and the usual mistakes) and
+  `playbook.md` (the owner's report, kept whole).
+- **Two tools written for it:** `songkit.mjs` (compose a song as code: `put`, `hold`, `roll`, lanes that do not mute the song,
+  and `lint`: notes past the end, empty bars, low notes that are not octaves or fifths) and `levels.py` (render a song offline with
+  the engine's own Sampler in Chromium; peak, clipping, loudness per bar, each track alone, a WAV to listen to). Made from what
+  went wrong mixing Escape Velocity: track gain is the fader squared, and a volume lane holds its first level before its first point.
+- **The sketch:** `example-cheese-moon.mjs` writes "Cheese Moon (sketch)", F Lydian, 72 BPM, 40 bars, built on the report's reveal arc: a
+  bell hints at the theme, a solo flute states it, strings and a bass join, a retained common tone (C) crosses chromatic-mediant
+  chords, layers enter one at a time with the choir as the new voice, the music stops dead on the last beat of bar 28, and the
+  theme returns a whole step up with every voice at 70% of the song. Rendered: the climax section is the loudest part (0.08-0.09 RMS a
+  bar, peak 0.38, no clipping) and the last beat before it drops to 0.014. Saved to the studio's Sketches project; not placed in any game.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |
