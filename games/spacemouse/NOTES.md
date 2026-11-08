@@ -25,13 +25,16 @@ twelve, cheese, checkpoint, the great cheese, lamps, alarm, props), `mouse.js` (
 death, which frame to show), `catbots.js` (patrol, sight, chase, stomp, wrecks), `main.js` (states, lamps, HUD, hints,
 camera, hooks).
 
-**Music.** "Cargo Bay" (`music/cargo-bay.song.json`, made for the SOUND STUDIO's first version: 16 bars in D minor at 104
-BPM, flute, harp, strings, finger bass, drums) plays from the first key or tap, at the Music volume tunable, quieter while
-paused. `stationMusic()` (`main.js`) plays the song set for the place (`SONG_AT`: the title screen, then each sector's own,
-else the title's) and switches only when the place changes; while the studio previews a song here it leaves the music alone.
-`songs.js` is generated: change the song file (or open it in the studio, save, and bring it back:
-CLAUDE.md, "Songs"), then `node tools/song.mjs spacemouse`. Ideas: a calmer piece for the spacewalk, drums that come in when a
-cat-bot gives chase (`Sampler.track`).
+**Music.** Two songs in `music/`, played at the Music volume tunable, quieter while paused. "Cargo Bay"
+(`cargo-bay.song.json`: 16 bars in D minor at 104 BPM, flute, harp, strings, finger bass, drums) is the title screen and
+sector 1. "Escape Velocity" (`escape-velocity.song.json`: C minor, 164 BPM, 32 bars; a 4 bar intro plays once, then bars 5-32 loop;
+saw lead, trumpet, brass, string ostinato and pad, choir, harp, bell, synth bass, drums) is sectors 2 and 3. `stationMusic()`
+(`main.js`) plays the song set for the place (`SONG_AT`: the title screen, then each sector's own, else the title's) and
+switches only when the place changes; while the studio previews a song here it leaves the music alone. Each song's `places`
+(studio: WHERE IT PLAYS) say where it plays. `songs.js` is generated: change a song file (or open it in the studio, save, and
+bring it back: CLAUDE.md, "Songs"), then `node tools/song.mjs spacemouse`. Ideas: a calmer piece for the spacewalk, drums that
+come in when a cat-bot gives chase (`Sampler.track`; Escape Velocity's drums are the track to hold back), a song of its own for
+each sector.
 
 **Art.** The owner's art sheets are in `ref/`: `art_sheet.png` (the mouse's first six moves, a cheese wedge, ten props),
 `mouse_actions_sheet.jpg` (wall slide, falling, landing, eating, zapped, victory), `catbot_sheet.png` (patrol, alert, chase,
@@ -83,7 +86,7 @@ A new kind of tile needs a legend entry (with its own colour) and a case in `sta
 checkpoint reachable: it runs `checkSector` from `levelcheck.js`). Run `reach.py` after any map edit; CI runs it too.
 
 **Known issues / ideas.**
-- No music yet (the Chip could play an eerie station theme; the beat could drive the alarm lamps).
+- The beat could drive the alarm lamps (`Beat`).
 - Cat-bots don't jump or use catwalks; a jump-link navgraph (idea bank) would let them follow.
 - The gantry falls straight down; a hinge (one bracket going first) would swing it.
 - The darkness is a mood choice; the Station light tunable raises it.

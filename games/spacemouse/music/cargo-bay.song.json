@@ -13,8 +13,8 @@
  },
  "places": {
   "title": true,
-  "levels": [0,1,2],
-  "note": "The station's theme: the title screen and every sector until each has its own."
+  "levels": [0],
+  "note": "The station's theme: the title screen and the Cargo Bay. Hydroponics and the Observation Deck play Escape Velocity."
  },
  "master": {
   "volume": 0.8,
