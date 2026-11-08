@@ -861,6 +861,23 @@ sign-in, and offering the snapper patch upstream speaks for the owner). Engine 0
   volume lane fades a chord out, a glide slides 220 → 330 Hz, lane points added, dragged, deleted and undone in the studio.
 - Also fixed: a doubled heading in `docs/ROADMAP.md`.
 
+## 39. Escape Velocity: a second song for Space Mouse (Claude Code, 2026-11-08)
+
+> "Write another song for space mouse. High tempo, catchy melody and cinematic"
+
+- **The song** (`games/spacemouse/music/escape-velocity.song.json`): C minor, 164 BPM, 32 bars (about 47 s), written by a session
+  as data (no studio): a 4 bar intro that plays once (a 16th-note string ostinato swells in, a bell hints at the theme, the drums
+  gather), then a 28 bar loop (`loop.start` = bar 5). **A** is the hook, a rising triad that lands on a pushed note and falls
+  back, sequenced over Cm - Ab - Eb - Bb, on a saw lead over driving eighth-note synth bass and four-on-the-floor drums;
+  **B** is the broad theme (trumpet, brass power chords, choir and strings, ride cymbal); **A'** is the hook again with the
+  brass an octave down, a harp arpeggio and sixteenth hats; the **break** thins to bell echoes, a swelling pad and a snare roll
+  that lands on A's crash, with a breath of silence on the last beat.
+- **Where it plays:** `places.levels = [1, 2]` (Hydroponics and the Observation Deck); Cargo Bay now claims only the title
+  screen and sector 1. `node tools/song.mjs spacemouse` rewrote `songs.js`.
+- **Mix:** checked by rendering the song offline (`Sampler.render`) in Chromium, track by track and as a whole: no clipping,
+  and the tracks are within a few dB of each other (a track's gain is `volume` squared, so a first mix had the drums at twice the
+  lead's level).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |
