@@ -3,7 +3,7 @@
 a stand-in for the songs API). The sound is checked by rendering offline: pitch, the SNES voice limit, the echo dying away,
 the EQ, every instrument at a like loudness. The studio is driven like a person would: notes with the mouse, undo, a fake
 MIDI keyboard recording with the sustain pedal, the computer keyboard, saving (and a save that clashes), the draft
-surviving a reload, a WAV export. Projects: the picker, songs kept per game. Samples: a recorded tone loaded, its note heard,
+surviving a reload, a WAV export. Automation: a tempo change, a volume lane, glide, lanes drawn with the mouse. Projects: the picker, songs kept per game. Samples: a recorded tone loaded, its note heard,
 played at the right pitch, looped. WHERE IT PLAYS: the places saved in the song, the level opened in the game with the song inside.
 Build first: npm run build.
 
@@ -185,6 +185,38 @@ with sync_playwright() as p:
     data = Path(dl.value.path()).read_bytes()
     pcm = struct.unpack('<%dh' % ((len(data) - 44) // 2), data[44:44 + (len(data) - 44) // 2 * 2])
     check('WAV export: a 16-bit stereo file with music in it', data[:4] == b'RIFF' and data[8:12] == b'WAVE' and max(abs(v) for v in pcm) > 1000, len(data))
+
+    # ---- automation: tempo changes, lanes, glide ----
+    auto = pg.evaluate('''async () => {
+      const S = Sampler, base = { format: 'pixelite-song', bpm: 120, bars: 4, master: { reverb: { volume: 0 }, echo: { volume: 0 }, comp: 0 } }, quiet = { echo: 0, reverb: 0 };
+      const rms = (b, t0, t1) => { const d = b.getChannelData(0), sr = b.sampleRate; let s = 0, n = 0; for (let i = Math.round(t0 * sr); i < t1 * sr; i++) { s += d[i] * d[i]; n++; } return Math.sqrt(s / n); };
+      const pitch = (b, t0, t1) => { const d = b.getChannelData(0), sr = b.sampleRate, a = Math.round(t0 * sr), n = Math.round((t1 - t0) * sr); let best = 0, bf = 0;
+        for (let f = 150; f < 900; f *= 1.002) { let re = 0, im = 0; for (let i = 0; i < n; i += 2) { const w = 2 * Math.PI * f * i / sr; re += d[a + i] * Math.cos(w); im += d[a + i] * Math.sin(w); } if (re * re + im * im > best) { best = re * re + im * im; bf = f; } } return bf; };
+      const t = S.check({ ...base, tempo: [[384, 60]], tracks: [{ instrument: 'marimba', notes: [[480, 24, 72, 120]], sends: quiet }] });
+      const tb = (await S.render(t, { seconds: 4, loop: false })).getChannelData(0); let on = -1; for (let i = 0; i < tb.length; i++) if (Math.abs(tb[i]) > .02) { on = i / 44100; break; }
+      const v = await S.render(S.check({ ...base, tracks: [{ instrument: 'organ', notes: [[0, 1536, 60, 110]], auto: { volume: [[0, 1], [384, 0]] }, sends: quiet }] }), { seconds: 3, loop: false });
+      const g = await S.render(S.check({ ...base, tracks: [{ instrument: 'square', notes: [[0, 240, 57, 110], [192, 384, 64, 110]], sound: { glide: .5, vibrato: [0, 5, 1] }, sends: quiet }] }), { seconds: 3, loop: false });
+      return { onset: on, vol: [rms(v, .1, .4), rms(v, 1, 1.3), rms(v, 2.2, 2.6)], glide: [pitch(g, .2, .45), pitch(g, 1.18, 1.32), pitch(g, 1.8, 2.2)] };
+    }''')
+    check('a tempo change: a note after 120 BPM for a bar, then 60, starts at 3 s', abs(auto['onset'] - 3) < .02, auto['onset'])
+    check('a volume lane fades a held chord out', auto['vol'][0] > auto['vol'][1] * 1.5 and auto['vol'][2] < auto['vol'][0] * .02, auto['vol'])
+    check('glide: a mono lead slides from A3 to E4 (220 → in between → 330 Hz)', abs(auto['glide'][0] - 220) < 3 and 235 < auto['glide'][1] < 315 and abs(auto['glide'][2] - 329.6) < 4, auto['glide'])
+    pg.goto(f'{BASE}/studio/?game=spacemouse'); pg.wait_for_function('window.studio && studio.st.song')
+    pg.click('#trackList .trk:nth-child(1)'); pg.select_option('#lane', 'volume')
+    box = pg.locator('#roll').bounding_box(); lane_y = box['y'] + box['height'] - 72
+    pt = lambda tick, frac: (box['x'] + 54 + (tick - st('st.view.x')) * st('st.view.zoom') + 1, lane_y + 5 + (1 - frac) * 62)
+    pg.mouse.click(*pt(96, .9)); pg.mouse.click(*pt(384, .2))
+    vol = st('st.song.tracks[0].auto.volume')
+    check('VOLUME lane: clicks add points on the grid, at the height clicked', [p[0] for p in vol] == [96, 384] and vol[0][1] > .8 and vol[1][1] < .3, vol)
+    x0, y0 = pt(384, .2); pg.mouse.move(x0, y0); pg.mouse.down(); pg.mouse.move(x0 + 96 * st('st.view.zoom'), y0 - 20, steps=5); pg.mouse.up()
+    check('dragging a point moves it', st('st.song.tracks[0].auto.volume[1][0]') == 480 and st('st.song.tracks[0].auto.volume[1][1]') > .3, st('st.song.tracks[0].auto.volume'))
+    pg.mouse.click(*pt(96, .9), button='right')
+    check('right-click deletes a point', len(st('st.song.tracks[0].auto.volume')) == 1)
+    pg.select_option('#lane', 'tempo'); pg.mouse.click(*pt(768, .5))
+    check('TEMPO lane: a tempo change for the whole song', len(st('st.song.tempo')) == 1 and st('st.song.tempo[0][0]') == 768 and 150 < st('st.song.tempo[0][1]') < 180, st('st.song.tempo'))
+    pg.keyboard.press('Control+z'); pg.keyboard.press('Control+z')
+    check('lane edits undo like notes', st('st.song.tempo.length') == 0 and len(st('st.song.tracks[0].auto.volume')) == 2)
+    pg.select_option('#lane', 'vel')
 
     # ---- samples: a tone a little sharp of A4 (440 Hz + 2 harmonics), loaded onto a new track ----
     pg.goto(f'{BASE}/studio/?game=spacemouse'); pg.wait_for_function('window.studio && studio.st.song')

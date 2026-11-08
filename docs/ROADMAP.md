@@ -37,14 +37,15 @@ Done: the engine's 16-bit Sampler, the studio at /studio/, songs saved on the si
 - ~~**Your own samples**~~ (HISTORY 37). Next: a loop end of its own, crossfaded loops, a microphone, several samples as one
   multisampled instrument (a note range each).
 - ~~**Projects and places**~~ (HISTORY 37): next, music that changes inside a level (a place per area or event, not only per level).
-- **Automation**: volume, filter and pan changing over the song; tempo changes; a mono/glide mode for leads.
+- ~~**Automation**~~ (HISTORY 38): volume, pan and filter lanes per track, tempo changes, glide. Next: curved segments,
+  automating the sends and the echo, a lane per sample's loop point, tempo ramps (not only steps).
 - **Patterns**: SNES composers worked in short patterns; clips that repeat would make long songs quicker to write.
 - **MIDI files**: import a .mid into tracks; export the song as .mid.
 - **Making instruments off the main thread** (a Worker): a game's first song costs ~0.3 s of blocked frames on its title.
 - **Music that follows the game**: a director helper over `Sampler.track` (layers by state), and songs for Regolith and
   Fjordheim (Regolith's MIDI could be re-voiced for the Sampler).
 
-## Principles to keep## Principles to keep
+## Principles to keep
 
 - One pixel per cell, one colour per pixel; pixel art keeps one art pixel per world pixel where it can.
 - One self-contained HTML file per game, with no runtime dependencies. The engine can still be
