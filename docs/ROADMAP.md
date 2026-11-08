@@ -31,7 +31,18 @@ The owner found ASCII too dark and chose pixel art, keeping every mechanic:
    JPEG background, which shows as a reddish rim on trees now that outlines are drawn on the silhouette), the starter,
    showcase and notfound; moving the site to a pixelite domain with the owner.
 
-## Principles to keep
+## Sound: the SOUND STUDIO (HISTORY 36)
+
+Done: the engine's 16-bit Sampler, the studio at /studio/, songs saved on the site and played in Space Mouse. Next:
+- **Your own samples**: load a recording, set its root note and loop, BRR it into the song (kept in the song, so games get it).
+- **Automation**: volume, filter and pan changing over the song; tempo changes; a mono/glide mode for leads.
+- **Patterns**: SNES composers worked in short patterns; clips that repeat would make long songs quicker to write.
+- **MIDI files**: import a .mid into tracks; export the song as .mid.
+- **Making instruments off the main thread** (a Worker): a game's first song costs ~0.3 s of blocked frames on its title.
+- **Music that follows the game**: a director helper over `Sampler.track` (layers by state), and songs for Regolith and
+  Fjordheim (Regolith's MIDI could be re-voiced for the Sampler).
+
+## Principles to keep## Principles to keep
 
 - One pixel per cell, one colour per pixel; pixel art keeps one art pixel per world pixel where it can.
 - One self-contained HTML file per game, with no runtime dependencies. The engine can still be

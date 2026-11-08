@@ -788,6 +788,36 @@ or every build fails; the D1 database keeps its old name and id) and the second 
 glyphite.hornbaek.org keeps working as before. No redirect yet: it waits until the owner has signed in on the new address
 (`docs/DEPLOY.md` section 6, `docs/ROADMAP.md`). The Worker's code is unchanged; it never depended on the hostname.
 
+## 36. The SOUND STUDIO: 16-bit music for the games (Claude Code, 2026-11-08)
+
+> "I'm a fan of super Nintendo and the music for it (16-bit?). Create a mini DAW where I can connect a midi keyboard and
+> compose music. It should handle multiple tracks in each song, have effects, equilizing etc."
+
+The owner chose: an SNES sound core with studio extras (and an "SNES limits" switch), songs that play in the games, saved on
+the site. Engine 0.12.0.
+
+- **The engine's Sampler** (`engine/13_sampler.js`, beside the NES chip): 23 instruments and a drum kit made from recipes
+  (nothing recorded, nothing copied), each through the SNES's 4-bit BRR compression and Gaussian read-out at 32 kHz or less;
+  SNES envelopes with the held-note fall; per track EQ, filter, chorus, pan, sends; the SNES echo with its FIR filter, reverb,
+  master EQ and compressor; 8 voices and echo only under SNES limits. Songs loop a region (an intro, then the loop), tracks can
+  be faded in and out by the game, and `Beat` follows the drums.
+- **The SOUND STUDIO** (`/studio/`, behind the login, on the game list): tracks with instrument, mute, solo, volume, pan and
+  meters; an overview of the song with the loop and the start mark; a piano roll (add, move, lengthen, select, copy, paste,
+  duplicate, transpose, snap, velocity lane, the other tracks faint behind) with drum names on a kit's rows; a MIDI keyboard
+  (Web MIDI: velocity, sustain pedal, pitch bend) or the computer keyboard plays the selected track; recording with a bar of
+  count-in, the metronome, snapping to the grid, latency taken off; undo and redo; the selected track's sound, EQ (with its
+  curve), filter, chorus and sends, and the master. Songs save to the site (D1 table `songs`, `worker/songs.js`, which refuses
+  to overwrite a song saved elsewhere since it was opened), a draft is kept in the browser, and a song can be exported as WAV
+  or a file, or handed to a session with a prompt.
+- **Into a game:** a session saves a song from D1 as `games/<id>/music/<song>.song.json` and runs `node tools/song.mjs <id>`,
+  which writes `songs.js`. Space Mouse plays the first one, "Cargo Bay" (16 bars in D minor: flute, harp, strings, finger bass,
+  drums), from the first key on, quieter while paused, with a Music volume tunable.
+- **Tests:** `tests/node/songs.test.mjs` (the API on SQLite, `Sampler.check`, the envelope, BRR, songs.js in sync, the demo song),
+  `tests/studio.py` (pitch, voice limit, echo, EQ and loudness from offline renders; the studio driven with the mouse, a fake MIDI
+  keyboard and the computer keyboard; saving, a clash, the draft, a WAV), routes keep `/studio/` and `/api/songs` private.
+- **Verified:** build, unit tests, studio and lab tests, the smoke test of every game in both renderers, Space Mouse's mechanics
+  and reachability, the level editor; Space Mouse's music starts on the first key, ducks when paused, and `Beat` follows it.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

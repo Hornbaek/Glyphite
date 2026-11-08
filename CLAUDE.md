@@ -24,17 +24,18 @@ games/<id>/             one folder per game: game.json (manifest), head.html (op
 templates/starter/      the game `new` copies: small, uses every engine feature once (Cave Drone)
 portal/                 the website: game list (index.html), editor (edit/: tune, code, LEVELS for tile maps), idea bank (ideas/), what's new (whats-new/),
                         reference art (art/), the PIXEL LAB (lab/: snap AI art, make normal maps; lab/lighter/: Pixel Art Lighter,
-                        vendored, for hand-made normals), the public landing page (welcome/), assets/,
+                        vendored, for hand-made normals), the SOUND STUDIO (studio/: compose 16-bit music, MIDI keyboard),
+                        the public landing page (welcome/), assets/,
                         vendor/ (codemirror, pixel-snapper)
-worker/                 the Cloudflare Worker: Access login check + static site + idea bank API (ideas.js)
+worker/                 the Cloudflare Worker: Access login check + static site + idea bank API (ideas.js) + songs API (songs.js)
                         wrangler.jsonc: its config (incl. the D1 binding)     migrations/: the D1 schema
 tools/                  pixelite.mjs (CLI: build, new, list, serve), assemble.mjs (page assembler, shared with the
                         editor), ideas.mjs (docs/ideas.json → docs/IDEAS.md), changes.mjs (HISTORY.md → What's new), thumbnail.py
                         (--auto picks the best frame), pixelsprite.py (pixel art → sprites), snap.mjs (Pixel Snapper: AI art
                         → its true grid; build-snapper.sh rebuilds it), normalmap.mjs (sprite normal maps), pixelfont.py
-                        (the HUD font), sheetcheck.py (check an AI art sheet before cutting it)
-tests/                  smoke.py (any game, both renderers), lab.py (the PIXEL LAB), node/ (unit tests: build, editor
-                        patches, Access, pixel tools)
+                        (the HUD font), sheetcheck.py (check an AI art sheet before cutting it), song.mjs (studio songs → a game's songs.js)
+tests/                  smoke.py (any game, both renderers), lab.py (the PIXEL LAB), studio.py (the SOUND STUDIO and its sound),
+                        node/ (unit tests: build, editor patches, Access, pixel tools, songs)
 docs/                   ARCHITECTURE (how it works), HISTORY, LESSONS, ROADMAP (the plan), IDEAS (the idea bank),
                         TESTING, DEPLOY
 .claude/skills/         pixelite-new-game, pixelite-verify, pixelite-art-prompt (the prompt for an art sheet), pixelite-pixel-art
@@ -96,6 +97,18 @@ has a note or is marked [?]. Statuses: `idea` (default, no row), `planned` (the 
 - **Schema changes** are numbered files in `migrations/`. Apply a new one to the real database through the connector (and
   record it: `INSERT INTO d1_migrations (name) VALUES ('0002_x.sql')`), then merge; `npm run dev` applies them to the local one.
 - When an idea becomes real work, also move it into `docs/ROADMAP.md` (the plan) and note it in `docs/HISTORY.md`.
+
+## Songs (the SOUND STUDIO)
+
+The owner composes at **/studio/** (16-bit, Super Nintendo style: the engine's `Sampler`, `engine/13_sampler.js`, the same
+file the games run). Songs save to D1, table `songs` (id, title, game, data = the song as JSON, updated_at, updated_by).
+- **List them**: `SELECT id, title, game, updated_at FROM songs ORDER BY updated_at DESC;`
+- **Put one into a game** (the studio's [ MORE ] menu writes this prompt): `SELECT data FROM songs WHERE id = ?;`, save it as
+  `games/<game>/music/<id>.song.json`, run `node tools/song.mjs <game>` (writes `songs.js`; add it to game.json's parts), play it
+  with `Sampler.play(SONGS['<id>'])` after `Sampler.prepare` at load (`engine/API.md`, Sampler). The repository's copy is what the
+  game plays; a later save in the studio changes nothing until a session brings it over again.
+- A session may also write a song itself (the format is `Sampler.check`'s; see `games/spacemouse/music/cargo-bay.song.json`)
+  and save it to D1 for the owner to open: `INSERT INTO songs (id, title, game, data, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, 'claude-session')`.
 
 ## Changing a game, or applying edits from the web editor
 

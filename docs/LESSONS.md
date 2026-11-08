@@ -271,3 +271,22 @@ way.
 - **A worker taken off a job lets go of everything.** Pausing or tearing down a workplace has to bring in the fisher's
   boat, what anyone carries, the builder's way back to a workplace that may be gone, and the farmer once no field is left;
   the tile grid points at buildings by their index, so removing one re-points every tile after it.
+
+## Sound (the Sampler and the SOUND STUDIO)
+
+- **BRR's first block can't predict, which caps it near half volume.** A block with predictor 0 reaches at most
+  7 · 2^11 = 14336 of 32767 at the largest shift, so a sample that starts loud clipped to 0.44. The console lives with it
+  (samples start quietly); decoding once ahead of time, any block may predict.
+- **Search only the BRR shifts near the one a block needs.** The largest step a predictor leaves says which shift fits; trying
+  that one and its neighbours gives the same result as all thirteen, twice as fast.
+- **Level instruments by what you hear, not their peak.** Peak-normalised samples differed 7x in loudness (a plucked string
+  is one sharp peak, an organ is all body); levelling by the first 0.3 s's RMS put all 23 within 3x.
+- **The SNES echo filter can gain.** A feedback loop through an FIR whose response passes 1 at some frequency rings forever
+  there; each preset is scaled by its peak response, so any feedback below 1 dies away (`tests/studio.py`).
+- **A note of known length gets its release scheduled with it.** Cancelling the envelope at the release time would cancel
+  an attack ramp that ends exactly there and leave the voice at 0 until the jump; a song's notes get the whole envelope at
+  once, only live notes are released by cancelling.
+- **Two `afterFrame` keys in one object literal: the second wins silently.** Space Mouse already had one; add to the
+  existing hook.
+- **Size a canvas from a ResizeObserver, not at start-up.** The piano roll measured its box before the overview above it took
+  its height, and kept a third of the space.

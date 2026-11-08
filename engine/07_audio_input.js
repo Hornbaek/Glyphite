@@ -25,7 +25,7 @@ const Sfx = {
       const hf = c.createBiquadFilter(); hf.type = 'bandpass'; hf.frequency.value = 400; hf.Q.value = .8;
       this.buzzGain = c.createGain(); this.buzzGain.gain.value = 0;
       hum.connect(hf); hf.connect(this.buzzGain); this.buzzGain.connect(this.master); hum.start();
-      Chip.init(c, this.master);
+      Chip.init(c, this.master); Sampler.init(c, this.master);
       document.addEventListener('visibilitychange', () => { if (document.hidden) c.suspend(); else c.resume(); });
     } catch (e) { this.ctx = null; }
   },

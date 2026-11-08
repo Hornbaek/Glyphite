@@ -1,15 +1,14 @@
 // The idea bank: the data file, the generated markdown, and the D1-backed API (real SQLite stands in for D1).
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { loadIdeas, validate, renderMarkdown, md } from '../../tools/ideas.mjs';
 import { handleIdeas, resetKnownIdeas } from '../../worker/ideas.js';
 import worker from '../../worker/index.js';
+import { d1, sqlite, skip } from './d1.mjs';
 
 const ROOT = new URL('../../', import.meta.url);
 const read = p => readFileSync(new URL(p, ROOT), 'utf8');
-const sqlite = await import('node:sqlite').catch(() => null);
-const skip = sqlite ? false : 'node:sqlite is not available in this Node';
 
 test('docs/ideas.json is valid and docs/IDEAS.md is generated from it', () => {
   const data = loadIdeas();
@@ -22,18 +21,6 @@ test('markdown escaping keeps code spans and escapes the rest', () => {
   assert.equal(md("'a' becomes '`' here"), "'a' becomes '\\`' here");
 });
 
-// a D1-shaped wrapper over node:sqlite: prepare().bind().all()/run()/first(), batch()
-function d1() {
-  const db = new sqlite.DatabaseSync(':memory:');
-  for (const m of readdirSync(new URL('migrations/', ROOT)).filter(f => f.endsWith('.sql')).sort()) db.exec(read(`migrations/${m}`));   // as D1 applies them
-  const stmt = (sql, args = []) => ({
-    bind: (...a) => stmt(sql, a),
-    all: async () => ({ results: db.prepare(sql).all(...args) }),
-    run: async () => { db.prepare(sql).run(...args); return {}; },
-    _go() { return /^\s*select/i.test(sql) ? { results: db.prepare(sql).all(...args) } : (db.prepare(sql).run(...args), { results: [] }); }
-  });
-  return { prepare: sql => stmt(sql), batch: async list => list.map(s => s._go()), raw: db };
-}
 const ideasJson = read('docs/ideas.json');
 const ID = JSON.parse(ideasJson).categories[0].ideas[0].id;
 const ID2 = JSON.parse(ideasJson).categories[1].ideas[0].id;

@@ -64,6 +64,9 @@ parts as the game grows; delete what the game doesn't use.
   sizes). Each: `label`, `unit`, `value`, `min`, `max`, `step`, `help`, and `live: true` only if the running
   game reacts (read `TUNE.x` every step, or recompute in `onTune`). Never hard-code a number you exposed.
 - Optional `"smoke": { "keys": [...] }` in `game.json`: the keys the smoke test holds and taps.
+- **Music**: compose in the SOUND STUDIO (`/studio/`) or write a song file yourself (`Sampler.check`'s format, e.g.
+  `games/spacemouse/music/cargo-bay.song.json`); keep it as `music/<id>.song.json`, run `node tools/song.mjs <id>`, then
+  `Sampler.prepare(SONGS[...])` in `init` and `Sampler.play(...)` (CLAUDE.md, "Songs"). Give it a Music volume tunable.
 
 ## 4. Verify (use the pixelite-verify skill)
 

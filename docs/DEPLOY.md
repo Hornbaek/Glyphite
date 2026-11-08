@@ -51,13 +51,14 @@ Cloudflare dashboard → **Workers & Pages** → **Create** → **Import a repos
 The first build on `main` creates the Worker and attaches `glyphite.hornbaek.org` from the `routes` entry
 (the zone is on the same account). Node comes from `.nvmrc` (22).
 
-### 3. The D1 database (the idea bank)
+### 3. The D1 database (the idea bank and the songs)
 
 `wrangler.jsonc` binds a D1 database called `glyphite` as `DB` (id in the file; it is not secret). It holds the idea
-bank's stars, statuses, notes and [?] marks (`worker/ideas.js`, schema in `migrations/`). It already exists and has its table; to
+bank's stars, statuses, notes and [?] marks (`worker/ideas.js`) and the SOUND STUDIO's songs (`worker/songs.js`), schema in
+`migrations/`. It already exists and has its tables; to
 recreate it elsewhere: create a database named `glyphite` (Workers & Pages → D1), put its id in `wrangler.jsonc`, and run
 `npx wrangler d1 migrations apply glyphite --remote` (or paste `migrations/*.sql` into the dashboard's console). Without the
-binding the idea bank page still loads but says it cannot save.
+binding the idea bank and the studio still load but say they cannot save (the studio keeps a draft in the browser).
 
 ### 4. Optional: who may use it
 

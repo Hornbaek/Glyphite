@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sound studio · Pixelite</title>
+<meta name="description" content="Compose 16-bit (Super Nintendo style) music for Pixelite games, with a MIDI keyboard or the mouse.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/studio.css">
+<!-- the engine's own sound engine, the very file the games run: what you hear here is what a game plays -->
+<script src="/src/engine/13_sampler.js"></script>
+<script type="module" src="/assets/studio.js"></script>
+</head>
+<body class="studio">
+<header class="ebar">
+  <div class="crumb"><a href="/">PIXELITE</a> / SOUND STUDIO</div>
+  <input id="title" class="title" value="New song" aria-label="Song title" maxlength="80" spellcheck="false">
+  <span id="saved" class="saved muted" aria-live="polite"></span>
+  <span class="spacer"></span>
+  <select id="songs" aria-label="Open a saved song"><option value="">songs…</option></select>
+  <button class="btn small" id="newBtn" title="Start a new song">[ NEW ]</button>
+  <button class="btn small primary" id="saveBtn" title="Save to the site (Ctrl+S)">[ SAVE ]</button>
+  <button class="btn small" id="moreBtn" aria-haspopup="true" aria-expanded="false">[ MORE ▾ ]</button>
+  <div class="menu" id="more" hidden>
+    <button id="promptBtn">Put it into a game (a prompt for a session)…</button>
+    <button id="wavBtn">Export WAV</button>
+    <button id="exportBtn">Download song file (.song.json)</button>
+    <label class="file">Open a song file…<input type="file" id="importFile" accept=".json,application/json"></label>
+    <button id="dupSongBtn">Save as a copy</button>
+    <button id="delSongBtn">Delete from the site</button>
+  </div>
+  <a class="btn small" href="/">[ GAMES ]</a>
+</header>
+
+<div class="transport" role="toolbar" aria-label="Transport">
+  <button class="tbtn" id="stopBtn" title="Stop: back to the start mark">■</button>
+  <button class="tbtn play" id="playBtn" title="Play / stop (Space)">▶</button>
+  <button class="tbtn rec" id="recBtn" title="Record into the selected track (R)">●</button>
+  <output id="pos" class="pos">1.1.00</output>
+  <label>BPM <input type="number" id="bpm" min="30" max="300" step="1" value="120"></label>
+  <label>BARS <input type="number" id="bars" min="1" max="512" step="1" value="8"></label>
+  <label title="Beats per bar">BEATS <input type="number" id="beats" min="1" max="12" step="1" value="4"></label>
+  <button class="tog" id="loopBtn" aria-pressed="false" title="Loop the marked region (drag on the bar ruler above the tracks)">LOOP</button>
+  <button class="tog" id="clickBtn" aria-pressed="false" title="Metronome">CLICK</button>
+  <button class="tog" id="countBtn" aria-pressed="true" title="One bar of clicks before recording">COUNT-IN</button>
+  <label>GRID <select id="grid">
+    <option value="96">1/4</option><option value="48">1/8</option><option value="24" selected>1/16</option><option value="12">1/32</option>
+    <option value="32">1/8 T</option><option value="16">1/16 T</option></select></label>
+  <button class="tog" id="quantBtn" aria-pressed="true" title="Snap recorded notes to the grid">SNAP REC</button>
+  <button class="tog snes" id="snesBtn" aria-pressed="false" title="Only what a Super Nintendo could do: 8 voices, its echo, no EQ, filter, chorus, reverb or compressor">SNES LIMITS</button>
+  <span class="spacer"></span>
+  <button class="tog" id="keysBtn" aria-pressed="false" title="Play with the computer keyboard: A W S E D F T G Y H U J K (Z / X: octave)">KEYS</button>
+  <button class="btn small" id="midiBtn" title="Use a MIDI keyboard (Chrome and Edge)">[ MIDI ]</button>
+  <span id="midiInfo" class="muted midi"></span>
+  <button class="btn small" id="helpBtn" title="How to use the studio">[ ? ]</button>
+</div>
+
+<main class="desk">
+  <aside class="tracks" aria-label="Tracks">
+    <ol id="trackList"></ol>
+    <div class="trackAdd">
+      <select id="addIns" aria-label="Instrument for a new track"></select>
+      <button class="btn small" id="addTrack">[ + TRACK ]</button>
+    </div>
+  </aside>
+  <section class="editor">
+    <canvas id="arr" class="arr" aria-label="Song overview: every track, the bar ruler and the loop"></canvas>
+    <div class="rollWrap"><canvas id="roll" class="roll" tabindex="0" aria-label="Piano roll of the selected track"></canvas></div>
+    <p class="hint muted" id="hint">Click to add a note, drag it to move, drag its end to lengthen. Shift-drag selects. Right-click deletes.</p>
+  </section>
+  <aside class="strip" id="strip" aria-label="The selected track's sound and the master effects"></aside>
+</main>
+
+<dialog id="help">
+  <h2>Sound studio</h2>
+  <p>Compose music for the games in the style of the Super Nintendo: every instrument is a small sample with the console's
+    grainy 4-bit compression, and the master has its echo. The sound comes from the engine itself, so a game plays a song
+    exactly as you hear it here.</p>
+  <dl class="keys">
+    <dt><kbd>Space</kbd></dt><dd>play / stop</dd>
+    <dt><kbd>R</kbd></dt><dd>record into the selected track (a bar of count-in first)</dd>
+    <dt>click, drag</dt><dd>add a note; move it; drag its right end to change its length</dd>
+    <dt><kbd>Shift</kbd> + drag</dt><dd>select several (<kbd>Shift</kbd> + click adds one)</dd>
+    <dt>right-click, <kbd>Del</kbd></dt><dd>delete</dd>
+    <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>move the selection a semitone (<kbd>Shift</kbd>: an octave)</dd>
+    <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>move it by the grid</dd>
+    <dt><kbd>Ctrl</kbd> + <kbd>C</kbd> / <kbd>V</kbd> / <kbd>D</kbd></dt><dd>copy / paste at the start mark / duplicate after itself</dd>
+    <dt><kbd>Ctrl</kbd> + <kbd>A</kbd></dt><dd>select every note of the track</dd>
+    <dt><kbd>Q</kbd></dt><dd>snap the selection to the grid</dd>
+    <dt><kbd>Ctrl</kbd> + <kbd>Z</kbd> / <kbd>Shift</kbd> + <kbd>Ctrl</kbd> + <kbd>Z</kbd></dt><dd>undo / redo</dd>
+    <dt><kbd>Ctrl</kbd> + <kbd>S</kbd></dt><dd>save</dd>
+    <dt>wheel</dt><dd>scroll the notes (<kbd>Shift</kbd>: sideways, <kbd>Ctrl</kbd>: zoom)</dd>
+    <dt>bar ruler</dt><dd>click: where play starts; drag: the loop</dd>
+    <dt>velocity lane</dt><dd>drag up and down under a note to make it louder or softer</dd>
+  </dl>
+  <p class="muted">A MIDI keyboard plays the selected track (sustain pedal and pitch bend work). Without one, turn on KEYS and
+    play the computer keyboard. Songs save to the site; a Claude session puts one into a game ([ MORE ] has the prompt).</p>
+  <form method="dialog"><button class="btn small">[ CLOSE ]</button></form>
+</dialog>
+
+<dialog id="promptDlg">
+  <h2>Put this song into a game</h2>
+  <label class="row">For the game <select id="gameSel"><option value="">choose…</option></select></label>
+  <pre id="promptText" class="prompt"></pre>
+  <form method="dialog" class="row"><button class="btn small primary" id="copyPrompt" type="button">[ COPY ]</button><button class="btn small">[ CLOSE ]</button></form>
+</dialog>
+</body>
+</html>
