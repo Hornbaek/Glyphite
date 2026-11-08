@@ -119,3 +119,5 @@ dialog .row{display:flex;gap:10px;align-items:center}
 .srow .btn.small{padding:4px 7px;font-size:11px;margin:0}
 .sec .meta{margin:0 0 6px;font-size:11px;color:var(--dim)}
 .ctl input:not([type=range]){grid-column:2;font:12px var(--mono);color:var(--phosphor);background:var(--void);border:1px solid var(--rim2);border-radius:2px;padding:3px 5px;min-width:0}
+/* the lane under the notes: which line it shows */
+.lane{position:absolute;left:2px;bottom:46px;width:50px;font:700 9px var(--mono);color:var(--phosphor);background:var(--panel2);border:1px solid var(--rim2);border-radius:2px;padding:2px 0}

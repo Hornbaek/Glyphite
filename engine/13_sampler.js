@@ -218,9 +218,9 @@ const Sampler = (() => {
 
   // ---------- songs ----------
   const TRACK = () => ({ name: 'Track', instrument: 'piano', volume: .8, pan: 0, mute: false, solo: false,
-    sound: { octave: 0, fine: 0, rate: 32000, attack: null, decay: null, sustain: null, fall: null, release: null, vibrato: null },
+    sound: { octave: 0, fine: 0, rate: 32000, attack: null, decay: null, sustain: null, fall: null, release: null, vibrato: null, glide: 0 },
     eq: { low: 0, mid: 0, midFreq: 1000, high: 0 }, filter: { type: 'off', freq: 2000, q: .7 }, chorus: { mix: 0, rate: .8, depth: 4 },
-    sends: { echo: 0, reverb: .2 }, notes: [] });
+    sends: { echo: 0, reverb: .2 }, auto: { volume: [], pan: [], filter: [] }, notes: [] });
   const MASTER = () => ({ volume: .8, echo: { delay: 6, feedback: .35, fir: 'soft', volume: .25 }, reverb: { size: 1.6, damp: .5, volume: .35 },
     eq: { low: 0, high: 0 }, comp: .3 });
   function merge(dst, src) {
@@ -233,12 +233,41 @@ const Sampler = (() => {
     }
     return dst;
   }
+  // [tick, value] points: whole ticks from 0, values clamped, sorted, one per tick (the last given wins), at most 512
+  function points(list, lo, hi) {
+    const m = new Map();
+    for (const p of Array.isArray(list) ? list : []) if (Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1])) m.set(Math.max(0, Math.round(p[0])), cl(p[1], lo, hi));
+    return [...m].sort((a, b) => a[0] - b[0]).slice(0, 512);
+  }
+  // ---------- time: ticks ↔ seconds through the song's tempo changes ----------
+  function secAt(song, k) {   // seconds from tick 0 to tick k (before 0: at the opening tempo, for a count-in)
+    let s = 0, t = 0, bpm = song.bpm;
+    for (const [at, b] of song.tempo || []) { if (at >= k) break; s += (at - t) * 60 / bpm / PPQ; t = at; bpm = b; }
+    return s + (k - t) * 60 / bpm / PPQ;
+  }
+  function tickAt(song, sec) {
+    let s = 0, t = 0, bpm = song.bpm;
+    for (const [at, b] of song.tempo || []) { const d = (at - t) * 60 / bpm / PPQ; if (s + d > sec) break; s += d; t = at; bpm = b; }
+    return t + (sec - s) * bpm / 60 * PPQ;
+  }
+  const bpmAt = (song, k) => { let bpm = song.bpm; for (const [at, b] of song.tempo || []) { if (at > k) break; bpm = b; } return bpm; };
+  // an automation lane's value at tick k: straight lines between its points, level before the first and after the last
+  function laneAt(pts, k) {
+    if (!pts.length) return null;
+    if (k <= pts[0][0]) return pts[0][1];
+    for (let i = 1; i < pts.length; i++) if (k < pts[i][0]) { const [a, va] = pts[i - 1], [b, vb] = pts[i]; return va + (vb - va) * (k - a) / (b - a); }
+    return pts[pts.length - 1][1];
+  }
+  const filterHz = v => 40 * Math.pow(400, v);   // the filter lane's 0..1, as 40 Hz .. 16 kHz
+
   // a song with every field present and sane (missing fields take their defaults); throws on something that is not a song
   function check(s) {
     if (!s || typeof s !== 'object' || s.format !== 'pixelite-song') throw new Error('not a Pixelite song');
     const out = merge({ format: 'pixelite-song', version: 1, title: 'Untitled', bpm: 120, beatsPerBar: 4, bars: 8, snes: false,
       loop: { on: false, start: 0, end: 8 * 4 * PPQ }, places: { title: false, levels: [], note: '' }, master: MASTER(), tracks: [] },
-      { ...s, tracks: undefined, samples: undefined });
+      { ...s, tracks: undefined, samples: undefined, tempo: undefined });
+    // tempo changes after the start ([tick, bpm], a step at each): the song's bpm holds until the first
+    out.tempo = points(s.tempo, 30, 300).filter(([t]) => t > 0);
     // where in its game the song plays: the title screen, levels (by index in the game's level list), and a note for the rest
     out.places.title = !!out.places.title; out.places.note = String(out.places.note).slice(0, 300);
     out.places.levels = [...new Set((Array.isArray(out.places.levels) ? out.places.levels : []).filter(Number.isInteger).filter(l => l >= 0 && l < 100))].sort((a, b) => a - b);
@@ -255,6 +284,9 @@ const Sampler = (() => {
       const tr = merge(TRACK(), t);
       if (!DEFS[tr.instrument] && !(tr.instrument.startsWith('sample:') && out.samples[tr.instrument.slice(7)])) tr.instrument = 'piano';
       if (!RATES.includes(tr.sound.rate)) tr.sound.rate = 32000;
+      tr.sound.glide = cl(+tr.sound.glide || 0, 0, 2);
+      const A = t.auto || {};
+      tr.auto = { volume: points(A.volume, 0, 1), pan: points(A.pan, -1, 1), filter: points(A.filter, 0, 1) };
       tr.notes = (Array.isArray(t.notes) ? t.notes : []).filter(n => Array.isArray(n) && n.length >= 4 && n.every(Number.isFinite))
         .map(([at, len, note, vel]) => [Math.max(0, Math.round(at)), Math.max(1, Math.round(len)), cl(Math.round(note), 0, 127), cl(Math.round(vel), 1, 127)])
         .sort((a, b) => a[0] - b[0] || a[2] - b[2]);
@@ -302,11 +334,11 @@ const Sampler = (() => {
   function makeStrip(M) {
     const c = M.ctx, g = v => { const n = c.createGain(); n.gain.value = v; return n; }, bq = (type, f) => { const n = c.createBiquadFilter(); n.type = type; n.frequency.value = f; return n; };
     const S = { in: g(1), lo: bq('lowshelf', 200), mid: bq('peaking', 1000), hi: bq('highshelf', 4000), filt: bq('allpass', 1000), dry: g(1), wet: g(0), cho: c.createDelay(.05),
-      lfo: c.createOscillator(), lfoAmt: g(0), pan: c.createStereoPanner(), vol: g(.64), mute: g(1), echo: g(0), rev: g(0), layer: 1, marks: [] };
+      lfo: c.createOscillator(), lfoAmt: g(0), pan: c.createStereoPanner(), vol: g(.64), av: g(1), mute: g(1), echo: g(0), rev: g(0), layer: 1, marks: [] };
     S.mid.Q.value = .9; S.cho.delayTime.value = .012;
     S.in.connect(S.lo); S.lo.connect(S.mid); S.mid.connect(S.hi); S.hi.connect(S.filt);
     S.filt.connect(S.dry); S.filt.connect(S.cho); S.cho.connect(S.wet); S.lfo.connect(S.lfoAmt); S.lfoAmt.connect(S.cho.delayTime); S.lfo.start();
-    S.dry.connect(S.pan); S.wet.connect(S.pan); S.pan.connect(S.vol); S.vol.connect(S.mute);
+    S.dry.connect(S.pan); S.wet.connect(S.pan); S.pan.connect(S.vol); S.vol.connect(S.av); S.av.connect(S.mute);
     S.mute.connect(M.sum); S.mute.connect(S.echo); S.mute.connect(S.rev); S.echo.connect(M.echoIn); S.rev.connect(M.revIn);
     return S;
   }
@@ -329,13 +361,13 @@ const Sampler = (() => {
     const now = M.ctx.currentTime, snes = song.snes;
     set(S.lo.gain, snes ? 0 : tr.eq.low, now, smooth); set(S.mid.gain, snes ? 0 : tr.eq.mid, now, smooth); set(S.hi.gain, snes ? 0 : tr.eq.high, now, smooth);
     set(S.mid.frequency, cl(tr.eq.midFreq, 100, 8000), now, smooth);
-    const ft = snes || tr.filter.type === 'off' ? 'allpass' : tr.filter.type;
+    const ft = snes ? 'allpass' : tr.filter.type === 'off' ? (tr.auto.filter.length ? 'lowpass' : 'allpass') : tr.filter.type;   // an automated filter is on
     if (S.filt.type !== ft) S.filt.type = ft;
-    set(S.filt.frequency, cl(tr.filter.freq, 30, 18000), now, smooth); set(S.filt.Q, ft === 'allpass' ? .0001 : cl(tr.filter.q, .1, 18), now, smooth);
+    if (!tr.auto.filter.length) set(S.filt.frequency, cl(tr.filter.freq, 30, 18000), now, smooth); set(S.filt.Q, ft === 'allpass' ? .0001 : cl(tr.filter.q, .1, 18), now, smooth);
     const mix = snes ? 0 : cl(tr.chorus.mix, 0, 1);
     set(S.wet.gain, mix * .8, now, smooth); set(S.dry.gain, 1 - mix * .35, now, smooth);
     set(S.lfo.frequency, cl(tr.chorus.rate, .05, 8), now, smooth); set(S.lfoAmt.gain, cl(tr.chorus.depth, 0, 10) / 1000, now, smooth);
-    set(S.pan.pan, cl(tr.pan, -1, 1), now, smooth); set(S.vol.gain, tr.volume * tr.volume, now, smooth);
+    if (!tr.auto.pan.length) set(S.pan.pan, cl(tr.pan, -1, 1), now, smooth); set(S.vol.gain, tr.volume * tr.volume, now, smooth); if (!tr.auto.volume.length) set(S.av.gain, 1, now, smooth);
     const audible = !tr.mute && (!solo || tr.solo);
     set(S.mute.gain, audible ? S.layer : 0, now, smooth);
     set(S.echo.gain, cl(tr.sends.echo, 0, 1), now, smooth); set(S.rev.gain, snes ? 0 : cl(tr.sends.reverb, 0, 1), now, smooth);
@@ -389,10 +421,20 @@ const Sampler = (() => {
       const let_go = live.filter(v => v.relAt !== undefined && v.relAt <= t), pool = let_go.length ? let_go : live;
       cut(pool.reduce((a, b) => a.t0 <= b.t0 ? a : b), t);
     }
+    // glide (a mono lead): the track's other notes end here, and if one was still held, the new one slides up or down from it
+    let from = null;
+    if (!kit && tr.sound.glide > 0) {
+      const held = M.voices.filter(v => v.ti === ti && !v.kit && v.t0 < t && v.end > t);
+      const legato = held.filter(v => v.relAt === undefined || v.relAt > t).sort((a, b) => b.t0 - a.t0)[0];
+      if (legato) from = rateMul * Math.pow(2, (legato.n - (note + 12 * tr.sound.octave + tr.sound.fine / 100)) / 12);
+      for (const v of held) cut(v, t);
+    }
     const E = kit ? { a: .001, d: .001, s: 1, sd: 0, r: .05 } : envOf(inst, tr);
     const peak = Math.pow(vel / 127, 1.5) * inst.gain * 1.2;
     const src = c.createBufferSource(), gn = c.createGain();
-    src.buffer = buffer; src.playbackRate.value = rateMul; src.detune.value = bend * 100;
+    src.buffer = buffer; src.detune.value = bend * 100;
+    if (from) { src.playbackRate.setValueAtTime(from, t); src.playbackRate.exponentialRampToValueAtTime(rateMul, t + tr.sound.glide); }
+    else src.playbackRate.value = rateMul;
     if (loop) { src.loop = true; src.loopStart = loopStart; src.loopEnd = buffer.duration; }
     src.connect(gn); gn.connect(S.in);
     // the envelope: attack ramp, decay toward the sustain level, then (fall) toward silence while held; drums ignore note-offs
@@ -410,7 +452,7 @@ const Sampler = (() => {
       lfo.frequency.value = vib[1]; amt.gain.setValueAtTime(0, t + vib[2]); amt.gain.linearRampToValueAtTime(vib[0], t + vib[2] + .35);
       lfo.connect(amt); amt.connect(src.detune); lfo.start(t);
     }
-    const v = { src, gn, lfo, E, peak, t0: t, off, ti, choke, kit, end: Infinity, relAt: undefined };
+    const v = { src, gn, lfo, E, peak, t0: t, off, ti, choke, kit, end: Infinity, relAt: undefined, n: note + 12 * tr.sound.octave + tr.sound.fine / 100 };
     src.start(t);
     if (kit) { v.end = t + buffer.duration / rateMul; src.stop(v.end + .01); }
     else if (off !== Infinity) {   // a note of known length (a song): its release is scheduled now, from where the envelope will be
@@ -438,15 +480,22 @@ const Sampler = (() => {
   }
 
   // ---------- scheduling a song ----------
-  // notes of every track whose start falls in [a, b) ticks, at the times the playhead `seg` puts them
-  function scheduleRange(M, song, a, b, tickTime, loopEnd, clicks) {
-    const spt = 60 / song.bpm / PPQ;
+  // notes of every track whose start falls in [a, b) ticks, at the times tickTime gives; and the automation lanes' points
+  // there (fresh: the playhead just started or wrapped, so each lane is first set to its value at a)
+  function scheduleRange(M, song, a, b, tickTime, loopEnd, clicks, fresh) {
+    const dur = (at, len) => secAt(song, Math.min(at + len, loopEnd)) - secAt(song, at);
     song.tracks.forEach((tr, ti) => {
+      const S = M.strips[ti]; if (!S) return;
+      for (const [lane, param, map] of [['volume', S.av.gain, v => v * v], ['pan', S.pan.pan, v => v], ['filter', S.filt.frequency, filterHz]]) {
+        const pts = tr.auto[lane]; if (!pts.length || song.snes && lane === 'filter') continue;
+        if (fresh) { const t0 = Math.max(tickTime(a), M.ctx.currentTime); param.cancelScheduledValues(t0); param.setValueAtTime(map(laneAt(pts, Math.max(0, a))), t0); }
+        for (const [at, v] of pts) if (at > a && at < b) param.linearRampToValueAtTime(map(v), tickTime(at));
+      }
       const N = tr.notes; let lo = 0, hi = N.length;
       while (lo < hi) { const mid = (lo + hi) >> 1; if (N[mid][0] < a) lo = mid + 1; else hi = mid; }
       for (let i = lo; i < N.length && N[i][0] < b; i++) {
         const [at, len, note, vel] = N[i];
-        const v = startVoice(M, song, ti, note, vel, tickTime(at), Math.min(len, loopEnd - at) * spt);
+        const v = startVoice(M, song, ti, note, vel, tickTime(at), dur(at, len));
         if (v && tr.instrument === 'kit' && note >= 35 && note <= 40 && M.hits) M.hits.push([tickTime(at), vel / 127]);
       }
     });
@@ -463,7 +512,7 @@ const Sampler = (() => {
   const E = {
     PPQ, INSTRUMENTS, KIT: Object.fromEntries(Object.entries(KIT).map(([n, k]) => [n, k[3]])), RATES, FIRS: Object.keys(FIR),
     ctx: null, out: null, mix: null, song: null, playing: false, metronome: false, pending: null, timer: 0, gain: null, vol: 1,
-    check, newSong, newTrack, songEnd, envAt, brr, brrEncode, brrDecode, toB64, fromB64, forced: null,
+    check, newSong, newTrack, songEnd, envAt, secAt, tickAt, bpmAt, laneAt, filterHz, brr, brrEncode, brrDecode, toB64, fromB64, forced: null,
     // an instrument's own envelope and vibrato (what a track's sound settings left at null mean)
     defaults: id => id.startsWith('sample:') ? { env: { ...SAMPLE_ENV }, vib: [0, 5, .3] } : { env: { ...(DEFS[id] || DEFS.piano)[3] }, vib: [...((DEFS[id] || DEFS.piano)[4] || [0, 5, .3])] },
     // make a song's instruments now, one at a time between frames (making one takes ~0.1 s), so its first notes don't stall;
@@ -493,7 +542,7 @@ const Sampler = (() => {
       for (const tr of song.tracks) instrument(tr.instrument, tr.sound.rate, song);
       const now = this.ctx.currentTime + .05, g = this.gain.gain;
       g.cancelScheduledValues(now); g.setValueAtTime(fadeIn ? 0 : this.vol, now); if (fadeIn) g.linearRampToValueAtTime(this.vol, now + fadeIn);
-      this.P = { cursor: from, time: now, loop, onEnd, segs: [[now, from]] };
+      this.P = { cursor: from, time: now, loop, onEnd, segs: [[now, from]], fresh: true };
       this.playing = true;
       this.pump(); this.timer = setInterval(() => this.pump(), 25);
     },
@@ -518,17 +567,17 @@ const Sampler = (() => {
     halt() { if (this.playing) this.stop(.02); },
     pump() {
       const P = this.P, song = this.song; if (!P || !song) return;
-      const spt = 60 / song.bpm / PPQ, end = songEnd(song), lp = song.loop, target = this.ctx.currentTime + LEAD;
+      const end = songEnd(song), lp = song.loop, target = this.ctx.currentTime + LEAD, at = k => secAt(song, k);
       const ls = lp.on ? cl(lp.start, 0, end - 1) : 0, le = lp.on ? cl(lp.end, ls + 1, end) : end;
       while (P.time < target) {
         const stopAt = P.loop && P.cursor < le ? le : end;
-        let b = Math.min(stopAt, P.cursor + Math.ceil((target - P.time) / spt) + 1);
+        let b = Math.min(stopAt, Math.ceil(tickAt(song, at(P.cursor) + target - P.time)) + 1);
         if (b <= P.cursor) b = P.cursor + 1;
         const c0 = P.cursor, t0 = P.time;
-        scheduleRange(this.mix, song, c0, b, k => t0 + (k - c0) * spt, P.loop && c0 < le ? le : end, (this.metronome || c0 < 0) ? (t, acc) => click(this.mix, t, acc) : null);
-        P.time = t0 + (b - c0) * spt; P.cursor = b;
+        scheduleRange(this.mix, song, c0, b, k => t0 + at(k) - at(c0), P.loop && c0 < le ? le : end, (this.metronome || c0 < 0) ? (t, acc) => click(this.mix, t, acc) : null, P.fresh);
+        P.fresh = false; P.time = t0 + at(b) - at(c0); P.cursor = b;
         if (P.cursor >= stopAt) {
-          if (P.loop && stopAt === le) { P.cursor = ls; P.segs.push([P.time, ls]); if (P.segs.length > 16) P.segs.shift(); }
+          if (P.loop && stopAt === le) { P.cursor = ls; P.fresh = true; P.segs.push([P.time, ls]); if (P.segs.length > 16) P.segs.shift(); }
           else { const cb = P.onEnd, at = P.time; this.playing = false; clearInterval(this.timer); this.P = null;
             if (cb) setTimeout(cb, Math.max(0, (at - this.ctx.currentTime) * 1000)); return; }
         }
@@ -539,7 +588,7 @@ const Sampler = (() => {
       const P = this.P; if (!P || !this.song) return -1;
       const now = this.ctx.currentTime; let seg = P.segs[0];
       for (const s of P.segs) if (s[0] <= now) seg = s;
-      return seg[1] + (now - seg[0]) * this.song.bpm / 60 * PPQ;
+      return tickAt(this.song, secAt(this.song, seg[1]) + now - seg[0]);
     },
     // live notes (a MIDI keyboard, the studio's keys): noteOn returns the voice to give noteOff
     noteOn(ti, note, vel = 100, bend = 0) {
@@ -571,16 +620,16 @@ const Sampler = (() => {
     // render `seconds` of a song from tick `from` into an AudioBuffer (offline: exports and tests), looping like play()
     async render(song, { from = 0, seconds = null, sampleRate = 44100, loop = true } = {}) {
       song = check(song);
-      const spt = 60 / song.bpm / PPQ, end = songEnd(song);
-      const secs = seconds ?? (end - from) * spt + 2;
+      const end = songEnd(song), at = k => secAt(song, k);
+      const secs = seconds ?? at(end) - at(from) + 2;
       const ctx = new OfflineAudioContext(2, Math.ceil(secs * sampleRate), sampleRate), M = makeMix(ctx, ctx.destination);
       syncMix(M, song, false);
       const lp = song.loop, ls = lp.on ? lp.start : 0, le = lp.on ? lp.end : end;
       let cursor = from, time = 0;
       while (time < secs) {
         const stopAt = loop && cursor < le ? le : end, c0 = cursor, t0 = time;
-        scheduleRange(M, song, c0, stopAt, k => t0 + (k - c0) * spt, stopAt, null);
-        time += (stopAt - c0) * spt; cursor = stopAt;
+        scheduleRange(M, song, c0, stopAt, k => t0 + at(k) - at(c0), stopAt, null, true);
+        time += at(stopAt) - at(c0); cursor = stopAt;
         if (loop && stopAt === le && (le - ls) > 0) cursor = ls; else break;
       }
       return ctx.startRendering();

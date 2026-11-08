@@ -73,7 +73,9 @@
     </div>
     <div id="where" class="where" hidden></div>
     <canvas id="arr" class="arr" aria-label="Song overview: every track, the bar ruler and the loop"></canvas>
-    <div class="rollWrap"><canvas id="roll" class="roll" tabindex="0" aria-label="Piano roll of the selected track"></canvas></div>
+    <div class="rollWrap"><canvas id="roll" class="roll" tabindex="0" aria-label="Piano roll of the selected track"></canvas>
+      <select id="lane" class="lane" aria-label="What the lane under the notes shows" title="The lane under the notes: velocity, or a line that changes the track (or the tempo) over the song">
+        <option value="vel">VELOCITY</option><option value="volume">VOLUME</option><option value="pan">PAN</option><option value="filter">FILTER</option><option value="tempo">TEMPO</option></select></div>
     <p class="hint muted" id="hint">Click to add a note, drag it to move, drag its end to lengthen. Shift-drag selects. Right-click deletes.</p>
   </section>
   <aside class="strip" id="strip" aria-label="The selected track's sound and the master effects"></aside>
@@ -110,6 +112,8 @@
     <dt>wheel</dt><dd>scroll the notes (<kbd>Shift</kbd>: sideways, <kbd>Ctrl</kbd>: zoom)</dd>
     <dt>bar ruler</dt><dd>click: where play starts; drag: the loop</dd>
     <dt>velocity lane</dt><dd>drag up and down under a note to make it louder or softer</dd>
+    <dt>VOLUME, PAN, FILTER, TEMPO</dt><dd>the lane's menu: click to add a point, drag it, right-click deletes; the track (or the
+      whole song, for tempo) follows the line as it plays</dd>
     <dt>instrument ▸ Load a sample…</dt><dd>your own sound (WAV, MP3, OGG): set its note, loop and grit under SAMPLE</dd>
     <dt>WHERE IT PLAYS</dt><dd>the places in the game the song is for; play the level with the song inside the game</dd>
   </dl>

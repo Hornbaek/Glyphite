@@ -52,7 +52,8 @@
     "sustain": null,
     "fall": null,
     "release": null,
-    "vibrato": null
+    "vibrato": null,
+    "glide": 0
    },
    "eq": {
     "low": 0,
@@ -73,6 +74,11 @@
    "sends": {
     "echo": 0.45,
     "reverb": 0.35
+   },
+   "auto": {
+    "volume": [],
+    "pan": [],
+    "filter": []
    },
    "notes": [
     [0,138,69,100],
@@ -149,7 +155,8 @@
     "sustain": null,
     "fall": null,
     "release": null,
-    "vibrato": null
+    "vibrato": null,
+    "glide": 0
    },
    "eq": {
     "low": -4,
@@ -170,6 +177,11 @@
    "sends": {
     "echo": 0.25,
     "reverb": 0.3
+   },
+   "auto": {
+    "volume": [],
+    "pan": [],
+    "filter": []
    },
    "notes": [
     [0,22,50,80],
@@ -446,7 +458,8 @@
     "sustain": null,
     "fall": null,
     "release": null,
-    "vibrato": null
+    "vibrato": null,
+    "glide": 0
    },
    "eq": {
     "low": 0,
@@ -467,6 +480,11 @@
    "sends": {
     "echo": 0,
     "reverb": 0.5
+   },
+   "auto": {
+    "volume": [],
+    "pan": [],
+    "filter": []
    },
    "notes": [
     [0,380,62,64],
@@ -535,7 +553,8 @@
     "sustain": null,
     "fall": null,
     "release": null,
-    "vibrato": null
+    "vibrato": null,
+    "glide": 0
    },
    "eq": {
     "low": 0,
@@ -556,6 +575,11 @@
    "sends": {
     "echo": 0,
     "reverb": 0.08
+   },
+   "auto": {
+    "volume": [],
+    "pan": [],
+    "filter": []
    },
    "notes": [
     [0,136,38,108],
@@ -640,7 +664,8 @@
     "sustain": null,
     "fall": null,
     "release": null,
-    "vibrato": null
+    "vibrato": null,
+    "glide": 0
    },
    "eq": {
     "low": 0,
@@ -661,6 +686,11 @@
    "sends": {
     "echo": 0,
     "reverb": 0.15
+   },
+   "auto": {
+    "volume": [],
+    "pan": [],
+    "filter": []
    },
    "notes": [
     [0,24,36,112],
@@ -872,5 +902,6 @@
    ]
   }
  ],
+ "tempo": [],
  "samples": {}
 }

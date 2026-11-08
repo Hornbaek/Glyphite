@@ -17,7 +17,7 @@ const DRAFT = `pixelite.studio.draft.${GAME_ID || 'none'}`;   // one draft per p
 // ---------- state ----------
 const st = {
   song: null, meta: { id: null, updated_at: null, game: '' }, sel: 0, picked: new Set(), grid: 24, len: 96, start: 0,
-  dirty: false, undo: [], redo: [], pending: null, clip: null, rec: null, click: false, countIn: true, quant: true,
+  dirty: false, undo: [], redo: [], lane: 'vel', pending: null, clip: null, rec: null, click: false, countIn: true, quant: true,
   keys: false, octave: 4, view: { x: 0, zoom: .7, top: 84 }, live: new Map(), pedal: false, bend: 0, follow: true
 };
 let project = { id: '', title: '' };   // the game this studio is working for (from /games.json)
@@ -176,6 +176,7 @@ function renderStrip() {
       ctl('Fall', env('fall', 'sd'), v => { s.fall = v < .02 ? 0 : v; }, { min: 0, max: 8, step: .01, fmt: v => v ? `${v.toFixed(2)} s` : 'holds', title: 'How fast a held note fades (the SNES "sustain rate"); off: it holds' }),
       ctl('Release', env('release', 'r'), v => { s.release = v; }, { min: .005, max: 4, log: true, fmt: ms }),
       ctl('Vibrato', () => (s.vibrato ?? d.vib)[0], v => { s.vibrato = [v, (s.vibrato ?? d.vib)[1], (s.vibrato ?? d.vib)[2]]; }, { min: 0, max: 60, step: 1, fmt: v => `${v} ct` }),
+      ctl('Glide', () => s.glide, v => { s.glide = v < .01 ? 0 : v; }, { min: 0, max: 1, step: .01, fmt: v => v ? ms(v) : 'off', title: 'Above off the track plays one note at a time (a lead), sliding from the note still held to the next' }),
       ctl('Vib. speed', () => (s.vibrato ?? d.vib)[1], v => { s.vibrato = [(s.vibrato ?? d.vib)[0], v, (s.vibrato ?? d.vib)[2]]; }, { min: 1, max: 10, step: .1, fmt: v => `${v.toFixed(1)} Hz` }));
     const reset = document.createElement('button'); reset.className = 'btn small'; reset.textContent = '[ INSTRUMENT\'S OWN ]'; reset.title = 'Back to the instrument\'s own envelope and vibrato';
     reset.onclick = () => edit(() => { s.attack = s.decay = s.sustain = s.fall = s.release = s.vibrato = null; s.octave = 0; s.fine = 0; }, { rebuild: true });
@@ -295,7 +296,7 @@ A.cv.addEventListener('pointerdown', e => {
 });
 
 // ---------- the piano roll ----------
-const R = { cv: $('#roll'), KEYW: 54, RULER: 18, VEL: 54, RH: 12, w: 0, h: 0 };
+const R = { cv: $('#roll'), KEYW: 54, RULER: 18, VEL: 72, RH: 12, w: 0, h: 0 };
 const rows = () => Math.floor((R.h - R.RULER - R.VEL) / R.RH);
 const xOf = t => R.KEYW + (t - st.view.x) * st.view.zoom, tOf = x => st.view.x + (x - R.KEYW) / st.view.zoom;
 const yOf = n => R.RULER + (st.view.top - n) * R.RH, nOf = y => st.view.top - Math.floor((y - R.RULER) / R.RH);
@@ -351,9 +352,10 @@ function drawRoll() {
   for (const n of t.notes) drawNote(n, st.picked.has(n) ? '#78dcff' : col, st.picked.has(n) ? '#eef3f9' : null);
   if (st.rec && st.rec.track === st.sel) for (const n of st.rec.notes) drawNote([n.at, (n.len ?? Math.max(1, recTick() - n.at)), n.note, n.vel], '#ff6048');
   if (drag && drag.mode === 'box') { x.strokeStyle = '#eef3f9'; x.setLineDash([4, 3]); x.strokeRect(drag.bx, drag.by, drag.bw, drag.bh); x.setLineDash([]); }
-  // velocity lane
+  // the lane: velocity, or an automation line
   x.fillStyle = '#0b0f17'; x.fillRect(R.KEYW, gB, W, R.VEL); x.fillStyle = '#1d2634'; x.fillRect(R.KEYW, gB, W, 1);
-  for (const n of t.notes) { const X = xOf(n[0]); if (X < R.KEYW || X > W) continue; const h = (R.VEL - 8) * n[3] / 127; x.fillStyle = st.picked.has(n) ? '#78dcff' : col; x.fillRect(X, H - 3 - h, 3, h); }
+  if (st.lane === 'vel') for (const n of t.notes) { const X = xOf(n[0]); if (X < R.KEYW || X > W) continue; const h = (R.VEL - 8) * n[3] / 127; x.fillStyle = st.picked.has(n) ? '#78dcff' : col; x.fillRect(X, H - 3 - h, 3, h); }
+  else drawLane(x, W, gB, col);
   // keyboard
   for (let n = st.view.top; n > st.view.top - rows() - 1 && n >= 0; n--) {
     const y = yOf(n);
@@ -364,7 +366,7 @@ function drawRoll() {
     if (label) { x.fillStyle = kit ? '#cdd6e2' : '#05070c'; x.font = '9px JetBrains Mono, monospace'; x.textBaseline = 'middle'; x.fillText(label.slice(0, 9), 2, y + R.RH / 2); }
   }
   x.fillStyle = '#0b0f17'; x.fillRect(0, 0, R.KEYW, R.RULER); x.fillRect(0, gB, R.KEYW, R.VEL);
-  x.fillStyle = '#5d6b80'; x.font = '9px JetBrains Mono, monospace'; x.textBaseline = 'top'; x.fillText('VEL', 6, gB + 6);
+
   // playhead
   const p = S.playing ? recTick() : -1;
   if (p >= 0 && xOf(p) >= R.KEYW) { x.fillStyle = '#eef3f9'; x.fillRect(xOf(p), 0, 1.5, gB); }
@@ -378,7 +380,7 @@ R.cv.addEventListener('pointerdown', e => {
   R.cv.setPointerCapture(e.pointerId);
   if (py < R.RULER) { st.start = Math.max(0, snapAt(tOf(px), PPQ)); drawRoll(); drawArr(); showPos(); return; }
   if (px < R.KEYW) { const n = nOf(py); drag = { mode: 'key', audition: n, v: S.noteOn(st.sel, n, 100) }; drawRoll(); return; }
-  if (py >= gB) { drag = { mode: 'vel', before: snap(), changed: false }; velAt(px, py); return; }
+  if (py >= gB) { if (st.lane !== 'vel') return laneDown(px, py, e); drag = { mode: 'vel', before: snap(), changed: false }; velAt(px, py); return; }
   const tick = tOf(px), pitch = nOf(py), hit = noteAt(tick, pitch);
   if (e.button === 2) { if (hit) edit(() => { t.notes.splice(t.notes.indexOf(hit), 1); st.picked.delete(hit); }); return; }
   if (!hit && e.shiftKey) { drag = { mode: 'box', x0: px, y0: py, bx: px, by: py, bw: 0, bh: 0, add: new Set(st.picked) }; return; }
@@ -402,6 +404,7 @@ R.cv.addEventListener('pointermove', e => {
     R.cv.style.cursor = hit ? (px > xOf(hit[0] + hit[1]) - 6 ? 'ew-resize' : 'grab') : px < R.KEYW ? 'pointer' : 'crosshair'; return; }
   const r = R.cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top, tick = tOf(px);
   if (drag.mode === 'vel') return velAt(px, py);
+  if (drag.mode === 'lane') return laneMove(px, py);
   if (drag.mode === 'box') {
     Object.assign(drag, { bx: Math.min(drag.x0, px), by: Math.min(drag.y0, py), bw: Math.abs(px - drag.x0), bh: Math.abs(py - drag.y0) });
     const ta = tOf(drag.bx), tb = tOf(drag.bx + drag.bw), pa = nOf(drag.by + drag.bh), pb = nOf(drag.by);
@@ -424,6 +427,50 @@ R.cv.addEventListener('pointermove', e => {
   }
   drawRoll();
 });
+// ---------- automation lanes: a line the track (or, for tempo, the song) follows as it plays ----------
+// points are [tick, value]; the engine draws straight lines between them (tempo steps), and holds the first and last
+const LANES = {
+  volume: { lo: 0, hi: 1, pts: () => track().auto.volume, rest: () => 1, fmt: v => `${Math.round(v * 100)}%` },
+  pan: { lo: -1, hi: 1, pts: () => track().auto.pan, rest: () => track().pan, fmt: v => Math.abs(v) < .02 ? 'centre' : `${Math.round(Math.abs(v) * 100)}% ${v < 0 ? 'left' : 'right'}` },
+  filter: { lo: 0, hi: 1, pts: () => track().auto.filter, rest: () => Math.log(track().filter.freq / 40) / Math.log(400), fmt: v => hzs(S.filterHz(v)) },
+  tempo: { lo: 30, hi: 300, pts: () => st.song.tempo, rest: () => st.song.bpm, fmt: v => `${Math.round(v)} BPM`, step: true, from: 1 }
+};
+const laneY = (L, v, gB) => gB + 5 + (1 - (v - L.lo) / (L.hi - L.lo)) * (R.VEL - 10);
+const laneV = (L, py, gB) => { const v = L.lo + (1 - (py - gB - 5) / (R.VEL - 10)) * (L.hi - L.lo); return Math.max(L.lo, Math.min(L.hi, L.step ? Math.round(v) : Math.round(v * 100) / 100)); };
+const laneVal = (L, k) => L.step ? S.bpmAt(st.song, k) : S.laneAt(L.pts(), k) ?? L.rest();
+function drawLane(x, W, gB, col) {
+  const L = LANES[st.lane], pts = L.pts(), y = v => laneY(L, v, gB);
+  x.strokeStyle = pts.length ? col : '#5d6b80'; x.lineWidth = 1.5; x.setLineDash(pts.length ? [] : [4, 4]); x.beginPath();
+  let px = R.KEYW, pv = laneVal(L, tOf(R.KEYW)); x.moveTo(px, y(pv));
+  for (const [at, v] of pts) { const X = xOf(at); if (X <= R.KEYW) continue; if (X > W) break; if (L.step) x.lineTo(X, y(pv)); x.lineTo(X, y(v)); px = X; pv = v; }
+  x.lineTo(W, y(laneVal(L, tOf(W)))); x.stroke(); x.setLineDash([]);
+  for (const p of pts) { const X = xOf(p[0]); if (X < R.KEYW - 4 || X > W) continue; x.fillStyle = drag && drag.pt === p ? '#eef3f9' : col; x.fillRect(X - 3, y(p[1]) - 3, 7, 7); }
+  x.fillStyle = '#5d6b80'; x.font = '9px JetBrains Mono, monospace'; x.textBaseline = 'top';
+  const label = drag && drag.mode === 'lane' ? L.fmt(drag.pt[1]) : pts.length ? '' : `${L.fmt(L.rest())} all along: click to add a point`;
+  if (label) x.fillText(label, R.KEYW + 8, gB + 4);
+}
+function laneDown(px, py, e) {
+  const L = LANES[st.lane], pts = L.pts(), gB = R.h - R.VEL;
+  const hit = pts.find(p => Math.abs(xOf(p[0]) - px) < 6 && Math.abs(laneY(L, p[1], gB) - py) < 7);
+  if (e.button === 2) { if (hit) edit(() => { pts.splice(pts.indexOf(hit), 1); }); return; }
+  const before = snap();
+  let pt = hit;
+  if (!pt) {
+    const at = Math.max(L.from || 0, snapAt(tOf(px)));
+    pt = pts.find(p => p[0] === at) || (pts.push([at, laneVal(L, at)]), pts[pts.length - 1]);
+    pt[1] = laneV(L, py, gB); pts.sort((a, b) => a[0] - b[0]);
+  }
+  drag = { mode: 'lane', pt, pts, L, before, changed: !hit };
+  if (S.ctx) S.sync();
+  drawRoll();
+}
+function laneMove(px, py) {
+  const { pt, pts, L } = drag, gB = R.h - R.VEL, at = Math.max(L.from || 0, snapAt(tOf(px)));
+  const other = pts.find(p => p !== pt && p[0] === at);
+  if (!other) pt[0] = at;
+  pt[1] = laneV(L, py, gB); pts.sort((a, b) => a[0] - b[0]);
+  drag.changed = true; drawRoll();
+}
 function velAt(px, py) {
   const t = track(), v = Math.max(1, Math.min(127, Math.round((R.h - 3 - py) / (R.VEL - 8) * 127)));
   let near = t.notes.filter(n => Math.abs(xOf(n[0]) - px) < 5);
@@ -436,7 +483,7 @@ addEventListener('pointerup', () => {
   if (!drag) return;
   const d = drag; drag = null;
   if (d.v) S.noteOff(d.v);
-  if (d.mode === 'move' || d.mode === 'resize' || d.mode === 'vel') {
+  if (d.mode === 'move' || d.mode === 'resize' || d.mode === 'vel' || d.mode === 'lane') {
     if (d.changed) { if (d.before) { st.undo.push(d.before); st.redo = []; } if (d.mode === 'resize') st.len = [...d.orig.keys()][0]?.[1] || st.len; changed(); }
   }
   drawRoll();
@@ -921,6 +968,7 @@ $('#clickBtn').onclick = () => { st.click = !st.click; S.metronome = st.click; s
 $('#countBtn').onclick = () => { st.countIn = !st.countIn; syncTransport(); };
 $('#quantBtn').onclick = () => { st.quant = !st.quant; syncTransport(); };
 $('#keysBtn').onclick = () => { audio(); st.keys = !st.keys; syncTransport(); $('#keysBtn').textContent = st.keys ? `KEYS C${st.octave}` : 'KEYS'; };
+$('#lane').onchange = e => { st.lane = e.target.value; drawRoll(); R.cv.focus({ preventScroll: true }); };
 $('#grid').onchange = e => { st.grid = +e.target.value; st.len = Math.max(st.grid, st.len); drawRoll(); };
 $('#playBtn').onclick = play; $('#recBtn').onclick = record; $('#stopBtn').onclick = () => { if (S.playing) stopAll(); else { st.start = 0; showPos(); drawRoll(); drawArr(); } };
 $('#midiBtn').onclick = connectMidi;

@@ -416,6 +416,12 @@ writes them into the game's `songs.js` as `SONGS['<id>']`.
 - **Where it plays:** `song.places = { title, levels: [level indices], note }`, set in the studio's WHERE IT PLAYS.
   `tools/song.mjs` collects them into `SONG_AT` beside `SONGS` (`SONG_AT.title`, `SONG_AT.levels[i]`, `SONG_AT.other`): play
   `SONG_AT.levels[level]` when a level starts (Space Mouse: `stationMusic()` in `main.js`).
+- **Automation:** `track.auto = { volume, pan, filter }`, each a list of `[tick, value]` points (volume 0..1 on top of the fader,
+  pan -1..1 in place of the track's own, filter 0..1 = 40 Hz..16 kHz, which turns a track's filter on as a low-pass): straight
+  lines between points, level before the first and after the last. `song.tempo = [[tick, bpm], ...]`: tempo changes after the
+  start (the song's `bpm` holds until the first). `Sampler.secAt(song, tick)`, `tickAt(song, seconds)`, `bpmAt`, `laneAt`.
+- **Glide:** `track.sound.glide` (seconds, 0 = off): the track plays one note at a time, and a note that starts while the last
+  is still held slides to its pitch from that one (a lead line).
 - `Sampler.force(song | null)`: play this song and nothing else (the game's own `play` calls and the Chip keep quiet) until
   `force(null)`. A page embedding the game sends `{ type: 'pixelite:music', song }` for it: the studio's preview.
 

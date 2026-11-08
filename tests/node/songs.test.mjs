@@ -134,3 +134,16 @@ test('tools/song.mjs: SONG_AT says which song plays where; the first song (by id
     { id: 'c-jingle', song: song({ note: 'when you win' }) }]),
   { title: 'a-theme', levels: { 0: 'a-theme', 1: 'a-theme', 2: 'b-boss' }, other: ['c-jingle'] });
 });
+
+test('Sampler: tempo changes map ticks to seconds and back; lanes interpolate; check keeps them sane', () => {
+  const s = Sampler.check({ format: 'pixelite-song', bpm: 120, tempo: [[384, 60], [0, 90], [768, 999], ['x', 1]],
+    tracks: [{ auto: { volume: [[96, 2], [0, .5], [96, .25]], pan: [[0, -3]], filter: 'no' }, sound: { glide: 5 } }] });
+  assert.deepEqual(s.tempo, [[384, 60], [768, 300]], 'tick 0 is the song\'s bpm; bpm clamped');
+  assert.deepEqual(s.tracks[0].auto, { volume: [[0, .5], [96, .25]], pan: [[0, -1]], filter: [] }, 'one point per tick, the last given wins');
+  assert.equal(s.tracks[0].sound.glide, 2);
+  assert.equal(Sampler.secAt(s, 384), 2); assert.equal(Sampler.secAt(s, 480), 3); assert.equal(Sampler.secAt(s, -96), -.5, 'a count-in, at the opening tempo');
+  for (const k of [-48, 0, 200, 384, 500, 900]) assert.ok(Math.abs(Sampler.tickAt(s, Sampler.secAt(s, k)) - k) < 1e-9, `round trip at ${k}`);
+  assert.deepEqual([Sampler.bpmAt(s, 0), Sampler.bpmAt(s, 384), Sampler.bpmAt(s, 1000)], [120, 60, 300]);
+  const L = [[96, 0], [192, 1]];
+  assert.deepEqual([Sampler.laneAt(L, 0), Sampler.laneAt(L, 144), Sampler.laneAt(L, 500), Sampler.laneAt([], 5)], [0, .5, 1, null]);
+});

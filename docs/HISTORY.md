@@ -843,6 +843,24 @@ Engine 0.13.0.
 - **Verified:** build, unit tests, studio, lab and level editor tests, the smoke test of every game, Space Mouse's mechanics and
   reachability.
 
+## 38. Automation: tempo changes, volume, pan and filter lanes, glide (Claude Code, 2026-11-08)
+
+> "Proceed with what's next in the roadmap"
+
+The next item of the sound roadmap (the pixel-art list's open items wait on the owner: the domain redirect touches the
+sign-in, and offering the snapper patch upstream speaks for the owner). Engine 0.14.0.
+
+- **Tempo changes** (`song.tempo`): every tick ↔ second in the Sampler now goes through the tempo map (`secAt`, `tickAt`): the
+  scheduler, the playhead, note lengths, offline renders, the count-in.
+- **Lanes** (`track.auto`: volume, pan, filter): scheduled ahead with the notes as ramps between points, set afresh when the
+  playhead starts or wraps the loop. Volume rides on top of the fader; an automated pan or filter replaces the static one.
+- **Glide** (`sound.glide`): a mono lead; a note that starts while the last is held slides to its pitch.
+- **The studio:** the lane under the notes has a menu, VELOCITY, VOLUME, PAN, FILTER or TEMPO: click to add a point on the
+  grid, drag it, right-click deletes; undo takes them back like notes. Glide is under SOUND.
+- **Tests:** the tempo map and lanes in `Sampler.check`; `tests/studio.py`: a note after a tempo change starts at 3 s, a
+  volume lane fades a chord out, a glide slides 220 → 330 Hz, lane points added, dragged, deleted and undone in the studio.
+- Also fixed: a doubled heading in `docs/ROADMAP.md`.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |
