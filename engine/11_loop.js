@@ -65,6 +65,14 @@ window.addEventListener('message', e => {
   }
 });
 
+// The SOUND STUDIO previews a song inside the game: { type: 'pixelite:music', song } plays it instead of the game's own music
+// (Sampler.force), song: null gives the music back to the game.
+window.addEventListener('message', e => {
+  const d = e.data;
+  if (e.source !== window.parent || !d || d.type !== 'pixelite:music') return;
+  try { Sampler.force(d.song || null); } catch (err) { console.warn('pixelite:music', err); }
+});
+
 // ---------- camera ----------
 const _camT = [0, 0];
 function updateCamera(dt, snap) {

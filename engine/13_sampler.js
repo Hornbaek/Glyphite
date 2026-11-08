@@ -17,11 +17,12 @@ const Sampler = (() => {
   // Each block keeps a shift and one of four predictors; the encoder picks the pair with the least error, the decoder
   // adds 4-bit steps to the prediction. What comes back carries the console's quantisation hiss and grit.
   const BRR_F = [[0, 0], [15 / 16, 0], [61 / 32, -15 / 16], [115 / 64, -13 / 16]];
-  function brr(x, loop = false) {
-    const n = Math.ceil(x.length / 16) * 16, out = new Float32Array(n), blk = new Float32Array(16), best = new Float32Array(16);
+  // samples (-1..1) → BRR bytes: per block a header (shift << 4 | predictor << 2) and eight bytes of two 4-bit steps
+  function brrEncode(x) {
+    const nb = Math.ceil(x.length / 16), bytes = new Uint8Array(nb * 9), blk = new Float32Array(16), best = new Float32Array(16), nib = new Int8Array(16), bestNib = new Int8Array(16);
     let p1 = 0, p2 = 0;
-    for (let b = 0; b < n; b += 16) {
-      let bestErr = Infinity;
+    for (let bi = 0, b = 0; bi < nb; bi++, b += 16) {
+      let bestErr = Infinity, bestHead = 0;
       // (on the console the first block may not predict, which caps it near half volume; decoded once here, it may)
       for (let f = 0; f < 4; f++) {
         // only the shifts near the one this predictor's largest step needs (the rest lose anyway)
@@ -29,24 +30,42 @@ const Sampler = (() => {
         for (let k = 0; k < 16; k++) big = Math.max(big, Math.abs((x[b + k] || 0) - (c1 * (k ? x[b + k - 1] || 0 : p1 / 32767) + c2 * (k > 1 ? x[b + k - 2] || 0 : (k ? p1 : p2) / 32767))) * 32767);
         const need = cl(Math.ceil(Math.log2(big / 7 + 1e-9)) + 1, 0, 12);
         for (let sh = Math.max(0, need - 1); sh <= Math.min(12, need + 1); sh++) {
-        const step = Math.pow(2, sh - 1);
-        let q1 = p1, q2 = p2, err = 0;
-        for (let k = 0; k < 16 && err < bestErr; k++) {
-          const target = (x[b + k] || 0) * 32767, pred = q1 * c1 + q2 * c2;
-          const v = cl(Math.round((target - pred) / step), -8, 7), s = cl(pred + v * step, -32768, 32767);
-          err += (target - s) * (target - s); blk[k] = s; q2 = q1; q1 = s;
-        }
-        if (err < bestErr) { bestErr = err; best.set(blk); }
+          const step = Math.pow(2, sh - 1);
+          let q1 = p1, q2 = p2, err = 0;
+          for (let k = 0; k < 16 && err < bestErr; k++) {
+            const target = (x[b + k] || 0) * 32767, pred = q1 * c1 + q2 * c2;
+            const v = cl(Math.round((target - pred) / step), -8, 7), sv = cl(pred + v * step, -32768, 32767);
+            err += (target - sv) * (target - sv); blk[k] = sv; nib[k] = v; q2 = q1; q1 = sv;
+          }
+          if (err < bestErr) { bestErr = err; best.set(blk); bestNib.set(nib); bestHead = sh << 4 | f << 2; }
         }
       }
-      for (let k = 0; k < 16; k++) out[b + k] = best[k] / 32768;
+      bytes[bi * 9] = bestHead;
+      for (let k = 0; k < 8; k++) bytes[bi * 9 + 1 + k] = (bestNib[2 * k] & 15) << 4 | (bestNib[2 * k + 1] & 15);
       p1 = best[15]; p2 = best[14];
     }
-    // the DSP reads samples through a 4-point Gaussian kernel: a gentle low-pass (round the loop, if it loops)
-    const g = new Float32Array(n), at = i => loop ? out[(i + n) % n] : out[cl(i, 0, n - 1)];
+    return bytes;
+  }
+  // BRR bytes → samples, read through the DSP's 4-point Gaussian kernel: a gentle low-pass (round the loop, from loopAt on,
+  // for a sample that loops)
+  function brrDecode(bytes, loopAt = -1) {
+    const nb = Math.floor(bytes.length / 9), n = nb * 16, out = new Float32Array(n);
+    let p1 = 0, p2 = 0;
+    for (let bi = 0; bi < nb; bi++) {
+      const h = bytes[bi * 9], step = Math.pow(2, (h >> 4) - 1), [c1, c2] = BRR_F[(h >> 2) & 3];
+      for (let k = 0; k < 16; k++) {
+        const byte = bytes[bi * 9 + 1 + (k >> 1)], u = k & 1 ? byte & 15 : byte >> 4, v = u > 7 ? u - 16 : u;
+        const sv = cl(p1 * c1 + p2 * c2 + v * step, -32768, 32767);
+        out[bi * 16 + k] = sv / 32768; p2 = p1; p1 = sv;
+      }
+    }
+    const g = new Float32Array(n), at = i => i < 0 ? out[0] : i < n ? out[i] : loopAt >= 0 ? out[loopAt + (i - n) % (n - loopAt)] : out[n - 1];
     for (let i = 0; i < n; i++) g[i] = .16 * at(i - 1) + .68 * out[i] + .16 * at(i + 1);
     return g;
   }
+  const brr = (x, loop = false) => brrDecode(brrEncode(x), loop ? 0 : -1);
+  const toB64 = bytes => { let s = ''; for (let i = 0; i < bytes.length; i += 8192) s += String.fromCharCode(...bytes.subarray(i, i + 8192)); return btoa(s); };
+  const fromB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
   const peakTo = (a, p = .9) => { let m = 0; for (const v of a) m = Math.max(m, Math.abs(v)); if (m) for (let i = 0; i < a.length; i++) a[i] *= p / m; return a; };
 
   // ---------- instrument recipes ----------
@@ -162,9 +181,24 @@ const Sampler = (() => {
 
   // made on first use, then kept: one entry per instrument and sample rate (AudioBuffers work in any audio context)
   const made = new Map();
-  function instrument(id, rate) {
-    const key = id + '@' + rate;
+  // a song's own sample (song.samples[id]): what it is, so a changed sample makes a new instrument
+  const sampleOf = (id, song) => id.startsWith('sample:') && song && song.samples ? song.samples[id.slice(7)] : null;
+  const hashStr = s => { let h = 5381; for (let i = 0; i < s.length; i += 7) h = (Math.imul(h, 33) ^ s.charCodeAt(i)) >>> 0; return h.toString(36) + s.length; };
+  const keyOf = (id, rate, song) => { const sm = sampleOf(id, song); return sm ? `${id}:${hashStr(sm.brr)}:${sm.rate}:${sm.root}:${sm.loop}` : id + '@' + rate; };
+  const SAMPLE_ENV = { a: .002, d: .1, s: 1, sd: 0, r: .2 };
+  function instrument(id, rate, song) {
+    const key = keyOf(id, rate, song);
     if (made.has(key)) return made.get(key);
+    const sm = sampleOf(id, song);
+    if (sm) {   // one zone at the sample's own root; it loops from sm.loop to its end, or plays once
+      const data = brrDecode(fromB64(sm.brr), sm.loop), n = Math.min(data.length, Math.round(sm.rate * .3));
+      let e = 0; for (let i = 0; i < n; i++) e += data[i] * data[i];
+      const buffer = new AudioBuffer({ length: Math.max(16, data.length), sampleRate: sm.rate, numberOfChannels: 1 }); buffer.copyToChannel(data, 0);
+      const level = Math.min(4, .25 / Math.sqrt(e / n || 1));
+      const inst = { zones: [{ root: sm.root, loop: sm.loop >= 0, loopStart: Math.max(0, sm.loop) / sm.rate, buffer }], level, env: SAMPLE_ENV, vib: [0, 5, .3], gain: level };
+      made.set(key, inst);
+      return inst;
+    }
     const def = DEFS[id] || DEFS.piano, buf = z => { const b = new AudioBuffer({ length: z.data.length, sampleRate: z.rate, numberOfChannels: 1 }); b.copyToChannel(z.data, 0); return b; };
     let inst;
     if (id === 'kit') {
@@ -175,7 +209,7 @@ const Sampler = (() => {
     } else {
       const zs = ZONES.map(root => def[2](rate, root)), mid = zs[1].data, n = Math.min(mid.length, Math.round(zs[1].rate * .3));
       let e = 0; for (let i = 0; i < n; i++) e += mid[i] * mid[i];
-      inst = { zones: zs.map(z => ({ root: z.root, loop: z.loop, buffer: buf(z) })), level: Math.min(4, .25 / Math.sqrt(e / n || 1)) };   // as loud as each other
+      inst = { zones: zs.map(z => ({ root: z.root, loop: z.loop, loopStart: 0, buffer: buf(z) })), level: Math.min(4, .25 / Math.sqrt(e / n || 1)) };   // as loud as each other
     }
     inst.env = def[3]; inst.vib = def[4] || [0, 5, .3]; inst.gain = (def[5] || 1) * inst.level;
     made.set(key, inst);
@@ -203,11 +237,23 @@ const Sampler = (() => {
   function check(s) {
     if (!s || typeof s !== 'object' || s.format !== 'pixelite-song') throw new Error('not a Pixelite song');
     const out = merge({ format: 'pixelite-song', version: 1, title: 'Untitled', bpm: 120, beatsPerBar: 4, bars: 8, snes: false,
-      loop: { on: false, start: 0, end: 8 * 4 * PPQ }, master: MASTER(), tracks: [] }, { ...s, tracks: undefined });
+      loop: { on: false, start: 0, end: 8 * 4 * PPQ }, places: { title: false, levels: [], note: '' }, master: MASTER(), tracks: [] },
+      { ...s, tracks: undefined, samples: undefined });
+    // where in its game the song plays: the title screen, levels (by index in the game's level list), and a note for the rest
+    out.places.title = !!out.places.title; out.places.note = String(out.places.note).slice(0, 300);
+    out.places.levels = [...new Set((Array.isArray(out.places.levels) ? out.places.levels : []).filter(Number.isInteger).filter(l => l >= 0 && l < 100))].sort((a, b) => a - b);
+    // the song's own samples (loaded in the studio): BRR bytes in base64, the rate they are at, the note they sound, where they loop
+    out.samples = {};
+    for (const [id, sm] of Object.entries(s.samples && typeof s.samples === 'object' ? s.samples : {})) {
+      if (!/^[a-z0-9][a-z0-9-]{0,31}$/.test(id) || !sm || typeof sm.brr !== 'string' || !/^[A-Za-z0-9+/]*={0,2}$/.test(sm.brr) || !sm.brr.length) continue;
+      const len = Math.floor(sm.brr.length * 3 / 4 / 9) * 16;
+      out.samples[id] = { name: String(sm.name || id).slice(0, 40), rate: RATES.includes(sm.rate) ? sm.rate : 32000, root: cl(+sm.root || 60, 0, 127),
+        loop: Number.isInteger(sm.loop) && sm.loop >= 0 && sm.loop < len ? sm.loop - sm.loop % 16 : -1, brr: sm.brr };
+    }
     out.bpm = cl(+out.bpm || 120, 30, 300); out.beatsPerBar = cl(Math.round(out.beatsPerBar) || 4, 1, 12); out.bars = cl(Math.round(out.bars) || 8, 1, 512);
     out.tracks = (Array.isArray(s.tracks) ? s.tracks : []).slice(0, 32).map(t => {
       const tr = merge(TRACK(), t);
-      if (!DEFS[tr.instrument]) tr.instrument = 'piano';
+      if (!DEFS[tr.instrument] && !(tr.instrument.startsWith('sample:') && out.samples[tr.instrument.slice(7)])) tr.instrument = 'piano';
       if (!RATES.includes(tr.sound.rate)) tr.sound.rate = 32000;
       tr.notes = (Array.isArray(t.notes) ? t.notes : []).filter(n => Array.isArray(n) && n.length >= 4 && n.every(Number.isFinite))
         .map(([at, len, note, vel]) => [Math.max(0, Math.round(at)), Math.max(1, Math.round(len)), cl(Math.round(note), 0, 127), cl(Math.round(vel), 1, 127)])
@@ -323,15 +369,15 @@ const Sampler = (() => {
   // start a note at time t on track ti; dur in seconds, or null for a live note (let go later with releaseVoice)
   function startVoice(M, song, ti, note, vel, t, dur, bend = 0) {
     const tr = song.tracks[ti], S = M.strips[ti]; if (!tr || !S) return null;
-    const inst = instrument(tr.instrument, tr.sound.rate), c = M.ctx;
-    let buffer, rateMul, loop = false, choke = 0, kit = !!inst.kit;
+    const inst = instrument(tr.instrument, tr.sound.rate, song), c = M.ctx;
+    let buffer, rateMul, loop = false, loopStart = 0, choke = 0, kit = !!inst.kit;
     if (kit) {
       const k = inst.kit[note]; if (!k) return null;
       buffer = k.buffer; rateMul = k.pitch; choke = k.choke;
     } else {
       const n = note + 12 * tr.sound.octave + tr.sound.fine / 100;
       let z = inst.zones[0]; for (const q of inst.zones) if (Math.abs(q.root - n) < Math.abs(z.root - n) - .01) z = q;
-      buffer = z.buffer; rateMul = Math.pow(2, (n - z.root) / 12); loop = z.loop;
+      buffer = z.buffer; rateMul = Math.pow(2, (n - z.root) / 12); loop = z.loop; loopStart = z.loopStart;
     }
     // voice limit (8 with SNES limits): end the voice that matters least (one already let go, else the oldest), quickly
     const cap = song.snes ? 8 : MAX_VOICES;
@@ -347,7 +393,7 @@ const Sampler = (() => {
     const peak = Math.pow(vel / 127, 1.5) * inst.gain * 1.2;
     const src = c.createBufferSource(), gn = c.createGain();
     src.buffer = buffer; src.playbackRate.value = rateMul; src.detune.value = bend * 100;
-    if (loop) { src.loop = true; src.loopStart = 0; src.loopEnd = buffer.duration; }
+    if (loop) { src.loop = true; src.loopStart = loopStart; src.loopEnd = buffer.duration; }
     src.connect(gn); gn.connect(S.in);
     // the envelope: attack ramp, decay toward the sustain level, then (fall) toward silence while held; drums ignore note-offs
     const p = gn.gain, off = kit || dur == null ? Infinity : Math.max(.005, dur);
@@ -417,13 +463,13 @@ const Sampler = (() => {
   const E = {
     PPQ, INSTRUMENTS, KIT: Object.fromEntries(Object.entries(KIT).map(([n, k]) => [n, k[3]])), RATES, FIRS: Object.keys(FIR),
     ctx: null, out: null, mix: null, song: null, playing: false, metronome: false, pending: null, timer: 0, gain: null, vol: 1,
-    check, newSong, newTrack, songEnd, envAt, brr,
+    check, newSong, newTrack, songEnd, envAt, brr, brrEncode, brrDecode, toB64, fromB64, forced: null,
     // an instrument's own envelope and vibrato (what a track's sound settings left at null mean)
-    defaults: id => ({ env: { ...(DEFS[id] || DEFS.piano)[3] }, vib: [...((DEFS[id] || DEFS.piano)[4] || [0, 5, .3])] }),
+    defaults: id => id.startsWith('sample:') ? { env: { ...SAMPLE_ENV }, vib: [0, 5, .3] } : { env: { ...(DEFS[id] || DEFS.piano)[3] }, vib: [...((DEFS[id] || DEFS.piano)[4] || [0, 5, .3])] },
     // make a song's instruments now, one at a time between frames (making one takes ~0.1 s), so its first notes don't stall;
     // play() makes any that are missing on the spot
     async prepare(song) {
-      for (const tr of song.tracks) if (!made.has(tr.instrument + '@' + tr.sound.rate)) { instrument(tr.instrument, tr.sound.rate); await new Promise(r => setTimeout(r, 0)); }
+      for (const tr of song.tracks) if (!made.has(keyOf(tr.instrument, tr.sound.rate, song))) { instrument(tr.instrument, tr.sound.rate, song); await new Promise(r => setTimeout(r, 0)); }
     },
     init(ctx, dest) {
       if (this.ctx || !ctx) return;
@@ -440,15 +486,23 @@ const Sampler = (() => {
     sync() { if (this.mix && this.song) syncMix(this.mix, this.song); },
     // play from tick `from` (may be negative: a count-in); loops the song's loop region, or the whole song, unless loop: false
     play(song, { from = 0, loop = true, fadeIn = 0, onEnd = null } = {}) {
+      if (this.forced && song !== this.forced) return;   // a page previewing a song in this game has the say
       if (!this.ctx) { this.pending = [song, { from, loop, fadeIn, onEnd }]; return; }
       this.halt();
       this.use(song);
-      for (const tr of song.tracks) instrument(tr.instrument, tr.sound.rate);
+      for (const tr of song.tracks) instrument(tr.instrument, tr.sound.rate, song);
       const now = this.ctx.currentTime + .05, g = this.gain.gain;
       g.cancelScheduledValues(now); g.setValueAtTime(fadeIn ? 0 : this.vol, now); if (fadeIn) g.linearRampToValueAtTime(this.vol, now + fadeIn);
       this.P = { cursor: from, time: now, loop, onEnd, segs: [[now, from]] };
       this.playing = true;
       this.pump(); this.timer = setInterval(() => this.pump(), 25);
+    },
+    // play this song and nothing else (the game's own music stays quiet) until force(null): the SOUND STUDIO previewing a
+    // song inside the game; the Chip keeps quiet too
+    force(song) {
+      this.forced = song ? check(song) : null;
+      if (typeof Chip !== 'undefined' && Chip.playing) Chip.stop(.2);
+      if (this.forced) { this.pending = null; this.play(this.forced, { fadeIn: .3 }); } else this.stop(.3);
     },
     stop(fade = .15) {
       if (!this.playing) return;

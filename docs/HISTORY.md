@@ -818,6 +818,31 @@ the site. Engine 0.12.0.
 - **Verified:** build, unit tests, studio and lab tests, the smoke test of every game in both renderers, Space Mouse's mechanics
   and reachability, the level editor; Space Mouse's music starts on the first key, ducks when paused, and `Beat` follows it.
 
+## 37. Samples, projects and where a song plays (Claude Code, 2026-11-08)
+
+Engine 0.13.0.
+
+> "Yes, build the sampling functions next!" · "Each song belong to a project, so first we shall open a project (eg. space
+> mouse), then you open up a song. It should also be possible to know where the song is to be played in a good way. Perhaps
+> would it be in a place where you also can preview the level itself?"
+
+- **Your own samples.** Under a track's instrument, "+ Load a sample…" takes a WAV, MP3, OGG (anything the browser plays):
+  mixed to mono, started where it starts sounding, up to 6 s, resampled to 32 kHz (or 16, 11, 8: more grit), and stored in the
+  song as real SNES BRR bytes (`Sampler.brrEncode`, base64). The note it plays is heard (autocorrelation, to the cent) and can be
+  set by hand; LOOP holds a note by repeating its end (click the picture where the loop starts); length and grit make it again
+  from the sound as loaded. It travels in the song: saved to the site, and played by the game with nothing else to install.
+- **Projects.** The studio opens on a project picker: the listed games and Sketches. A project's page shows its own songs and
+  keeps its own draft; new songs are saved to it.
+- **WHERE IT PLAYS.** A tab beside the notes: tick the title screen and the levels (each with its map, from the game's own level
+  file) and write when exactly; it is saved in the song (`places`). ▶ HERE opens the game at that place, in the page, playing
+  this song instead of its own (`Sampler.force`, the `pixelite:music` message), so the music is heard with the level in view.
+  `tools/song.mjs` writes the places into `SONG_AT`, and Space Mouse plays each sector's own song (`stationMusic()`).
+- **Tests:** BRR bytes, samples and places in `Sampler.check`, `SONG_AT`; `tests/studio.py`: the project picker, a recorded tone
+  loaded (its note heard to within 12 cents, played an octave and a fifth up at the right pitch, looped, made grittier, saved),
+  places ticked and saved, the level opened in the game with the song playing there and given back.
+- **Verified:** build, unit tests, studio, lab and level editor tests, the smoke test of every game, Space Mouse's mechanics and
+  reachability.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

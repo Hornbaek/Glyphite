@@ -409,6 +409,15 @@ writes them into the game's `songs.js` as `SONGS['<id>']`.
 - Live notes (a MIDI keyboard): `Sampler.noteOn(track, note, vel)` returns a voice for `noteOff(voice)`, `bend(voice, semis)`.
 - `Sampler.render(song, { from, seconds, sampleRate, loop })` → an `AudioBuffer`, rendered offline (exports, tests).
 - `Sampler.check(song)` fills in a song's defaults and keeps only valid notes (`[tick, length, note, velocity]`).
+- **A song's own samples** (loaded in the studio): `song.samples[id] = { name, rate, root, loop, brr }`: real SNES BRR bytes in
+  base64 (`Sampler.brrEncode` / `brrDecode`, 9 bytes per 16 samples), the rate they are at, the note they sound (`root`, MIDI,
+  with cents), and the sample they loop from (-1: play once). A track plays one as `instrument: 'sample:<id>'`; it travels in
+  the song, so a game needs nothing else.
+- **Where it plays:** `song.places = { title, levels: [level indices], note }`, set in the studio's WHERE IT PLAYS.
+  `tools/song.mjs` collects them into `SONG_AT` beside `SONGS` (`SONG_AT.title`, `SONG_AT.levels[i]`, `SONG_AT.other`): play
+  `SONG_AT.levels[level]` when a level starts (Space Mouse: `stationMusic()` in `main.js`).
+- `Sampler.force(song | null)`: play this song and nothing else (the game's own `play` calls and the Chip keep quiet) until
+  `force(null)`. A page embedding the game sends `{ type: 'pixelite:music', song }` for it: the studio's preview.
 
 **Sound through air.** In a vacuum (`setAtmosphere(0)`, the default) every sound is heard at once at full volume, as if felt
 through the ground, exactly as before. With an atmosphere, `Sfx.heard(x, y)` says how a sound at that point (body

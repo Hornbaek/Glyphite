@@ -34,7 +34,9 @@ The owner found ASCII too dark and chose pixel art, keeping every mechanic:
 ## Sound: the SOUND STUDIO (HISTORY 36)
 
 Done: the engine's 16-bit Sampler, the studio at /studio/, songs saved on the site and played in Space Mouse. Next:
-- **Your own samples**: load a recording, set its root note and loop, BRR it into the song (kept in the song, so games get it).
+- ~~**Your own samples**~~ (HISTORY 37). Next: a loop end of its own, crossfaded loops, a microphone, several samples as one
+  multisampled instrument (a note range each).
+- ~~**Projects and places**~~ (HISTORY 37): next, music that changes inside a level (a place per area or event, not only per level).
 - **Automation**: volume, filter and pan changing over the song; tempo changes; a mono/glide mode for leads.
 - **Patterns**: SNES composers worked in short patterns; clips that repeat would make long songs quicker to write.
 - **MIDI files**: import a .mid into tracks; export the song as .mid.

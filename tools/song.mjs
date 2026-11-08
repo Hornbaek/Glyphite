@@ -20,13 +20,27 @@ export function songsOf(game) {
   if (!existsSync(dir)) return [];
   return readdirSync(dir).filter(f => f.endsWith('.song.json')).sort().map(f => ({ id: f.slice(0, -'.song.json'.length), file: join(dir, f), song: JSON.parse(readFileSync(join(dir, f), 'utf8')) }));
 }
+// where each song plays, from the places set in the studio's WHERE IT PLAYS tab: the title screen and levels (by index); the first
+// song (by id) that claims a place gets it, `other` lists songs placed only by a note
+export function songPlaces(songs) {
+  const at = { title: null, levels: {}, other: [] };
+  for (const { id, song } of songs) {
+    const p = Sampler.check(song).places;
+    if (p.title && !at.title) at.title = id;
+    for (const l of p.levels) at.levels[l] ??= id;
+    if (!p.title && !p.levels.length) at.other.push(id);
+  }
+  return at;
+}
 export function songsJs(game) {
   const songs = songsOf(game);
   return `// ===================== GAME · songs (made by tools/song.mjs from music/*.song.json: change those, then run it) =====================
-// Play one with Sampler.play(SONGS['<id>']) (engine/API.md, Sampler); the SOUND STUDIO (/studio/) made them.
+// Play one with Sampler.play(SONGS['<id>']) (engine/API.md, Sampler); the SOUND STUDIO (/studio/) made them. SONG_AT says where
+// each plays (the studio's WHERE IT PLAYS): SONG_AT.title, SONG_AT.levels[<level index>], SONG_AT.other (placed by a note only).
 const SONGS = {
 ${songs.map(s => `  ${JSON.stringify(s.id)}: ${JSON.stringify(Sampler.check(s.song))}`).join(',\n')}
 };
+const SONG_AT = ${JSON.stringify(songPlaces(songs))};
 `;
 }
 
@@ -40,5 +54,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   }
   writeFileSync(join(ROOT, 'games', game, 'songs.js'), songsJs(game));
   const m = JSON.parse(readFileSync(join(ROOT, 'games', game, 'game.json'), 'utf8'));
+  const at = songPlaces(songs);
+  for (const { id, song } of songs) { const p = Sampler.check(song).places; for (const l of p.levels) if (at.levels[l] !== id) console.warn(`level ${l}: ${id} and ${at.levels[l]} both claim it; ${at.levels[l]} plays`); }
   console.log(`wrote games/${game}/songs.js: ${songs.map(s => s.id).join(', ') || 'no songs'}${m.parts.includes('songs.js') ? '' : `\nadd "songs.js" to games/${game}/game.json's parts`}`);
 }

@@ -104,3 +104,33 @@ test('Space Mouse\'s Cargo Bay is a full song: every track has notes inside the 
     if (t.instrument === 'kit') assert.ok(Sampler.KIT[note], `${t.name}: no drum on note ${note}`);
   }
 });
+
+test('Sampler: BRR is real bytes (9 per 16 samples) that decode to what the encoder heard, and survive base64', () => {
+  const x = Float32Array.from({ length: 1000 }, (_, i) => Math.sin(i / 7) * .7), bytes = Sampler.brrEncode(x);
+  assert.equal(bytes.length, Math.ceil(1000 / 16) * 9);
+  assert.deepEqual(Array.from(Sampler.brrDecode(bytes)), Array.from(Sampler.brr(x)));
+  assert.deepEqual(Array.from(Sampler.fromB64(Sampler.toB64(bytes))), Array.from(bytes));
+  for (let b = 0; b < bytes.length; b += 9) assert.ok((bytes[b] >> 4) <= 12, 'a shift the console has');
+});
+
+test('Sampler.check keeps a song\'s own samples and places, and drops what is not one', () => {
+  const brr = Sampler.toB64(Sampler.brrEncode(new Float32Array(320).fill(.1)));
+  const s = Sampler.check({ format: 'pixelite-song', places: { title: true, levels: [2, 0, 2, -1, 'x', 200], note: 'boss' },
+    samples: { hum: { name: 'Hum', rate: 16000, root: 61.25, loop: 37, brr }, 'Bad id': { brr }, empty: { brr: '' }, junk: { brr: 'not base64!' } },
+    tracks: [{ instrument: 'sample:hum' }, { instrument: 'sample:gone' }] });
+  assert.deepEqual(s.places, { title: true, levels: [0, 2], note: 'boss' });
+  assert.deepEqual(Object.keys(s.samples), ['hum']);
+  assert.deepEqual([s.samples.hum.rate, s.samples.hum.root, s.samples.hum.loop], [16000, 61.25, 32], 'the loop starts on a block');
+  assert.deepEqual(s.tracks.map(t => t.instrument), ['sample:hum', 'piano']);
+  assert.deepEqual(Sampler.check(s), s, 'checking twice changes nothing');
+});
+
+test('tools/song.mjs: SONG_AT says which song plays where; the first song (by id) claiming a place has it', async () => {
+  const { songPlaces } = await import('../../tools/song.mjs');
+  const song = places => ({ format: 'pixelite-song', places, tracks: [] });
+  assert.deepEqual(songPlaces([
+    { id: 'a-theme', song: song({ title: true, levels: [0, 1] }) },
+    { id: 'b-boss', song: song({ levels: [1, 2] }) },
+    { id: 'c-jingle', song: song({ note: 'when you win' }) }]),
+  { title: 'a-theme', levels: { 0: 'a-theme', 1: 'a-theme', 2: 'b-boss' }, other: ['c-jingle'] });
+});

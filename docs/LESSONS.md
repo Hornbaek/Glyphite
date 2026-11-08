@@ -290,3 +290,8 @@ way.
   existing hook.
 - **Size a canvas from a ResizeObserver, not at start-up.** The piano roll measured its box before the overview above it took
   its height, and kept a third of the space.
+- **An engine global is not on `window`.** The parts declare `const Sampler` and friends at the top level of one script, which
+  makes them the page's globals but not properties of `window`: from a parent page use the frame's own scope
+  (`frame.evaluate('Sampler...')` in Playwright, `postMessage` from the studio), never `iframe.contentWindow.Sampler`.
+- **Encoder and decoder must do the same arithmetic.** The BRR encoder tracks the decoder's own predictions (the decoded
+  samples, not the input), so decoding its bytes gives exactly what it judged by; a test pins `brrDecode(brrEncode(x))`.

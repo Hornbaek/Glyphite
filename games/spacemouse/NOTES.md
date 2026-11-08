@@ -27,7 +27,9 @@ camera, hooks).
 
 **Music.** "Cargo Bay" (`music/cargo-bay.song.json`, made for the SOUND STUDIO's first version: 16 bars in D minor at 104
 BPM, flute, harp, strings, finger bass, drums) plays from the first key or tap, at the Music volume tunable, quieter while
-paused (`gameAfterFrame`). `songs.js` is generated: change the song file (or open it in the studio, save, and bring it back:
+paused. `stationMusic()` (`main.js`) plays the song set for the place (`SONG_AT`: the title screen, then each sector's own,
+else the title's) and switches only when the place changes; while the studio previews a song here it leaves the music alone.
+`songs.js` is generated: change the song file (or open it in the studio, save, and bring it back:
 CLAUDE.md, "Songs"), then `node tools/song.mjs spacemouse`. Ideas: a calmer piece for the spacewalk, drums that come in when a
 cat-bot gives chase (`Sampler.track`).
 
