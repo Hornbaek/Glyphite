@@ -2,6 +2,7 @@
 // (engine/13_sampler.js, loaded before this file), so a game plays a song exactly as it sounds here. Songs are plain data
 // (Sampler.check); they save to the site (worker/songs.js, D1) and a draft is kept in this browser as you work.
 import { findLevels, toPixels } from './levels-core.mjs';
+import { songFromMidi, midiFromSong } from './midi-core.mjs';
 const S = Sampler, PPQ = S.PPQ;
 const $ = q => document.querySelector(q);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -698,8 +699,22 @@ async function exportWav() {
   download(wav(buf), `${slug(st.song.title)}.wav`); showSaved();
 }
 function exportFile() { download(new Blob([JSON.stringify(st.song, null, 1)], { type: 'application/json' }), `${slug(st.song.title)}.song.json`); }
+const replaceOk = () => !st.dirty || confirm('Replace the song you are working on? Its unsaved changes will be lost ([ SAVE ] first, or cancel and use "Save as a copy").');
 async function importFile(f) {
-  try { load(JSON.parse(await f.text()), undefined, true); } catch (e) { alert(`That is not a song file: ${e.message}`); }
+  try { const s = JSON.parse(await f.text()); if (replaceOk()) load(s, undefined, true); } catch (e) { alert(`That is not a song file: ${e.message}`); }
+}
+// MIDI files (midi-core.mjs): the notes, instruments, tempo and loop; effects, automation and a song's own samples are not in one
+function exportMidi() {
+  const { bytes, warnings } = midiFromSong(st.song);
+  download(new Blob([bytes], { type: 'audio/midi' }), `${slug(st.song.title)}.mid`);
+  showSaved('MIDI file made'); if (warnings.length) alert(`The MIDI file is made. Left out of it:\n- ${warnings.join('\n- ')}`);
+}
+async function importMidi(f) {
+  let r;
+  try { r = songFromMidi(new Uint8Array(await f.arrayBuffer()), S, { name: f.name.replace(/\.midi?$/i, '') }); } catch (e) { alert(`That MIDI file cannot be opened: ${e.message}`); return; }
+  if (!replaceOk()) return;
+  load(r.song, undefined, true); showSaved(`MIDI file opened: ${r.info.tracks} tracks, ${r.info.notes} notes`);
+  if (r.warnings.length) alert(`The MIDI file is open. Notes on it:\n- ${r.warnings.join('\n- ')}`);
 }
 
 // the prompt that hands a saved song to a Claude session, to put it into a game
@@ -984,6 +999,8 @@ addEventListener('click', e => { if (!menu.hidden && !menu.contains(e.target)) c
 menu.addEventListener('click', e => { if (e.target.closest('button')) closeMenu(); });
 $('#wavBtn').onclick = exportWav; $('#exportBtn').onclick = exportFile; $('#promptBtn').onclick = promptDialog;
 $('#importFile').onchange = e => { closeMenu(); const f = e.target.files[0]; if (f) importFile(f); e.target.value = ''; };
+$('#midiExportBtn').onclick = exportMidi;
+$('#importMidi').onchange = e => { closeMenu(); const f = e.target.files[0]; if (f) importMidi(f); e.target.value = ''; };
 $('#dupSongBtn').onclick = () => save(true);
 $('#delSongBtn').onclick = async () => {
   if (!st.meta.id || !confirm(`Delete "${st.song.title}" from the site? (This page keeps it as an unsaved draft.)`)) return;

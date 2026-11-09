@@ -1006,6 +1006,33 @@ stays in the chat first.
   boots, belt and face come through. A prompt that asks the model for a grid of exactly the target size, with thicker thin parts for a character, was tried too: the model keeps drawing its own finer pixels, so the size is what helped.
 - `pip` (idle, walk1, walk2) is the second animation asset; style.json's `character` class is 28 to 32 px at k .25 and its paragraph says so. The game's own Pip is still the owner's sheet art; wiring `pipeFrames('pip')` in is next.
 
+## 51. MIDI files in the SOUND STUDIO (Claude Code, 2026-11-09)
+
+> "Please continue with the next functions of the sound studio."
+
+The next open items of the sound roadmap were Patterns (clips that repeat: a change to the song's data and to the whole piano roll, left for
+a design of its own), MIDI files, and the rest. MIDI files first: import and export.
+
+- **`portal/assets/midi-core.mjs`** (no DOM: the studio, the CLI and the tests share it): `songFromMidi` reads a Standard MIDI File (format 0
+  or 1, any beat division, running status, note-on at velocity 0, the sustain pedal, program changes) into a song: each channel becomes a
+  track, a General MIDI program becomes the nearest Sampler instrument (all 128 are mapped), channel 10 is the kit (drums the kit lacks
+  play the nearest it has), channel volume and pan become the track's, tempo changes and the first time signature become the song's, markers
+  named `loopStart` / `loopEnd` become the loop. `midiFromSong` writes a format 1 file at the Sampler's 96 ticks a beat, with the song's name,
+  tempo map, loop markers, and the exact instrument of each track in a text event, so a song written here and read back is the same
+  song (tracks with no notes too). Left out, and said so in the studio: automation lanes, effects, EQ and a song's own samples.
+  A file that is not MIDI, is timed in SMPTE frames, or has no notes is refused with a sentence; one that ends early gives what is in it;
+  more than 32 instruments or 512 bars are cut, and the studio says what was.
+- **The studio**: [ MORE ] has "Export MIDI file (.mid)" and "Open a MIDI file…" (a new, unsaved song). Opening a file, MIDI or song file,
+  now asks first when the song being worked on has unsaved changes (it used to replace it silently).
+- **`node tools/midi.mjs import|export`** does the same for a session: Regolith's four `.mid` files (played on the NES chip) can be turned into
+  Sampler songs to re-voice. `pixelite-song` mentions it.
+- **Tests** (`tests/node/midi.test.mjs`, 14): files built byte by byte (so the reader is not tested only against our writer), mangled files
+  (400 random mutations never crash or hang it), every General MIDI program and every instrument, both shipped songs through a file and
+  back with every note equal, the same files read by the engine's own reader (`parseMidi`, the NES chip's) for an independent check,
+  and Regolith's real files; breaking the reader five ways (pedal, overlap pairing, tick scaling, running status, an instrument family)
+  fails a test each time. `tests/studio.py`: the export, the same file opened as the same song, "cancel" keeping the work, a Regolith file
+  opened and played, a text file refused.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |
