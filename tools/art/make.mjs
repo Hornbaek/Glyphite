@@ -17,6 +17,7 @@ const MAX_REFS = 4;
 // picture is added when a map is given, and the mood picture only on request (scenes)
 const REFS_FOR = { character: ['hero', 'env'], prop: ['props', 'env'], tile: ['env'] };
 const ROLE_TEXT = { hero: 'the main character: its proportions, outline and shading', props: 'the objects of the game: their size, outline and shading',
+  draft: 'the draft to refine: keep its design, proportions, colours and pose, and redraw it cleaner and sharper as pixel art',
   env: 'the walls and floors: the surfaces and colours', mood: 'a stretch of the game with its light', seed: 'the place this will stand in: its colours and light' };
 const REF_BG = [40, 40, 48];
 
@@ -85,16 +86,23 @@ export async function snapToTarget(png, { target, palette, snap = realSnap, anch
 
 // Make `n` candidate versions of an asset. `generate` and `snap` can be replaced (the tests do); `log` receives progress lines.
 export async function make(game, id, o) {
-  const { root = ROOT, brief, n = 1, api = 'openai', model, quality, map = null, parent = null, note = '', mood = false, dry = false, keyed = false,
+  const { root = ROOT, n = 1, from = null, api = 'openai', model, quality, map = null, parent = null, note = '', mood = false, dry = false, keyed = false,
     maxCalls = null, asset: newAsset = null, generate = null, snap = realSnap, size = 1024, log = () => {} } = o;
-  if (!brief || !brief.trim()) throw new Error('a brief is needed: --brief "what to draw"');
   const style = loadStyle(game, root); if (!style || !style.styleParagraph) throw new Error(`games/${game}/art/style/style.json needs a styleParagraph`);
   const cur = loadAssets(game, root).find(a => a.id === id), asset = cur ? cur.asset : newAsset;
   if (!asset) throw new Error(`${id} is a new asset: give --class, --target WxH and --k (and --place, --char, --name)`);
-  if (parent && !(cur && cur.versions.some(v => v.n === parent))) throw new Error(`parent ${parent} does not exist`);
+  if (from && !(cur && cur.versions.some(v => v.n === from))) throw new Error(`version ${from} of ${id} does not exist`);
+  const parent_ = parent || from;
+  if (parent_ && !(cur && cur.versions.some(v => v.n === parent_))) throw new Error(`parent ${parent_} does not exist`);
   const pal = map ? (existsSync(join(artDir(game, root), 'maps', map, 'palette.json')) ? readJSON(join(artDir(game, root), 'maps', map, 'palette.json')).colors : null) : loadPalette(game, root);
   if (!pal || !pal.length) throw new Error(map ? `map ${map} has no palette (node tools/art.mjs map ${game} ${map} --seed ...)` : `${game} has no master palette (node tools/art.mjs palette ${game})`);
-  const refs = pickRefs(game, asset.class, { map, mood, root }), ad = adapter(api), mdl = model || ad.defaultModel;
+  // refining a draft: the parent's own picture goes first, so the final pass redraws it instead of starting again
+  // refining without a new brief keeps the draft's own
+  const brief = o.brief && o.brief.trim() ? o.brief : (from && cur ? cur.versions.find(v => v.n === from).meta.brief : '');
+  if (!brief || !brief.trim()) throw new Error('a brief is needed: --brief "what to draw"');
+  const base = from ? join(artDir(game, root), 'assets', id, from, 'raw.png') : null;
+  if (from && !existsSync(base)) throw new Error(`version ${from} of ${id} has no raw.png to refine`);
+  const refs = [...(base ? [{ file: base, role: 'draft' }] : []), ...pickRefs(game, asset.class, { map, mood, root })].slice(0, MAX_REFS), ad = adapter(api), mdl = model || ad.defaultModel;
   const ctx = { style, cls: asset.class, brief, target: asset.target, palette: pal, refs, mapNotes: map ? mapNotesOf(game, map, root) : '', note };
   const done = [];
   let calls = 0, fresh = !cur, useKey = keyed || api === 'flux';
@@ -122,14 +130,14 @@ export async function make(game, id, o) {
       log(`candidate ${i + 1}: ${e.message} (the model's picture is kept in ${keep})`); done.push({ ok: false, error: e.message, raw: keep }); continue;
     }
     const v = writeVersion(game, id, { sprite: fit.png, raw: res.png, root, asset: fresh ? newAsset : null, meta: {
-      kind: 'generated', parent, brief, prompt, map: map || undefined, note,
+      kind: 'generated', parent: parent_, brief, prompt, map: map || undefined, note,
       refs: refs.map(r => ({ path: r.file.slice(artDir(game, root).length + 1), role: r.role })),
-      api: { provider: ad.name, model: res.model || mdl, params: res.params || {}, requestId: res.requestId || null },
+      api: { provider: ad.name, model: res.model || mdl, params: res.params || {}, requestId: res.requestId || null, usage: res.usage || null },
       snap: { pixelSize: fit.pixelSize, tries: fit.tries, size: fit.size, palette: map ? `map ${map}` : 'master', colors: pal.length },
       target: { class: asset.class, w: asset.target.w, h: asset.target.h } } });
     fresh = false;
     const dir = join('games', game, 'art', 'assets', id, v);
-    log(`candidate ${i + 1}: ${id}/${v}, ${asset.target.w} x ${asset.target.h}${fit.exact ? '' : ' (padded)'}, snapped at pixel size ${fit.pixelSize} in ${fit.tries} ${fit.tries === 1 ? 'try' : 'tries'}: ${dir}/preview.png`);
+    log(`candidate ${i + 1}: ${id}/${v}, ${asset.target.w} x ${asset.target.h}${fit.exact ? '' : ' (padded)'}, snapped at pixel size ${fit.pixelSize} in ${fit.tries} ${fit.tries === 1 ? 'try' : 'tries'}${res.usage ? `, ${res.usage.input_tokens} in / ${res.usage.output_tokens} out tokens` : ''}: ${dir}/preview.png`);
     done.push({ ok: true, version: v, dir: join(artDir(game, root), 'assets', id, v) });
   }
   return done;

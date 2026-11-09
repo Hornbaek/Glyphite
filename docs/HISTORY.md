@@ -969,6 +969,14 @@ stays in the chat first.
   snapped is kept in the temp folder; OpenAI answers with a 502 now and then, so the adapter asks once more.
 - Space Mouse's "tiles to stand on" in Hydroponics went from 192 to 191 because the decor random numbers shift when a prop is added to the first sector; nothing is unreachable.
 
+## 46. Pip's ship goes live, and cheaper generation
+
+- **Pip's ship** (`pip-ship`, 32 x 18): the owner chose draft 003 "for now"; it is live and in the LEVELS tab's palette as `u` (not painted on a map yet: the owner places it).
+- **`make --from <NNN>`** refines a draft: its picture is the first reference and its brief is kept; `--quality low|medium|high`; every call records its tokens
+  (`meta.api.usage`) and prints them. Measured: low is 824 output tokens against 1449 for medium, flare is three times faster than sunburst, mini is too weak, 1024 x 1024 is the
+  smallest size, and the Images API shows no prompt caching (docs/ART_PIPELINE.md, "Spending less").
+- Ship draft 004 is flare at high quality refining 003 (a little cleaner); it stays a draft.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

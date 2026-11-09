@@ -107,10 +107,10 @@ test('an imported asset is not emitted: the game still has it from its own sprit
 // the real game
 test('Space Mouse: its art/ folder is valid, pipeline.js is what the build makes, and the crate is a prop in the game', () => {
   assert.deepEqual(validate('spacemouse', { pipeline: buildText('spacemouse') }), []);
-  const live = liveItems('spacemouse'); assert.deepEqual(live.map(i => i.id).sort(), ['cheese-crate', 'fuel-barrel']);
+  const live = liveItems('spacemouse'); assert.deepEqual(live.map(i => i.id).sort(), ['cheese-crate', 'fuel-barrel', 'pip-ship']);
   for (const it of live) {
     assert.ok(readFileSync(join(ROOT, 'games/spacemouse/decor.js'), 'utf8').includes(it.asset.char), `${it.id}: its map character is in the list of open tiles`);
-    assert.ok(readFileSync(join(ROOT, 'games/spacemouse/sectors.js'), 'utf8').includes(it.asset.char), `${it.id}: and it is on a map`);
+    if (it.id !== 'pip-ship') assert.ok(readFileSync(join(ROOT, 'games/spacemouse/sectors.js'), 'utf8').includes(it.asset.char), `${it.id}: and it is on a map`);   // the ship is in the editor's palette, not on a map yet
   }
   const crate = live.find(i => i.id === 'cheese-crate'); assert.deepEqual([crate.spr.w, crate.spr.h, crate.asset.k], [12, 11, .5], 'one art pixel is one world pixel at the default detail');
   const game = JSON.parse(readFileSync(join(ROOT, 'games/spacemouse/game.json'), 'utf8'));

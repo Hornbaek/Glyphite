@@ -110,6 +110,27 @@ Space Mouse's: 32 colours from its 240, four references captured from the game, 
    the sheet in the chat (or in the gallery), then `promote`, `reject`, or another round with `--parent` and `--note`.
 `--max-calls` (default n + 1) caps the calls of one run. A call costs real money, so a run is three candidates, not thirty.
 
+### Spending less (measured November 2026, the Space Mouse prop prompt with three references)
+Tokens per call, from the API's own `usage` (recorded on every version in `meta.api.usage` and printed by `make`):
+
+| Model, quality (1024 x 1024) | input | output (image) | seconds |
+|---|---|---|---|
+| `gpt-image-2.6-sunburst`, low | 1703 | 824 | 21 |
+| `gpt-image-2.6-sunburst`, medium | 1703 | 1449 | 28 |
+| `gpt-image-2.6-flare`, low | 1742 | 824 | 7 |
+| `gpt-image-2.6-flare`, high, refining a draft | 2827 | 1758 | 10 |
+| `gpt-image-1-mini`, low | 1311 | 272 | 10 |
+
+- **Draft cheap, finish once.** Make candidates at `--quality low` (`--n 3`), look at them, then refine the winner once with `--from <NNN> --quality high`: the draft's own
+  picture goes first as the reference ("redraw this cleaner"), and its brief is kept. That is three low calls plus one high, instead of three mediums or highs.
+- **Flare is the fast one**: the same token counts as sunburst, a third of the time, and it did not hit the gateway timeouts that sunburst medium and high did (a slow call
+  gets a 502 from the upstream; `make` asks once more). Its price per token is on the OpenAI pricing page, not in the API.
+- **The cheap model is too cheap.** `gpt-image-1-mini` costs a third of the output tokens but drew a fragmented, outline-less ship (not usable as a draft).
+- **Size cannot go down**: 1024 x 1024 is the smallest the newer models accept (512, 640 and 768 are refused: "below the current minimum pixel budget").
+- **References cost input tokens**, about 400 each (the draft about 1100): fewer references (`--mood` off, no map) are cheaper, and input tokens are priced below output.
+- **Caching**: two identical calls 20 seconds apart both reported 1703 input tokens and no `cached_tokens` field: the Images API did not show any prompt caching. The
+  "cached input" price on the pricing page belongs to the Responses API; using it would mean calling the image tool through that API. Not done.
+
 ### Keys
 The keys are **network secrets** of the cloud environment, so a key is never in the repository, a script or the chat: the session's network proxy adds it to
 requests for the secret's host, and the tools send a placeholder. In the Claude Code cloud environment menu (Edit, Network secrets):
