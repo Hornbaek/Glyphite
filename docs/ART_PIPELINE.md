@@ -14,8 +14,8 @@ Pipeline: Design Summary"); HISTORY 41 says what is built and what is not.
 | Master palette curated from a game's sprites (weighted by pixels, real colours only), `recolor` | yes | `tools/art.mjs palette`, `recolor`, `tools/art/palette.mjs` |
 | Gallery on the site: tiles, versions, compare, tree | yes | ART page, GALLERY tab (`portal/assets/gallery.js`) |
 | Style sheet (paragraph + hero, props, env, mood references), map seeds and sub-palettes, `promote-ref` | yes | `art/style`, `art/maps`, `tools/art.mjs map`, `promote-ref`, `tools/art_capture.py` |
-| Image API adapter (OpenAI, Flux) and the `make` loop | planned (phase 4, needs keys) | `tools/art/gen/` |
-| The skill that runs the loop | planned (phase 5) | `.claude/skills/pixelite-art-pipeline/` |
+| Image API adapters (OpenAI, Flux), the `make` loop, `check-keys` | yes (OpenAI tried for real; Flux needs its region host allowed) | `tools/art/gen/`, `tools/art/make.mjs` |
+| The skill that runs the loop | yes | `.claude/skills/pixelite-art-pipeline/` |
 
 ## Folder per game: `games/<id>/art/`
 It is separate from `ref/`, which holds the owner's own images and keeps its strict rule (`tests/node/ref.test.mjs`).
@@ -62,6 +62,10 @@ node tools/art.mjs map <game> <map> --seed seed.png [--colors 14]   # maps/<map>
 node tools/art.mjs promote-ref <game> <asset> <NNN> --role hero|props|env|mood [--replace refs/props.png]   # an approved version becomes a style reference
 python3 tools/art_capture.py <game> --out f.png [--crop x,y,w,h] [--steps N --keys A,B --level N]   # a picture of the running game, one pixel per cell (a seed, a mood reference)
 python3 tools/art_capture.py <game> --out s.png --sprite "MOUSE_SPR.idle"   # or sprites from the game's own code, unlit, on transparent
+node tools/art.mjs make <game> <asset> --brief "..." [--n 3] [--map m] [--parent 002 --note "what to change"] [--api openai|flux] [--model m] [--quality low|medium|high] [--mood] [--key] [--max-calls N] [--dry]
+     [--class prop --target 10x14 --k .5 --place floor --char j --name "Fuel barrel"]    # generate draft versions through an image API
+node tools/art.mjs check-keys [--api openai|flux]   # one free call per API: does its key work
+node tools/art.mjs models openai                    # the image models the key can use
 node tools/art.mjs add <game> <asset> --sprite in.png [--raw raw.png] [--kind hand|generated] [--parent 002] [--note "..."]
      [--class prop --target 12x11 --k .5 --place floor --char j --name "Cheese crate"]    # a new version (a new asset needs these)
 node tools/art.mjs promote <game> <asset> <NNN> # approve it and make it live
@@ -88,6 +92,33 @@ node tools/art.mjs import-sprites <game> --const PROP_ART --class prop --frames 
 - Imported versions keep their original colours and are exempt from the palette check; a hand-made or generated version must fit,
   and `recolor` brings one in (the nearest colour in Lab, noted in `meta.snap.recolored`).
 Space Mouse's: 32 colours from its 240, four references captured from the game, and `maps/cargo-bay/` with 14 colours.
+
+## Making art with an API (`make`)
+`node tools/art.mjs make <game> <asset> --brief "..."` does, for each of `--n` candidates:
+1. **Prompt and references** (`tools/art/make.mjs`): the style paragraph, the brief, the target size, the palette (the map's sub-palette with
+   `--map`, else the master), the map's notes, and for an iteration the owner's note. References by class (character: hero + env; prop: props + env;
+   tile: env; plus the map's seed; `--mood` adds the mood picture; at most four), each shown to the model as big flat blocks on a dark grey ground.
+   `--dry` prints the prompt and the references and calls nothing.
+2. **The call** (`tools/art/gen/`): OpenAI's images edit endpoint with all references, the model `gpt-image-2.6-sunburst` by default (the newest one
+   the owner's account lists that accepts a transparent background; `gpt-image-2` does not), 1024 x 1024. Flux 3 Image (`--api flux`) has no
+   transparency, so the prompt asks for a flat `#FF00FF` background that `make` removes by flood fill from the edges; `make` falls back to that by itself
+   when an OpenAI model refuses transparency. Provider, model, parameters and request id go into `meta.json`.
+3. **Snap** (`snapToTarget`): trim to the subject; pixel size = subject size ÷ target size; the Pixel Snapper with that size and the palette; if the result is
+   not within a pixel of the target, correct the size and snap again (four tries); pad to exactly the target (resting on the bottom for a floor prop); every
+   colour moved onto the palette. If it cannot reach the target the candidate is reported and nothing is written.
+4. **A draft version** with `sprite.png`, `normals.png`, `preview.png` (the contact sheet), `raw.png` and the full `meta.json`. Nothing goes live: the owner looks at
+   the sheet in the chat (or in the gallery), then `promote`, `reject`, or another round with `--parent` and `--note`.
+`--max-calls` (default n + 1) caps the calls of one run. A call costs real money, so a run is three candidates, not thirty.
+
+### Keys
+The keys are **network secrets** of the cloud environment, so a key is never in the repository, a script or the chat: the session's network proxy adds it to
+requests for the secret's host, and the tools send a placeholder. In the Claude Code cloud environment menu (Edit, Network secrets):
+- `api.openai.com`: header `Authorization`, prefix `Bearer`, the OpenAI key.
+- `api.bfl.ai`: header `x-key`, no prefix, the Flux key. Flux runs a job in a region and answers with a polling URL on `api.<region>.bfl.ai` (the first
+  test went to `api.isr.bfl.ai`), which needs the key too: save the same key for that host, and the download host is an unauthenticated signed URL that must
+  only be allowed. Until then `make --api flux` stops at polling with a proxy 403, naming the host.
+Start a **new session** after changing them. Outside the cloud, set `OPENAI_API_KEY` / `BFL_API_KEY` in the environment. `node tools/art.mjs check-keys` makes one free
+call per API. Node's fetch ignores the proxy unless `NODE_USE_ENV_PROXY=1`, so `make`, `check-keys` and `models` start themselves again with it on.
 
 ## The gallery (ART page, GALLERY tab)
 `/art/?game=<id>&tab=gallery`, behind the login. The build (`copyArt` in `tools/pixelite.mjs`) checks the folder with the same rules as

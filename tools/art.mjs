@@ -8,6 +8,11 @@
 //   node tools/art.mjs recolor <game> <asset> <NNN> [--map m]   put a version's colours on the nearest ones of the master (or the map's) palette
 //   node tools/art.mjs map <game> <map> --seed seed.png [--colors 14]   a map's seed piece, and its sub-palette (inside the master)
 //   node tools/art.mjs promote-ref <game> <asset> <NNN> --role props [--replace refs/props.png]   an approved version becomes a style reference
+//   node tools/art.mjs make <game> <asset> --brief "..." [--n 3] [--map m] [--parent 002] [--api openai|flux] [--model m] [--quality q]
+//        [--note "what to change"] [--mood] [--key] [--max-calls N] [--dry]   [--class prop --target 12x11 --k .5 --place floor --char j --name ".."]
+//                                                           generate candidates through an image API: drafts with a contact sheet each
+//   node tools/art.mjs check-keys [--api openai|flux]       one free call per API: does its key work
+//   node tools/art.mjs models [openai]                      the image models the account can use
 //   node tools/art.mjs add <game> <asset> --sprite in.png [--raw raw.png] [--kind hand|generated|imported] [--parent 002]
 //        [--note "..."] [--map cargo-bay] [--class prop --target 12x11 --k .5 --place floor --char j --name "Cheese crate"]
 //                                                           a new version (a new asset needs class, target and k): draft
@@ -23,11 +28,12 @@ import { fileURLToPath } from 'node:url';
 import { ROOT, artDir, readJSON, writeJSON, toHex, fromHex, lum, loadAssets, loadStyle, loadPalette, nextVersion, validate, ID_RE, REF_ROLES } from './art/lib.mjs';
 import { spriteFromPNG, pngFromSprite, normalRows, normalsPNG, contactSheet, pipelineJs } from './art/sprite.mjs';
 import { decodePNG, encodePNG } from './png.mjs';
+import { writeVersion, NORMAL_OPTS } from './art/store.mjs';
+export { writeVersion };
 import { curate, nearest, histogram, hexOf, rgbOf } from './art/palette.mjs';
 
 const die = m => { console.error(`error: ${m}`); process.exit(1); };
 const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-const NORMAL_OPTS = { bevel: 3, detail: .8, strength: 2.5 };   // the generator's defaults (tools/normalmap.mjs)
 
 // a game's live, emitted assets as sprites (what pipeline.js holds)
 export function liveItems(game, root = ROOT) {
@@ -41,23 +47,6 @@ export function liveItems(game, root = ROOT) {
   return items;
 }
 export const buildText = (game, root = ROOT) => pipelineJs(game, liveItems(game, root));
-
-// the files of one version: sprite.png in, normals.png and preview.png made (raw.png kept if given)
-export function writeVersion(game, id, { sprite, raw = null, meta, asset = null, root = ROOT }) {
-  const adir = join(artDir(game, root), 'assets', id);
-  mkdirSync(adir, { recursive: true });
-  if (asset) writeJSON(join(adir, 'asset.json'), asset);
-  const cur = loadAssets(game, root).find(a => a.id === id), n = meta.version || (cur ? nextVersion(cur) : '001');
-  const vdir = join(adir, n); mkdirSync(vdir, { recursive: true });
-  const spr = spriteFromPNG(sprite), normals = normalRows(spr, meta.normals || NORMAL_OPTS);
-  writeFileSync(join(vdir, 'sprite.png'), sprite);
-  writeFileSync(join(vdir, 'normals.png'), normalsPNG(spr, normals));
-  if (raw) writeFileSync(join(vdir, 'raw.png'), raw);
-  writeFileSync(join(vdir, 'preview.png'), contactSheet(spr, normals, { raw: raw ? decodePNG(raw) : null }));
-  writeJSON(join(vdir, 'meta.json'), { version: n, parent: null, status: 'draft', kind: 'hand', brief: '', prompt: '', refs: [], api: null, source: null,
-    snap: null, normals: NORMAL_OPTS, target: null, note: '', created: new Date().toISOString(), by: 'claude-session', ...meta, version: n });
-  return n;
-}
 
 // the colours a game's generated sprite file uses, hex → how many pixels use each: every sprite with `rows` and a palette (its own
 // `pal`, or the NAME_PAL beside a NAME_FRAMES group)
@@ -80,9 +69,9 @@ export function paletteOf(file, { weighted = false } = {}) {
   return [...cols.keys()].sort((a, b) => lum(rgbOf(a)) - lum(rgbOf(b)) || a.localeCompare(b));
 }
 
-function main(argv) {
+async function main(argv) {
   const [cmd, ...rest] = argv, pos = [], o = {};
-  for (let i = 0; i < rest.length; i++) { const a = rest[i]; if (a === '--check') o.check = true; else if (a.startsWith('--')) o[a.slice(2)] = rest[++i]; else pos.push(a); }
+  for (let i = 0; i < rest.length; i++) { const a = rest[i]; if (a === '--check' || a === '--dry' || a === '--mood' || a === '--key') o[a.slice(2)] = true; else if (a.startsWith('--')) o[a.slice(2)] = rest[++i]; else pos.push(a); }
   const game = pos[0];
   const need = () => { if (!game || !existsSync(join(ROOT, 'games', game, 'game.json'))) die(`give a game id (games/<id>/game.json), e.g. spacemouse`); };
   if (cmd === 'init') {
@@ -142,6 +131,38 @@ function main(argv) {
     else st.refs.push({ file, role: o.role, from: `assets/${id}/${n}` });
     writeJSON(sp, st); console.log(`style/${file}: ${o.role}${o.replace ? ' (replaces ' + o.replace + '; the old picture stays in git history)' : ''}`); return;
   }
+  if (cmd === 'make' || cmd === 'check-keys' || cmd === 'models') {
+    // Node's fetch only uses the agent proxy when asked: start again with it on (which is also what supplies the saved keys)
+    const gen = await import('./art/gen/index.mjs');
+    if (gen.needsProxyRestart()) {
+      const { spawnSync } = await import('node:child_process');
+      process.exit(spawnSync(process.execPath, process.argv.slice(1), { stdio: 'inherit', env: { ...process.env, NODE_USE_ENV_PROXY: '1', NODE_NO_WARNINGS: '1' } }).status ?? 1);
+    }
+    if (cmd === 'check-keys') {
+      let bad = 0;
+      for (const [name, a] of Object.entries(gen.adapters)) {
+        if (o.api && o.api !== name) continue;
+        const hint = gen.keyHint(name); if (hint) { console.log(`${name}: ${hint}`); bad++; continue; }
+        try { const r = await a.checkKey({ model: o.model }); console.log(`${r.ok ? 'OK  ' : 'FAIL'} ${name}: ${r.detail}`); if (!r.ok) bad++; } catch (e) { console.log(`FAIL ${name}: ${e.message}`); bad++; }
+      }
+      process.exit(bad ? 1 : 0);
+    }
+    if (cmd === 'models') { console.log((await gen.adapter(game || 'openai').listModels()).join('\n')); return; }
+    need(); const id = pos[1], api = o.api || (loadStyle(game) || {}).gen?.api || 'openai';
+    if (!id || !ID_RE.test(id)) die('give an asset id (a-z, 0-9, dashes)');
+    if (!o.dry) { const hint = gen.keyHint(api); if (hint) die(hint); }
+    let newAsset = null;
+    if (!loadAssets(game).some(a => a.id === id)) {
+      if (!o.class || !o.target || !o.k) die('a new asset needs --class, --target WxH and --k (base units per sprite pixel)');
+      const [w, h] = o.target.split('x').map(Number);
+      newAsset = { id, name: o.name || id, class: o.class, target: { w, h }, k: +o.k, place: o.place || 'floor', char: o.char || null, live: null };
+    }
+    const { make } = await import('./art/make.mjs'), st = loadStyle(game) || {};
+    const res = await make(game, id, { brief: o.brief, n: +(o.n || 1), api, model: o.model || (st.gen && st.gen.model), quality: o.quality || (st.gen && st.gen.quality), map: o.map || null, parent: o.parent || null,
+      note: o.note || '', mood: !!o.mood, dry: !!o.dry, keyed: !!o.key, maxCalls: o['max-calls'] ? +o['max-calls'] : +(o.n || 1) + 1, asset: newAsset, log: m => console.log(m) });
+    const ok = res.filter(r => r.ok); if (!o.dry) console.log(`${ok.length} of ${res.length} candidate(s) made as drafts. Look at each preview.png, then: node tools/art.mjs promote ${game} ${id} <NNN>  (or reject)`);
+    process.exit(!o.dry && !ok.length ? 1 : 0);
+  }
   if (cmd === 'add') {
     need(); const id = pos[1], root = ROOT;
     if (!id || !ID_RE.test(id)) die('give an asset id (a-z, 0-9, dashes)');
@@ -196,6 +217,6 @@ function main(argv) {
     const parts = readJSON(join(ROOT, 'games', game, 'game.json')).parts;
     console.log(`wrote games/${game}/pipeline.js: ${n} live asset(s)${parts.includes('pipeline.js') ? '' : `\nadd "pipeline.js" to games/${game}/game.json's parts, before art.js`}`); return;
   }
-  die('commands: init, palette, recolor, map, promote-ref, add, promote, reject, import-sprites, check, build (see the top of tools/art.mjs)');
+  die('commands: init, palette, recolor, map, promote-ref, make, check-keys, models, add, promote, reject, import-sprites, check, build (see the top of tools/art.mjs)');
 }
-if (process.argv[1] === fileURLToPath(import.meta.url)) main(process.argv.slice(2));
+if (process.argv[1] === fileURLToPath(import.meta.url)) main(process.argv.slice(2)).catch(e => die(e.message));

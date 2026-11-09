@@ -53,9 +53,12 @@ From the owner's brainstorm: generate art through an image API, snap it to the g
 3. ~~Space Mouse's style sheet~~ (hero, props, environment, mood references), a curated 32-colour master palette, `maps/cargo-bay/`
    (seed and 14-colour sub-palette), `recolor`, `promote-ref`, `tools/art_capture.py`. Other maps (Hydroponics, Observation Deck) get a seed when
    they first need generated art.
-4. The generation adapter (OpenAI first, Flux second) and the `make` loop with a contact sheet in the chat. **Needs the owner's keys**:
-   cloud environment menu → Edit → Network secrets, one secret per host, then a new session.
-5. The skill `pixelite-art-pipeline`; `pixelite-art-prompt` points at the style sheet.
+4. ~~The generation adapter~~ (OpenAI first, Flux second), the `make` loop, `check-keys`, `models`: OpenAI works end to end (first real run: three fuel
+   barrels for Cargo Bay). Flux submits and is paid for, but its polling host (`api.isr.bfl.ai`, regional) and its download host are not allowed in the
+   environment yet: the owner adds them (docs/ART_PIPELINE.md, "Keys").
+5. ~~The skill `pixelite-art-pipeline`~~; `pixelite-art-prompt` points at the style sheet.
+   Open: art below about 12 px loses most of what the model drew when it is snapped (the fuel barrel at 10 x 14); try generating the subject at a larger
+   art size and reducing with a smarter downsample, or drawing characters at 16 px.
 6. Optional: approve / iterate / reject buttons on the site (D1 table, modelled on `worker/songs.js`).
 Later: animation sets as one asset, moving Space Mouse's other art (Pip, cat-bots, objects) into the pipeline, the stray one-pixel
 column on the lockers' right edge (a cut artefact the gallery will make visible).

@@ -41,7 +41,8 @@ tests/                  smoke.py (any game, both renderers), lab.py (the PIXEL L
 docs/                   ARCHITECTURE (how it works), HISTORY, LESSONS, ROADMAP (the plan), IDEAS (the idea bank),
                         TESTING, DEPLOY
 .claude/skills/         pixelite-new-game, pixelite-verify, pixelite-art-prompt (the prompt for an art sheet), pixelite-pixel-art,
-                        pixelite-song (compose a song: plan, write as code, check levels, ship)
+                        pixelite-song (compose a song: plan, write as code, check levels, ship),
+                        pixelite-art-pipeline (new art through an image API: brief, generate, review in chat, approve, ship)
 dist/                   build output = the deployed site (git-ignored)
 ```
 
@@ -124,7 +125,9 @@ approved, live version reaches the game, through the generated `games/<id>/pipel
 bookkeeping (add a version, promote, reject, recolor, build, check; curate the palette, make a map's seed, promote a style reference) and
 `docs/ART_PIPELINE.md` is the reference; the style sheet in `art/style/` says what every picture should look like. New assets are made at the
 size the game shows (one art pixel = one world pixel at the default detail). Never edit `pipeline.js`; change the art, then rebuild.
-Image generation through an API is not built yet (it needs the owner's keys: ROADMAP, "Art pipeline").
+**Making art through an API** (`node tools/art.mjs make`, the skill **`pixelite-art-pipeline`**): OpenAI first, Flux second; the keys are
+network secrets of the cloud environment (the proxy supplies them, so no key is ever in a script or the chat; `check-keys` tests them);
+a session makes draft versions, shows the contact sheet in the chat, and promotes only what the owner approves.
 
 ## Changing a game, or applying edits from the web editor
 

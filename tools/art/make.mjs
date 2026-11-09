@@ -1,0 +1,129 @@
+// The generation loop of the art pipeline (docs/ART_PIPELINE.md, "Making art with an API"): a brief and the game's style sheet
+// become a prompt with reference pictures; the API's answer is trimmed to the subject, snapped to the target size on the game's
+// (or the map's) palette, given normals and a contact sheet, and written as a DRAFT version. Nothing here reaches the game: a
+// person looks at preview.png and approves with `art.mjs promote`.
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { ROOT, artDir, readJSON, loadAssets, loadStyle, loadPalette } from './lib.mjs';
+import { nearest, rgbOf } from './palette.mjs';
+import { toPNG, fromPNG, crop, upscale, bbox, binarize, removeKey, padTo } from './image.mjs';
+import { writeVersion } from './store.mjs';
+import { adapter } from './gen/index.mjs';
+import { snap as realSnap } from '../snap.mjs';
+
+const MAX_REFS = 4;
+// which style references go with which kind of asset (the game-level ones win on proportions, outline and palette); the map's seed
+// picture is added when a map is given, and the mood picture only on request (scenes)
+const REFS_FOR = { character: ['hero', 'env'], prop: ['props', 'env'], tile: ['env'] };
+const ROLE_TEXT = { hero: 'the main character: its proportions, outline and shading', props: 'the objects of the game: their size, outline and shading',
+  env: 'the walls and floors: the surfaces and colours', mood: 'a stretch of the game with its light', seed: 'the place this will stand in: its colours and light' };
+const REF_BG = [40, 40, 48];
+
+// the references to send, in order: [{ file (absolute), role, label }]
+export function pickRefs(game, cls, { map = null, mood = false, root = ROOT } = {}) {
+  const style = loadStyle(game, root), dir = artDir(game, root), out = [];
+  for (const role of [...(REFS_FOR[cls] || ['props', 'env']), ...(mood ? ['mood'] : [])]) {
+    const r = ((style && style.refs) || []).find(x => x.role === role);
+    if (r && existsSync(join(dir, 'style', r.file))) out.push({ file: join(dir, 'style', r.file), role });
+  }
+  if (map && existsSync(join(dir, 'maps', map, 'seed.png'))) out.push({ file: join(dir, 'maps', map, 'seed.png'), role: 'seed' });
+  return out.slice(0, MAX_REFS);
+}
+
+// a reference as the model should see it: blocks big enough to see (the shorter side at least 384, the longer at most 1536),
+// transparency flattened onto a dark grey
+export function refPicture(file) {
+  const im = fromPNG(readFileSync(file)), f = Math.max(1, Math.min(Math.ceil(384 / Math.min(im.width, im.height)), Math.floor(1536 / Math.max(im.width, im.height))));
+  return toPNG(upscale(im, f, REF_BG));
+}
+
+const CLASS_WORD = { character: 'character', prop: 'prop (one object)', tile: 'square tile' };
+export function buildPrompt({ style, cls, brief, target, palette, refs, keyed, mapNotes = '', note = '' }) {
+  const roles = refs.map((r, i) => `Image ${i + 1} is ${ROLE_TEXT[r.role] || r.role}.`).join(' ');
+  return [
+    style.styleParagraph.trim(),
+    `Draw ONE ${CLASS_WORD[cls] || cls}: ${brief.trim().replace(/\.$/, '')}.`,
+    refs.length ? `${roles} The reference pictures are shown on a dark grey ground that is not part of the art. Match their pixel size, outline, shading and colours exactly, but draw the new subject: never copy what they show.` : '',
+    `Make it chunky pixel art: every art pixel one clear square block of a single flat colour, no anti-aliasing, no blur, no gradients, no dithering. It will be drawn about ${target.w} x ${target.h} pixels in the game, so keep the shape simple and readable at that size.`,
+    `Use only these colours, or ones very close: ${palette.join(' ')}.`,
+    `Side view, one subject, centred and filling most of the picture, ${keyed ? 'on a flat solid #FF00FF magenta background (exactly that colour, and no magenta or pink in the subject)' : 'on a transparent background'}. No text, no shadow on the ground, no frame, nothing else.`,
+    mapNotes ? `The place it belongs to: ${mapNotes}` : '',
+    note ? `Change from the version before it: ${note.trim()}` : '',
+  ].filter(Boolean).join('\n\n');
+}
+
+// the notes.md of a map, without its heading and the empty bullets of the template
+export function mapNotesOf(game, map, root = ROOT) {
+  const p = join(artDir(game, root), 'maps', map, 'notes.md'); if (!existsSync(p)) return '';
+  return readFileSync(p, 'utf8').split('\n').filter(l => /^\s*-\s+\S/.test(l)).map(l => l.replace(/^\s*-\s+/, '')).join(' ');
+}
+
+// Snap the model's picture (subject on transparent) to exactly `target` pixels on `palette`. The subject is trimmed, a pixel size
+// is worked out from its size divided by the target, and the snap is repeated with a corrected size until the result is within a
+// pixel of the target (then padded to it). `snap(bytes, {pixelSize, palette})` is the Pixel Snapper.
+export async function snapToTarget(png, { target, palette, snap = realSnap, anchor = 'centre', tries = 4 }) {
+  let im = binarize(fromPNG(png)); const box = bbox(im);
+  if (!box) throw new Error('the picture is empty: nothing was drawn');
+  const pad = 2, sub = crop(im, box.x - pad, box.y - pad, box.w + 2 * pad, box.h + 2 * pad), bytes = toPNG(sub), hex = palette.map(h => h.slice(1)).join(',');
+  let ps = Math.max(box.w / target.w, box.h / target.h), last = null;
+  for (let t = 1; t <= tries; t++) {
+    const out = binarize(fromPNG(await snap(bytes, { pixelSize: ps, palette: hex }))), b = bbox(out);
+    if (!b) throw new Error('snapping removed everything');
+    const got = crop(out, b.x, b.y, b.w, b.h); last = { img: got, ps, tries: t, size: [b.w, b.h] };
+    if (b.w <= target.w && b.h <= target.h && target.w - b.w <= 1 && target.h - b.h <= 1) {
+      const sprite = padTo(got, target.w, target.h, anchor);
+      for (let i = 0; i < sprite.data.length; i += 4) if (sprite.data[i + 3]) { const c = nearest(palette, [sprite.data[i], sprite.data[i + 1], sprite.data[i + 2]]), r = rgbOf(c); sprite.data[i] = r[0]; sprite.data[i + 1] = r[1]; sprite.data[i + 2] = r[2]; }
+      return { png: toPNG(sprite), pixelSize: +ps.toFixed(3), tries: t, size: [b.w, b.h], exact: b.w === target.w && b.h === target.h };
+    }
+    ps *= Math.max(b.w / target.w, b.h / target.h);
+  }
+  throw new Error(`could not reach ${target.w} x ${target.h}: the last snap was ${last.size[0]} x ${last.size[1]} at pixel size ${last.ps.toFixed(2)} (try another brief, a simpler subject or a different target)`);
+}
+
+// Make `n` candidate versions of an asset. `generate` and `snap` can be replaced (the tests do); `log` receives progress lines.
+export async function make(game, id, o) {
+  const { root = ROOT, brief, n = 1, api = 'openai', model, quality, map = null, parent = null, note = '', mood = false, dry = false, keyed = false,
+    maxCalls = null, asset: newAsset = null, generate = null, snap = realSnap, size = 1024, log = () => {} } = o;
+  if (!brief || !brief.trim()) throw new Error('a brief is needed: --brief "what to draw"');
+  const style = loadStyle(game, root); if (!style || !style.styleParagraph) throw new Error(`games/${game}/art/style/style.json needs a styleParagraph`);
+  const cur = loadAssets(game, root).find(a => a.id === id), asset = cur ? cur.asset : newAsset;
+  if (!asset) throw new Error(`${id} is a new asset: give --class, --target WxH and --k (and --place, --char, --name)`);
+  if (parent && !(cur && cur.versions.some(v => v.n === parent))) throw new Error(`parent ${parent} does not exist`);
+  const pal = map ? (existsSync(join(artDir(game, root), 'maps', map, 'palette.json')) ? readJSON(join(artDir(game, root), 'maps', map, 'palette.json')).colors : null) : loadPalette(game, root);
+  if (!pal || !pal.length) throw new Error(map ? `map ${map} has no palette (node tools/art.mjs map ${game} ${map} --seed ...)` : `${game} has no master palette (node tools/art.mjs palette ${game})`);
+  const refs = pickRefs(game, asset.class, { map, mood, root }), ad = adapter(api), mdl = model || ad.defaultModel;
+  const ctx = { style, cls: asset.class, brief, target: asset.target, palette: pal, refs, mapNotes: map ? mapNotesOf(game, map, root) : '', note };
+  const done = [];
+  let calls = 0, fresh = !cur, useKey = keyed || api === 'flux';
+  for (let i = 0; i < n; i++) {
+    if (maxCalls != null && calls >= maxCalls) { log(`stopped: --max-calls ${maxCalls} reached`); break; }
+    let prompt = buildPrompt({ ...ctx, keyed: useKey });
+    if (dry) { log(`prompt for ${ad.name} ${mdl}:\n${prompt}\n\nreferences: ${refs.map(r => `${r.role} (${r.file})`).join(', ') || 'none'}`); return done; }
+    const pics = refs.map(r => ({ png: refPicture(r.file), name: `${r.role}.png` }));
+    const gen = generate || ad.generate;
+    let res;
+    try { calls++; res = await gen({ prompt, refs: pics, size, transparent: !useKey, model: mdl, quality }); }
+    catch (e) {
+      if (e.code !== 'NO_ALPHA') throw e;
+      log(`${mdl} cannot make a transparent background: asking for a flat magenta one instead`);
+      useKey = true; prompt = buildPrompt({ ...ctx, keyed: true }); calls++;
+      res = await gen({ prompt, refs: pics, size, transparent: false, model: mdl, quality });
+    }
+    let raw = res.png;
+    if (res.keyed) raw = toPNG(removeKey(fromPNG(res.png), rgbOf(res.keyed)));
+    let fit;
+    try { fit = await snapToTarget(raw, { target: asset.target, palette: pal, snap, anchor: asset.place === 'floor' ? 'bottom' : 'centre' }); }
+    catch (e) { log(`candidate ${i + 1}: ${e.message}`); done.push({ ok: false, error: e.message }); continue; }
+    const v = writeVersion(game, id, { sprite: fit.png, raw: res.png, root, asset: fresh ? newAsset : null, meta: {
+      kind: 'generated', parent, brief, prompt, map: map || undefined, note,
+      refs: refs.map(r => ({ path: r.file.slice(artDir(game, root).length + 1), role: r.role })),
+      api: { provider: ad.name, model: res.model || mdl, params: res.params || {}, requestId: res.requestId || null },
+      snap: { pixelSize: fit.pixelSize, tries: fit.tries, size: fit.size, palette: map ? `map ${map}` : 'master', colors: pal.length },
+      target: { class: asset.class, w: asset.target.w, h: asset.target.h } } });
+    fresh = false;
+    const dir = join('games', game, 'art', 'assets', id, v);
+    log(`candidate ${i + 1}: ${id}/${v}, ${asset.target.w} x ${asset.target.h}${fit.exact ? '' : ' (padded)'}, snapped at pixel size ${fit.pixelSize} in ${fit.tries} ${fit.tries === 1 ? 'try' : 'tries'}: ${dir}/preview.png`);
+    done.push({ ok: true, version: v, dir: join(artDir(game, root), 'assets', id, v) });
+  }
+  return done;
+}
