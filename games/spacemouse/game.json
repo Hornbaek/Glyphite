@@ -290,6 +290,11 @@
         "name": "cheese crate (prop, from the art pipeline)",
         "color": "#d9a441",
         "on": "."
+      },
+      "q": {
+        "name": "fuel barrel (prop, from the art pipeline)",
+        "color": "#8a7a50",
+        "on": "."
       }
     },
     "marks": {

@@ -2,7 +2,8 @@
 // become a prompt with reference pictures; the API's answer is trimmed to the subject, snapped to the target size on the game's
 // (or the map's) palette, given normals and a contact sheet, and written as a DRAFT version. Nothing here reaches the game: a
 // person looks at preview.png and approves with `art.mjs promote`.
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ROOT, artDir, readJSON, loadAssets, loadStyle, loadPalette } from './lib.mjs';
 import { nearest, rgbOf } from './palette.mjs';
@@ -60,7 +61,7 @@ export function mapNotesOf(game, map, root = ROOT) {
 
 // Snap the model's picture (subject on transparent) to exactly `target` pixels on `palette`. The subject is trimmed, a pixel size
 // is worked out from its size divided by the target, and the snap is repeated with a corrected size until the result is within a
-// pixel of the target (then padded to it). `snap(bytes, {pixelSize, palette})` is the Pixel Snapper.
+// pixel of the target in the dimension that binds (the other may be up to 30% short); then it is padded to the target. `snap(bytes, {pixelSize, palette})` is the Pixel Snapper.
 export async function snapToTarget(png, { target, palette, snap = realSnap, anchor = 'centre', tries = 4 }) {
   let im = binarize(fromPNG(png)); const box = bbox(im);
   if (!box) throw new Error('the picture is empty: nothing was drawn');
@@ -70,7 +71,9 @@ export async function snapToTarget(png, { target, palette, snap = realSnap, anch
     const out = binarize(fromPNG(await snap(bytes, { pixelSize: ps, palette: hex }))), b = bbox(out);
     if (!b) throw new Error('snapping removed everything');
     const got = crop(out, b.x, b.y, b.w, b.h); last = { img: got, ps, tries: t, size: [b.w, b.h] };
-    if (b.w <= target.w && b.h <= target.h && target.w - b.w <= 1 && target.h - b.h <= 1) {
+    // within the box, filling it in the dimension that binds (a model rarely draws the exact aspect ratio) and at least 70% of it in the other
+    const fits = b.w <= target.w && b.h <= target.h, bindW = target.w - b.w <= 1, bindH = target.h - b.h <= 1;
+    if (fits && ((bindW && b.h >= target.h * .7) || (bindH && b.w >= target.w * .7))) {
       const sprite = padTo(got, target.w, target.h, anchor);
       for (let i = 0; i < sprite.data.length; i += 4) if (sprite.data[i + 3]) { const c = nearest(palette, [sprite.data[i], sprite.data[i + 1], sprite.data[i + 2]]), r = rgbOf(c); sprite.data[i] = r[0]; sprite.data[i + 1] = r[1]; sprite.data[i + 2] = r[2]; }
       return { png: toPNG(sprite), pixelSize: +ps.toFixed(3), tries: t, size: [b.w, b.h], exact: b.w === target.w && b.h === target.h };
@@ -113,7 +116,11 @@ export async function make(game, id, o) {
     if (res.keyed) raw = toPNG(removeKey(fromPNG(res.png), rgbOf(res.keyed)));
     let fit;
     try { fit = await snapToTarget(raw, { target: asset.target, palette: pal, snap, anchor: asset.place === 'floor' ? 'bottom' : 'centre' }); }
-    catch (e) { log(`candidate ${i + 1}: ${e.message}`); done.push({ ok: false, error: e.message }); continue; }
+    catch (e) {
+      // the call was paid for: keep its picture where it can be looked at (not in the repository)
+      const keep = join(tmpdir(), `art-failed-${id}-${Date.now()}-${i + 1}.png`); writeFileSync(keep, res.png);
+      log(`candidate ${i + 1}: ${e.message} (the model's picture is kept in ${keep})`); done.push({ ok: false, error: e.message, raw: keep }); continue;
+    }
     const v = writeVersion(game, id, { sprite: fit.png, raw: res.png, root, asset: fresh ? newAsset : null, meta: {
       kind: 'generated', parent, brief, prompt, map: map || undefined, note,
       refs: refs.map(r => ({ path: r.file.slice(artDir(game, root).length + 1), role: r.role })),

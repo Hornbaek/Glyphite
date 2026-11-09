@@ -1,0 +1,13 @@
+{
+  "id": "pip-ship",
+  "name": "Pip's ship",
+  "class": "prop",
+  "target": {
+    "w": 32,
+    "h": 18
+  },
+  "k": 0.5,
+  "place": "floor",
+  "char": null,
+  "live": null
+}

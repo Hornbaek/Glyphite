@@ -92,6 +92,10 @@ test('snapping: a model\'s big blocks become exactly the target size on the pale
   // asked for a bigger canvas than the drawing: padded, resting on the bottom
   const bigger = await snapToTarget(modelPicture(BARREL), { target: { w: 8, h: 9 }, palette: PAL, anchor: 'bottom' });
   assert.deepEqual(bbox(fromPNG(bigger.png)), { x: 0, y: 1, w: 8, h: 8 });
+  // a narrower drawing than the box (aspect ratio off): fine when it fills the binding side and at least 70% of the other
+  const narrow = await snapToTarget(modelPicture(BARREL), { target: { w: 10, h: 8 }, palette: PAL, anchor: 'bottom' });
+  assert.deepEqual(bbox(fromPNG(narrow.png)), { x: 1, y: 0, w: 8, h: 8 });
+  await assert.rejects(snapToTarget(modelPicture(BARREL), { target: { w: 14, h: 8 }, palette: PAL, tries: 2 }), /could not reach 14 x 8/, 'too narrow stays refused');
   await assert.rejects(snapToTarget(toPNG(blank(50, 50)), { target: { w: 8, h: 8 }, palette: PAL }), /nothing was drawn/);
   await assert.rejects(snapToTarget(modelPicture(BARREL), { target: { w: 3, h: 3 }, palette: PAL, snap: async () => toPNG(upscale(sprite(BARREL), 1)), tries: 2 }), /could not reach 3 x 3/);
 });
@@ -130,6 +134,9 @@ test('make: --max-calls stops the spending, --dry shows the prompt and calls not
   const asset = { id: 'barrel', name: 'Barrel', class: 'prop', target: { w: 8, h: 8 }, k: .5, place: 'floor', char: null, live: null };
   const log = []; await make('g', 'barrel', { root, brief: 'b', n: 5, maxCalls: 2, generate, asset, log: m => log.push(m) });
   assert.equal(n, 2); assert.ok(log.some(l => /--max-calls 2 reached/.test(l)));
+  const bad = await make('g', 'barrel', { root, brief: 'b', generate: async () => ({ png: toPNG(blank(60, 60)), keyed: null }) });
+  assert.equal(bad[0].ok, false); assert.ok(existsSync(bad[0].raw), 'a paid picture that could not be snapped is kept outside the repository');
+  n = 2;
   const dry = []; assert.deepEqual(await make('g', 'barrel', { root, brief: 'b', dry: true, generate, log: m => dry.push(m) }), []); assert.equal(n, 2); assert.ok(dry[0].includes('Draw ONE prop'));
   await assert.rejects(make('g', 'barrel', { root, brief: '  ', generate }), /a brief is needed/);
   await assert.rejects(make('g', 'new-one', { root, brief: 'b', generate }), /is a new asset: give --class/);
@@ -160,6 +167,9 @@ test('OpenAI: references make an images edit with every picture attached; none m
 test('OpenAI: a model with no transparency says so (so make can ask for a key colour); other errors keep their message', async () => {
   const err = (status, error) => async () => json({ error }, status);
   await assert.rejects(openai.generate({ prompt: 'p', fetchFn: err(400, { message: 'Transparent background is not supported for this model.', param: 'background', code: 'invalid_value' }) }), e => e.code === 'NO_ALPHA');
+  let tries = 0; const flaky = async () => (++tries === 1 ? json({ error: { message: 'upstream request failed' } }, 502) : json({ data: [{ b64_json: 'QQ==' }] }));
+  assert.equal((await openai.generate({ prompt: 'p', fetchFn: flaky, retryMs: 1 })).png.toString(), 'A'); assert.equal(tries, 2, 'a 502 is tried once more');
+  await assert.rejects(openai.generate({ prompt: 'p', fetchFn: err(502, { message: 'down' }), retryMs: 1 }), /OpenAI 502: down/);
   await assert.rejects(openai.generate({ prompt: 'p', fetchFn: err(429, { message: 'Rate limit reached' }) }), /OpenAI 429: Rate limit reached/);
   await assert.rejects(openai.generate({ prompt: 'p', fetchFn: async () => json({ data: [] }) }), /sent no image/);
   assert.deepEqual(await openai.checkKey({ fetchFn: async () => json({ id: 'x' }) }), { ok: true, detail: 'key accepted, model gpt-image-2.6-sunburst is listed' });
