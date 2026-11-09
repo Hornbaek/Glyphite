@@ -983,6 +983,14 @@ stays in the chat first.
 - The owner asked for the ship in the game "for now, no specific level": it stands as scenery on the raised floor of Cargo Bay's first hall (`u` in `sectors.js`), lit by the
   lamps like the other props. The test now wants every live pipeline prop on a map.
 
+## 48. A character test: Pip at 14 x 16, and how frames work
+
+- **Pip (16 px test)** (`pip-test`): three candidates, then two walking poses made from the best one. The model keeps the identity and the poses are right; snapped at 14 x 16 the
+  legs of a moving pose are weak (docs/ART_PIPELINE.md, "Characters and animation frames").
+- **`make --pose "..." --align <NNN>`**: the base frame is sent as "the same character", the pose goes in the prompt, and the new picture is snapped on the base's lattice (same crop,
+  pixel size, place on the canvas), so frames do not jitter. `art.mjs resnap` records the lattice of an older version without a call. Tests in `artgen.test.mjs`.
+- Not built: an asset that holds named frames (ROADMAP, animation sets).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

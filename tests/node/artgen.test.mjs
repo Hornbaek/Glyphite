@@ -100,6 +100,34 @@ test('snapping: a model\'s big blocks become exactly the target size on the pale
   await assert.rejects(snapToTarget(modelPicture(BARREL), { target: { w: 3, h: 3 }, palette: PAL, snap: async () => toPNG(upscale(sprite(BARREL), 1)), tries: 2 }), /could not reach 3 x 3/);
 });
 
+test('animation frames: snapped on the first frame\'s lattice, a changed pose lands on the same pixels and the unchanged ones do not move', async () => {
+  const PAL4 = PAL, base = await snapToTarget(modelPicture(BARREL), { target: { w: 10, h: 10 }, palette: PAL4, anchor: 'bottom' });
+  assert.ok(base.lattice && base.lattice.pixelSize > 0 && base.lattice.cropBox.w > 0, 'the first frame returns its lattice');
+  // the same drawing with only its bottom row changed (a "step")
+  const STEP = BARREL.slice(0, 7).concat(['oo.oo.oo']), moved = modelPicture(STEP);
+  const same = await snapToTarget(modelPicture(BARREL), { target: { w: 10, h: 10 }, palette: PAL4, anchor: 'bottom', align: base.lattice });
+  assert.deepEqual(Array.from(decodePNG(same.png).data), Array.from(decodePNG(base.png).data), 'the same picture on its own lattice is the same sprite');
+  const step = await snapToTarget(moved, { target: { w: 10, h: 10 }, palette: PAL4, anchor: 'bottom', align: base.lattice });
+  const a = decodePNG(base.png), b = decodePNG(step.png), row = (im, y) => Array.from(im.data.subarray(y * 40, y * 40 + 40)).join();
+  for (let y = 2; y < 9; y++) assert.equal(row(a, y), row(b, y), `row ${y} did not move`);
+  assert.notEqual(row(a, 9), row(b, 9), 'the changed row is different');
+  assert.ok(step.aligned && step.cut === 0);
+  await assert.rejects(snapToTarget(toPNG(blank(300, 300)), { target: { w: 10, h: 10 }, palette: PAL4, align: base.lattice }), /nothing of the picture is inside the canvas/);
+});
+
+test('make --pose --align: the base frame goes first as "the same character", the pose goes in the prompt, the lattice is recorded and reused', async () => {
+  const root = repo(), seen = [];
+  const generate = async o => { seen.push(o); return { png: modelPicture(BARREL), model: 'm', params: {}, requestId: 'r', keyed: null }; };
+  const asset = { id: 'barrel', name: 'Barrel', class: 'prop', target: { w: 10, h: 10 }, k: .5, place: 'floor', char: null, live: null };
+  await make('g', 'barrel', { root, brief: 'a barrel', generate, asset });
+  assert.equal(loadAssets('g', root)[0].versions[0].meta.snap.lattice.pixelSize > 0, true);
+  const log = []; const res = await make('g', 'barrel', { root, brief: 'a barrel', from: '001', align: '001', pose: 'rolling to the left', generate, log: m => log.push(m) });
+  assert.ok(seen[1].prompt.includes('Image 1 is the same character, drawn before') && seen[1].prompt.includes('New pose: rolling to the left'));
+  const m = loadAssets('g', root)[0].versions[1].meta; assert.deepEqual([res[0].ok, m.snap.alignedTo, m.parent], [true, '001', '001']); assert.ok(log[0].includes('aligned to 001'));
+  await assert.rejects(make('g', 'barrel', { root, brief: 'b', pose: 'x', generate }), /--pose needs --from/);
+  await assert.rejects(make('g', 'barrel', { root, brief: 'b', align: '009', generate }), /version 009 of barrel has no recorded lattice/);
+});
+
 test('make: a brief becomes draft versions with the prompt, references, API and snap recorded; nothing goes live', async () => {
   const root = repo(), calls = [], log = [];
   const generate = async o => { calls.push(o); return { png: modelPicture(BARREL), model: 'fixture-model', params: { size: '1024x1024' }, requestId: 'req_fixture', keyed: null }; };

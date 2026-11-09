@@ -9,8 +9,9 @@
 //   node tools/art.mjs map <game> <map> --seed seed.png [--colors 14]   a map's seed piece, and its sub-palette (inside the master)
 //   node tools/art.mjs promote-ref <game> <asset> <NNN> --role props [--replace refs/props.png]   an approved version becomes a style reference
 //   node tools/art.mjs make <game> <asset> --brief "..." [--n 3] [--map m] [--parent 002] [--api openai|flux] [--model m] [--quality q]
-//        [--from 003 (refine that draft: its picture is sent as the first reference)] [--note "what to change"] [--mood] [--key] [--max-calls N] [--dry]   [--class prop --target 12x11 --k .5 --place floor --char j --name ".."]
+//        [--from 003 (refine that draft: its picture is sent as the first reference)] [--pose "walking, left foot forward" (the same character, new pose) --align 003 (snap on that version's grid and place: animation frames)] [--note "what to change"] [--mood] [--key] [--max-calls N] [--dry]   [--class prop --target 12x11 --k .5 --place floor --char j --name ".."]
 //                                                           generate candidates through an image API: drafts with a contact sheet each
+//   node tools/art.mjs resnap <game> <asset> <NNN>          snap a version's raw picture again (free: no API call), recording its lattice
 //   node tools/art.mjs check-keys [--api openai|flux]       one free call per API: does its key work
 //   node tools/art.mjs models [openai]                      the image models the account can use
 //   node tools/art.mjs add <game> <asset> --sprite in.png [--raw raw.png] [--kind hand|generated|imported] [--parent 002]
@@ -158,10 +159,20 @@ async function main(argv) {
       newAsset = { id, name: o.name || id, class: o.class, target: { w, h }, k: +o.k, place: o.place || 'floor', char: o.char || null, live: null };
     }
     const { make } = await import('./art/make.mjs'), st = loadStyle(game) || {};
-    const res = await make(game, id, { brief: o.brief, n: +(o.n || 1), api, model: o.model || (st.gen && st.gen.model), quality: o.quality || (st.gen && st.gen.quality), map: o.map || null, parent: o.parent || null, from: o.from || null,
+    const res = await make(game, id, { brief: o.brief, n: +(o.n || 1), api, model: o.model || (st.gen && st.gen.model), quality: o.quality || (st.gen && st.gen.quality), map: o.map || null, parent: o.parent || null, from: o.from || null, align: o.align || null, pose: o.pose || '',
       note: o.note || '', mood: !!o.mood, dry: !!o.dry, keyed: !!o.key, maxCalls: o['max-calls'] ? +o['max-calls'] : +(o.n || 1) + 1, asset: newAsset, log: m => console.log(m) });
     const ok = res.filter(r => r.ok); if (!o.dry) console.log(`${ok.length} of ${res.length} candidate(s) made as drafts. Look at each preview.png, then: node tools/art.mjs promote ${game} ${id} <NNN>  (or reject)`);
     process.exit(!o.dry && !ok.length ? 1 : 0);
+  }
+  if (cmd === 'resnap') {
+    // snap a version's raw picture again, for free (no API call): e.g. to record its lattice, or after the palette changed
+    need(); const [id, n] = [pos[1], pos[2]], a = loadAssets(game).find(x => x.id === id), v = a && a.versions.find(x => x.n === n);
+    if (!v) die(`no version ${id}/${n}`); if (!existsSync(join(v.dir, 'raw.png'))) die(`${id}/${n} has no raw.png`);
+    const { snapToTarget } = await import('./art/make.mjs'), m = (v.meta.snap && v.meta.snap.palette) || 'master';
+    const pal = m.startsWith('map ') ? readJSON(join(artDir(game), 'maps', m.slice(4), 'palette.json')).colors : loadPalette(game);
+    const fit = await snapToTarget(readFileSync(join(v.dir, 'raw.png')), { target: a.asset.target, palette: pal, anchor: a.asset.place === 'floor' ? 'bottom' : 'centre' });
+    writeVersion(game, id, { sprite: fit.png, raw: readFileSync(join(v.dir, 'raw.png')), root: ROOT, meta: { ...v.meta, version: n, snap: { ...v.meta.snap, pixelSize: fit.pixelSize, tries: fit.tries, size: fit.size, lattice: fit.lattice } } });
+    console.log(`${game}/${id}/${n}: snapped again at pixel size ${fit.pixelSize}, ${fit.size[0]} x ${fit.size[1]}`); return;
   }
   if (cmd === 'add') {
     need(); const id = pos[1], root = ROOT;
@@ -217,6 +228,6 @@ async function main(argv) {
     const parts = readJSON(join(ROOT, 'games', game, 'game.json')).parts;
     console.log(`wrote games/${game}/pipeline.js: ${n} live asset(s)${parts.includes('pipeline.js') ? '' : `\nadd "pipeline.js" to games/${game}/game.json's parts, before art.js`}`); return;
   }
-  die('commands: init, palette, recolor, map, promote-ref, make, check-keys, models, add, promote, reject, import-sprites, check, build (see the top of tools/art.mjs)');
+  die('commands: init, palette, recolor, map, promote-ref, make, resnap, check-keys, models, add, promote, reject, import-sprites, check, build (see the top of tools/art.mjs)');
 }
 if (process.argv[1] === fileURLToPath(import.meta.url)) main(process.argv.slice(2)).catch(e => die(e.message));

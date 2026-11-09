@@ -133,6 +133,21 @@ Tokens per call, from the API's own `usage` (recorded on every version in `meta.
 - **Caching**: two identical calls 20 seconds apart both reported 1703 input tokens and no `cached_tokens` field: the Images API did not show any prompt caching. The
   "cached input" price on the pricing page belongs to the Responses API; using it would mean calling the image tool through that API. Not done.
 
+### Characters and animation frames
+A character is an asset like a prop (`--class character --target 14x16`), and an animation is **several versions of the same drawing in different poses**. What works (tried on Pip,
+`games/spacemouse/art/assets/pip-test/`, drafts 002, 004 and 005):
+- Make the character once (`--n 3 --quality low`), pick the best frame (the base).
+- Make every other frame from it: `make <game> <asset> --brief "<the character, no pose>" --from <base> --align <base> --pose "mid-stride walking: the front leg stepped forward..."`.
+  `--from` sends the base picture as "the same character, drawn before: keep its design, proportions, size, colours and place, change only the pose", so the identity holds (the model kept
+  Pip's helmet, ear, suit and tail); `--align` snaps the new picture on the **base's lattice** (the same crop, pixel size and place on the canvas, recorded in `meta.snap.lattice`), so the
+  head stays on the same pixels from frame to frame and the frames do not jitter when played. `node tools/art.mjs resnap <game> <asset> <NNN>` records the lattice of an older version, free of charge.
+- All frames have the same canvas size (the target) and the same palette. Content that falls outside the canvas at the aligned place is cut and counted (`meta.snap.cut`).
+What does not exist yet: an asset that **holds** its frames (`frames: { idle: "002", walk1: "004", ... }` with a live version per frame, the gallery playing them, `pipeline.js` writing
+them in the shape of `MOUSE_FRAMES`). Today each frame is its own version of one asset, which is enough to judge a pose set but not to ship it (ROADMAP, "animation sets").
+Limits seen: at 14 x 16 px the legs of a moving pose turn into dark blobs (an outline that thick eats a leg that thin), and the thin tail often comes apart; the helmet is drawn opaque.
+A bigger canvas (about 20 x 24) or a game that shows its characters larger would keep more. Cost: Pip has about 38 named frames; a pose is one call (about 2900 input and 824 output
+tokens at low), so draw the key poses (idle, two walk, jump, fall) and let the engine's own tweens carry the rest.
+
 ### Keys
 The keys are **network secrets** of the cloud environment, so a key is never in the repository, a script or the chat: the session's network proxy adds it to
 requests for the secret's host, and the tools send a placeholder. In the Claude Code cloud environment menu (Edit, Network secrets):

@@ -1,0 +1,13 @@
+{
+  "id": "pip-test",
+  "name": "Pip (16 px test)",
+  "class": "character",
+  "target": {
+    "w": 14,
+    "h": 16
+  },
+  "k": 0.5,
+  "place": "floor",
+  "char": null,
+  "live": null
+}

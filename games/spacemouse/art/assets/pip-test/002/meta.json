@@ -1,0 +1,80 @@
+{
+  "version": "002",
+  "parent": null,
+  "status": "draft",
+  "kind": "generated",
+  "brief": "Pip, a small grey mouse astronaut: a round glass space helmet around a grey mouse head with one big pink ear, a stubby orange-and-white spacesuit, short legs with small boots, a long thin pink tail curling behind; standing idle, facing right, full body",
+  "prompt": "Pixel art for a small, grimy spaceship cargo bay seen from the side, lit by a few warm lamps against deep shadow. Dark one-pixel outline on characters and props, none on the large hull shapes. Flat colour areas with one highlight pixel and one shadow pixel per surface, light from the upper left, no gradients, no dithering, no anti-aliasing. Muted olive, rust, brown and slate with small bright accents (cheese yellow, lamp orange, screen cyan). Chunky, readable silhouettes with little interior detail: a character is about 14 pixels tall, a prop 8 to 40.\n\nDraw ONE character: Pip, a small grey mouse astronaut: a round glass space helmet around a grey mouse head with one big pink ear, a stubby orange-and-white spacesuit, short legs with small boots, a long thin pink tail curling behind; standing idle, facing right, full body.\n\nImage 1 is the main character: its proportions, outline and shading. Image 2 is the walls and floors: the surfaces and colours. The reference pictures are shown on a dark grey ground that is not part of the art. Match their pixel size, outline, shading and colours exactly, but draw the new subject: never copy what they show.\n\nMake it chunky pixel art: every art pixel one clear square block of a single flat colour, no anti-aliasing, no blur, no gradients, no dithering. It will be drawn about 14 x 16 pixels in the game, so keep the shape simple and readable at that size.\n\nUse only these colours, or ones very close: #040305 #25232f #5a1d1c #3d3a31 #4c4751 #98161a #3b543d #704640 #695646 #80501d #635c60 #9b4d42 #98541c #46689c #cc1a19 #878052 #8c7f79 #ac7949 #6a9360 #4e9e9c #ed6a59 #de7c72 #769ed6 #d68e2a #eb9b73 #89c076 #c1b2a4 #f0b936 #c8e2fa #fce75f #ffeabf #f8f7f4.\n\nSide view, one subject, centred and filling most of the picture, on a transparent background. No text, no shadow on the ground, no frame, nothing else.",
+  "refs": [
+    {
+      "path": "style/refs/hero.png",
+      "role": "hero"
+    },
+    {
+      "path": "style/refs/env.png",
+      "role": "env"
+    }
+  ],
+  "api": {
+    "provider": "openai",
+    "model": "gpt-image-2.6-sunburst",
+    "params": {
+      "size": "1024x1024",
+      "quality": "low",
+      "background": "transparent",
+      "output_format": "png"
+    },
+    "requestId": "req_437d252ddeef4ec687115bc7029075b2",
+    "usage": {
+      "input_tokens": 1860,
+      "input_tokens_details": {
+        "image_tokens": 1315,
+        "text_tokens": 545
+      },
+      "output_tokens": 824,
+      "output_tokens_details": {
+        "image_tokens": 824,
+        "text_tokens": 0
+      },
+      "total_tokens": 2684
+    }
+  },
+  "source": null,
+  "snap": {
+    "pixelSize": 62.5,
+    "tries": 1,
+    "size": [13, 16],
+    "palette": "master",
+    "colors": 32,
+    "lattice": {
+      "cropBox": {
+        "x": 126,
+        "y": 6,
+        "w": 769,
+        "h": 1004
+      },
+      "pixelSize": 62.5,
+      "trim": {
+        "x": 0,
+        "y": 0
+      },
+      "offset": {
+        "x": 0,
+        "y": 0
+      }
+    }
+  },
+  "normals": {
+    "bevel": 3,
+    "detail": 0.8,
+    "strength": 2.5
+  },
+  "target": {
+    "class": "character",
+    "w": 14,
+    "h": 16
+  },
+  "note": "",
+  "created": "2026-11-09T10:44:26.324Z",
+  "by": "claude-session"
+}
