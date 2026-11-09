@@ -123,8 +123,8 @@ title, game = the project, data = the song as JSON, updated_at, updated_by). A s
 Art for a game lives in `games/<id>/art/` (style sheet, master palette, assets with numbered versions, one live per asset); only an
 approved, live version reaches the game, through the generated `games/<id>/pipeline.js` (`PIPE_ART`). `node tools/art.mjs` does the
 bookkeeping (add a version, promote, reject, recolor, build, check; curate the palette, make a map's seed, promote a style reference) and
-`docs/ART_PIPELINE.md` is the reference; the style sheet in `art/style/` says what every picture should look like. New assets are made at the
-size the game shows (one art pixel = one world pixel at the default detail). Never edit `pipeline.js`; change the art, then rebuild.
+`docs/ART_PIPELINE.md` is the reference; the style sheet in `art/style/` says what every picture should look like. New props are made at the
+size the game shows (one art pixel = one world pixel at the default detail); characters at twice that (k .25), which the engine halves, so legs and faces survive. Never edit `pipeline.js`; change the art, then rebuild.
 **Making art through an API** (`node tools/art.mjs make`, the skill **`pixelite-art-pipeline`**): OpenAI first, Flux second; the keys are
 network secrets of the cloud environment (the proxy supplies them, so no key is ever in a script or the chat; `check-keys` tests them);
 a session makes draft versions, shows the contact sheet in the chat, and promotes only what the owner approves.

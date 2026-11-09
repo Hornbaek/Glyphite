@@ -1,0 +1,18 @@
+{
+  "id": "pip",
+  "name": "Pip",
+  "class": "character",
+  "target": {
+    "w": 28,
+    "h": 32
+  },
+  "k": 0.25,
+  "place": "floor",
+  "char": null,
+  "live": null,
+  "frames": {
+    "idle": "002",
+    "walk1": "004",
+    "walk2": "005"
+  }
+}

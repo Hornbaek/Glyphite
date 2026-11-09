@@ -142,10 +142,22 @@ A character is an asset like a prop (`--class character --target 14x16`), and an
   Pip's helmet, ear, suit and tail); `--align` snaps the new picture on the **base's lattice** (the same crop, pixel size and place on the canvas, recorded in `meta.snap.lattice`), so the
   head stays on the same pixels from frame to frame and the frames do not jitter when played. `node tools/art.mjs resnap <game> <asset> <NNN>` records the lattice of an older version, free of charge.
 - All frames have the same canvas size (the target) and the same palette. Content that falls outside the canvas at the aligned place is cut and counted (`meta.snap.cut`).
-What does not exist yet: an asset that **holds** its frames (`frames: { idle: "002", walk1: "004", ... }` with a live version per frame, the gallery playing them, `pipeline.js` writing
-them in the shape of `MOUSE_FRAMES`). Today each frame is its own version of one asset, which is enough to judge a pose set but not to ship it (ROADMAP, "animation sets").
-Limits seen: at 14 x 16 px the legs of a moving pose turn into dark blobs (an outline that thick eats a leg that thin), and the thin tail often comes apart; the helmet is drawn opaque.
-A bigger canvas (about 20 x 24) or a game that shows its characters larger would keep more. Cost: Pip has about 38 named frames; a pose is one call (about 2900 input and 824 output
+- **An asset holds its frames.** `asset.json` gets `frames: { "idle": "002", "walk1": "004", "walk2": "005" }`: a name for each frame (a-z, 0-9, underscores) and the approved version that is its
+  picture, in animation order; the first frame is the base and stands for the asset (its tile and size). An asset with frames has no `live` (the checker refuses both), and its versions
+  carry `meta.frame`, the name they are a candidate for.
+  - `node tools/art.mjs promote <game> <asset> <NNN> --frame walk1` approves a version as that frame (a new name adds a frame at the end; promoting another version for a name takes the
+    frame over; the old one stays approved on disk). `reject` refuses a version that is a frame's picture.
+  - `make ... --frame walk1 --pose "..."` tags the new version, and starts from the first frame, aligned to it, unless `--from`/`--align` say otherwise.
+  - `art.mjs build` gives all frames **one shared palette** (the union of their colours, dark to light, as `MOUSE_PAL` does for Pip) and writes
+    `PIPE_ART[id] = { w, h, k, pal, rows, normals, frames: { idle: { rows, normals }, ... } }`, the first frame also as the asset's own rows (so it still works as a prop); `pipeFrames(id)`,
+    in the generated file, turns it into engine sprites by name (`pipeFrames('pip-test').walk1`, origin at the feet for a floor asset).
+  - The gallery shows the asset as one tile (first frame, "N frames", "plays"); its page has the frames in order and a player (loops them at game size and enlarged, pause, 3 to 16 per second);
+    every frame's version is marked with its name. The site publishes the raw picture of the first frame only.
+  Not built: the game's own Pip does not use these frames (it still has `MOUSE_FRAMES`); wiring an animation into a game is `pipeFrames` plus the game's own frame logic.
+**Draw a character at twice the size it is shown** (the owner's own Pip is 26 x 28 art pixels at k .25, shown at 13 x 14): `--class character --target 28x32 --k .25`. At 14 x 16 (k .5) the legs of a
+moving pose turned into dark blobs (an outline one pixel wide eats a leg that thin) and the thin tail came apart; on the 28 x 32 canvas the same prompt keeps legs, boots, belt and face, and the engine's
+downsample (a sprite shown smaller than its art keeps the outline on its silhouette) halves it cleanly: `pip` (28 x 32: idle, walk1, walk2) against `pip-test` (14 x 16) is the comparison. The prompt also asks the
+model for a grid of exactly the target size, and for a character, legs and arms at least two squares wide and an outline only round the silhouette (models still draw their own, finer pixels, so the size does most of the work). Cost: Pip has about 38 named frames; a pose is one call (about 2900 input and 824 output
 tokens at low), so draw the key poses (idle, two walk, jump, fall) and let the engine's own tweens carry the rest.
 
 ### Keys

@@ -107,8 +107,8 @@ test('an imported asset is not emitted: the game still has it from its own sprit
 // the real game
 test('Space Mouse: its art/ folder is valid, pipeline.js is what the build makes, and the crate is a prop in the game', () => {
   assert.deepEqual(validate('spacemouse', { pipeline: buildText('spacemouse') }), []);
-  const live = liveItems('spacemouse'); assert.deepEqual(live.map(i => i.id).sort(), ['cheese-crate', 'fuel-barrel', 'pip-ship']);
-  for (const it of live) {
+  const live = liveItems('spacemouse'); assert.deepEqual(live.map(i => i.id).sort(), ['cheese-crate', 'fuel-barrel', 'pip', 'pip-ship', 'pip-test']);
+  for (const it of live.filter(i => i.asset.char)) {
     assert.ok(readFileSync(join(ROOT, 'games/spacemouse/decor.js'), 'utf8').includes(it.asset.char), `${it.id}: its map character is in the list of open tiles`);
     assert.ok(readFileSync(join(ROOT, 'games/spacemouse/sectors.js'), 'utf8').includes(it.asset.char), `${it.id}: and it is on a map`);
   }
@@ -198,6 +198,47 @@ test('Space Mouse\'s style sheet is filled in: a paragraph, four references, and
   const sub = JSON.parse(readFileSync(join(art, 'maps/cargo-bay/palette.json'), 'utf8')).colors, master = new Set(JSON.parse(readFileSync(join(art, 'style/palette.json'), 'utf8')).colors);
   assert.ok(sub.length >= 8 && sub.every(c => master.has(c)));
   assert.ok(existsSync(join(art, 'maps/cargo-bay/seed.png')));
+});
+
+test('frames: an asset holds named frames, each an approved version; the checker refuses the broken ones', () => {
+  const root = tempRepo(); add(root, {}, { char: null });
+  const ap = join(root, 'games', 'g', 'art', 'assets', 'box', 'asset.json'), a0 = JSON.parse(readFileSync(ap, 'utf8'));
+  const msgs = extra => { writeJSON(ap, { ...a0, ...extra }); return validate('g', { root }).join('\n'); };
+  assert.match(msgs({ frames: {} }), /frames is empty/);
+  assert.match(msgs({ frames: { idle: '009' } }), /frame idle points at version 009, which does not exist/);
+  assert.match(msgs({ frames: { idle: '001' } }), /frame idle points at version 001, which is draft/);
+  assert.match(msgs({ frames: { 'Bad Name': '001' } }), /frame name "Bad Name"/);
+  const meta = join(root, 'games', 'g', 'art', 'assets', 'box', '001', 'meta.json'); writeJSON(meta, { ...JSON.parse(readFileSync(meta, 'utf8')), status: 'approved' });
+  assert.deepEqual(msgs({ frames: { idle: '001' } }).split('\n').filter(m => /frame/.test(m)), [], 'one approved frame is fine');
+  assert.match(msgs({ frames: { idle: '001' }, live: '001' }), /has no live version: each frame points at its own version/);
+});
+
+test('frames: the build gives them one shared palette, the first frame as the asset\'s own rows, and every frame by name; a colour outside the palette is refused', () => {
+  const root = tempRepo({ palette: ['#1e1822', '#c83c32', '#f0c850'] });
+  add(root, { status: 'approved' }, { char: null });
+  writeVersion('g', 'box', { sprite: png(['.ooo', 'oooo', 'oyyo']), root, meta: { status: 'approved' } });
+  const ap = join(root, 'games', 'g', 'art', 'assets', 'box', 'asset.json'); writeJSON(ap, { ...JSON.parse(readFileSync(ap, 'utf8')), frames: { idle: '001', step: '002' } });
+  const [it] = liveItems('g', root); assert.deepEqual(Object.keys(it.frames), ['idle', 'step']);
+  assert.equal(it.frames.idle.spr.pal.length, 3); assert.deepEqual(it.frames.step.spr.pal.map(c => c.slice(0, 3)), it.frames.idle.spr.pal.map(c => c.slice(0, 3)), 'one palette for all frames');
+  const text = buildText('g', root); assert.ok(text.includes('frames: {') && text.includes('"idle": {') && text.includes('"step": {') && text.includes('function pipeFrames('));
+  const env = new Function(`const defineSprite = (s, o) => ({ ...s, ...o }); ${text}; return { PIPE_ART, pipeFrames };`)();
+  assert.deepEqual(env.PIPE_ART.box.rows, env.PIPE_ART.box.frames.idle.rows, 'the first frame is the asset\'s own picture');
+  const sp = env.pipeFrames('box'); assert.deepEqual([Object.keys(sp), sp.step.oy, sp.step.ox, sp.step.k], [['idle', 'step'], 3, 2, .5]);
+  assert.throws(() => spriteFromPNG(png(['.ooo', 'orry']), { pal: [[30, 24, 34], [200, 60, 50]] }), /is not in the shared palette/);
+  writeFileSync(join(root, 'games', 'g', 'pipeline.js'), text); assert.deepEqual(validate('g', { root, pipeline: text }), []);
+});
+
+test('frames: promote --frame makes a version a frame (a new name adds one), reject refuses a frame\'s picture, and a single picture cannot be given frames by accident', () => {
+  const root = cliRepo(); add(root, {}, { char: null }); add(root, {}); add(root, {});
+  assert.match(cli(root, 'promote', 'g', 'box', '001', '--frame', 'idle'), /approved and the picture of frame idle/);
+  assert.match(cli(root, 'promote', 'g', 'box', '002', '--frame', 'step'), /frame step/);
+  const a = loadAssets('g', root)[0]; assert.deepEqual([a.asset.frames, a.asset.live, a.versions[1].meta.frame], [{ idle: '001', step: '002' }, null, 'step']);
+  assert.throws(() => cli(root, 'promote', 'g', 'box', '003'), /holds frames: say which one/);
+  assert.throws(() => cli(root, 'reject', 'g', 'box', '002'), /is the picture of frame step/);
+  cli(root, 'promote', 'g', 'box', '003', '--frame', 'step'); assert.equal(loadAssets('g', root)[0].asset.frames.step, '003', 'a better picture takes the frame over');
+  cli(root, 'reject', 'g', 'box', '002'); assert.deepEqual(validate('g', { root }).filter(m => /frame/.test(m)), []);
+  const root2 = cliRepo(); add(root2); cli(root2, 'promote', 'g', 'box', '001');
+  assert.throws(() => cli(root2, 'promote', 'g', 'box', '001', '--frame', 'idle'), /has a live version: it is a single picture/);
 });
 
 test('every imported Space Mouse prop keeps a link to the owner\'s original frame', () => {

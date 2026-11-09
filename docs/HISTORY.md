@@ -991,6 +991,21 @@ stays in the chat first.
   pixel size, place on the canvas), so frames do not jitter. `art.mjs resnap` records the lattice of an older version without a call. Tests in `artgen.test.mjs`.
 - Not built: an asset that holds named frames (ROADMAP, animation sets).
 
+## 49. An asset that holds its frames
+
+- The owner asked for it after the character test: `asset.json` `frames` maps a frame name to the approved version that is its picture (in order; the first stands for the asset).
+  `promote --frame`, `make --frame`, one shared palette for all frames, `PIPE_ART[id].frames` and a generated `pipeFrames(id)` in `pipeline.js`, checker rules, and the gallery: a tile that says
+  "N frames, plays" and a page with the frames in order and a looping player.
+- Pip's 16 px test (`pip-test`: idle, walk1, walk2) is the first one; the game renders it through `pipeFrames` (checked), but the game's own Pip is unchanged.
+- Tests: checker, build, `promote --frame`, `make --frame --pose`, the published index, and the gallery player (`tests/art_gallery.py`).
+
+## 50. Pip's legs: draw characters at twice the size
+
+- The owner: "I don't know why Pip's legs would not fit, make that work." The cause was the canvas: a 1 pixel outline on a leg two pixels wide leaves no leg. The owner's own Pip is 26 x 28 art pixels shown at 13 x 14
+  (k .25) and the engine halves it with its outline-preserving downsample, so the new `pip` is drawn the same way: `--target 28x32 --k .25`. In the engine, side by side with the owner's Pip and the 14 x 16 test, the legs,
+  boots, belt and face come through. A prompt that asks the model for a grid of exactly the target size, with thicker thin parts for a character, was tried too: the model keeps drawing its own finer pixels, so the size is what helped.
+- `pip` (idle, walk1, walk2) is the second animation asset; style.json's `character` class is 28 to 32 px at k .25 and its paragraph says so. The game's own Pip is still the owner's sheet art; wiring `pipeFrames('pip')` in is next.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

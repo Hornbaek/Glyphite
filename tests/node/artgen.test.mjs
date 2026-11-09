@@ -78,7 +78,7 @@ test('the prompt carries the style paragraph, the brief, the size, the palette, 
   const root = repo(), style = JSON.parse(readFileSync(join(root, 'games', 'g', 'art', 'style', 'style.json'), 'utf8'));
   const args = { style, cls: 'prop', brief: 'a rusty barrel.', target: { w: 10, h: 14 }, palette: PAL, refs: [{ role: 'props' }, { role: 'seed' }], mapNotes: 'A dim hold.', note: 'make the stripe thicker' };
   const t = buildPrompt({ ...args, keyed: false }), k = buildPrompt({ ...args, keyed: true });
-  for (const want of ['Chunky test pixels', 'ONE prop (one object): a rusty barrel.', '10 x 14 pixels', PAL.join(' '), 'Image 1 is the objects of the game', 'Image 2 is the place this will stand in', 'A dim hold.', 'make the stripe thicker', 'on a transparent background'])
+  for (const want of ['Chunky test pixels', 'ONE prop (one object): a rusty barrel.', 'exactly 10 x 14 squares', PAL.join(' '), 'Image 1 is the objects of the game', 'Image 2 is the place this will stand in', 'A dim hold.', 'make the stripe thicker', 'on a transparent background'])
     assert.ok(t.includes(want), want);
   assert.ok(k.includes('flat solid #FF00FF magenta') && !k.includes('on a transparent background'));
   assert.ok(!buildPrompt({ ...args, refs: [], note: '', mapNotes: '' }).includes('Image 1'), 'no references, no mention of them');
@@ -156,6 +156,17 @@ test('make --from: the draft\'s own picture goes first as the reference to refin
   const v = loadAssets('g', root)[0].versions[1].meta; assert.deepEqual([res[0].version, v.parent, v.api.usage.output_tokens], ['002', '001', 5]);
   assert.ok(log[0].includes('10 in / 5 out tokens'));
   await assert.rejects(make('g', 'barrel', { root, from: '009', generate }), /version 009 of barrel does not exist/);
+});
+
+test('make --frame --pose: a frame of an animation starts from the asset\'s first frame, on its grid, and is tagged with its name', async () => {
+  const root = repo(), seen = [];
+  const generate = async o => { seen.push(o); return { png: modelPicture(BARREL), model: 'm', params: {}, requestId: 'r', keyed: null }; };
+  const asset = { id: 'barrel', name: 'Barrel', class: 'prop', target: { w: 10, h: 10 }, k: .5, place: 'floor', char: null, live: null };
+  await make('g', 'barrel', { root, brief: 'a barrel', generate, asset });
+  const ap = join(root, 'games', 'g', 'art', 'assets', 'barrel', 'asset.json'); writeJSON(ap, { ...JSON.parse(readFileSync(ap, 'utf8')), frames: { idle: '001' } });
+  const res = await make('g', 'barrel', { root, brief: 'a barrel', frame: 'roll', pose: 'rolling', generate });
+  const m = loadAssets('g', root)[0].versions[1].meta; assert.deepEqual([res[0].ok, m.frame, m.parent, m.snap.alignedTo], [true, 'roll', '001', '001']);
+  assert.ok(seen[1].prompt.includes('Image 1 is the same character, drawn before'));
 });
 
 test('make: a model without alpha is asked again for a magenta background, which is removed; flux always works that way', async () => {

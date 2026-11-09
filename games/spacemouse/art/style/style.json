@@ -5,9 +5,11 @@
   "classes": {
     "character": {
       "h": [
-        14,
-        16
-      ]
+        28,
+        32
+      ],
+      "k": 0.25,
+      "note": "drawn twice as big as it is shown (k .25): the engine halves it with its outline-preserving downsample, which keeps legs, boots and faces that a 14 x 16 drawing loses"
     },
     "prop": {
       "w": [
@@ -30,7 +32,7 @@
       ]
     }
   },
-  "styleParagraph": "Pixel art for a small, grimy spaceship cargo bay seen from the side, lit by a few warm lamps against deep shadow. Dark one-pixel outline on characters and props, none on the large hull shapes. Flat colour areas with one highlight pixel and one shadow pixel per surface, light from the upper left, no gradients, no dithering, no anti-aliasing. Muted olive, rust, brown and slate with small bright accents (cheese yellow, lamp orange, screen cyan). Chunky, readable silhouettes with little interior detail: a character is about 14 pixels tall, a prop 8 to 40.",
+  "styleParagraph": "Pixel art for a small, grimy spaceship cargo bay seen from the side, lit by a few warm lamps against deep shadow. Dark one-pixel outline on characters and props, none on the large hull shapes. Flat colour areas with one highlight pixel and one shadow pixel per surface, light from the upper left, no gradients, no dithering, no anti-aliasing. Muted olive, rust, brown and slate with small bright accents (cheese yellow, lamp orange, screen cyan). Chunky, readable silhouettes with little interior detail: a character is about 14 pixels tall in the game but drawn twice as big (28 to 32 art pixels), a prop 8 to 40.",
   "refs": [
     {
       "file": "refs/hero.png",

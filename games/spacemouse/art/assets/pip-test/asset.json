@@ -9,5 +9,10 @@
   "k": 0.5,
   "place": "floor",
   "char": null,
-  "live": null
+  "live": null,
+  "frames": {
+    "idle": "002",
+    "walk1": "004",
+    "walk2": "005"
+  }
 }

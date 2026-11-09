@@ -16,6 +16,7 @@ export const MAX_PALETTE = 64;   // a limited palette is the point: more than th
 export const KINDS = ['generated', 'imported', 'hand'];
 export const artDir = (game, root = ROOT) => join(root, 'games', game, 'art');
 export const ID_RE = /^[a-z][a-z0-9-]{0,39}$/;
+export const FRAME_RE = /^[a-z][a-z0-9_]{0,23}$/;   // a frame's name: idle, walk1, jump_up
 
 export const readJSON = p => JSON.parse(readFileSync(p, 'utf8'));
 // stable layout: two spaces, and short arrays of plain numbers or strings on one line so a diff shows what changed
@@ -100,6 +101,18 @@ export function validate(game, { root = ROOT, pipeline = null } = {}) {
           if (bad.length) out.push(`${vt}: ${bad.length} colour(s) outside the ${M.map ? `map ${M.map}` : 'master'} palette, e.g. ${bad.slice(0, 3).join(' ')}`);
         }
       }
+    }
+    if (A.frames !== undefined) {
+      const names = Object.keys(A.frames || {});
+      if (!names.length) out.push(`${at}: frames is empty (a frame is { "idle": "002" }: its name and the approved version that is its picture)`);
+      if (A.live != null) out.push(`${at}: an asset with frames has no live version: each frame points at its own version`);
+      for (const [fname, n] of Object.entries(A.frames || {})) {
+        const fv = a.versions.find(v => v.n === n);
+        if (!FRAME_RE.test(fname)) out.push(`${at}: frame name "${fname}" must be a-z, 0-9 and underscores, starting with a letter`);
+        else if (!fv) out.push(`${at}: frame ${fname} points at version ${n}, which does not exist`);
+        else if (fv.meta && fv.meta.status !== 'approved') out.push(`${at}: frame ${fname} points at version ${n}, which is ${fv.meta.status}: only an approved version may be a frame`);
+      }
+      if (A.emit === false) out.push(`${at}: an asset with frames is always emitted (emit: false is for imported single sprites)`);
     }
     if (A.live != null) {
       const live = a.versions.find(v => v.n === A.live);

@@ -41,10 +41,11 @@ the game until a version is promoted**, and the owner approves it first. Never e
    green, tell the owner what to look at (the gallery: ART on the game list).
 
 ## Characters and animation
-A character is made like a prop (`--class character`, target about 14 x 16). Its other frames are poses of the chosen base frame: `make ... --brief "<the character, no pose>"
+A character is made like a prop but **at twice the size it is shown** (`--class character --target 28x32 --k .25`: at 14 x 16 the legs turn into blobs; the engine halves a 28 x 32 sprite cleanly). Its other frames are poses of the chosen base frame: `make ... --brief "<the character, no pose>"
 --from <base> --align <base> --pose "<what the body does>"`. Use `--align` always for frames of one animation (same grid, same place: no jitter); `resnap` records the lattice of an older
-version for free. Make the key poses only, show them side by side (and a GIF: Pillow), and say what turned to blobs. Frames are separate versions for now: an asset that holds a frame
-set is not built (docs/ART_PIPELINE.md).
+version for free. Make the key poses only (`--frame walk1` tags a candidate and starts from the first frame, aligned), show them side by side (and a GIF: Pillow), and say what turned to blobs. When the owner
+approves a frame: `promote <game> <asset> <NNN> --frame walk1`; the asset then holds its frames (`frames` in asset.json), `build` writes them on one palette, the gallery plays them,
+and a game uses them through `pipeFrames('<asset>')` (docs/ART_PIPELINE.md).
 
 ## Things that go wrong
 

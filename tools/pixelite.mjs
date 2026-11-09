@@ -133,15 +133,15 @@ function copyArt(g, out) {
   if (problems.length) die(`${g.path}/art: ${problems.join('; ')}`);
   const style = JSON.parse(readFileSync(join(artDir(g.manifest.id), 'style', 'style.json'), 'utf8')), assets = [];
   for (const a of loadAssets(g.manifest.id)) {
-    const A = a.asset, versions = [];
+    const A = a.asset, versions = [], first = A.frames ? Object.values(A.frames)[0] : null;   // an animation stands for its first frame
     for (const v of a.versions) {
       const to = join(out, 'art', 'assets', a.id, v.n); mkdirSync(to, { recursive: true });
       for (const f of ['sprite.png', 'normals.png', 'preview.png']) copyFileSync(join(v.dir, f), join(to, f));
-      const raw = existsSync(join(v.dir, 'raw.png')), published = raw && A.live === v.n;
+      const raw = existsSync(join(v.dir, 'raw.png')), published = raw && (A.live === v.n || first === v.n);
       if (published) copyFileSync(join(v.dir, 'raw.png'), join(to, 'raw.png'));
       versions.push({ ...v.meta, raw: raw ? (published ? 'published' : 'kept') : 'none' });
     }
-    assets.push({ id: a.id, name: A.name, class: A.class, target: A.target, k: A.k, place: A.place || null, char: A.char || null, emit: A.emit !== false, live: A.live, versions });
+    assets.push({ id: a.id, name: A.name, class: A.class, target: A.target, k: A.k, place: A.place || null, char: A.char || null, emit: A.emit !== false, live: A.frames ? first : A.live, ...(A.frames ? { frames: A.frames } : {}), versions });
   }
   write(join(out, 'art', 'index.json'), JSON.stringify({ game: g.manifest.id, pxPerUnit: style.pxPerUnit, classes: Object.keys(style.classes || {}), assets }) + '\n');
   const all = assets.flatMap(a => a.versions);

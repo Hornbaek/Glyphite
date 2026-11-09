@@ -1,0 +1,86 @@
+{
+  "version": "004",
+  "parent": "002",
+  "status": "approved",
+  "kind": "generated",
+  "brief": "Pip, a small grey mouse astronaut: a round glass space helmet around a grey mouse head with one big pink ear, a stubby orange-and-white spacesuit, short legs with small boots, a long thin pink tail behind, facing right, full body",
+  "prompt": "Pixel art for a small, grimy spaceship cargo bay seen from the side, lit by a few warm lamps against deep shadow. Dark one-pixel outline on characters and props, none on the large hull shapes. Flat colour areas with one highlight pixel and one shadow pixel per surface, light from the upper left, no gradients, no dithering, no anti-aliasing. Muted olive, rust, brown and slate with small bright accents (cheese yellow, lamp orange, screen cyan). Chunky, readable silhouettes with little interior detail: a character is about 14 pixels tall, a prop 8 to 40.\n\nDraw ONE character: Pip, a small grey mouse astronaut: a round glass space helmet around a grey mouse head with one big pink ear, a stubby orange-and-white spacesuit, short legs with small boots, a long thin pink tail behind, facing right, full body.\n\nImage 1 is the same character, drawn before: keep its design, proportions, size, colours, outline and its place in the picture exactly, and change only the pose as described below. Image 2 is the main character: its proportions, outline and shading. Image 3 is the walls and floors: the surfaces and colours. The reference pictures are shown on a dark grey ground that is not part of the art. Match their pixel size, outline, shading and colours exactly, but draw the new subject: never copy what they show.\n\nDraw it on a pixel grid of exactly 28 x 32 squares: the whole subject is only 28 squares wide and 32 squares tall, so every square is a big flat block of one colour (no anti-aliasing, no blur, no gradients, no dithering) and the shape must stay simple and readable at that size. Thin parts such as legs, arms and tails are at least two squares wide. The dark outline is one square wide and runs round the whole silhouette only, not between the parts of the body.\n\nUse only these colours, or ones very close: #040305 #25232f #5a1d1c #3d3a31 #4c4751 #98161a #3b543d #704640 #695646 #80501d #635c60 #9b4d42 #98541c #46689c #cc1a19 #878052 #8c7f79 #ac7949 #6a9360 #4e9e9c #ed6a59 #de7c72 #769ed6 #d68e2a #eb9b73 #89c076 #c1b2a4 #f0b936 #c8e2fa #fce75f #ffeabf #f8f7f4.\n\nSide view, one subject, centred and filling most of the picture, on a transparent background. No text, no shadow on the ground, no frame, nothing else.\n\nNew pose: mid-stride walking: the front leg stepped forward, the back leg stretched behind, the tail swinging up",
+  "refs": [
+    {
+      "path": "assets/pip/002/raw.png",
+      "role": "base"
+    },
+    {
+      "path": "style/refs/hero.png",
+      "role": "hero"
+    },
+    {
+      "path": "style/refs/env.png",
+      "role": "env"
+    }
+  ],
+  "api": {
+    "provider": "openai",
+    "model": "gpt-image-2.6-sunburst",
+    "params": {
+      "size": "1024x1024",
+      "quality": "low",
+      "background": "transparent",
+      "output_format": "png"
+    },
+    "requestId": "req_4a09b220cb8141a68216cd97a2d62fb3",
+    "usage": {
+      "input_tokens": 3001,
+      "input_tokens_details": {
+        "image_tokens": 2339,
+        "text_tokens": 662
+      },
+      "output_tokens": 824,
+      "output_tokens_details": {
+        "image_tokens": 824,
+        "text_tokens": 0
+      },
+      "total_tokens": 3825
+    }
+  },
+  "source": null,
+  "snap": {
+    "pixelSize": 31.25,
+    "tries": 1,
+    "size": [26, 32],
+    "palette": "master",
+    "colors": 32,
+    "lattice": {
+      "cropBox": {
+        "x": 95,
+        "y": 10,
+        "w": 812,
+        "h": 1004
+      },
+      "pixelSize": 31.25,
+      "trim": {
+        "x": 0,
+        "y": 0
+      },
+      "offset": {
+        "x": 1,
+        "y": 0
+      }
+    },
+    "alignedTo": "002"
+  },
+  "normals": {
+    "bevel": 3,
+    "detail": 0.8,
+    "strength": 2.5
+  },
+  "target": {
+    "class": "character",
+    "w": 28,
+    "h": 32
+  },
+  "note": "",
+  "created": "2026-11-09T12:00:05.723Z",
+  "by": "claude-session",
+  "frame": "walk1"
+}

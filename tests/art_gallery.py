@@ -46,7 +46,7 @@ with sync_playwright() as p:
     # ---- the tiles ----
     pg.goto(G); pg.wait_for_selector('.gtile')
     names = pg.eval_on_selector_all('.gtile b', 'bs => bs.map(b => b.textContent)')
-    check('one tile per asset that has a live version, grouped by class', len(names) == len([x for x in INDEX['assets'] if x['live']]) and 'Cheese crate' in names and 'Fuel barrel' in names and "Pip's ship" in names and 'Ghost lamp' not in names and pg.locator('.gclass h2').first.text_content() == 'props', names)
+    check('one tile per asset that has a live version, grouped by class', len(names) == len([x for x in INDEX['assets'] if x['live']]) and 'Cheese crate' in names and 'Fuel barrel' in names and "Pip's ship" in names and 'Ghost lamp' not in names and pg.locator('.gclass h2').all_text_contents() == ['characters', 'props'], names)
     check('a tile shows the sprite enlarged and at game size', pg.locator('.gtile').first.locator('img').count() == 2)
     tile = pg.locator('.gtile', has_text='Cheese crate')
     check('the tile says how many versions an asset has', '3 versions' in tile.text_content())
@@ -82,6 +82,22 @@ with sync_playwright() as p:
     check('compare shows both versions and the pixels that differ', pg.locator('#cmp figure').count() == 5 and n > 5, diff)
     pg.select_option('#cmpB', '002'); pg.wait_for_function("document.querySelector('#cmp figure:last-child figcaption').textContent.includes('(0 pixels)')")
     check('a version against itself differs in no pixel', '(0 pixels)' in pg.text_content('#cmp figure:last-child figcaption'))
+
+    # ---- an asset that holds frames: an animation ----
+    pg.goto(G); pg.wait_for_selector('.gtile')
+    pip = pg.locator('.gtile', has_text='Pip (16 px test)')
+    check('an animation has a tile that says it plays and how many frames it has', pip.count() == 1 and '3 frames' in pip.text_content() and 'plays' in pip.text_content(), pip.text_content() if pip.count() else '')
+    pip.click(); pg.wait_for_selector('#animCv')
+    check('its page names the frames in order and marks the versions that are frames', pg.locator('.ganim .vitem').count() == 3 and pg.locator('.ganim .vitem b').all_text_contents() == ['idle', 'walk1', 'walk2'] and pg.locator('.vitem .livemark', has_text='frame walk1').count() >= 1)
+    check('and the head line says frames instead of live', '3 frames' in pg.text_content('.gback h2') and 'live:' not in pg.text_content('.gback h2'))
+    seen = set()
+    for _ in range(40):
+        seen.add(pg.get_attribute('#animCv', 'data-frame')); pg.wait_for_timeout(120)
+        if len(seen) == 3: break
+    check('the player loops through every frame', seen == {'idle', 'walk1', 'walk2'}, seen)
+    pg.select_option('#animFps', '16'); pg.click('#animPlay'); pg.wait_for_timeout(200); stopped = pg.get_attribute('#animCv', 'data-frame'); pg.wait_for_timeout(600)
+    check('pause holds a frame', pg.get_attribute('#animCv', 'data-frame') == stopped and 'PLAY' in pg.text_content('#animPlay'))
+    check('the canvas is the size of the target', pg.evaluate("(() => { const c = document.getElementById('animCv1'); return [c.width, c.height]; })()") == [14, 16])
 
     # ---- an imported asset: the owner's original drawing, from ref/ ----
     pg.goto(f'{G}&asset=lockers'); pg.wait_for_selector('.rawimg')
