@@ -11,9 +11,9 @@ Pipeline: Design Summary"); HISTORY 41 says what is built and what is not.
 | Folder layout, versions, a live pointer per asset, the checker | yes | `games/<id>/art/`, `tools/art/lib.mjs`, `tools/art.mjs check` |
 | Snapped PNG → game sprite with normals → `pipeline.js` | yes | `tools/art/sprite.mjs`, `tools/art.mjs build` |
 | Contact sheet for review (sprite, 4x, normals, lit from both sides) | yes | `tools/art/sprite.mjs` `contactSheet` |
-| Master palette from a game's sprites | yes | `tools/art.mjs palette` |
+| Master palette curated from a game's sprites (weighted by pixels, real colours only), `recolor` | yes | `tools/art.mjs palette`, `recolor`, `tools/art/palette.mjs` |
 | Gallery on the site: tiles, versions, compare, tree | yes | ART page, GALLERY tab (`portal/assets/gallery.js`) |
-| Style sheet, map seeds and sub-palettes | planned (phase 3) | `art/style`, `art/maps` |
+| Style sheet (paragraph + hero, props, env, mood references), map seeds and sub-palettes, `promote-ref` | yes | `art/style`, `art/maps`, `tools/art.mjs map`, `promote-ref`, `tools/art_capture.py` |
 | Image API adapter (OpenAI, Flux) and the `make` loop | planned (phase 4, needs keys) | `tools/art/gen/` |
 | The skill that runs the loop | planned (phase 5) | `.claude/skills/pixelite-art-pipeline/` |
 
@@ -56,7 +56,12 @@ owner's note), `created`, `by`.
 ## Commands (`tools/art.mjs`)
 ```sh
 node tools/art.mjs init <game>                  # the folders and a style sheet to fill in
-node tools/art.mjs palette <game>               # the master palette from the colours the game's sprites already use (curate it)
+node tools/art.mjs palette <game> [--from sprites.js] [--colors 32]   # the master palette: the game's colours weighted by the pixels that use them, curated to N real ones (0 = all)
+node tools/art.mjs recolor <game> <asset> <NNN> [--map m]   # move a version's colours onto the nearest ones of the master (or the map's) palette
+node tools/art.mjs map <game> <map> --seed seed.png [--colors 14]   # maps/<map>/: the seed picture, a sub-palette inside the master, notes.md to fill in
+node tools/art.mjs promote-ref <game> <asset> <NNN> --role hero|props|env|mood [--replace refs/props.png]   # an approved version becomes a style reference
+python3 tools/art_capture.py <game> --out f.png [--crop x,y,w,h] [--steps N --keys A,B --level N]   # a picture of the running game, one pixel per cell (a seed, a mood reference)
+python3 tools/art_capture.py <game> --out s.png --sprite "MOUSE_SPR.idle"   # or sprites from the game's own code, unlit, on transparent
 node tools/art.mjs add <game> <asset> --sprite in.png [--raw raw.png] [--kind hand|generated] [--parent 002] [--note "..."]
      [--class prop --target 12x11 --k .5 --place floor --char j --name "Cheese crate"]    # a new version (a new asset needs these)
 node tools/art.mjs promote <game> <asset> <NNN> # approve it and make it live
@@ -65,6 +70,24 @@ node tools/art.mjs build <game>                 # games/<id>/pipeline.js; add "p
 node tools/art.mjs check [game]
 node tools/art.mjs import-sprites <game> --const PROP_ART --class prop --frames ref/frames/prop_   # a game's existing sprites, as imported versions
 ```
+
+## The style sheet, the palettes and the map seeds
+`art/style/style.json` is what every generated picture is told first, and what a person writing a brief reads:
+- `styleParagraph`: the look in a few sentences (outline, light direction, detail, the mood of the colours). It goes into every prompt.
+- `refs`: three or four reference pictures in `style/refs/`, each with a `role`: `hero` (the main character, for proportions and outline),
+  `props` (the objects), `env` (the walls and floors), `mood` (a stretch of the game with its light). A reference is a real picture at
+  one pixel per cell, never a re-draw: `tools/art_capture.py` captures them from the running game, and `promote-ref` swaps an approved
+  new version in later, so the style sheet gets better as the game does. The checker needs every listed file, a known role, and no
+  stray picture in `refs/`.
+- `style/palette.json`: the **master palette**, at most 64 colours (a limit is the style). `palette` picks them: it counts the pixels of
+  every colour the sprites use, then clusters in Lab space (so "far apart" means "looks different") and keeps the heaviest *real*
+  colour of each cluster, so nothing invented ends up in it. Edit it by hand if a colour matters more than its pixel count.
+- `maps/<map>/`: `seed.png` (a picture of the place), `palette.json` (the master colours the seed is mostly made of: a subset the
+  checker enforces) and `notes.md` (what the place looks and feels like, in words). A brief for a prop in a map is generated
+  against the seed and snapped to the sub-palette, so a crate in Cargo Bay is in Cargo Bay's colours.
+- Imported versions keep their original colours and are exempt from the palette check; a hand-made or generated version must fit,
+  and `recolor` brings one in (the nearest colour in Lab, noted in `meta.snap.recolored`).
+Space Mouse's: 32 colours from its 240, four references captured from the game, and `maps/cargo-bay/` with 14 colours.
 
 ## The gallery (ART page, GALLERY tab)
 `/art/?game=<id>&tab=gallery`, behind the login. The build (`copyArt` in `tools/pixelite.mjs`) checks the folder with the same rules as
@@ -89,5 +112,5 @@ existing sheet-cut props are drawn about three times finer (k about 0.15) and ar
 the size the game shows it.
 
 ## Not yet built (see ROADMAP "Art pipeline")
-Animation sets (Pip walking is nineteen frames today: an asset with `frames` is the natural extension), the style
-sheet and map tiers, generation, and approval buttons on the site.
+Animation sets (Pip walking is nineteen frames today: an asset with `frames` is the natural extension), generation (needs the
+owner's API keys), and approval buttons on the site.

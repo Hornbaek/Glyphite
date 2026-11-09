@@ -935,6 +935,18 @@ stays in the chat first.
 - **Tests:** `tests/art_gallery.py` (CI), the build and routes tests (the art files are behind the login).
 - **Next:** the style sheet, a curated palette and map seeds (phase 3), then generation once the owner has added keys (phase 4).
 
+## 43. Art pipeline phase 3: the style sheet, a curated palette and map seeds
+
+- **Palette:** `art.mjs palette` now counts the pixels of every colour and curates (weighted k-means in Lab, each cluster keeps its
+  heaviest real colour). Space Mouse's master palette went from 240 colours to 32; the checker allows at most 64. The three versions of
+  the cheese crate were moved onto it with the new `recolor` (6 of 7 colours moved, about 80 pixels), and look the same in the game.
+- **Style sheet:** `style.json` has a style paragraph and four references (hero, props, env, mood) captured from the running game with
+  the new `tools/art_capture.py`; the checker needs the paragraph, valid roles and every file listed and present. `promote-ref` swaps an
+  approved version in as a reference later.
+- **Map seeds:** `art.mjs map` makes `maps/<map>/` (seed, a sub-palette that must sit inside the master, notes). Cargo Bay has one.
+- **Tests:** the CLI runs against a temporary checkout (`PIXELITE_ROOT`); new cases for curation, recolor, map, promote-ref and the style checks.
+- **Next:** generation (phase 4) once the owner has added the keys.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

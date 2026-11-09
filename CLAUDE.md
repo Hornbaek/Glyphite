@@ -34,7 +34,8 @@ tools/                  pixelite.mjs (CLI: build, new, list, serve), assemble.mj
                         (--auto picks the best frame), pixelsprite.py (pixel art → sprites), snap.mjs (Pixel Snapper: AI art
                         → its true grid; build-snapper.sh rebuilds it), normalmap.mjs (sprite normal maps), pixelfont.py
                         (the HUD font), sheetcheck.py (check an AI art sheet before cutting it), song.mjs (studio songs → a game's songs.js),
-                        art.mjs (the art pipeline: versions, palette, sprites with normals → a game's pipeline.js)
+                        art.mjs (the art pipeline: versions, palette, sprites with normals → a game's pipeline.js),
+                        art_capture.py (a picture of the running game at one pixel per cell: style references, map seeds)
 tests/                  smoke.py (any game, both renderers), lab.py (the PIXEL LAB), studio.py (the SOUND STUDIO and its sound),
                         node/ (unit tests: build, editor patches, Access, pixel tools, songs)
 docs/                   ARCHITECTURE (how it works), HISTORY, LESSONS, ROADMAP (the plan), IDEAS (the idea bank),
@@ -120,7 +121,8 @@ title, game = the project, data = the song as JSON, updated_at, updated_by). A s
 
 Art for a game lives in `games/<id>/art/` (style sheet, master palette, assets with numbered versions, one live per asset); only an
 approved, live version reaches the game, through the generated `games/<id>/pipeline.js` (`PIPE_ART`). `node tools/art.mjs` does the
-bookkeeping (add a version, promote, reject, build, check) and `docs/ART_PIPELINE.md` is the reference. New assets are made at the
+bookkeeping (add a version, promote, reject, recolor, build, check; curate the palette, make a map's seed, promote a style reference) and
+`docs/ART_PIPELINE.md` is the reference; the style sheet in `art/style/` says what every picture should look like. New assets are made at the
 size the game shows (one art pixel = one world pixel at the default detail). Never edit `pipeline.js`; change the art, then rebuild.
 Image generation through an API is not built yet (it needs the owner's keys: ROADMAP, "Art pipeline").
 

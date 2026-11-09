@@ -3,7 +3,11 @@
 // asset reaches the game, through the generated games/<id>/pipeline.js.
 //
 //   node tools/art.mjs init <game>                          the folders, a style sheet to fill in
-//   node tools/art.mjs palette <game> [--from sprites.js]   the master palette, from the colours the game's sprites already use
+//   node tools/art.mjs palette <game> [--from sprites.js] [--colors 32]   the master palette: the colours the game's sprites use,
+//                                                           weighted by pixels, curated down to --colors (0: all of them)
+//   node tools/art.mjs recolor <game> <asset> <NNN> [--map m]   put a version's colours on the nearest ones of the master (or the map's) palette
+//   node tools/art.mjs map <game> <map> --seed seed.png [--colors 14]   a map's seed piece, and its sub-palette (inside the master)
+//   node tools/art.mjs promote-ref <game> <asset> <NNN> --role props [--replace refs/props.png]   an approved version becomes a style reference
 //   node tools/art.mjs add <game> <asset> --sprite in.png [--raw raw.png] [--kind hand|generated|imported] [--parent 002]
 //        [--note "..."] [--map cargo-bay] [--class prop --target 12x11 --k .5 --place floor --char j --name "Cheese crate"]
 //                                                           a new version (a new asset needs class, target and k): draft
@@ -16,9 +20,10 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, readdirSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ROOT, artDir, readJSON, writeJSON, toHex, fromHex, lum, loadAssets, loadStyle, loadPalette, nextVersion, validate, ID_RE } from './art/lib.mjs';
+import { ROOT, artDir, readJSON, writeJSON, toHex, fromHex, lum, loadAssets, loadStyle, loadPalette, nextVersion, validate, ID_RE, REF_ROLES } from './art/lib.mjs';
 import { spriteFromPNG, pngFromSprite, normalRows, normalsPNG, contactSheet, pipelineJs } from './art/sprite.mjs';
-import { decodePNG } from './png.mjs';
+import { decodePNG, encodePNG } from './png.mjs';
+import { curate, nearest, histogram, hexOf, rgbOf } from './art/palette.mjs';
 
 const die = m => { console.error(`error: ${m}`); process.exit(1); };
 const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -54,14 +59,25 @@ export function writeVersion(game, id, { sprite, raw = null, meta, asset = null,
   return n;
 }
 
-// the colours a game's generated sprite file uses: every `pal` and every const ending _PAL
-export function paletteOf(file) {
+// the colours a game's generated sprite file uses, hex → how many pixels use each: every sprite with `rows` and a palette (its own
+// `pal`, or the NAME_PAL beside a NAME_FRAMES group)
+export function paletteOf(file, { weighted = false } = {}) {
   const text = readFileSync(file, 'utf8'), names = [...text.matchAll(/^const (\w+) =/gm)].map(m => m[1]);
   const env = new Function(`${text}\nreturn {${names.join(',')}};`)(), cols = new Map();
-  const add = list => { for (const c of list) if (Array.isArray(c) && c.length >= 3 && c.slice(0, 3).every(Number.isInteger)) cols.set(toHex(c), c.slice(0, 3)); };
-  const walk = (v, key, d) => { if (!v || typeof v !== 'object' || d > 4) return; if ((key === 'pal' || /_PAL$/.test(key)) && Array.isArray(v)) add(v); else for (const k of Object.keys(v)) walk(v[k], k, d + 1); };
-  for (const [k, v] of Object.entries(env)) walk(v, k, 0);
-  return [...cols.values()].sort((a, b) => lum(a) - lum(b) || toHex(a).localeCompare(toHex(b))).map(toHex);
+  const add = (pal, rows) => {
+    const count = new Array(pal.length).fill(0);
+    if (rows) for (const r of rows) for (const ch of r) if (ch !== '.') count[parseInt(ch, 36)]++;
+    pal.forEach((c, i) => { if (Array.isArray(c) && c.length >= 3) { const h = hexOf(c); cols.set(h, (cols.get(h) || 0) + (rows ? count[i] : 1)); } });
+  };
+  const walk = (v, pal, d) => {
+    if (!v || typeof v !== 'object' || d > 4) return;
+    if (Array.isArray(v.rows) && (v.pal || pal)) { add(v.pal || pal, v.rows); return; }
+    for (const k of Object.keys(v)) walk(v[k], pal, d + 1);
+  };
+  for (const [k, v] of Object.entries(env)) walk(v, /_FRAMES$/.test(k) ? env[k.replace(/_FRAMES$/, '_PAL')] : null, 0);
+  if (!cols.size) for (const [k, v] of Object.entries(env)) if (/_PAL$/.test(k)) add(v, null);
+  if (weighted) return cols;
+  return [...cols.keys()].sort((a, b) => lum(rgbOf(a)) - lum(rgbOf(b)) || a.localeCompare(b));
 }
 
 function main(argv) {
@@ -83,9 +99,48 @@ function main(argv) {
   if (cmd === 'palette') {
     need(); const from = join(ROOT, 'games', game, o.from || 'sprites.js');
     if (!existsSync(from)) die(`${from} does not exist`);
-    const colors = paletteOf(from);
-    writeJSON(join(artDir(game), 'style', 'palette.json'), { format: 'pixelite-palette', source: `the colours of games/${game}/${o.from || 'sprites.js'} (${colors.length}), dark to light: curate it`, colors });
-    console.log(`${colors.length} colours → games/${game}/art/style/palette.json`); return;
+    const all = paletteOf(from, { weighted: true }), k = o.colors === undefined ? 32 : +o.colors;
+    const colors = k > 0 ? curate(all, k) : [...all.keys()].sort((a, b) => lum(rgbOf(a)) - lum(rgbOf(b)));
+    writeJSON(join(artDir(game), 'style', 'palette.json'), { format: 'pixelite-palette', source: `${colors.length} of the ${all.size} colours of games/${game}/${o.from || 'sprites.js'}, picked by how many pixels use them and how far apart they look (tools/art/palette.mjs): edit it by hand if you like`, colors });
+    console.log(`${colors.length} of ${all.size} colours → games/${game}/art/style/palette.json`); return;
+  }
+  if (cmd === 'recolor') {
+    need(); const [id, n] = [pos[1], pos[2]], a = loadAssets(game).find(x => x.id === id), v = a && a.versions.find(x => x.n === n);
+    if (!v) die(`no version ${id}/${n}`);
+    const pal = o.map ? readJSON(join(artDir(game), 'maps', o.map, 'palette.json')).colors : loadPalette(game);
+    if (!pal || !pal.length) die('there is no palette (node tools/art.mjs palette ' + game + ')');
+    const im = decodePNG(readFileSync(join(v.dir, 'sprite.png'))), map = new Map(); let changed = 0;
+    for (let i = 0; i < im.data.length; i += 4) {
+      if (im.data[i + 3] < 128) continue;
+      const h = hexOf([im.data[i], im.data[i + 1], im.data[i + 2]]); if (!map.has(h)) map.set(h, pal.includes(h) ? h : nearest(pal, rgbOf(h)));
+      const to = rgbOf(map.get(h)); if (map.get(h) !== h) changed++; im.data[i] = to[0]; im.data[i + 1] = to[1]; im.data[i + 2] = to[2];
+    }
+    const png = Buffer.from(encodePNG(im.width, im.height, im.data));
+    const raw = existsSync(join(v.dir, 'raw.png')) ? readFileSync(join(v.dir, 'raw.png')) : null;
+    writeVersion(game, id, { sprite: png, raw, root: ROOT, meta: { ...v.meta, version: n, snap: { ...(v.meta.snap || {}), palette: o.map ? `map ${o.map}` : 'master', recolored: [...map].filter(([f, t]) => f !== t).length } } });
+    console.log(`${game}/${id}/${n}: ${[...map].filter(([f, t]) => f !== t).length} of ${map.size} colours moved to the ${o.map ? `map ${o.map}'s` : 'master'} palette (${changed} pixels)`); return;
+  }
+  if (cmd === 'map') {
+    need(); const m = pos[1]; if (!m || !ID_RE.test(m)) die('give a map id (a-z, 0-9, dashes)'); if (!o.seed) die('--seed seed.png is needed (a picture of the map\'s look, one pixel per art pixel: tools/art_capture.py makes one)');
+    const master = loadPalette(game); if (!master || !master.length) die('there is no master palette yet');
+    const bytes = readFileSync(o.seed), im = decodePNG(bytes), h = histogram(im.data), k = +(o.colors || 14), snapped = new Map();
+    for (const [c, w] of h) { const t = nearest(master, rgbOf(c)); snapped.set(t, (snapped.get(t) || 0) + w); }
+    const sub = curate(snapped, Math.min(k, snapped.size)), dir = join(artDir(game), 'maps', m); mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'seed.png'), bytes);
+    writeJSON(join(dir, 'palette.json'), { format: 'pixelite-palette', map: m, source: `the ${sub.length} master colours that most of ${basename(o.seed)} (${im.width} x ${im.height}) is made of`, colors: sub });
+    if (!existsSync(join(dir, 'notes.md'))) writeFileSync(join(dir, 'notes.md'), `# ${m}\n\nWhat this map looks and feels like (for the person writing the briefs; the seed picture and the sub-palette carry the rest):\n\n- \n`);
+    console.log(`maps/${m}: seed ${im.width} x ${im.height}, ${sub.length} colours (${snapped.size} master colours near the seed's)`); return;
+  }
+  if (cmd === 'promote-ref') {
+    need(); const [id, n] = [pos[1], pos[2]], a = loadAssets(game).find(x => x.id === id), v = a && a.versions.find(x => x.n === n);
+    if (!v) die(`no version ${id}/${n}`); if (v.meta.status !== 'approved') die(`${id}/${n} is ${v.meta.status}: only an approved version can become a style reference`);
+    if (!o.role || !REF_ROLES.includes(o.role)) die(`--role is one of ${REF_ROLES.join(', ')}`);
+    const sp = join(artDir(game), 'style', 'style.json'), st = readJSON(sp), file = `refs/${id}-${n}.png`;
+    mkdirSync(join(artDir(game), 'style', 'refs'), { recursive: true });
+    const sprite = readFileSync(join(v.dir, 'sprite.png')); writeFileSync(join(artDir(game), 'style', file), sprite);
+    if (o.replace) { const at = st.refs.findIndex(r => r.file === o.replace); if (at < 0) die(`no reference ${o.replace}`); st.refs.splice(at, 1, { file, role: o.role, from: `assets/${id}/${n}` }); }
+    else st.refs.push({ file, role: o.role, from: `assets/${id}/${n}` });
+    writeJSON(sp, st); console.log(`style/${file}: ${o.role}${o.replace ? ' (replaces ' + o.replace + '; the old picture stays in git history)' : ''}`); return;
   }
   if (cmd === 'add') {
     need(); const id = pos[1], root = ROOT;
@@ -141,6 +196,6 @@ function main(argv) {
     const parts = readJSON(join(ROOT, 'games', game, 'game.json')).parts;
     console.log(`wrote games/${game}/pipeline.js: ${n} live asset(s)${parts.includes('pipeline.js') ? '' : `\nadd "pipeline.js" to games/${game}/game.json's parts, before art.js`}`); return;
   }
-  die('commands: init, palette, add, promote, reject, import-sprites, check, build (see the top of tools/art.mjs)');
+  die('commands: init, palette, recolor, map, promote-ref, add, promote, reject, import-sprites, check, build (see the top of tools/art.mjs)');
 }
 if (process.argv[1] === fileURLToPath(import.meta.url)) main(process.argv.slice(2));

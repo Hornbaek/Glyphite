@@ -4,17 +4,53 @@
   "note": "pxPerUnit: art pixels per base unit at the default detail (RES 2): one art pixel = one world pixel, so a sprite's k is 1 / pxPerUnit.",
   "classes": {
     "character": {
-      "h": [14, 16]
+      "h": [
+        14,
+        16
+      ]
     },
     "prop": {
-      "w": [8, 40],
-      "h": [8, 40]
+      "w": [
+        8,
+        40
+      ],
+      "h": [
+        8,
+        40
+      ]
     },
     "tile": {
-      "w": [16, 16],
-      "h": [16, 16]
+      "w": [
+        16,
+        16
+      ],
+      "h": [
+        16,
+        16
+      ]
     }
   },
-  "styleParagraph": "",
-  "refs": []
+  "styleParagraph": "Pixel art for a small, grimy spaceship cargo bay seen from the side, lit by a few warm lamps against deep shadow. Dark one-pixel outline on characters and props, none on the large hull shapes. Flat colour areas with one highlight pixel and one shadow pixel per surface, light from the upper left, no gradients, no dithering, no anti-aliasing. Muted olive, rust, brown and slate with small bright accents (cheese yellow, lamp orange, screen cyan). Chunky, readable silhouettes with little interior detail: a character is about 14 pixels tall, a prop 8 to 40.",
+  "refs": [
+    {
+      "file": "refs/hero.png",
+      "role": "hero",
+      "from": "Pip, the mouse (MOUSE_SPR.idle), captured from the game at one pixel per cell"
+    },
+    {
+      "file": "refs/props.png",
+      "role": "props",
+      "from": "four props from the game (the key, the crate-like props), captured at one pixel per cell"
+    },
+    {
+      "file": "refs/env.png",
+      "role": "env",
+      "from": "the hull of Cargo Bay 1: panels, vines, a lamp, the sign, captured from the game"
+    },
+    {
+      "file": "refs/mood.png",
+      "role": "mood",
+      "from": "a stretch of Cargo Bay 1 with its light, captured from the game"
+    }
+  ]
 }
