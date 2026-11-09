@@ -8,7 +8,10 @@
   "refs": [],
   "api": null,
   "source": null,
-  "snap": null,
+  "snap": {
+    "palette": "master",
+    "recolored": 6
+  },
   "normals": {
     "bevel": 3,
     "detail": 0.8,

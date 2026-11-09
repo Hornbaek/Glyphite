@@ -8,8 +8,11 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decodePNG } from '../png.mjs';
 
-export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+// PIXELITE_ROOT points the tools at another checkout (the unit tests use a temporary one)
+export const ROOT = process.env.PIXELITE_ROOT || join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const STATUSES = ['draft', 'rejected', 'approved'];
+export const REF_ROLES = ['hero', 'props', 'env', 'mood'];
+export const MAX_PALETTE = 64;   // a limited palette is the point: more than this is a list of colours, not a style
 export const KINDS = ['generated', 'imported', 'hand'];
 export const artDir = (game, root = ROOT) => join(root, 'games', game, 'art');
 export const ID_RE = /^[a-z][a-z0-9-]{0,39}$/;
@@ -19,8 +22,8 @@ export const readJSON = p => JSON.parse(readFileSync(p, 'utf8'));
 export const toJSON = v => JSON.stringify(v, null, 2).replace(/\[\s*((?:-?[\d.]+|"[^"\n]*")(?:,\s*(?:-?[\d.]+|"[^"\n]*"))*)\s*\]/g, (m, inner) => inner.length < 90 ? `[${inner.replace(/\s*,\s*/g, ', ')}]` : m) + '\n';
 export const writeJSON = (p, v) => { mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, toJSON(v)); };
 
-export const toHex = c => '#' + c.slice(0, 3).map(v => v.toString(16).padStart(2, '0')).join('');
-export const fromHex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+export { hexOf as toHex, rgbOf as fromHex } from './palette.mjs';
+import { hexOf as toHex } from './palette.mjs';
 export const lum = c => .3 * c[0] + .59 * c[1] + .11 * c[2];
 const HEX = /^#[0-9a-f]{6}$/;
 
@@ -50,12 +53,23 @@ export function validate(game, { root = ROOT, pipeline = null } = {}) {
   const pal = loadPalette(game, root);
   if (!pal || !pal.length || !pal.every(c => HEX.test(c))) out.push(`${game}: style/palette.json needs "colors": ["#rrggbb", ...]`);
   const master = new Set(pal || []);
+  if (pal && pal.length > MAX_PALETTE) out.push(`${game}: the master palette has ${pal.length} colours, at most ${MAX_PALETTE} (node tools/art.mjs palette ${game} --colors 32)`);
+  if (style) {
+    if (typeof style.styleParagraph !== 'string' || !style.styleParagraph.trim()) out.push(`${game}: style.json needs a styleParagraph (outline, light, detail: it goes into every prompt)`);
+    for (const r of style.refs || []) {
+      if (!REF_ROLES.includes(r.role)) out.push(`${game}: reference ${r.file} has the role "${r.role}", one of ${REF_ROLES.join(', ')}`);
+      if (!existsSync(join(dir, 'style', r.file))) out.push(`${game}: style reference ${r.file} is not there`);
+    }
+    const refDir = join(dir, 'style', 'refs');
+    if (existsSync(refDir)) for (const f of readdirSync(refDir)) if (!(style.refs || []).some(r => r.file === `refs/${f}`)) out.push(`${game}: style/refs/${f} is not listed in style.json refs`);
+  }
   const subs = {};
   for (const m of dirs(join(dir, 'maps'))) {
     const p = join(dir, 'maps', m, 'palette.json');
     if (!existsSync(p)) continue;
     const cs = readJSON(p).colors || [];
     subs[m] = new Set(cs);
+    if (!existsSync(join(dir, 'maps', m, 'seed.png'))) out.push(`${game}: map ${m} has a palette but no seed.png`);
     for (const c of cs) if (!master.has(c)) out.push(`${game}: map ${m}'s palette has ${c}, which is not in the master palette`);
   }
   const seenChars = new Map();

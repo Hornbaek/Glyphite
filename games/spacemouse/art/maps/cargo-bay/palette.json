@@ -1,0 +1,21 @@
+{
+  "format": "pixelite-palette",
+  "map": "cargo-bay",
+  "source": "the 14 master colours that most of mood.png (200 x 68) is made of",
+  "colors": [
+    "#040305",
+    "#3d3a31",
+    "#98161a",
+    "#3b543d",
+    "#695646",
+    "#46689c",
+    "#878052",
+    "#ac7949",
+    "#6a9360",
+    "#de7c72",
+    "#d68e2a",
+    "#89c076",
+    "#c1b2a4",
+    "#c8e2fa"
+  ]
+}
