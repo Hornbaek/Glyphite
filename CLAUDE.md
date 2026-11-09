@@ -33,7 +33,7 @@ tools/                  pixelite.mjs (CLI: build, new, list, serve), assemble.mj
                         editor), ideas.mjs (docs/ideas.json → docs/IDEAS.md), changes.mjs (HISTORY.md → What's new), thumbnail.py
                         (--auto picks the best frame), pixelsprite.py (pixel art → sprites), snap.mjs (Pixel Snapper: AI art
                         → its true grid; build-snapper.sh rebuilds it), normalmap.mjs (sprite normal maps), pixelfont.py
-                        (the HUD font), sheetcheck.py (check an AI art sheet before cutting it), song.mjs (studio songs → a game's songs.js),
+                        (the HUD font), sheetcheck.py (check an AI art sheet before cutting it), song.mjs (studio songs → a game's songs.js), midi.mjs (MIDI files ↔ songs),
                         art.mjs (the art pipeline: versions, palette, sprites with normals → a game's pipeline.js),
                         art_capture.py (a picture of the running game at one pixel per cell: style references, map seeds)
 tests/                  smoke.py (any game, both renderers), lab.py (the PIXEL LAB), studio.py (the SOUND STUDIO and its sound),
@@ -114,6 +114,8 @@ title, game = the project, data = the song as JSON, updated_at, updated_by). A s
   plays where; add it to game.json's parts), and make the game play `SONG_AT`'s songs at their places after `Sampler.prepare` at
   load (`engine/API.md`, Sampler; Space Mouse's `stationMusic()`). Do what the place's note asks. The repository's copy is what the
   game plays; a later save in the studio changes nothing until a session brings it over again.
+- **MIDI files**: the studio's [ MORE ] menu opens a .mid as a new song and exports the song as one; `node tools/midi.mjs import <file.mid>`
+  / `export <file.song.json>` do the same from a session (notes, instruments, tempo, loop; not effects, automation or samples).
 - A session may also write a song itself: use the **`pixelite-song`** skill (it plans the song, writes it as code, checks its levels
   by rendering it, and ships it; the format is `Sampler.check`'s, see `games/spacemouse/music/cargo-bay.song.json`)
   and save it to D1 for the owner to open: `INSERT INTO songs (id, title, game, data, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, 'claude-session')`.

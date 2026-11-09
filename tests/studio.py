@@ -3,7 +3,7 @@
 a stand-in for the songs API). The sound is checked by rendering offline: pitch, the SNES voice limit, the echo dying away,
 the EQ, every instrument at a like loudness. The studio is driven like a person would: notes with the mouse, undo, a fake
 MIDI keyboard recording with the sustain pedal, the computer keyboard, saving (and a save that clashes), the draft
-surviving a reload, a WAV export. Automation: a tempo change, a volume lane, glide, lanes drawn with the mouse. Projects: the picker, songs kept per game. Samples: a recorded tone loaded, its note heard,
+surviving a reload, a WAV export, MIDI files out and in. Automation: a tempo change, a volume lane, glide, lanes drawn with the mouse. Projects: the picker, songs kept per game. Samples: a recorded tone loaded, its note heard,
 played at the right pitch, looped. WHERE IT PLAYS: the places saved in the song, the level opened in the game with the song inside.
 Build first: npm run build.
 
@@ -185,6 +185,36 @@ with sync_playwright() as p:
     data = Path(dl.value.path()).read_bytes()
     pcm = struct.unpack('<%dh' % ((len(data) - 44) // 2), data[44:44 + (len(data) - 44) // 2 * 2])
     check('WAV export: a 16-bit stereo file with music in it', data[:4] == b'RIFF' and data[8:12] == b'WAVE' and max(abs(v) for v in pcm) > 1000, len(data))
+
+    # ---- MIDI files: the song as a .mid, and a .mid opened as a new song (in a studio of its own, so this one's draft is left alone) ----
+    pg.click('#moreBtn')
+    with pg.expect_download() as dl: pg.click('#midiExportBtn')
+    mid_path = Path(dl.value.path()); mid = mid_path.read_bytes()
+    check('MIDI export: a Standard MIDI File named for the song', mid[:4] == b'MThd' and mid[14:18] == b'MTrk' and dl.value.suggested_filename.endswith('.mid'), (mid[:20], dl.value.suggested_filename))
+    mine = st('st.song.tracks.map(t => [t.name, t.instrument, t.notes])')
+    ctx2 = b.new_context(viewport={'width': 1440, 'height': 900}, accept_downloads=True)
+    pg2 = ctx2.new_page(); errs2 = []; dialogs = []; answer = {'accept': True}
+    pg2.on('pageerror', lambda e: errs2.append(str(e)))
+    pg2.on('dialog', lambda d: (dialogs.append(d.message), d.accept() if answer['accept'] else d.dismiss()))
+    pg2.route('**/api/songs**', api); pg2.route('**/fonts.g*/**', lambda r: r.abort())
+    pg2.goto(f'{BASE}/studio/?game=spacemouse'); pg2.wait_for_function('window.studio && studio.st.song')
+    st2 = lambda js: pg2.evaluate(f'(() => {{ const st = studio.st; return {js}; }})()')
+    pg2.set_input_files('#importMidi', str(mid_path)); pg2.wait_for_function("studio.st.song.title === 'Test tune'")
+    check('MIDI import: the exported file opens as the same song (names, instruments, every note)', st2('st.song.tracks.map(t => [t.name, t.instrument, t.notes])') == mine, st2('st.song.tracks.map(t => [t.name, t.instrument, t.notes.length])'))
+    check('a MIDI file opens as a new song: not saved, not the old one', st2('st.dirty') and st2('st.meta.id') is None and 'MIDI file opened' in pg2.text_content('#saved'), pg2.text_content('#saved'))
+    answer['accept'] = False
+    pg2.set_input_files('#importMidi', str(ROOT / 'games/regolith/music/descent.mid')); pg2.wait_for_timeout(500)
+    check('opening another file asks before it throws away unsaved changes, and "cancel" keeps them', any('Replace the song' in m for m in dialogs) and st2('st.song.title') == 'Test tune', dialogs)
+    answer['accept'] = True
+    pg2.set_input_files('#importMidi', str(ROOT / 'games/regolith/music/descent.mid')); pg2.wait_for_function("studio.st.song.title === 'Powered Descent'")
+    check('a MIDI file made elsewhere (Regolith\'s descent) opens: tempo, drums, tracks', st2('st.song.bpm') == 132 and st2("st.song.tracks.some(t => t.instrument === 'kit')") and st2('st.song.tracks.length') == 5, st2('[st.song.bpm, st.song.tracks.map(t => t.instrument)]'))
+    pg2.click('#playBtn'); pg2.wait_for_timeout(700)
+    check('and it plays', st2('studio.S.playing'))
+    pg2.click('#playBtn')
+    pg2.set_input_files('#importMidi', files=[{'name': 'nope.mid', 'mimeType': 'audio/midi', 'buffer': b'this is not a MIDI file at all'}]); pg2.wait_for_timeout(400)
+    check('a file that is not MIDI says so and changes nothing', any('cannot be opened' in m and 'not a MIDI file' in m for m in dialogs) and st2('st.song.title') == 'Powered Descent', dialogs)
+    check('no page errors in the MIDI studio', not errs2, errs2)
+    ctx2.close()
 
     # ---- automation: tempo changes, lanes, glide ----
     auto = pg.evaluate('''async () => {

@@ -40,10 +40,11 @@ Done: the engine's 16-bit Sampler, the studio at /studio/, songs saved on the si
 - ~~**Automation**~~ (HISTORY 38): volume, pan and filter lanes per track, tempo changes, glide. Next: curved segments,
   automating the sends and the echo, a lane per sample's loop point, tempo ramps (not only steps).
 - **Patterns**: SNES composers worked in short patterns; clips that repeat would make long songs quicker to write.
-- **MIDI files**: import a .mid into tracks; export the song as .mid.
+- ~~**MIDI files**~~ (HISTORY 51): import a .mid into tracks, export the song as .mid (`tools/midi.mjs` too). Next: pitch bends and the volume and pan
+  automation as CC events, a choice of tracks to open, a song's own samples as one-note General MIDI sounds.
 - **Making instruments off the main thread** (a Worker): a game's first song costs ~0.3 s of blocked frames on its title.
 - **Music that follows the game**: a director helper over `Sampler.track` (layers by state), and songs for Regolith and
-  Fjordheim (Regolith's MIDI could be re-voiced for the Sampler).
+  Fjordheim (Regolith's MIDI can now be turned into Sampler songs to re-voice: `node tools/midi.mjs import games/regolith/music/<name>.mid`).
 
 ## Art pipeline (HISTORY 41; docs/ART_PIPELINE.md)
 

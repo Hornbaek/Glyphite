@@ -29,6 +29,8 @@
     <button id="wavBtn">Export WAV</button>
     <button id="exportBtn">Download song file (.song.json)</button>
     <label class="file">Open a song file…<input type="file" id="importFile" accept=".json,application/json"></label>
+    <button id="midiExportBtn" title="The notes, instruments, tempo and loop as a Standard MIDI File (not the effects, automation or samples)">Export MIDI file (.mid)</button>
+    <label class="file" title="A Standard MIDI File becomes a new song, each instrument a track">Open a MIDI file…<input type="file" id="importMidi" accept=".mid,.midi,audio/midi,audio/x-midi"></label>
     <button id="dupSongBtn">Save as a copy</button>
     <button id="delSongBtn">Delete from the site</button>
   </div>
@@ -114,6 +116,8 @@
     <dt>velocity lane</dt><dd>drag up and down under a note to make it louder or softer</dd>
     <dt>VOLUME, PAN, FILTER, TEMPO</dt><dd>the lane's menu: click to add a point, drag it, right-click deletes; the track (or the
       whole song, for tempo) follows the line as it plays</dd>
+    <dt>[ MORE ] ▸ MIDI files</dt><dd>open a .mid as a new song (each channel becomes a track, with its General MIDI instrument mapped to the nearest
+      one here; channel 10 is the drum kit), or export the song as a .mid for another program</dd>
     <dt>instrument ▸ Load a sample…</dt><dd>your own sound (WAV, MP3, OGG): set its note, loop and grit under SAMPLE</dd>
     <dt>WHERE IT PLAYS</dt><dd>the places in the game the song is for; play the level with the song inside the game</dd>
   </dl>
