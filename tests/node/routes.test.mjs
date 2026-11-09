@@ -9,7 +9,7 @@ import { AuthError } from '../../worker/auth.js';
 
 const SITE = JSON.stringify({ games: [{ id: 'spacemouse', title: 'Space Mouse' }] });   // what the build lists on the landing page
 const FILES = { '/': 'game list', '/welcome/': 'landing', '/welcome/welcome.css': 'css', '/welcome/site.json': SITE, '/games/showcase/': 'demo',
-  '/games/spacemouse/': 'space mouse', '/games/spacemouse/game.json': '{"tunables":{}}', '/games/spacemouse/ref/ref.json': '{}',
+  '/games/spacemouse/': 'space mouse', '/games/spacemouse/game.json': '{"tunables":{}}', '/games/spacemouse/ref/ref.json': '{}', '/games/spacemouse/art/index.json': '{}', '/games/spacemouse/art/assets/cheese-crate/001/sprite.png': 'png',
   '/games/starter/': 'starter', '/games.json': '{}', '/edit/': 'editor', '/games/notfound/': '404 game' };
 const assets = files => ({ fetch: async req => { const p = new URL(req.url).pathname; return p in files ? new Response(files[p], { status: 200 }) : new Response('nope', { status: 404 }); } });
 const env = { ASSETS: assets(FILES) };
@@ -41,7 +41,7 @@ test('the listed games can be played signed out: their page only, nothing else o
   }
   for (const p of ['/games/spacemouse', '/games/spacemouse/index.html']) assert.ok(await isPublicGame(p, env, 'https://x/'), p);
   // the game's manifest, reference art and sources, unlisted games and the 404 game still need the sign-in
-  for (const p of ['/games/spacemouse/game.json', '/games/spacemouse/ref/ref.json', '/src/games/spacemouse/main.js', '/games/starter/', '/games/notfound/', '/games/', '/games/spacemouse/x/'])
+  for (const p of ['/games/spacemouse/game.json', '/games/spacemouse/ref/ref.json', '/games/spacemouse/art/index.json', '/games/spacemouse/art/assets/cheese-crate/001/sprite.png', '/src/games/spacemouse/main.js', '/games/starter/', '/games/notfound/', '/games/', '/games/spacemouse/x/'])
     assert.equal((await get(p, SIGNED_OUT, 'application/json')).status, 401, p);
   // no list, no public games
   const noList = { ASSETS: assets(Object.fromEntries(Object.entries(FILES).filter(([k]) => k !== '/welcome/site.json'))) };

@@ -35,7 +35,7 @@ function card(g) {
       <div class="actions">
         <a class="btn primary" href="${play}">[ PLAY ]</a>
         <a class="btn" href="/edit/?game=${encodeURIComponent(g.id)}">[ EDIT ]</a>
-        ${g.ref ? `<a class="btn" href="/art/?game=${encodeURIComponent(g.id)}" title="The original art the game's sprites were made from">[ ART ]</a>` : ''}
+        ${g.ref || g.art ? `<a class="btn" href="/art/?game=${encodeURIComponent(g.id)}${g.art ? '&tab=gallery' : ''}" title="The game's art: the original images its sprites were made from, and the art pipeline's gallery">[ ART ]</a>` : ''}
       </div>
       <p class="meta">${esc(meta)}</p>
     </div>

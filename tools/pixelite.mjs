@@ -23,6 +23,8 @@ import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import vm from 'node:vm';
 import { assemble } from './assemble.mjs';
+import { loadAssets, validate as validateArt, artDir } from './art/lib.mjs';
+import { buildText as artPipelineText } from './art.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist');
@@ -122,6 +124,30 @@ function copyRef(g, out) {
   return { sheets: ref.sheets.length, drawings: ref.sheets.reduce((n, sh) => n + sh.frames.length, 0) };
 }
 
+// The art pipeline (games/<id>/art/, docs/ART_PIPELINE.md) for the ART page's GALLERY: every version's small files (sprite, normals,
+// contact sheet) and its metadata in art/index.json; the raw image only of a live version (the others stay in the repository, which
+// keeps them all). A folder that breaks the pipeline's rules fails the build. Returns { assets, versions, approved, drafts } or null.
+function copyArt(g, out) {
+  if (g.base !== 'games' || !existsSync(artDir(g.manifest.id))) return null;
+  const problems = validateArt(g.manifest.id, { pipeline: artPipelineText(g.manifest.id) });
+  if (problems.length) die(`${g.path}/art: ${problems.join('; ')}`);
+  const style = JSON.parse(readFileSync(join(artDir(g.manifest.id), 'style', 'style.json'), 'utf8')), assets = [];
+  for (const a of loadAssets(g.manifest.id)) {
+    const A = a.asset, versions = [];
+    for (const v of a.versions) {
+      const to = join(out, 'art', 'assets', a.id, v.n); mkdirSync(to, { recursive: true });
+      for (const f of ['sprite.png', 'normals.png', 'preview.png']) copyFileSync(join(v.dir, f), join(to, f));
+      const raw = existsSync(join(v.dir, 'raw.png')), published = raw && A.live === v.n;
+      if (published) copyFileSync(join(v.dir, 'raw.png'), join(to, 'raw.png'));
+      versions.push({ ...v.meta, raw: raw ? (published ? 'published' : 'kept') : 'none' });
+    }
+    assets.push({ id: a.id, name: A.name, class: A.class, target: A.target, k: A.k, place: A.place || null, char: A.char || null, emit: A.emit !== false, live: A.live, versions });
+  }
+  write(join(out, 'art', 'index.json'), JSON.stringify({ game: g.manifest.id, pxPerUnit: style.pxPerUnit, classes: Object.keys(style.classes || {}), assets }) + '\n');
+  const all = assets.flatMap(a => a.versions);
+  return { assets: assets.length, versions: all.length, approved: all.filter(v => v.status === 'approved').length, drafts: all.filter(v => v.status === 'draft').length };
+}
+
 // The public landing page's data: the listed games' titles, taglines, descriptions, controls and thumbnails, and a few counts.
 // The Worker also reads it to know which games anyone may play (worker/index.js, isPublicGame): only the games listed here.
 function writeWelcome(engine, listing, changes) {
@@ -164,7 +190,7 @@ function build(only) {
     write(join(out, 'game.json'), JSON.stringify(m, null, 2) + '\n');
     let thumb = null;
     if (m.thumbnail && existsSync(join(ROOT, g.path, m.thumbnail))) { thumb = `games/${m.id}/${m.thumbnail}`; mkdirSync(out, { recursive: true }); copyFileSync(join(ROOT, g.path, m.thumbnail), join(DIST, thumb)); }
-    const ref = copyRef(g, out);
+    const ref = copyRef(g, out), art = copyArt(g, out);
     // sources for the editor: the manifest, the head and every part
     const src = join(DIST, 'src', 'games', m.id);
     write(join(src, 'game.json'), read(`${g.path}/game.json`));
@@ -174,7 +200,7 @@ function build(only) {
       id: m.id, title: m.title, tagline: m.tagline || '', description: m.description || '', status: m.status || 'draft',
       order: m.order ?? 99, listed: m.listed !== false, template: !!m.template, path: g.path, thumbnail: thumb,
       controls: m.controls || [], tunables: Object.keys(m.tunables || {}).length,
-      parts: [...(m.head ? [m.head] : []), ...m.parts], sizeKB: Math.round(page.length / 1024), updated: gitDate(g.path), ref
+      parts: [...(m.head ? [m.head] : []), ...m.parts], sizeKB: Math.round(page.length / 1024), updated: gitDate(g.path), ref, art
     };
     const at = listing.findIndex(e => e.id === m.id); if (at >= 0) listing[at] = entry; else listing.push(entry);
     console.log(`built ${g.path} → dist/games/${m.id}/index.html (${entry.sizeKB} KB)`);

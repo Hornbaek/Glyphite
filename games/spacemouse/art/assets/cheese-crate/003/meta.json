@@ -1,0 +1,25 @@
+{
+  "version": "003",
+  "parent": "001",
+  "status": "draft",
+  "kind": "hand",
+  "brief": "",
+  "prompt": "",
+  "refs": [],
+  "api": null,
+  "source": null,
+  "snap": null,
+  "normals": {
+    "bevel": 3,
+    "detail": 0.8,
+    "strength": 2.5
+  },
+  "target": {
+    "class": "prop",
+    "w": 12,
+    "h": 11
+  },
+  "note": "a slat and rivets: still deciding if it is too busy at 12 pixels",
+  "created": "2026-11-09T08:01:32.925Z",
+  "by": "claude-session"
+}

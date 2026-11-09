@@ -1,0 +1,25 @@
+{
+  "version": "002",
+  "parent": "001",
+  "status": "rejected",
+  "kind": "hand",
+  "brief": "",
+  "prompt": "",
+  "refs": [],
+  "api": null,
+  "source": null,
+  "snap": null,
+  "normals": {
+    "bevel": 3,
+    "detail": 0.8,
+    "strength": 2.5
+  },
+  "target": {
+    "class": "prop",
+    "w": 12,
+    "h": 11
+  },
+  "note": "the cheese heap is too big: it hides the crate",
+  "created": "2026-11-09T08:01:32.815Z",
+  "by": "claude-session"
+}

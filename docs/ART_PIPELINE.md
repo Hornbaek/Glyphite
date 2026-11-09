@@ -12,7 +12,7 @@ Pipeline: Design Summary"); HISTORY 41 says what is built and what is not.
 | Snapped PNG → game sprite with normals → `pipeline.js` | yes | `tools/art/sprite.mjs`, `tools/art.mjs build` |
 | Contact sheet for review (sprite, 4x, normals, lit from both sides) | yes | `tools/art/sprite.mjs` `contactSheet` |
 | Master palette from a game's sprites | yes | `tools/art.mjs palette` |
-| Gallery on the site, compare, version tree | planned (phase 2) | ART page |
+| Gallery on the site: tiles, versions, compare, tree | yes | ART page, GALLERY tab (`portal/assets/gallery.js`) |
 | Style sheet, map seeds and sub-palettes | planned (phase 3) | `art/style`, `art/maps` |
 | Image API adapter (OpenAI, Flux) and the `make` loop | planned (phase 4, needs keys) | `tools/art/gen/` |
 | The skill that runs the loop | planned (phase 5) | `.claude/skills/pixelite-art-pipeline/` |
@@ -66,6 +66,16 @@ node tools/art.mjs check [game]
 node tools/art.mjs import-sprites <game> --const PROP_ART --class prop --frames ref/frames/prop_   # a game's existing sprites, as imported versions
 ```
 
+## The gallery (ART page, GALLERY tab)
+`/art/?game=<id>&tab=gallery`, behind the login. The build (`copyArt` in `tools/pixelite.mjs`) checks the folder with the same rules as
+`art.mjs check` (a broken folder fails the build) and publishes `games/<id>/art/index.json` (every asset and the metadata of every
+version) plus each version's `sprite.png`, `normals.png` and `preview.png`; the **raw image only for a live version** (the others
+stay in the repository). Tiles: one per asset, the live version at game size and enlarged; "show drafts and rejected" adds assets with
+no approved version. An asset opens to its pictures (sprite, game size, normal map, lit by a lamp that follows the pointer, raw or the
+owner's original drawing for an import), the metadata (prompt, references, API, snap and normal settings, parent, note), a strip of
+versions, a tree of which came from which, and a **compare** of any two (side by side and a difference picture). The page only reads
+static files; deciding is done in the chat (a session runs `art.mjs promote` / `reject`).
+
 ## Using it in a game
 `pipeline.js` defines `PIPE_ART`: each live asset as `{ name, class, char, place, k, w, h, pal, rows, normals }`, the engine's sprite
 format. Space Mouse joins every asset that has a map `char` to its props (`PROP_ART`, `art.js`); anything else a game reads from
@@ -79,5 +89,5 @@ existing sheet-cut props are drawn about three times finer (k about 0.15) and ar
 the size the game shows it.
 
 ## Not yet built (see ROADMAP "Art pipeline")
-Animation sets (Pip walking is nineteen frames today: an asset with `frames` is the natural extension), the gallery, the style
+Animation sets (Pip walking is nineteen frames today: an asset with `frames` is the natural extension), the style
 sheet and map tiers, generation, and approval buttons on the site.

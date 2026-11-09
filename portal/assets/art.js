@@ -1,6 +1,7 @@
-// The reference art page (/art/?game=<id>): a game's ref/ref.json (written by its art tool, copied by the build) as each
-// sheet with the boxes its drawings were cut from, and the drawings at their original pixels. Without ?game= it lists the
-// games that have reference art.
+// The art page (/art/?game=<id>): two tabs. REFERENCE SHEETS: a game's ref/ref.json (written by its art tool, copied by the build) as
+// each sheet with the boxes its drawings were cut from, and the drawings at their original pixels. GALLERY (the art pipeline,
+// gallery.js): every asset and version. Without ?game= it lists the games that have either.
+import { renderGallery } from './gallery.js';
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-');
@@ -41,20 +42,33 @@ async function main() {
   const id = new URLSearchParams(location.search).get('game');
   let games = [];
   try { games = (await getJSON('/games.json')).games; } catch { }
-  if (!id) {   // the games that have reference art
-    const list = games.filter(g => g.ref);
-    $('#sheets').innerHTML = list.length ? `<ul class="games">${list.map(g => `<li><a href="?game=${encodeURIComponent(g.id)}">${esc(g.title)}</a>
-      <span class="meta">${g.ref.sheets} image${g.ref.sheets > 1 ? 's' : ''}, ${g.ref.drawings} drawings</span></li>`).join('')}</ul>` : '<p class="empty">No game has reference art yet.</p>';
+  if (!id) {   // the games that have art
+    const list = games.filter(g => g.ref || g.art);
+    $('#lede').textContent = 'The art of each game: the original images its sprites were made from, and the gallery of every asset the art pipeline has made.';
+    $('#sheets').innerHTML = list.length ? `<ul class="games">${list.map(g => `<li><a href="?game=${encodeURIComponent(g.id)}${g.art ? '&tab=gallery' : ''}">${esc(g.title)}</a>
+      <span class="meta">${[g.art && `${g.art.assets} asset${g.art.assets === 1 ? '' : 's'}, ${g.art.versions} version${g.art.versions === 1 ? '' : 's'}`, g.ref && `${g.ref.sheets} image${g.ref.sheets > 1 ? 's' : ''}, ${g.ref.drawings} drawings`].filter(Boolean).join(' · ')}</span></li>`).join('')}</ul>` : '<p class="empty">No game has art yet.</p>';
     return;
   }
   const g = games.find(x => x.id === id), base = `/games/${encodeURIComponent(id)}/ref/`;
-  let ref;
-  try { ref = await getJSON(base + 'ref.json'); }
-  catch (e) { $('#sheets').innerHTML = `<p class="empty">No reference art for this game (${esc(e.message)}).</p>`; return; }
-  const title = (g && g.title) || ref.title || id;
-  document.title = `${title}: reference art · Pixelite`;
-  $('#title').textContent = `${title}: reference art`;
+  let ref = null;
+  if (!g || g.ref) { try { ref = await getJSON(base + 'ref.json'); } catch (e) { if (!g || !g.art) { $('#sheets').innerHTML = `<p class="empty">No reference art for this game (${esc(e.message)}).</p>`; return; } } }
+  const title = (g && g.title) || (ref && ref.title) || id;
+  const hasArt = !!(g && g.art), tab = new URLSearchParams(location.search).get('tab') || (hasArt && !ref ? 'gallery' : 'ref');
+  document.title = `${title}: art · Pixelite`;
+  $('#title').textContent = `${title}: art`;
   $('#crumbGame').textContent = `${title.toUpperCase()} / ART`;
+  if (hasArt && ref) {   // both: tabs
+    $('#tabs').hidden = false;
+    for (const [el, t] of [[$('#tabGallery'), 'gallery'], [$('#tabRef'), 'ref']]) { el.href = `?game=${encodeURIComponent(id)}&tab=${t}`; el.classList.toggle('on', tab === t); el.setAttribute('aria-selected', String(tab === t)); }
+  }
+  if (tab === 'gallery' && hasArt) {
+    $('#lede').textContent = 'Everything the art pipeline has made for this game, one tile per asset showing the version that is live. Open an asset for its versions, the prompt and references, and a compare.';
+    $('#sheets').hidden = true; $('#gallery').hidden = false; $('#filters').hidden = true;
+    if (g) { $('#playLink').href = `/games/${encodeURIComponent(id)}/`; $('#editLink').href = `/edit/?game=${encodeURIComponent(id)}`; $('#playLink').hidden = $('#editLink').hidden = false; }
+    await renderGallery($('#gallery'), id, title);
+    return;
+  }
+  if (!ref) { $('#sheets').innerHTML = '<p class="empty">No reference art for this game.</p>'; return; }
   if (g) { $('#playLink').href = `/games/${encodeURIComponent(id)}/`; $('#editLink').href = `/edit/?game=${encodeURIComponent(id)}`; $('#playLink').hidden = $('#editLink').hidden = false; }
   $('#sheets').innerHTML = ref.sheets.map((sh, i) => sheetHTML(sh, base, i)).join('');
   if (ref.sheets.some(sh => sh.frames.some(f => !f.used))) $('#filters').hidden = false;
