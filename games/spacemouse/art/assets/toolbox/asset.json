@@ -1,0 +1,14 @@
+{
+  "id": "toolbox",
+  "name": "toolbox",
+  "class": "prop",
+  "target": {
+    "w": 32,
+    "h": 20
+  },
+  "k": 0.13,
+  "place": "floor",
+  "char": "t",
+  "emit": false,
+  "live": "001"
+}

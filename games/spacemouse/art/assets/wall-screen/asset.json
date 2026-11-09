@@ -1,0 +1,14 @@
+{
+  "id": "wall-screen",
+  "name": "wall screen",
+  "class": "prop",
+  "target": {
+    "w": 28,
+    "h": 28
+  },
+  "k": 0.1429,
+  "place": "wall",
+  "char": "g",
+  "emit": false,
+  "live": "001"
+}

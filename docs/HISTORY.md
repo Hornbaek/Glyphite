@@ -898,6 +898,26 @@ sign-in, and offering the snapper patch upstream speaks for the owner). Engine 0
   theme returns a whole step up with every voice at 70% of the song. Rendered: the climax section is the loudest part (0.08-0.09 RMS a
   bar, peak 0.38, no clipping) and the last beat before it drops to 0.014. Saved to the studio's Sketches project; not placed in any game.
 
+## 41. The art pipeline, phase 1: the foundation (Claude Code, 2026-11-09)
+
+> "I had a brainstorm discussion earlier today with some updates to the engine … Make a plan for this" (a design summary: an
+> AI-assisted pixel-art workflow with generation, snapping, normals, a gallery and per-game style management)
+
+The plan (approved): review in the chat first with the site gallery as the archive, everything that needs no API key first, Space
+Mouse as the first game. There are no API keys yet. Six phases, one pull request each; this is the first.
+
+- **`games/<id>/art/`** and `docs/ART_PIPELINE.md`: style sheet, master palette, assets with numbered versions (raw, snapped sprite,
+  normals, contact sheet, `meta.json` with prompt, references, API, parent, status, note), exactly one live version per asset.
+- **`tools/art.mjs`**: init, palette, add, promote, reject, import-sprites, check, build. **`tools/art/`**: the files and the checker
+  (`lib.mjs`), and the sprite builder (`sprite.mjs`): a snapped PNG becomes engine sprite data with its normals, a contact sheet,
+  and the generated `games/<id>/pipeline.js` (`PIPE_ART`), which the game joins to its props.
+- **Space Mouse:** its twelve sheet-cut props are imported as approved versions (kind imported, linked to the owner's original frames
+  in `ref/`, `emit: false` because the game still gets them from `sprites.js`), the master palette is extracted from its sprites (240
+  colours, to be curated in phase 3), and the first asset made for the pipeline, a hand-drawn **cheese crate** (12 x 11 pixels, one
+  art pixel per world pixel), is live and stands next to Pip at the start of Cargo Bay.
+- **Tests:** `tests/node/art.test.mjs` (the builder, versions, the live rule, every refusal of the checker, Space Mouse's real folder).
+- **Next:** the gallery (phase 2), then the style sheet and palettes (3), then generation once the owner has added the keys (4).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

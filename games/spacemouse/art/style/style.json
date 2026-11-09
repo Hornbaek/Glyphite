@@ -1,0 +1,20 @@
+{
+  "format": "pixelite-art-style",
+  "pxPerUnit": 2,
+  "note": "pxPerUnit: art pixels per base unit at the default detail (RES 2): one art pixel = one world pixel, so a sprite's k is 1 / pxPerUnit.",
+  "classes": {
+    "character": {
+      "h": [14, 16]
+    },
+    "prop": {
+      "w": [8, 40],
+      "h": [8, 40]
+    },
+    "tile": {
+      "w": [16, 16],
+      "h": [16, 16]
+    }
+  },
+  "styleParagraph": "",
+  "refs": []
+}

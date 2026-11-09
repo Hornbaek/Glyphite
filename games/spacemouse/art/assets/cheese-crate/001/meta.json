@@ -1,0 +1,25 @@
+{
+  "version": "001",
+  "parent": null,
+  "status": "approved",
+  "kind": "hand",
+  "brief": "",
+  "prompt": "",
+  "refs": [],
+  "api": null,
+  "source": null,
+  "snap": null,
+  "normals": {
+    "bevel": 3,
+    "detail": 0.8,
+    "strength": 2.5
+  },
+  "target": {
+    "class": "prop",
+    "w": 12,
+    "h": 11
+  },
+  "note": "drawn by hand: the first asset made for the pipeline, at one art pixel per world pixel",
+  "created": "2026-11-09T07:46:18.584Z",
+  "by": "claude-session"
+}

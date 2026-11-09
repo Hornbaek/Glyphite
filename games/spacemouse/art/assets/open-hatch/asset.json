@@ -1,0 +1,14 @@
+{
+  "id": "open-hatch",
+  "name": "open hatch",
+  "class": "prop",
+  "target": {
+    "w": 42,
+    "h": 42
+  },
+  "k": 0.2143,
+  "place": "floor",
+  "char": "e",
+  "emit": false,
+  "live": "001"
+}

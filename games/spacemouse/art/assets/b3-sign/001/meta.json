@@ -1,0 +1,25 @@
+{
+  "version": "001",
+  "parent": null,
+  "status": "approved",
+  "kind": "imported",
+  "brief": "",
+  "prompt": "",
+  "refs": [],
+  "api": null,
+  "source": "games/spacemouse/ref/frames/prop_B3_sign.png",
+  "snap": null,
+  "normals": {
+    "bevel": 3,
+    "detail": 0.8,
+    "strength": 2.5
+  },
+  "target": {
+    "class": "prop",
+    "w": 18,
+    "h": 21
+  },
+  "note": "from sprites.js (PROP_ART), made by the game's tools/art.py; the game still gets it from there (emit: false)",
+  "created": "2026-11-09T07:46:02.207Z",
+  "by": "claude-session"
+}

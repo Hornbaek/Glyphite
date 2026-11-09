@@ -1,0 +1,14 @@
+{
+  "id": "b3-sign",
+  "name": "B3 sign",
+  "class": "prop",
+  "target": {
+    "w": 18,
+    "h": 21
+  },
+  "k": 0.1714,
+  "place": "wall",
+  "char": "b",
+  "emit": false,
+  "live": "001"
+}
