@@ -110,7 +110,7 @@ test('Space Mouse: its art/ folder is valid, pipeline.js is what the build makes
   const live = liveItems('spacemouse'); assert.deepEqual(live.map(i => i.id).sort(), ['cheese-crate', 'fuel-barrel', 'pip-ship']);
   for (const it of live) {
     assert.ok(readFileSync(join(ROOT, 'games/spacemouse/decor.js'), 'utf8').includes(it.asset.char), `${it.id}: its map character is in the list of open tiles`);
-    if (it.id !== 'pip-ship') assert.ok(readFileSync(join(ROOT, 'games/spacemouse/sectors.js'), 'utf8').includes(it.asset.char), `${it.id}: and it is on a map`);   // the ship is in the editor's palette, not on a map yet
+    assert.ok(readFileSync(join(ROOT, 'games/spacemouse/sectors.js'), 'utf8').includes(it.asset.char), `${it.id}: and it is on a map`);
   }
   const crate = live.find(i => i.id === 'cheese-crate'); assert.deepEqual([crate.spr.w, crate.spr.h, crate.asset.k], [12, 11, .5], 'one art pixel is one world pixel at the default detail');
   const game = JSON.parse(readFileSync(join(ROOT, 'games/spacemouse/game.json'), 'utf8'));

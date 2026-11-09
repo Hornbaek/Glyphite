@@ -978,6 +978,11 @@ stays in the chat first.
 - Ship drafts 004 (flare, high) and 005 (sunburst, medium) refine 003; the three look the same to me. The owner prefers quality to speed, so sunburst stays the default model;
   `make` tries a 502 up to three times (sunburst at high still fails here, flare at high works).
 
+## 47. Pip's ship in the game
+
+- The owner asked for the ship in the game "for now, no specific level": it stands as scenery on the raised floor of Cargo Bay's first hall (`u` in `sectors.js`), lit by the
+  lamps like the other props. The test now wants every live pipeline prop on a map.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

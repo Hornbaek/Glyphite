@@ -95,4 +95,4 @@ checkpoint reachable: it runs `checkSector` from `levelcheck.js`). Run `reach.py
 - The sheets have a ladder and a lift; the controller has no climbing or moving platforms yet (general engine features).
 - The half-open hatch on the objects sheet is not used (a door that opens would need a reason to: a switch, a key).
 
-**Art from the pipeline** (`art/`, docs/ART_PIPELINE.md): `q` is the fuel barrel and `j` the cheese crate (props from live versions in `pipeline.js`, never edited by hand). Pip's ship (`pip-ship`) has drafts only.
+**Art from the pipeline** (`art/`, docs/ART_PIPELINE.md): `q` is the fuel barrel and `j` the cheese crate (props from live versions in `pipeline.js`, never edited by hand). `u` is Pip's ship (`pip-ship`, 32 x 18 px): scenery on the raised floor in Cargo Bay's first hall, not tied to a level's story.
