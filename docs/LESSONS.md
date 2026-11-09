@@ -219,6 +219,10 @@ way.
   subject ÷ target and correct it by what comes back. Alpha edges come back half-covered: binarize, then move every colour onto the palette.
 - **Node's fetch ignores the proxy** (`NODE_USE_ENV_PROXY=1` since 22.21); curl works because it reads `HTTPS_PROXY`. A secret saved for one host is not sent to another: Flux's
   polling host differs from its submit host.
+- **Slow calls get a 502.** sunburst at medium or high, and anything over about 30 s, came back "502 upstream request failed" about half the time; flare answers in 7 to 10 s even at high.
+  `make` asks once more. Keep drafts on flare.
+- **The cheapest model is not a draft model.** gpt-image-1-mini made a third of the tokens and an unusable picture (no outline, pieces apart).
+- **The Images API reports no cached tokens.** Two identical calls billed the same input; do not plan on caching there.
 - **Spend money on purpose.** Every `make` has `--max-calls`; tests use fixtures; a dry run prints the prompt for free.
 
 ## Platformers (Space Mouse)

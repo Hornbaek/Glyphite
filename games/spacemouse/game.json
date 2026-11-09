@@ -295,6 +295,11 @@
         "name": "fuel barrel (prop, from the art pipeline)",
         "color": "#8a7a50",
         "on": "."
+      },
+      "u": {
+        "name": "Pip's ship (prop, from the art pipeline)",
+        "color": "#5f7f9f",
+        "on": "."
       }
     },
     "marks": {

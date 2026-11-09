@@ -1,0 +1,67 @@
+{
+  "version": "004",
+  "parent": "003",
+  "status": "draft",
+  "kind": "generated",
+  "brief": "a small, scrappy one-seat spaceship for a tiny mouse pilot: a stubby rounded hull patched with riveted plates, a round glass cockpit canopy, one small fin and a little thruster at the back, landed and facing right",
+  "prompt": "Pixel art for a small, grimy spaceship cargo bay seen from the side, lit by a few warm lamps against deep shadow. Dark one-pixel outline on characters and props, none on the large hull shapes. Flat colour areas with one highlight pixel and one shadow pixel per surface, light from the upper left, no gradients, no dithering, no anti-aliasing. Muted olive, rust, brown and slate with small bright accents (cheese yellow, lamp orange, screen cyan). Chunky, readable silhouettes with little interior detail: a character is about 14 pixels tall, a prop 8 to 40.\n\nDraw ONE prop (one object): a small, scrappy one-seat spaceship for a tiny mouse pilot: a stubby rounded hull patched with riveted plates, a round glass cockpit canopy, one small fin and a little thruster at the back, landed and facing right.\n\nImage 1 is the draft to refine: keep its design, proportions, colours and pose, and redraw it cleaner and sharper as pixel art. Image 2 is the objects of the game: their size, outline and shading. Image 3 is the walls and floors: the surfaces and colours. The reference pictures are shown on a dark grey ground that is not part of the art. Match their pixel size, outline, shading and colours exactly, but draw the new subject: never copy what they show.\n\nMake it chunky pixel art: every art pixel one clear square block of a single flat colour, no anti-aliasing, no blur, no gradients, no dithering. It will be drawn about 32 x 18 pixels in the game, so keep the shape simple and readable at that size.\n\nUse only these colours, or ones very close: #040305 #25232f #5a1d1c #3d3a31 #4c4751 #98161a #3b543d #704640 #695646 #80501d #635c60 #9b4d42 #98541c #46689c #cc1a19 #878052 #8c7f79 #ac7949 #6a9360 #4e9e9c #ed6a59 #de7c72 #769ed6 #d68e2a #eb9b73 #89c076 #c1b2a4 #f0b936 #c8e2fa #fce75f #ffeabf #f8f7f4.\n\nSide view, one subject, centred and filling most of the picture, on a transparent background. No text, no shadow on the ground, no frame, nothing else.\n\nChange from the version before it: same ship, cleaner and sharper: a crisp dark outline, flat colour areas",
+  "refs": [
+    {
+      "path": "assets/pip-ship/003/raw.png",
+      "role": "draft"
+    },
+    {
+      "path": "style/refs/props.png",
+      "role": "props"
+    },
+    {
+      "path": "style/refs/env.png",
+      "role": "env"
+    }
+  ],
+  "api": {
+    "provider": "openai",
+    "model": "gpt-image-2.6-flare",
+    "params": {
+      "size": "1024x1024",
+      "quality": "high",
+      "background": "transparent",
+      "output_format": "png"
+    },
+    "requestId": "req_770bfb4e9c7e43f385fad830677c6e6e",
+    "usage": {
+      "input_tokens": 2827,
+      "input_tokens_details": {
+        "image_tokens": 2224,
+        "text_tokens": 603
+      },
+      "output_tokens": 1758,
+      "output_tokens_details": {
+        "image_tokens": 1758,
+        "text_tokens": 0
+      },
+      "total_tokens": 4585
+    }
+  },
+  "source": null,
+  "snap": {
+    "pixelSize": 35.556,
+    "tries": 1,
+    "size": [28, 18],
+    "palette": "master",
+    "colors": 32
+  },
+  "normals": {
+    "bevel": 3,
+    "detail": 0.8,
+    "strength": 2.5
+  },
+  "target": {
+    "class": "prop",
+    "w": 32,
+    "h": 18
+  },
+  "note": "same ship, cleaner and sharper: a crisp dark outline, flat colour areas",
+  "created": "2026-11-09T10:12:38.750Z",
+  "by": "claude-session"
+}

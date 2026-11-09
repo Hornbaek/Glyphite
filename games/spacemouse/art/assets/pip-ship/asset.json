@@ -8,6 +8,6 @@
   },
   "k": 0.5,
   "place": "floor",
-  "char": null,
-  "live": null
+  "char": "u",
+  "live": "003"
 }

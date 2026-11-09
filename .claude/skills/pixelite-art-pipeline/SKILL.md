@@ -18,10 +18,11 @@ the game until a version is promoted**, and the owner approves it first. Never e
 2. **Look at the prompt before spending.** `node tools/art.mjs make <game> <asset> --brief "..." --map <map> --dry` prints the exact prompt and
    the references it would send. The style paragraph, the palette and the references do most of the work: if the result will depend on a
    detail the paragraph lacks (outline, light, mood), fix the style sheet, not the brief.
-3. **Generate.** `node tools/art.mjs make <game> <asset> --brief "..." [--map <map>] [--n 3]`. It makes `n` DRAFT versions (default 1; three is
-   a good first round), each with `raw.png` (the model's picture), `sprite.png` (snapped to the exact target on the palette),
+3. **Generate, cheap first.** `node tools/art.mjs make <game> <asset> --brief "..." [--map <map>] --n 3 --quality low --model gpt-image-2.6-flare`. It makes `n` DRAFT versions (three is
+   a good first round; low quality on the fast model: about half the output tokens of medium and a third of the time), each with `raw.png` (the model's picture), `sprite.png` (snapped to the exact target on the palette),
    `normals.png` and `preview.png` (the contact sheet). It stops by itself at `--max-calls` (default n + 1). A call costs real money (about
-   a few cents at medium quality; Flux about 5 cents), so do not loop without a reason.
+   a few cents at medium quality; Flux about 5 cents), so do not loop without a reason. When the owner picks one, finish it once: `make <game> <asset> --from <NNN> --quality high
+   --model gpt-image-2.6-flare [--note "what to sharpen"]` redraws that draft (its own picture is the first reference). Token counts by model and quality: docs/ART_PIPELINE.md, "Spending less".
 4. **Show the owner, in the chat.** Stack the `preview.png` files into one picture (rows, one per candidate; Pillow does it), send it with
    `SendUserFile`, and say in one line which one reads best and why. Each row is: the model's picture | the sprite 4x | its normal map |
    lit from the left | lit from the right | game size. **Judge at game size and in the lit columns**, not the raw: a 10 x 14 sprite has

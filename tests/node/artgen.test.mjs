@@ -117,6 +117,19 @@ test('make: a brief becomes draft versions with the prompt, references, API and 
   assert.ok(log.some(l => /candidate 2: barrel\/002/.test(l)));
 });
 
+test('make --from: the draft\'s own picture goes first as the reference to refine, its brief is kept, and its usage is recorded', async () => {
+  const root = repo(), seen = [];
+  const generate = async o => { seen.push(o); return { png: modelPicture(BARREL), model: 'm', params: {}, requestId: 'r', keyed: null, usage: { input_tokens: 10, output_tokens: 5 } }; };
+  const asset = { id: 'barrel', name: 'Barrel', class: 'prop', target: { w: 8, h: 8 }, k: .5, place: 'floor', char: null, live: null };
+  await make('g', 'barrel', { root, brief: 'a barrel', quality: 'low', generate, asset });
+  const log = []; const res = await make('g', 'barrel', { root, from: '001', note: 'sharper outline', quality: 'high', generate, log: m => log.push(m) });
+  assert.deepEqual(seen[1].refs.map(r => r.name), ['draft.png', 'props.png', 'env.png']); assert.equal(seen[1].quality, 'high');
+  assert.ok(seen[1].prompt.includes('Image 1 is the draft to refine') && seen[1].prompt.includes('a barrel') && seen[1].prompt.includes('sharper outline'));
+  const v = loadAssets('g', root)[0].versions[1].meta; assert.deepEqual([res[0].version, v.parent, v.api.usage.output_tokens], ['002', '001', 5]);
+  assert.ok(log[0].includes('10 in / 5 out tokens'));
+  await assert.rejects(make('g', 'barrel', { root, from: '009', generate }), /version 009 of barrel does not exist/);
+});
+
 test('make: a model without alpha is asked again for a magenta background, which is removed; flux always works that way', async () => {
   const root = repo(), seen = [];
   const generate = async o => { seen.push({ keyed: o.prompt.includes('#FF00FF'), transparent: o.transparent });
