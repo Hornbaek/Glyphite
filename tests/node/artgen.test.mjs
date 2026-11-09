@@ -78,7 +78,7 @@ test('the prompt carries the style paragraph, the brief, the size, the palette, 
   const root = repo(), style = JSON.parse(readFileSync(join(root, 'games', 'g', 'art', 'style', 'style.json'), 'utf8'));
   const args = { style, cls: 'prop', brief: 'a rusty barrel.', target: { w: 10, h: 14 }, palette: PAL, refs: [{ role: 'props' }, { role: 'seed' }], mapNotes: 'A dim hold.', note: 'make the stripe thicker' };
   const t = buildPrompt({ ...args, keyed: false }), k = buildPrompt({ ...args, keyed: true });
-  for (const want of ['Chunky test pixels', 'ONE prop (one object): a rusty barrel.', '10 x 14 pixels', PAL.join(' '), 'Image 1 is the objects of the game', 'Image 2 is the place this will stand in', 'A dim hold.', 'make the stripe thicker', 'on a transparent background'])
+  for (const want of ['Chunky test pixels', 'ONE prop (one object): a rusty barrel.', 'exactly 10 x 14 squares', PAL.join(' '), 'Image 1 is the objects of the game', 'Image 2 is the place this will stand in', 'A dim hold.', 'make the stripe thicker', 'on a transparent background'])
     assert.ok(t.includes(want), want);
   assert.ok(k.includes('flat solid #FF00FF magenta') && !k.includes('on a transparent background'));
   assert.ok(!buildPrompt({ ...args, refs: [], note: '', mapNotes: '' }).includes('Image 1'), 'no references, no mention of them');

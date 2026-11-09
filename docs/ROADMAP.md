@@ -60,7 +60,7 @@ From the owner's brainstorm: generate art through an image API, snap it to the g
    Open: art below about 12 px loses most of what the model drew when it is snapped (the fuel barrel at 10 x 14); try generating the subject at a larger
    art size and reducing with a smarter downsample, or drawing characters at 16 px.
 6. Optional: approve / iterate / reject buttons on the site (D1 table, modelled on `worker/songs.js`).
-Later: the animation asset exists (HISTORY 49); next is a game using one (Pip's own frames) and a bigger canvas for the legs, moving Space Mouse's other art (Pip, cat-bots, objects) into the pipeline, the stray one-pixel
+Later: the animation asset exists (HISTORY 49); next is a game using one (Pip's own frames) (the legs are solved by drawing characters at twice the size: HISTORY 50), moving Space Mouse's other art (Pip, cat-bots, objects) into the pipeline, the stray one-pixel
 column on the lockers' right edge (a cut artefact the gallery will make visible).
 
 ## Principles to keep

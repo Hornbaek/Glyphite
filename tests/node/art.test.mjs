@@ -107,7 +107,7 @@ test('an imported asset is not emitted: the game still has it from its own sprit
 // the real game
 test('Space Mouse: its art/ folder is valid, pipeline.js is what the build makes, and the crate is a prop in the game', () => {
   assert.deepEqual(validate('spacemouse', { pipeline: buildText('spacemouse') }), []);
-  const live = liveItems('spacemouse'); assert.deepEqual(live.map(i => i.id).sort(), ['cheese-crate', 'fuel-barrel', 'pip-ship', 'pip-test']);
+  const live = liveItems('spacemouse'); assert.deepEqual(live.map(i => i.id).sort(), ['cheese-crate', 'fuel-barrel', 'pip', 'pip-ship', 'pip-test']);
   for (const it of live.filter(i => i.asset.char)) {
     assert.ok(readFileSync(join(ROOT, 'games/spacemouse/decor.js'), 'utf8').includes(it.asset.char), `${it.id}: its map character is in the list of open tiles`);
     assert.ok(readFileSync(join(ROOT, 'games/spacemouse/sectors.js'), 'utf8').includes(it.asset.char), `${it.id}: and it is on a map`);

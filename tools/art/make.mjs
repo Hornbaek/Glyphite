@@ -47,7 +47,8 @@ export function buildPrompt({ style, cls, brief, target, palette, refs, keyed, m
     style.styleParagraph.trim(),
     `Draw ONE ${CLASS_WORD[cls] || cls}: ${brief.trim().replace(/\.$/, '')}.`,
     refs.length ? `${roles} The reference pictures are shown on a dark grey ground that is not part of the art. Match their pixel size, outline, shading and colours exactly, but draw the new subject: never copy what they show.` : '',
-    `Make it chunky pixel art: every art pixel one clear square block of a single flat colour, no anti-aliasing, no blur, no gradients, no dithering. It will be drawn about ${target.w} x ${target.h} pixels in the game, so keep the shape simple and readable at that size.`,
+    // the model's own pixels should be the final ones: asked for a grid of exactly the target, its blocks come out big and the snap loses little (thin parts are what is lost otherwise)
+    `Draw it on a pixel grid of exactly ${target.w} x ${target.h} squares: the whole subject is only ${target.w} squares wide and ${target.h} squares tall, so every square is a big flat block of one colour (no anti-aliasing, no blur, no gradients, no dithering) and the shape must stay simple and readable at that size.${cls === 'character' ? ' Thin parts such as legs, arms and tails are at least two squares wide. The dark outline is one square wide and runs round the whole silhouette only, not between the parts of the body.' : ''}`,
     `Use only these colours, or ones very close: ${palette.join(' ')}.`,
     `Side view, one subject, centred and filling most of the picture, ${keyed ? 'on a flat solid #FF00FF magenta background (exactly that colour, and no magenta or pink in the subject)' : 'on a transparent background'}. No text, no shadow on the ground, no frame, nothing else.`,
     pose ? `New pose: ${pose.trim()}` : '',

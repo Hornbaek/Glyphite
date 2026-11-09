@@ -1,0 +1,13 @@
+{
+  "id": "pip-grid",
+  "name": "Pip (grid prompt)",
+  "class": "character",
+  "target": {
+    "w": 14,
+    "h": 16
+  },
+  "k": 0.5,
+  "place": "floor",
+  "char": null,
+  "live": null
+}

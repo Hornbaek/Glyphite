@@ -999,6 +999,13 @@ stays in the chat first.
 - Pip's 16 px test (`pip-test`: idle, walk1, walk2) is the first one; the game renders it through `pipeFrames` (checked), but the game's own Pip is unchanged.
 - Tests: checker, build, `promote --frame`, `make --frame --pose`, the published index, and the gallery player (`tests/art_gallery.py`).
 
+## 50. Pip's legs: draw characters at twice the size
+
+- The owner: "I don't know why Pip's legs would not fit, make that work." The cause was the canvas: a 1 pixel outline on a leg two pixels wide leaves no leg. The owner's own Pip is 26 x 28 art pixels shown at 13 x 14
+  (k .25) and the engine halves it with its outline-preserving downsample, so the new `pip` is drawn the same way: `--target 28x32 --k .25`. In the engine, side by side with the owner's Pip and the 14 x 16 test, the legs,
+  boots, belt and face come through. A prompt that asks the model for a grid of exactly the target size, with thicker thin parts for a character, was tried too: the model keeps drawing its own finer pixels, so the size is what helped.
+- `pip` (idle, walk1, walk2) is the second animation asset; style.json's `character` class is 28 to 32 px at k .25 and its paragraph says so. The game's own Pip is still the owner's sheet art; wiring `pipeFrames('pip')` in is next.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |
