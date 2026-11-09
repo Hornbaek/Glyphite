@@ -9,6 +9,8 @@ const MOUSE_K = .25;   // base units per sprite pixel: about 7 units tall, the h
 const MOUSE_SPR = {};
 for (const k in MOUSE_FRAMES) { const f = MOUSE_FRAMES[k]; MOUSE_SPR[k] = defineSprite({ w: f.w, h: f.h, pal: MOUSE_PAL, rows: f.rows, normals: f.normals }, { k: MOUSE_K, ox: f.ox, oy: f.oy }); }
 // props from the same sheets: they stand on the floor of their tile, or hang on the wall in its middle
+// (the art pipeline's props, pipeline.js, join them: each asset with a map character is a prop)
+for (const id in PIPE_ART) if (PIPE_ART[id].char) PROP_ART[PIPE_ART[id].char] = PIPE_ART[id];
 const PROP_SPR = {};
 for (const ch in PROP_ART) { const p = PROP_ART[ch]; PROP_SPR[ch] = defineSprite(p, { k: p.k, ox: p.w / 2, oy: p.place === 'floor' ? p.h : p.h / 2 }); }
 // a crumb of cheese

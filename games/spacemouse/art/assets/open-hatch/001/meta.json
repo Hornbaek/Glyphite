@@ -1,0 +1,25 @@
+{
+  "version": "001",
+  "parent": null,
+  "status": "approved",
+  "kind": "imported",
+  "brief": "",
+  "prompt": "",
+  "refs": [],
+  "api": null,
+  "source": "games/spacemouse/ref/frames/prop_open_hatch.png",
+  "snap": null,
+  "normals": {
+    "bevel": 3,
+    "detail": 0.8,
+    "strength": 2.5
+  },
+  "target": {
+    "class": "prop",
+    "w": 42,
+    "h": 42
+  },
+  "note": "from sprites.js (PROP_ART), made by the game's tools/art.py; the game still gets it from there (emit: false)",
+  "created": "2026-11-09T07:46:02.286Z",
+  "by": "claude-session"
+}

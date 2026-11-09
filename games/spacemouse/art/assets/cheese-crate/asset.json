@@ -1,0 +1,13 @@
+{
+  "id": "cheese-crate",
+  "name": "Cheese crate",
+  "class": "prop",
+  "target": {
+    "w": 12,
+    "h": 11
+  },
+  "k": 0.5,
+  "place": "floor",
+  "char": "j",
+  "live": "001"
+}

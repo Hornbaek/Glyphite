@@ -1,0 +1,14 @@
+{
+  "id": "plant",
+  "name": "plant",
+  "class": "prop",
+  "target": {
+    "w": 16,
+    "h": 24
+  },
+  "k": 0.1458,
+  "place": "floor",
+  "char": "p",
+  "emit": false,
+  "live": "001"
+}

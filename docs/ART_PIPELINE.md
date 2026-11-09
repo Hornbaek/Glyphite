@@ -1,0 +1,83 @@
+# The art pipeline
+
+How art gets into a game: made (by hand, or generated through an image API), snapped to true pixel art on the game's palette,
+given a normal map, **reviewed**, and only then made live. The brief it grew from is the owner's brainstorm ("Pixelite AI Art
+Pipeline: Design Summary"); HISTORY 41 says what is built and what is not.
+
+## What exists
+
+| Step | Built? | Where |
+|---|---|---|
+| Folder layout, versions, a live pointer per asset, the checker | yes | `games/<id>/art/`, `tools/art/lib.mjs`, `tools/art.mjs check` |
+| Snapped PNG → game sprite with normals → `pipeline.js` | yes | `tools/art/sprite.mjs`, `tools/art.mjs build` |
+| Contact sheet for review (sprite, 4x, normals, lit from both sides) | yes | `tools/art/sprite.mjs` `contactSheet` |
+| Master palette from a game's sprites | yes | `tools/art.mjs palette` |
+| Gallery on the site, compare, version tree | planned (phase 2) | ART page |
+| Style sheet, map seeds and sub-palettes | planned (phase 3) | `art/style`, `art/maps` |
+| Image API adapter (OpenAI, Flux) and the `make` loop | planned (phase 4, needs keys) | `tools/art/gen/` |
+| The skill that runs the loop | planned (phase 5) | `.claude/skills/pixelite-art-pipeline/` |
+
+## Folder per game: `games/<id>/art/`
+It is separate from `ref/`, which holds the owner's own images and keeps its strict rule (`tests/node/ref.test.mjs`).
+
+```
+art/style/style.json      pxPerUnit, size classes, the fixed style paragraph, the reference images with a role
+art/style/palette.json    the master palette: { colors: ["#rrggbb", ...] }
+art/style/refs/           3 or 4 approved reference images (phase 3)
+art/maps/<map>/           seed.png and palette.json: a sub-palette that must sit inside the master (phase 3)
+art/assets/<asset>/asset.json     what the asset is, and which version is live
+art/assets/<asset>/<NNN>/         one attempt: sprite.png, normals.png, preview.png, meta.json, raw.png (if it has one)
+games/<id>/pipeline.js    GENERATED from the live versions: PIPE_ART; committed, because the Cloudflare build has no tooling for it
+```
+
+### `asset.json`
+`id` (the folder), `name`, `class` (a key of `style.json` classes), `target {w, h}` (art pixels), `k` (base units per sprite
+pixel: one art pixel is one world pixel at the default detail when `k = 1 / pxPerUnit`, so 0.5 at RES 2), `place` (`floor` stands on
+its tile, `wall` hangs in its middle), `char` (the map character that places it, or null: the editor's LEVELS legend and the
+game's list of open tiles need it too), `live` (a version number, or null), and `emit: false` for an **imported** asset: one
+the game still gets from its own `sprites.js` (made by the game's `tools/art.py`); it is in the pipeline for the gallery and
+as a reference, and `build` leaves it out so the two do not clash.
+
+### `meta.json` (one per version)
+`version`, `parent` (the version it was made from, or null: history is a small tree), `status` (`draft`, `rejected`, `approved`),
+`kind` (`generated`, `imported`, `hand`), `brief`, the final `prompt`, `refs [{path, role}]`, `api {provider, model, params,
+requestId}` (generated only), `source` (the owner's original image it was cut from, for an import), `snap {pixelSize, colors,
+palette, size}`, `normals {bevel, detail, strength}`, `target {class, w, h}`, `map` (the sub-palette it was made on), `note` (the
+owner's note), `created`, `by`.
+
+### Rules the checker (`node tools/art.mjs check`, and `tests/node/art.test.mjs`) enforces
+- Exactly one version of an asset is live, and only an **approved** one may be; only the live version reaches the game.
+- Rejected versions stay on disk and are hidden by default (a rejected attempt can still hold a useful detail).
+- A sprite is exactly the target size, and every colour of a hand-made or generated one is in the master palette (or its map's).
+  Imported versions are exempt: they are what the game already has.
+- A parent must exist; a map character belongs to one asset; a map's palette is a subset of the master.
+- `pipeline.js` is what `tools/art.mjs build` makes from the live versions (a stale one fails the test, so it cannot be forgotten).
+
+## Commands (`tools/art.mjs`)
+```sh
+node tools/art.mjs init <game>                  # the folders and a style sheet to fill in
+node tools/art.mjs palette <game>               # the master palette from the colours the game's sprites already use (curate it)
+node tools/art.mjs add <game> <asset> --sprite in.png [--raw raw.png] [--kind hand|generated] [--parent 002] [--note "..."]
+     [--class prop --target 12x11 --k .5 --place floor --char j --name "Cheese crate"]    # a new version (a new asset needs these)
+node tools/art.mjs promote <game> <asset> <NNN> # approve it and make it live
+node tools/art.mjs reject <game> <asset> <NNN> --note "why"
+node tools/art.mjs build <game>                 # games/<id>/pipeline.js; add "pipeline.js" to game.json's parts, before the art file
+node tools/art.mjs check [game]
+node tools/art.mjs import-sprites <game> --const PROP_ART --class prop --frames ref/frames/prop_   # a game's existing sprites, as imported versions
+```
+
+## Using it in a game
+`pipeline.js` defines `PIPE_ART`: each live asset as `{ name, class, char, place, k, w, h, pal, rows, normals }`, the engine's sprite
+format. Space Mouse joins every asset that has a map `char` to its props (`PROP_ART`, `art.js`); anything else a game reads from
+`PIPE_ART[id]` and passes to `defineSprite(data, { k: data.k, ox, oy })`. The legend entry, the open-tile list and a map spot
+make a prop appear; `python3 games/spacemouse/tests/reach.py` proves the level can still be finished.
+
+## Scale
+Sprite scale is what has to match (not the whole screen): fix one `pxPerUnit` per game and a size per class in `style.json`.
+Space Mouse: Pip is about 14-16 art pixels tall at the default detail (RES 2), so a prop of 12 x 11 pixels is 6 x 5.5 units. The
+existing sheet-cut props are drawn about three times finer (k about 0.15) and are sampled down by the engine; new art is made at
+the size the game shows it.
+
+## Not yet built (see ROADMAP "Art pipeline")
+Animation sets (Pip walking is nineteen frames today: an asset with `frames` is the natural extension), the gallery, the style
+sheet and map tiers, generation, and approval buttons on the site.

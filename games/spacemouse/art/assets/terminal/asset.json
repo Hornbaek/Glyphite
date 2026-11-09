@@ -1,0 +1,14 @@
+{
+  "id": "terminal",
+  "name": "terminal",
+  "class": "prop",
+  "target": {
+    "w": 24,
+    "h": 37
+  },
+  "k": 0.1486,
+  "place": "floor",
+  "char": "m",
+  "emit": false,
+  "live": "001"
+}

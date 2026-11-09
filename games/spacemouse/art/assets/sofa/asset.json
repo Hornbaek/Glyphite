@@ -1,0 +1,14 @@
+{
+  "id": "sofa",
+  "name": "sofa",
+  "class": "prop",
+  "target": {
+    "w": 46,
+    "h": 22
+  },
+  "k": 0.1545,
+  "place": "floor",
+  "char": "h",
+  "emit": false,
+  "live": "001"
+}

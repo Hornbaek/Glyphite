@@ -14,6 +14,7 @@
     "decor.js",
     "giveway.js",
     "sprites.js",
+    "pipeline.js",
     "art.js",
     "mouse.js",
     "catbots.js",
@@ -283,6 +284,11 @@
       "e": {
         "name": "hatch, open (prop)",
         "color": "#e0a3ff",
+        "on": "."
+      },
+      "j": {
+        "name": "cheese crate (prop, from the art pipeline)",
+        "color": "#d9a441",
         "on": "."
       }
     },

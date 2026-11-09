@@ -1,0 +1,14 @@
+{
+  "id": "fan-box",
+  "name": "fan box",
+  "class": "prop",
+  "target": {
+    "w": 30,
+    "h": 37
+  },
+  "k": 0.1622,
+  "place": "floor",
+  "char": "f",
+  "emit": false,
+  "live": "001"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "barrel",
+  "name": "barrel",
+  "class": "prop",
+  "target": {
+    "w": 18,
+    "h": 26
+  },
+  "k": 0.1538,
+  "place": "floor",
+  "char": "o",
+  "emit": false,
+  "live": "001"
+}

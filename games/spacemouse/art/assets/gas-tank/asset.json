@@ -1,0 +1,14 @@
+{
+  "id": "gas-tank",
+  "name": "gas tank",
+  "class": "prop",
+  "target": {
+    "w": 18,
+    "h": 31
+  },
+  "k": 0.1613,
+  "place": "floor",
+  "char": "n",
+  "emit": false,
+  "live": "001"
+}
