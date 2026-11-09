@@ -5,6 +5,9 @@ description: Write the prompt the owner pastes into ChatGPT or Gemini to generat
 
 # Write an art-sheet prompt for a Pixelite game
 
+> A game with an `art/` folder (Space Mouse) makes new art through the image API instead: the **`pixelite-art-pipeline`** skill. Its
+> style paragraph and references (`games/<id>/art/style/`) are the fixed block for a sheet prompt too: copy them, do not invent a second style.
+
 The owner makes the art in ChatGPT or Gemini from a prompt we write, then gives us the sheet. The
 `pixelite-pixel-art` skill turns it into sprites and keeps every original (CLAUDE.md, "Reference art"). A loose
 prompt costs hours later: hand-cut labels, tolerances tuned per drawing, palettes remapped between sheets. Every rule

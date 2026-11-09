@@ -947,6 +947,20 @@ stays in the chat first.
 - **Tests:** the CLI runs against a temporary checkout (`PIXELITE_ROOT`); new cases for curation, recolor, map, promote-ref and the style checks.
 - **Next:** generation (phase 4) once the owner has added the keys.
 
+## 44. Art pipeline phases 4-5: generating art through an API
+
+- **Keys:** the owner saved OpenAI and Flux keys as network secrets; `node tools/art.mjs check-keys` calls each once (both OK).
+- **Adapters** (`tools/art/gen/`): OpenAI images edit with all references (default `gpt-image-2.6-sunburst`, transparent background; `gpt-image-2` has none),
+  and Flux 3 Image (submit, poll, download, magenta key). The commands start themselves with `NODE_USE_ENV_PROXY=1` so Node's fetch uses the cloud proxy.
+- **`art.mjs make`** (`tools/art/make.mjs`): brief + style sheet + palette + references (by class, plus the map's seed) → prompt → image → trim → pixel size from
+  subject ÷ target → Pixel Snapper on the palette → exact target size → normals, contact sheet → a draft version with the whole recipe in `meta.json`. `--dry`,
+  `--n`, `--max-calls`, `--parent --note` (iterate), `--map`, `--key`.
+- **First real run:** three fuel barrels (10 x 14) for Cargo Bay: the model's pictures are good, the snapped sprites read but lose detail at that size (ROADMAP).
+  They stay as drafts in the gallery; nothing is live.
+- **Flux:** a job went through (paid, 4.8 credits) but its polling host `api.isr.bfl.ai` is not allowed; documented under "Keys" for the owner to add.
+- **Skill** `pixelite-art-pipeline` runs the loop; `pixelite-art-prompt` points at the style sheet.
+- **Tests:** `tests/node/artgen.test.mjs` (no network; fixtures).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

@@ -1,0 +1,13 @@
+{
+  "id": "fuel-barrel",
+  "name": "Fuel barrel",
+  "class": "prop",
+  "target": {
+    "w": 10,
+    "h": 14
+  },
+  "k": 0.5,
+  "place": "floor",
+  "char": null,
+  "live": null
+}

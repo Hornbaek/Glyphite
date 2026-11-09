@@ -209,6 +209,18 @@ way.
 - **Music leaks into beat tests.** Once a test starts the audio, the game's music plays, and `Beat.step` fires on its real
   drum hits between the frames being compared. Set `Chip.playing = false` while measuring anything beat-driven.
 
+## Image APIs (the art pipeline)
+
+- **Model names move.** `gpt-image-2` makes no transparent background; `gpt-image-1.5` does but draws worse; the newest one that does and draws well in November 2026 was
+  `gpt-image-2.6-sunburst`. Ask the key (`art.mjs models openai`) before trusting a name from memory, and record the model on every version.
+- **Show references as big blocks.** A 42 x 13 reference is unreadable to a model and Flux refuses images under 256 px: scale by a whole number (nearest) to at least 384 px on the
+  short side and flatten transparency onto grey (a transparent reference is read as black).
+- **The snap needs the pixel size.** Auto-detect finds the model's own grid (about 100 px wide for a 1024 picture), not the 10 x 14 the game shows: work the size out from
+  subject ÷ target and correct it by what comes back. Alpha edges come back half-covered: binarize, then move every colour onto the palette.
+- **Node's fetch ignores the proxy** (`NODE_USE_ENV_PROXY=1` since 22.21); curl works because it reads `HTTPS_PROXY`. A secret saved for one host is not sent to another: Flux's
+  polling host differs from its submit host.
+- **Spend money on purpose.** Every `make` has `--max-calls`; tests use fixtures; a dry run prints the prompt for free.
+
 ## Platformers (Space Mouse)
 
 - **Prove the levels with a search, not by eye.** `games/spacemouse/tests/reach.py` runs the real controller from every

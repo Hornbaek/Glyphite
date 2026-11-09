@@ -1,0 +1,55 @@
+{
+  "version": "001",
+  "parent": null,
+  "status": "draft",
+  "kind": "generated",
+  "brief": "a battered steel fuel barrel with a yellow hazard stripe around its middle",
+  "prompt": "Pixel art for a small, grimy spaceship cargo bay seen from the side, lit by a few warm lamps against deep shadow. Dark one-pixel outline on characters and props, none on the large hull shapes. Flat colour areas with one highlight pixel and one shadow pixel per surface, light from the upper left, no gradients, no dithering, no anti-aliasing. Muted olive, rust, brown and slate with small bright accents (cheese yellow, lamp orange, screen cyan). Chunky, readable silhouettes with little interior detail: a character is about 14 pixels tall, a prop 8 to 40.\n\nDraw ONE prop (one object): a battered steel fuel barrel with a yellow hazard stripe around its middle.\n\nImage 1 is the objects of the game: their size, outline and shading. Image 2 is the walls and floors: the surfaces and colours. Image 3 is the place this will stand in: its colours and light. The reference pictures are shown on a dark grey ground that is not part of the art. Match their pixel size, outline, shading and colours exactly, but draw the new subject: never copy what they show.\n\nMake it chunky pixel art: every art pixel one clear square block of a single flat colour, no anti-aliasing, no blur, no gradients, no dithering. It will be drawn about 10 x 14 pixels in the game, so keep the shape simple and readable at that size.\n\nUse only these colours, or ones very close: #040305 #3d3a31 #98161a #3b543d #695646 #46689c #878052 #ac7949 #6a9360 #de7c72 #d68e2a #89c076 #c1b2a4 #c8e2fa.\n\nSide view, one subject, centred and filling most of the picture, on a transparent background. No text, no shadow on the ground, no frame, nothing else.\n\nThe place it belongs to: Cargo Bay 1, the first sector: a long hold of olive and brown hull panels, rusty seams, hanging vines and moss, a red cable, hazard stripes. Dark and warm: a few orange lamps pool light on the floor, everything else falls into deep shadow. The mood is \"abandoned but alive\": small bright accents (cheese, lamp, screen) on muted metal.",
+  "refs": [
+    {
+      "path": "style/refs/props.png",
+      "role": "props"
+    },
+    {
+      "path": "style/refs/env.png",
+      "role": "env"
+    },
+    {
+      "path": "maps/cargo-bay/seed.png",
+      "role": "seed"
+    }
+  ],
+  "api": {
+    "provider": "openai",
+    "model": "gpt-image-2.6-sunburst",
+    "params": {
+      "size": "1024x1024",
+      "quality": "medium",
+      "background": "transparent",
+      "output_format": "png"
+    },
+    "requestId": "req_8beeca9829c34497bf51a0ce43c86561"
+  },
+  "source": null,
+  "snap": {
+    "pixelSize": 62.4,
+    "tries": 1,
+    "size": [10, 13],
+    "palette": "map cargo-bay",
+    "colors": 14
+  },
+  "normals": {
+    "bevel": 3,
+    "detail": 0.8,
+    "strength": 2.5
+  },
+  "target": {
+    "class": "prop",
+    "w": 10,
+    "h": 14
+  },
+  "note": "",
+  "created": "2026-11-09T09:26:59.529Z",
+  "by": "claude-session",
+  "map": "cargo-bay"
+}
