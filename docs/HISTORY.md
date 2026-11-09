@@ -991,6 +991,14 @@ stays in the chat first.
   pixel size, place on the canvas), so frames do not jitter. `art.mjs resnap` records the lattice of an older version without a call. Tests in `artgen.test.mjs`.
 - Not built: an asset that holds named frames (ROADMAP, animation sets).
 
+## 49. An asset that holds its frames
+
+- The owner asked for it after the character test: `asset.json` `frames` maps a frame name to the approved version that is its picture (in order; the first stands for the asset).
+  `promote --frame`, `make --frame`, one shared palette for all frames, `PIPE_ART[id].frames` and a generated `pipeFrames(id)` in `pipeline.js`, checker rules, and the gallery: a tile that says
+  "N frames, plays" and a page with the frames in order and a looping player.
+- Pip's 16 px test (`pip-test`: idle, walk1, walk2) is the first one; the game renders it through `pipeFrames` (checked), but the game's own Pip is unchanged.
+- Tests: checker, build, `promote --frame`, `make --frame --pose`, the published index, and the gallery player (`tests/art_gallery.py`).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

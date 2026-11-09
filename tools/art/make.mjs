@@ -109,11 +109,14 @@ export async function snapToTarget(png, { target, palette, snap = realSnap, anch
 
 // Make `n` candidate versions of an asset. `generate` and `snap` can be replaced (the tests do); `log` receives progress lines.
 export async function make(game, id, o) {
-  const { root = ROOT, n = 1, from = null, align = null, pose = '', api = 'openai', model, quality, map = null, parent = null, note = '', mood = false, dry = false, keyed = false,
+  const { root = ROOT, n = 1, from: from0 = null, align: align0 = null, frame = null, pose = '', api = 'openai', model, quality, map = null, parent = null, note = '', mood = false, dry = false, keyed = false,
     maxCalls = null, asset: newAsset = null, generate = null, snap = realSnap, size = 1024, log = () => {} } = o;
   const style = loadStyle(game, root); if (!style || !style.styleParagraph) throw new Error(`games/${game}/art/style/style.json needs a styleParagraph`);
   const cur = loadAssets(game, root).find(a => a.id === id), asset = cur ? cur.asset : newAsset;
   if (!asset) throw new Error(`${id} is a new asset: give --class, --target WxH and --k (and --place, --char, --name)`);
+  // a frame of an animation made with a pose starts from the asset's first frame, on its grid
+  const first = cur && cur.asset.frames ? Object.values(cur.asset.frames)[0] : null;
+  const from = from0 || (frame && pose && first) || null, align = align0 || (frame && pose && first) || null;
   if (from && !(cur && cur.versions.some(v => v.n === from))) throw new Error(`version ${from} of ${id} does not exist`);
   const parent_ = parent || from;
   let lattice = null;
@@ -159,7 +162,7 @@ export async function make(game, id, o) {
       log(`candidate ${i + 1}: ${e.message} (the model's picture is kept in ${keep})`); done.push({ ok: false, error: e.message, raw: keep }); continue;
     }
     const v = writeVersion(game, id, { sprite: fit.png, raw: res.png, root, asset: fresh ? newAsset : null, meta: {
-      kind: 'generated', parent: parent_, brief, prompt, map: map || undefined, note,
+      kind: 'generated', parent: parent_, frame: frame || undefined, brief, prompt, map: map || undefined, note,
       refs: refs.map(r => ({ path: r.file.slice(artDir(game, root).length + 1), role: r.role })),
       api: { provider: ad.name, model: res.model || mdl, params: res.params || {}, requestId: res.requestId || null, usage: res.usage || null },
       snap: { pixelSize: fit.pixelSize, tries: fit.tries, size: fit.size, palette: map ? `map ${map}` : 'master', colors: pal.length, lattice: fit.lattice, alignedTo: align || undefined, cut: fit.cut || undefined },

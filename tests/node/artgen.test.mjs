@@ -158,6 +158,17 @@ test('make --from: the draft\'s own picture goes first as the reference to refin
   await assert.rejects(make('g', 'barrel', { root, from: '009', generate }), /version 009 of barrel does not exist/);
 });
 
+test('make --frame --pose: a frame of an animation starts from the asset\'s first frame, on its grid, and is tagged with its name', async () => {
+  const root = repo(), seen = [];
+  const generate = async o => { seen.push(o); return { png: modelPicture(BARREL), model: 'm', params: {}, requestId: 'r', keyed: null }; };
+  const asset = { id: 'barrel', name: 'Barrel', class: 'prop', target: { w: 10, h: 10 }, k: .5, place: 'floor', char: null, live: null };
+  await make('g', 'barrel', { root, brief: 'a barrel', generate, asset });
+  const ap = join(root, 'games', 'g', 'art', 'assets', 'barrel', 'asset.json'); writeJSON(ap, { ...JSON.parse(readFileSync(ap, 'utf8')), frames: { idle: '001' } });
+  const res = await make('g', 'barrel', { root, brief: 'a barrel', frame: 'roll', pose: 'rolling', generate });
+  const m = loadAssets('g', root)[0].versions[1].meta; assert.deepEqual([res[0].ok, m.frame, m.parent, m.snap.alignedTo], [true, 'roll', '001', '001']);
+  assert.ok(seen[1].prompt.includes('Image 1 is the same character, drawn before'));
+});
+
 test('make: a model without alpha is asked again for a magenta background, which is removed; flux always works that way', async () => {
   const root = repo(), seen = [];
   const generate = async o => { seen.push({ keyed: o.prompt.includes('#FF00FF'), transparent: o.transparent });

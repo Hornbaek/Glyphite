@@ -69,6 +69,7 @@
 .ginfo pre{margin:0;white-space:pre-wrap;font:12px var(--mono);color:var(--phosphor)}
 .gversions,.gcompare{margin-top:22px;padding-top:6px;border-top:1px solid var(--rim)}
 .gversions h3,.gcompare h3{font-size:12px;letter-spacing:.1em;color:var(--dim);text-transform:uppercase;margin:14px 0 8px}
+.ganim{margin:18px 0} .animrow{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin-bottom:10px} .animctl{display:grid;gap:8px} canvas.px{image-rendering:pixelated;display:block}
 .vstrip{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px}
 .vitem{display:grid;gap:4px;justify-items:center;padding:8px;background:var(--panel);border:1px solid var(--rim);border-radius:3px;color:var(--phosphor);text-decoration:none;min-width:84px}
 .vitem:hover{text-decoration:none;border-color:var(--dim)} .vitem.cur{border-color:var(--amber)}

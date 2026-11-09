@@ -9,7 +9,7 @@
 //   node tools/art.mjs map <game> <map> --seed seed.png [--colors 14]   a map's seed piece, and its sub-palette (inside the master)
 //   node tools/art.mjs promote-ref <game> <asset> <NNN> --role props [--replace refs/props.png]   an approved version becomes a style reference
 //   node tools/art.mjs make <game> <asset> --brief "..." [--n 3] [--map m] [--parent 002] [--api openai|flux] [--model m] [--quality q]
-//        [--from 003 (refine that draft: its picture is sent as the first reference)] [--pose "walking, left foot forward" (the same character, new pose) --align 003 (snap on that version's grid and place: animation frames)] [--note "what to change"] [--mood] [--key] [--max-calls N] [--dry]   [--class prop --target 12x11 --k .5 --place floor --char j --name ".."]
+//        [--from 003 (refine that draft: its picture is sent as the first reference)] [--pose "walking, left foot forward" (the same character, new pose) --align 003 (snap on that version's grid and place: animation frames)] [--frame walk1 (tag it as a candidate for that frame; with --pose it starts from the first frame, aligned)] [--note "what to change"] [--mood] [--key] [--max-calls N] [--dry]   [--class prop --target 12x11 --k .5 --place floor --char j --name ".."]
 //                                                           generate candidates through an image API: drafts with a contact sheet each
 //   node tools/art.mjs resnap <game> <asset> <NNN>          snap a version's raw picture again (free: no API call), recording its lattice
 //   node tools/art.mjs check-keys [--api openai|flux]       one free call per API: does its key work
@@ -17,7 +17,7 @@
 //   node tools/art.mjs add <game> <asset> --sprite in.png [--raw raw.png] [--kind hand|generated|imported] [--parent 002]
 //        [--note "..."] [--map cargo-bay] [--class prop --target 12x11 --k .5 --place floor --char j --name "Cheese crate"]
 //                                                           a new version (a new asset needs class, target and k): draft
-//   node tools/art.mjs promote <game> <asset> <NNN>         approve it and make it the live one
+//   node tools/art.mjs promote <game> <asset> <NNN> [--frame idle]   approve it and make it the live one; with --frame it becomes that frame's picture (an animation)
 //   node tools/art.mjs reject <game> <asset> <NNN> [--note "..."]
 //   node tools/art.mjs import-sprites <game> --const PROP_ART [--from sprites.js] --class prop [--frames ref/frames/prop_]
 //                                                           the sprites a game already has, as approved imported versions
@@ -26,7 +26,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, readdirSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ROOT, artDir, readJSON, writeJSON, toHex, fromHex, lum, loadAssets, loadStyle, loadPalette, nextVersion, validate, ID_RE, REF_ROLES } from './art/lib.mjs';
+import { ROOT, artDir, readJSON, writeJSON, toHex, fromHex, lum, loadAssets, loadStyle, loadPalette, nextVersion, validate, ID_RE, FRAME_RE, REF_ROLES } from './art/lib.mjs';
 import { spriteFromPNG, pngFromSprite, normalRows, normalsPNG, contactSheet, pipelineJs } from './art/sprite.mjs';
 import { decodePNG, encodePNG } from './png.mjs';
 import { writeVersion, NORMAL_OPTS } from './art/store.mjs';
@@ -40,12 +40,25 @@ const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^
 export function liveItems(game, root = ROOT) {
   const items = [];
   for (const a of loadAssets(game, root)) {
+    if (a.asset && a.asset.frames) { items.push(frameItem(a)); continue; }
     if (!a.asset || a.asset.live == null || a.asset.emit === false) continue;
     const v = a.versions.find(x => x.n === a.asset.live); if (!v) continue;
     const spr = spriteFromPNG(readFileSync(join(v.dir, 'sprite.png')));
     items.push({ id: a.id, asset: a.asset, spr, normals: normalRows(spr, (v.meta && v.meta.normals) || NORMAL_OPTS) });
   }
   return items;
+}
+// An asset that holds frames: every frame's approved version, on ONE palette (the union of their colours, dark to light), the first frame
+// standing for the asset (its size, its rows, its tile in the gallery)
+function frameItem(a) {
+  const named = Object.entries(a.asset.frames).map(([name, n]) => ({ name, v: a.versions.find(x => x.n === n) })).filter(f => f.v);
+  const pngs = named.map(f => readFileSync(join(f.v.dir, 'sprite.png'))), colours = new Map();
+  for (const png of pngs) for (const c of spriteFromPNG(png, { pal: null }).pal) colours.set(c.slice(0, 3).join(), c.slice(0, 3));
+  const shared = [...colours.values()].sort((x, y) => lum(x) - lum(y) || x.join().localeCompare(y.join()));
+  const frames = {};
+  named.forEach((f, i) => { const spr = spriteFromPNG(pngs[i], { pal: shared.map(c => [...c, 1]) }); frames[f.name] = { spr, normals: normalRows(spr, (f.v.meta && f.v.meta.normals) || NORMAL_OPTS) }; });
+  const first = frames[named[0].name];
+  return { id: a.id, asset: a.asset, spr: first.spr, normals: first.normals, frames };
 }
 export const buildText = (game, root = ROOT) => pipelineJs(game, liveItems(game, root));
 
@@ -159,7 +172,7 @@ async function main(argv) {
       newAsset = { id, name: o.name || id, class: o.class, target: { w, h }, k: +o.k, place: o.place || 'floor', char: o.char || null, live: null };
     }
     const { make } = await import('./art/make.mjs'), st = loadStyle(game) || {};
-    const res = await make(game, id, { brief: o.brief, n: +(o.n || 1), api, model: o.model || (st.gen && st.gen.model), quality: o.quality || (st.gen && st.gen.quality), map: o.map || null, parent: o.parent || null, from: o.from || null, align: o.align || null, pose: o.pose || '',
+    const res = await make(game, id, { brief: o.brief, n: +(o.n || 1), api, model: o.model || (st.gen && st.gen.model), quality: o.quality || (st.gen && st.gen.quality), map: o.map || null, parent: o.parent || null, from: o.from || null, align: o.align || null, frame: o.frame || null, pose: o.pose || '',
       note: o.note || '', mood: !!o.mood, dry: !!o.dry, keyed: !!o.key, maxCalls: o['max-calls'] ? +o['max-calls'] : +(o.n || 1) + 1, asset: newAsset, log: m => console.log(m) });
     const ok = res.filter(r => r.ok); if (!o.dry) console.log(`${ok.length} of ${res.length} candidate(s) made as drafts. Look at each preview.png, then: node tools/art.mjs promote ${game} ${id} <NNN>  (or reject)`);
     process.exit(!o.dry && !ok.length ? 1 : 0);
@@ -194,11 +207,18 @@ async function main(argv) {
   if (cmd === 'promote' || cmd === 'reject') {
     need(); const [id, n] = [pos[1], pos[2]], a = loadAssets(game).find(x => x.id === id);
     if (!a) die(`no asset ${id}`); const v = a.versions.find(x => x.n === n); if (!v) die(`${id} has no version ${n}`);
-    if (cmd === 'promote') { v.meta.status = 'approved'; a.asset.live = n; writeJSON(join(a.dir, 'asset.json'), a.asset); }
-    else { if (a.asset.live === n) die(`${n} is the live version of ${id}: promote another one first`); v.meta.status = 'rejected'; }
+    const frame = o.frame || (a.asset.frames && v.meta.frame);
+    if (cmd === 'promote' && (frame || a.asset.frames)) {
+      // an animation: the version becomes the picture of one named frame (a new name adds a frame at the end)
+      if (!frame) die(`${id} holds frames: say which one, --frame <name>`); if (!FRAME_RE.test(frame)) die(`a frame name is a-z, 0-9 and underscores, starting with a letter`);
+      if (a.asset.live != null) die(`${id} has a live version: it is a single picture, not an animation`);
+      v.meta.status = 'approved'; v.meta.frame = frame; a.asset.frames = { ...(a.asset.frames || {}), [frame]: n }; delete a.asset.emit; writeJSON(join(a.dir, 'asset.json'), a.asset);
+    }
+    else if (cmd === 'promote') { v.meta.status = 'approved'; a.asset.live = n; writeJSON(join(a.dir, 'asset.json'), a.asset); }
+    else { if (a.asset.live === n) die(`${n} is the live version of ${id}: promote another one first`); const as = Object.entries(a.asset.frames || {}).find(([, fv]) => fv === n); if (as) die(`${n} is the picture of frame ${as[0]} of ${id}: promote another version for it first`); v.meta.status = 'rejected'; }
     if (o.note) v.meta.note = o.note;
     writeJSON(join(v.dir, 'meta.json'), v.meta);
-    console.log(`${game}/${id}/${n}: ${v.meta.status}${cmd === 'promote' ? ' and live; now: node tools/art.mjs build ' + game : ''}`); return;
+    console.log(`${game}/${id}/${n}: ${v.meta.status}${cmd === 'promote' ? (frame ? ` and the picture of frame ${frame}` : ' and live') + '; now: node tools/art.mjs build ' + game : ''}`); return;
   }
   if (cmd === 'import-sprites') {
     need(); const file = join(ROOT, 'games', game, o.from || 'sprites.js'), names = [...readFileSync(file, 'utf8').matchAll(/^const (\w+) =/gm)].map(m => m[1]);

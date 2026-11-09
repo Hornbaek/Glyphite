@@ -79,5 +79,8 @@ test('the art pipeline is published for the gallery: the index, small files for 
     for (const f of ['sprite.png', 'normals.png', 'preview.png']) assert.ok(existsSync(join(DIST, 'games', 'spacemouse', 'art', 'assets', a.id, v.version, f)), `${a.id}/${v.version}/${f}`);
     assert.equal(existsSync(join(DIST, 'games', 'spacemouse', 'art', 'assets', a.id, v.version, 'raw.png')), v.raw === 'published', `${a.id}/${v.version}: raw only when live`);
   }
+  const pip = idx.assets.find(x => x.id === 'pip-test');
+  assert.deepEqual([Object.keys(pip.frames), pip.live], [['idle', 'walk1', 'walk2'], pip.frames.idle], 'an animation stands for its first frame, and lists its frames in order');
+  assert.equal(pip.versions.filter(v => v.raw === 'published').map(v => v.version).join(), pip.frames.idle, 'and only that frame\'s raw is published');
   assert.ok(!listing.games.some(x => x.id !== 'spacemouse' && x.art), 'a game without art/ has no art entry');
 });

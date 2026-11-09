@@ -25,6 +25,10 @@ export async function renderGallery(root, gameId, gameTitle) {
   };
   const A = id => idx.assets.find(a => a.id === id);
   const liveOf = a => a.versions.find(v => v.version === a.live) || null;
+  // an asset that holds frames (an animation): each frame name points at one version; the first frame stands for the asset
+  const frameOf = (a, v) => Object.keys(a.frames || {}).find(k => a.frames[k] === v.version) || null;
+  const isLive = (a, v) => a.frames ? !!frameOf(a, v) : v.version === a.live;
+  const mark = (a, v) => a.frames ? (frameOf(a, v) ? `<b class="livemark">frame ${esc(frameOf(a, v))}</b>` : '') : (v.version === a.live ? '<b class="livemark">live</b>' : '');
   const shown = (a, all) => liveOf(a) || (all ? a.versions[a.versions.length - 1] : null);
   const img = (a, v, f) => `${base}assets/${encodeURIComponent(a.id)}/${v.version}/${f}`;
   const badge = v => `<span class="vbadge ${esc(v.status)}">${esc(v.status)}</span>`;
@@ -40,7 +44,7 @@ export async function renderGallery(root, gameId, gameTitle) {
     const list = idx.assets.filter(a => shown(a, all));
     const classes = [...new Set([...ORDER, ...idx.assets.map(a => a.class)])].filter(c => list.some(a => a.class === c));
     const hidden = idx.assets.length - list.length;
-    const nonLive = idx.assets.reduce((n, a) => n + a.versions.filter(v => v.version !== a.live).length, 0);
+    const nonLive = idx.assets.reduce((n, a) => n + a.versions.filter(v => !isLive(a, v)).length, 0);
     return `<div class="gtools">
         <label class="check"><input type="checkbox" id="gAll"${all ? ' checked' : ''}> show drafts and rejected${nonLive ? ` (${nonLive} version${nonLive === 1 ? '' : 's'}${hidden ? `, ${hidden} asset${hidden === 1 ? '' : 's'} with no approved version` : ''})` : ''}</label>
         <span class="meta">${idx.assets.length} asset${idx.assets.length === 1 ? '' : 's'} · ${idx.assets.reduce((n, a) => n + a.versions.length, 0)} versions · ${idx.pxPerUnit} art pixels per unit at the default detail</span>
@@ -49,8 +53,8 @@ export async function renderGallery(root, gameId, gameTitle) {
         return `<a class="gtile" href="?game=${encodeURIComponent(gameId)}&tab=gallery&asset=${encodeURIComponent(a.id)}" data-asset="${esc(a.id)}">
           <span class="gpic">${sprite(a, v, 'sprite.png', z)}<span class="game" title="at game size">${sprite(a, v)}</span></span>
           <b>${esc(a.name)}</b>
-          <span class="meta">${a.target.w} x ${a.target.h} px · ${n} version${n === 1 ? '' : 's'}${a.emit ? '' : ' · from sprites.js'}</span>
-          <span>${badge(v)}${v.version !== a.live ? ' <span class="meta">not live</span>' : ''}</span></a>`;
+          <span class="meta">${a.target.w} x ${a.target.h} px · ${a.frames ? `${Object.keys(a.frames).length} frames · ` : ''}${n} version${n === 1 ? '' : 's'}${a.emit ? '' : ' · from sprites.js'}</span>
+          <span>${badge(v)}${!isLive(a, v) ? ' <span class="meta">not live</span>' : ''}${a.frames ? ' <span class="meta">▶ plays</span>' : ''}</span></a>`;
       }).join('')}</div></section>`).join('') || '<p class="empty">No approved art yet.</p>';
   }
 
@@ -64,8 +68,35 @@ export async function renderGallery(root, gameId, gameTitle) {
   function tree(a, sel, showAll) {
     const kids = p => a.versions.filter(v => (v.parent || null) === p && (showAll || v.status !== 'rejected' || v.version === sel));
     const walk = (p, d) => kids(p).map(v => `<li style="margin-left:${d * 18}px"><a href="?game=${encodeURIComponent(gameId)}&tab=gallery&asset=${encodeURIComponent(a.id)}&v=${v.version}"
-      class="${v.version === sel ? 'cur' : ''}">${v.version}</a> ${badge(v)}${v.version === a.live ? ' <b class="livemark">live</b>' : ''} <span class="meta">${esc(v.kind)}${v.note ? ' · ' + esc(v.note.length > 70 ? v.note.slice(0, 69) + '…' : v.note) : ''}</span></li>${walk(v.version, d + 1)}`).join('');
+      class="${v.version === sel ? 'cur' : ''}">${v.version}</a> ${badge(v)} ${mark(a, v)} <span class="meta">${esc(v.kind)}${v.note ? ' · ' + esc(v.note.length > 70 ? v.note.slice(0, 69) + '…' : v.note) : ''}</span></li>${walk(v.version, d + 1)}`).join('');
     return `<ul class="vtree">${walk(null, 0)}</ul>`;
+  }
+  // an animation: its frames in order, and a player that loops them at game size and enlarged
+  function animation(a) {
+    const names = Object.keys(a.frames), z = zoomFor(a.target.w, a.target.h, 220);
+    const thumbs = names.map(n => { const v = a.versions.find(x => x.version === a.frames[n]); return `<a class="vitem" href="?game=${encodeURIComponent(gameId)}&tab=gallery&asset=${encodeURIComponent(a.id)}&v=${v.version}" data-frame="${esc(n)}">
+      <span class="vpic">${sprite(a, v, 'sprite.png', Math.max(2, Math.min(4, zoomFor(a.target.w, a.target.h, 56))))}</span><b>${esc(n)}</b><span class="meta">version ${v.version}</span></a>`; }).join('');
+    return `<section class="ganim"><h3>Animation <span class="meta">${names.length} frame${names.length === 1 ? '' : 's'}, in this order</span></h3>
+      <div class="animrow"><span class="pic"><canvas id="animCv" class="px"></canvas></span><span class="pic"><canvas id="animCv1" class="px"></canvas></span>
+        <span class="animctl"><button class="btn small" id="animPlay" type="button">[ PAUSE ]</button>
+          <label>speed <select id="animFps"><option value="3">3 per second</option><option value="6" selected>6 per second</option><option value="10">10 per second</option><option value="16">16 per second</option></select></label>
+          <span class="meta" id="animName"></span></span></div>
+      <div class="vstrip">${thumbs}</div></section>`;
+  }
+  let animTimer = null;
+  async function play(a) {
+    clearInterval(animTimer); animTimer = null;
+    const cv = document.getElementById('animCv'), c1 = document.getElementById('animCv1'); if (!cv) return;
+    const names = Object.keys(a.frames), pics = await Promise.all(names.map(n => pixels(img(a, a.versions.find(v => v.version === a.frames[n]), 'sprite.png'))));
+    const w = a.target.w, h = a.target.h, z = zoomFor(w, h, 220);
+    for (const [c, k] of [[cv, z], [c1, 1]]) { c.width = w; c.height = h; c.style.width = w * k + 'px'; c.style.height = h * k + 'px'; }
+    let i = 0, playing = true; const btn = document.getElementById('animPlay'), fps = document.getElementById('animFps'), label = document.getElementById('animName');
+    const show = () => { for (const c of [cv, c1]) { const x = c.getContext('2d'); x.clearRect(0, 0, w, h); x.putImageData(pics[i], 0, 0); } cv.dataset.frame = names[i]; label.textContent = `frame ${names[i]} (${i + 1} of ${names.length})`; };
+    const tick = () => { if (playing) { i = (i + 1) % names.length; show(); } };
+    const restart = () => { clearInterval(animTimer); animTimer = setInterval(tick, 1000 / +fps.value); };
+    show(); restart();
+    btn.onclick = () => { playing = !playing; btn.textContent = playing ? '[ PAUSE ]' : '[ PLAY ]'; };
+    fps.onchange = restart;
   }
   async function detail(a) {
     const showAll = q().get('all') === '1';
@@ -80,11 +111,11 @@ export async function renderGallery(root, gameId, gameTitle) {
     const api = sel.api ? `${esc(sel.api.provider)} · ${esc(sel.api.model || '')}${sel.api.requestId ? ` · <span class="meta">${esc(sel.api.requestId)}</span>` : ''}` : '';
     const snap = sel.snap ? `pixel size ${esc(sel.snap.pixelSize)} · ${esc(sel.snap.colors || '')} colours${sel.snap.palette ? ' · palette ' + esc(sel.snap.palette) : ''} · ${esc((sel.snap.size || []).join(' x '))}` : '';
     const strip = vs.map(v => `<a class="vitem${v.version === sel.version ? ' cur' : ''}" href="?game=${encodeURIComponent(gameId)}&tab=gallery&asset=${encodeURIComponent(a.id)}&v=${v.version}" data-v="${v.version}">
-      <span class="vpic">${sprite(a, v, 'sprite.png', Math.max(2, Math.min(4, zoomFor(a.target.w, a.target.h, 56))))}</span><b>${v.version}</b>${badge(v)}${v.version === a.live ? '<span class="livemark">live</span>' : ''}</a>`).join('');
+      <span class="vpic">${sprite(a, v, 'sprite.png', Math.max(2, Math.min(4, zoomFor(a.target.w, a.target.h, 56))))}</span><b>${v.version}</b>${badge(v)}${mark(a, v)}</a>`).join('');
     const opts = (cur) => a.versions.map(v => `<option value="${v.version}"${v.version === cur ? ' selected' : ''}>${v.version} · ${esc(v.status)}</option>`).join('');
     const ca = q().get('a') || (a.versions.length > 1 ? a.versions[a.versions.length - 2].version : a.versions[0].version), cb = q().get('b') || a.versions[a.versions.length - 1].version;
     return `<div class="gback"><a class="btn small" href="?game=${encodeURIComponent(gameId)}&tab=gallery${showAll ? '&all=1' : ''}">[ ← ALL ]</a>
-        <h2>${esc(a.name)} <span class="meta">${esc(a.class)} · ${a.target.w} x ${a.target.h} px · k ${a.k} · ${a.live ? 'live: ' + a.live : 'not live yet'}${a.char ? ` · map character <code>${esc(a.char)}</code>` : ''}</span></h2></div>
+        <h2>${esc(a.name)} <span class="meta">${esc(a.class)} · ${a.target.w} x ${a.target.h} px · k ${a.k} · ${a.frames ? Object.keys(a.frames).length + ' frames' : a.live ? 'live: ' + a.live : 'not live yet'}${a.char ? ` · map character <code>${esc(a.char)}</code>` : ''}</span></h2></div>
       <div class="gdetail">
         <section class="gpics">
           <figure><span class="pic">${sprite(a, sel, 'sprite.png', z)}</span><figcaption>snapped sprite · version ${sel.version} · ${badge(sel)}</figcaption></figure>
@@ -94,13 +125,14 @@ export async function renderGallery(root, gameId, gameTitle) {
           <figure><span class="pic">${raw}</span><figcaption>${sel.raw === 'none' && sel.source ? 'the owner\'s original drawing' : 'raw image'}</figcaption></figure>
         </section>
         <section class="ginfo"><dl>
-          ${row('kind', esc(sel.kind))}${row('status', badge(sel) + (sel.version === a.live ? ' <b class="livemark">live</b>' : ''))}${row('created', esc(when(sel.created)) + (sel.by ? ' · ' + esc(sel.by) : ''))}
+          ${row('kind', esc(sel.kind))}${row('status', badge(sel) + ' ' + mark(a, sel))}${row('created', esc(when(sel.created)) + (sel.by ? ' · ' + esc(sel.by) : ''))}
           ${row('parent', sel.parent ? `<a href="?game=${encodeURIComponent(gameId)}&tab=gallery&asset=${encodeURIComponent(a.id)}&v=${sel.parent}">${sel.parent}</a>` : '')}
           ${row('note', esc(sel.note))}${row('brief', esc(sel.brief))}${row('prompt', sel.prompt ? `<pre>${esc(sel.prompt)}</pre>` : '')}
           ${row('references', refs)}${row('API', api)}${row('snapped', snap)}${row('normals', sel.normals ? `bevel ${sel.normals.bevel} · detail ${sel.normals.detail} · strength ${sel.normals.strength}` : '')}
           ${row('map', esc(sel.map))}${row('made from', sel.source ? `<code>${esc(sel.source)}</code>` : '')}
         </dl></section>
       </div>
+      ${a.frames ? animation(a) : ''}
       <section class="gversions"><h3>Versions</h3><div class="vstrip">${strip}</div>
         <label class="check"><input type="checkbox" id="gAll"${showAll ? ' checked' : ''}> show rejected</label>
         <h3>Which came from which</h3>${tree(a, sel.version, showAll)}</section>
@@ -155,10 +187,11 @@ export async function renderGallery(root, gameId, gameTitle) {
     const p = q(), a = p.get('asset') ? A(p.get('asset')) : null;
     if (p.get('asset') && !a) { root.innerHTML = `<p class="empty">No asset "${esc(p.get('asset'))}". <a href="?game=${encodeURIComponent(gameId)}&tab=gallery">All art</a></p>`; return; }
     root.innerHTML = a ? await detail(a) : tiles();
+    if (!a) { clearInterval(animTimer); animTimer = null; }
     const all = document.getElementById('gAll'); if (all) all.onchange = () => go({ all: all.checked }, false);
     if (a) {
       const sel = a.versions.find(v => v.version === p.get('v')) || liveOf(a) || a.versions[a.versions.length - 1];
-      lit(a, sel);
+      lit(a, sel); if (a.frames) play(a); else { clearInterval(animTimer); animTimer = null; }
       for (const id of ['cmpA', 'cmpB']) document.getElementById(id).onchange = () => { const q2 = q(); q2.set(id === 'cmpA' ? 'a' : 'b', document.getElementById(id).value); history.replaceState(null, '', '?' + q2); compare(a); };
       compare(a);
     }
