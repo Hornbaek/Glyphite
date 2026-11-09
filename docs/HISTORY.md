@@ -961,6 +961,14 @@ stays in the chat first.
 - **Skill** `pixelite-art-pipeline` runs the loop; `pixelite-art-prompt` points at the style sheet.
 - **Tests:** `tests/node/artgen.test.mjs` (no network; fixtures).
 
+## 45. The first approved generated art, and Pip's ship
+
+- **Fuel barrel:** the owner picked candidate 002 of the first round; it is live (`q` in the map legend and the open tiles, one in Cargo Bay next to the crate stairs).
+- **Pip's ship:** three drafts of a small one-seat spaceship (32 x 18) made with `art.mjs make`; the owner picks one (not live yet).
+- **`make`:** a drawing may be up to 30% short of the box in the dimension that does not bind (a model rarely draws the exact aspect ratio); a paid picture that cannot be
+  snapped is kept in the temp folder; OpenAI answers with a 502 now and then, so the adapter asks once more.
+- Space Mouse's "tiles to stand on" in Hydroponics went from 192 to 191 because the decor random numbers shift when a prop is added to the first sector; nothing is unreachable.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

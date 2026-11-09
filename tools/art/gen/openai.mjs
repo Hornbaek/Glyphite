@@ -17,17 +17,19 @@ async function readError(r) {
   const e = j && j.error; return { status: r.status, message: e ? e.message : t.slice(0, 300), param: e && e.param, code: e && e.code };
 }
 
-export async function generate({ prompt, refs = [], size = 1024, transparent = true, model = defaultModel, quality = 'medium', fetchFn = fetch }) {
+export async function generate({ prompt, refs = [], size = 1024, transparent = true, model = defaultModel, quality = 'medium', fetchFn = fetch, retryMs = 3000 }) {
   const params = { size: `${size}x${size}`, quality, background: transparent ? 'transparent' : 'opaque', output_format: 'png' };
+  // a 5xx (the gateway timed out, the upstream failed) comes back before any picture is made: ask once more
+  const post = async (url, init) => { let r = await fetchFn(url, init); if (r.status >= 500 && r.status < 600) { await new Promise(s => setTimeout(s, retryMs)); r = await fetchFn(url, init); } return r; };
   let r;
   if (refs.length) {
     const fd = new FormData();
     fd.append('model', model); fd.append('prompt', prompt);
     for (const [k, v] of Object.entries(params)) fd.append(k, v);
     for (const ref of refs) fd.append('image[]', new Blob([ref.png], { type: 'image/png' }), ref.name || 'ref.png');
-    r = await fetchFn(`${BASE}/images/edits`, { method: 'POST', headers: headers(), body: fd });
+    r = await post(`${BASE}/images/edits`, { method: 'POST', headers: headers(), body: fd });
   } else {
-    r = await fetchFn(`${BASE}/images/generations`, { method: 'POST', headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify({ model, prompt, ...params }) });
+    r = await post(`${BASE}/images/generations`, { method: 'POST', headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify({ model, prompt, ...params }) });
   }
   if (!r.ok) {
     const e = await readError(r);

@@ -46,7 +46,7 @@ with sync_playwright() as p:
     # ---- the tiles ----
     pg.goto(G); pg.wait_for_selector('.gtile')
     names = pg.eval_on_selector_all('.gtile b', 'bs => bs.map(b => b.textContent)')
-    check('one tile per asset that has a live version, grouped by class', len(names) == len([x for x in INDEX['assets'] if x['live']]) and 'Cheese crate' in names and 'Fuel barrel' not in names and 'Ghost lamp' not in names and pg.locator('.gclass h2').first.text_content() == 'props', names)
+    check('one tile per asset that has a live version, grouped by class', len(names) == len([x for x in INDEX['assets'] if x['live']]) and 'Cheese crate' in names and 'Fuel barrel' in names and "Pip's ship" not in names and 'Ghost lamp' not in names and pg.locator('.gclass h2').first.text_content() == 'props', names)
     check('a tile shows the sprite enlarged and at game size', pg.locator('.gtile').first.locator('img').count() == 2)
     tile = pg.locator('.gtile', has_text='Cheese crate')
     check('the tile says how many versions an asset has', '3 versions' in tile.text_content())

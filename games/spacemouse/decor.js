@@ -2,7 +2,7 @@
 // As in the art sheet: moss hanging from ceilings and creeping over ledges, red cables sagging in loops under the ceilings,
 // cobwebs in corners. All of it is decoration: worked out from the map once per build (in base units, so it looks alike at
 // every detail), drawn by the game lit by the scene, and never solid. Where something fills its cell (sand, a chunk), it hides.
-const DECOR_OPEN = '.PcKSLlAG' + 'kmpohtgfbndej';   // tiles that are open room (props and the great cheese's area included)
+const DECOR_OPEN = '.PcKSLlAG' + 'kmpohtgfbndejq';   // tiles that are open room (props and the great cheese's area included)
 const DECOR_SOLID = '#=_xwrBC';                // tiles a strand can hang from or a tuft grow on
 
 function buildDecor(sec) {
