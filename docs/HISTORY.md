@@ -918,6 +918,23 @@ Mouse as the first game. There are no API keys yet. Six phases, one pull request
 - **Tests:** `tests/node/art.test.mjs` (the builder, versions, the live rule, every refusal of the checker, Space Mouse's real folder).
 - **Next:** the gallery (phase 2), then the style sheet and palettes (3), then generation once the owner has added the keys (4).
 
+## 42. The art pipeline, phase 2: the gallery (Claude Code, 2026-11-09)
+
+The next phase of the approved art pipeline plan (HISTORY 41): the part of the review that lives on the site, as the archive; deciding
+stays in the chat first.
+
+- **Build:** `copyArt` publishes each game's `art/` to the site: `art/index.json` plus every version's sprite, normal map and
+  contact sheet, and the raw image only for the live version. A broken art folder now fails the build, and `games.json` carries
+  an `art` summary, so the game list's [ ART ] button opens the gallery.
+- **ART page:** two tabs, GALLERY and REFERENCE SHEETS (the old page, unchanged). The gallery has a tile per asset at game size and
+  enlarged, grouped by class, with a toggle for drafts and rejected versions; an asset's page shows its pictures, a lit preview with a
+  lamp, the prompt, references and API when it was generated, a strip of versions, the tree of which came from which, and a compare
+  of any two with a difference picture. An imported prop shows the owner's original drawing from `ref/`.
+- **Space Mouse:** the cheese crate has a history now: 001 live, 002 (a heap of cheese that hid the crate) rejected, 003 a draft
+  branching from 001, so the versions, the tree and the compare show real data.
+- **Tests:** `tests/art_gallery.py` (CI), the build and routes tests (the art files are behind the login).
+- **Next:** the style sheet, a curated palette and map seeds (phase 3), then generation once the owner has added keys (phase 4).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

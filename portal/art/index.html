@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Reference art · Pixelite</title>
-<meta name="description" content="The art a game's sprites were made from: the original images and every drawing cut from them.">
+<title>Art · Pixelite</title>
+<meta name="description" content="A game's art: the original images its sprites were made from, and the gallery of every asset and version made by the art pipeline.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap">
@@ -23,8 +23,12 @@
 </header>
 <div class="wrap">
   <header class="intro">
-    <h1 id="title">Reference art</h1>
-    <p class="lede">The images the game's sprites were made from, untouched, and every drawing cut out of them at its original
+    <h1 id="title">Art</h1>
+    <nav class="tabs" id="tabs" role="tablist" hidden>
+      <a class="tab" role="tab" id="tabGallery" href="?tab=gallery">GALLERY</a>
+      <a class="tab" role="tab" id="tabRef" href="?tab=ref">REFERENCE SHEETS</a>
+    </nav>
+    <p class="lede" id="lede">The images the game's sprites were made from, untouched, and every drawing cut out of them at its original
       pixels, with where it came from on its sheet and what the game uses it for. Point at a box on a sheet to find its drawing.</p>
     <div class="filters" id="filters" hidden>
       <button class="btn small on" data-show="all">[ ALL ]</button>
@@ -33,6 +37,7 @@
     </div>
   </header>
   <main id="sheets" aria-live="polite"><p class="empty">Loading…</p></main>
+  <main id="gallery" aria-live="polite" hidden></main>
 </div>
 <script type="module" src="/assets/art.js"></script>
 </body>

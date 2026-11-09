@@ -49,7 +49,7 @@ Done: the engine's 16-bit Sampler, the studio at /studio/, songs saved on the si
 
 From the owner's brainstorm: generate art through an image API, snap it to the game's palette, give it normals, review it, version it.
 1. ~~Foundation~~: the folder layout, checker, sprite builder, `pipeline.js`, Space Mouse's props imported, a first hand-made prop.
-2. The gallery on the ART page: tiles at game size, detail, version strip, compare, version tree, hidden rejected versions.
+2. ~~The gallery on the ART page~~: tiles at game size, detail, version strip, compare, version tree, hidden rejected versions.
 3. Space Mouse's style sheet (hero, props, environment, mood references), a curated master palette (the extracted one has 240
    colours), map seeds and sub-palettes (`maps/cargo-bay/`), `promote-ref`.
 4. The generation adapter (OpenAI first, Flux second) and the `make` loop with a contact sheet in the chat. **Needs the owner's keys**:

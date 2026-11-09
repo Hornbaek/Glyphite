@@ -66,3 +66,18 @@ test('page lines map back to source files', () => {
 test('assemble refuses code that would close the script element', () => {
   assert.throws(() => assemble({ shell: '{{SCRIPT}}', engine: { parts: [] }, manifest: { id: 'x', title: 'X' }, parts: [{ name: 'a.js', code: 'const s = "</script>";' }] }), /script/);
 });
+
+test('the art pipeline is published for the gallery: the index, small files for every version, the raw image only for a live one', () => {
+  const g = listing.games.find(x => x.id === 'spacemouse');
+  assert.ok(g.art && g.art.assets >= 13 && g.art.versions >= g.art.assets && g.art.drafts >= 1, JSON.stringify(g.art));
+  const idx = JSON.parse(readFileSync(join(DIST, 'games', 'spacemouse', 'art', 'index.json'), 'utf8'));
+  assert.equal(idx.game, 'spacemouse'); assert.ok(idx.classes.includes('prop'));
+  const crate = idx.assets.find(a => a.id === 'cheese-crate');
+  assert.deepEqual([crate.live, crate.versions.map(v => v.status)], ['001', ['approved', 'rejected', 'draft']]);
+  assert.equal(crate.versions[1].parent, '001');
+  for (const a of idx.assets) for (const v of a.versions) {
+    for (const f of ['sprite.png', 'normals.png', 'preview.png']) assert.ok(existsSync(join(DIST, 'games', 'spacemouse', 'art', 'assets', a.id, v.version, f)), `${a.id}/${v.version}/${f}`);
+    assert.equal(existsSync(join(DIST, 'games', 'spacemouse', 'art', 'assets', a.id, v.version, 'raw.png')), v.raw === 'published', `${a.id}/${v.version}: raw only when live`);
+  }
+  assert.ok(!listing.games.some(x => x.id !== 'spacemouse' && x.art), 'a game without art/ has no art entry');
+});
