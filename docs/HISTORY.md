@@ -975,7 +975,8 @@ stays in the chat first.
 - **`make --from <NNN>`** refines a draft: its picture is the first reference and its brief is kept; `--quality low|medium|high`; every call records its tokens
   (`meta.api.usage`) and prints them. Measured: low is 824 output tokens against 1449 for medium, flare is three times faster than sunburst, mini is too weak, 1024 x 1024 is the
   smallest size, and the Images API shows no prompt caching (docs/ART_PIPELINE.md, "Spending less").
-- Ship draft 004 is flare at high quality refining 003 (a little cleaner); it stays a draft.
+- Ship drafts 004 (flare, high) and 005 (sunburst, medium) refine 003; the three look the same to me. The owner prefers quality to speed, so sunburst stays the default model;
+  `make` tries a 502 up to three times (sunburst at high still fails here, flare at high works).
 
 ## Published versions (claude.ai artifact "Regolith Lander")
 

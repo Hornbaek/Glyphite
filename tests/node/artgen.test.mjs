@@ -181,7 +181,8 @@ test('OpenAI: a model with no transparency says so (so make can ask for a key co
   const err = (status, error) => async () => json({ error }, status);
   await assert.rejects(openai.generate({ prompt: 'p', fetchFn: err(400, { message: 'Transparent background is not supported for this model.', param: 'background', code: 'invalid_value' }) }), e => e.code === 'NO_ALPHA');
   let tries = 0; const flaky = async () => (++tries === 1 ? json({ error: { message: 'upstream request failed' } }, 502) : json({ data: [{ b64_json: 'QQ==' }] }));
-  assert.equal((await openai.generate({ prompt: 'p', fetchFn: flaky, retryMs: 1 })).png.toString(), 'A'); assert.equal(tries, 2, 'a 502 is tried once more');
+  assert.equal((await openai.generate({ prompt: 'p', fetchFn: flaky, retryMs: 1 })).png.toString(), 'A'); assert.equal(tries, 2, 'a 502 is tried again');
+  let n3 = 0; await assert.rejects(openai.generate({ prompt: 'p', fetchFn: async () => { n3++; return json({ error: { message: 'down' } }, 502); }, retryMs: 1 }), /OpenAI 502: down/); assert.equal(n3, 3, 'three tries in all');
   await assert.rejects(openai.generate({ prompt: 'p', fetchFn: err(502, { message: 'down' }), retryMs: 1 }), /OpenAI 502: down/);
   await assert.rejects(openai.generate({ prompt: 'p', fetchFn: err(429, { message: 'Rate limit reached' }) }), /OpenAI 429: Rate limit reached/);
   await assert.rejects(openai.generate({ prompt: 'p', fetchFn: async () => json({ data: [] }) }), /sent no image/);
