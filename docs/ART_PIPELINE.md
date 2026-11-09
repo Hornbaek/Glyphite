@@ -123,8 +123,10 @@ Tokens per call, from the API's own `usage` (recorded on every version in `meta.
 
 - **Draft cheap, finish once.** Make candidates at `--quality low` (`--n 3`), look at them, then refine the winner once with `--from <NNN> --quality high`: the draft's own
   picture goes first as the reference ("redraw this cleaner"), and its brief is kept. That is three low calls plus one high, instead of three mediums or highs.
-- **Flare is the fast one**: the same token counts as sunburst, a third of the time, and it did not hit the gateway timeouts that sunburst medium and high did (a slow call
-  gets a 502 from the upstream; `make` asks once more). Its price per token is on the OpenAI pricing page, not in the API.
+- **Sunburst is the default (the owner prefers quality over time).** Flare uses the same tokens in a third of the time. Refining ship 003 with flare at high and with sunburst at medium gave
+  pictures I could not tell apart (versions 004 and 005), so no quality difference has been seen yet; judge by the contact sheets. Slow calls get a 502 from the gateway: `make`
+  tries three times in all, and sunburst at `high` failed all three (100 s), medium usually gets through. For `high`, use `--model gpt-image-2.6-flare`.
+  Prices per token are on the OpenAI pricing page, not in the API.
 - **The cheap model is too cheap.** `gpt-image-1-mini` costs a third of the output tokens but drew a fragmented, outline-less ship (not usable as a draft).
 - **Size cannot go down**: 1024 x 1024 is the smallest the newer models accept (512, 640 and 768 are refused: "below the current minimum pixel budget").
 - **References cost input tokens**, about 400 each (the draft about 1100): fewer references (`--mood` off, no map) are cheaper, and input tokens are priced below output.
