@@ -60,7 +60,7 @@ From the owner's brainstorm: generate art through an image API, snap it to the g
    Open: art below about 12 px loses most of what the model drew when it is snapped (the fuel barrel at 10 x 14); try generating the subject at a larger
    art size and reducing with a smarter downsample, or drawing characters at 16 px.
 6. Optional: approve / iterate / reject buttons on the site (D1 table, modelled on `worker/songs.js`).
-Later: animation sets as one asset, moving Space Mouse's other art (Pip, cat-bots, objects) into the pipeline, the stray one-pixel
+Later: animation sets as one asset (frames by name, a live version per frame, the gallery plays them, `pipeline.js` emits them; the pose and lattice tools exist: ART_PIPELINE, "Characters and animation frames"), moving Space Mouse's other art (Pip, cat-bots, objects) into the pipeline, the stray one-pixel
 column on the lockers' right edge (a cut artefact the gallery will make visible).
 
 ## Principles to keep

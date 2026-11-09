@@ -40,6 +40,12 @@ the game until a version is promoted**, and the owner approves it first. Never e
    the screenshots with the new art in the lamp light at RES 1-3. Then branch, commit, pull request (CLAUDE.md, "Shipping changes"), merge on
    green, tell the owner what to look at (the gallery: ART on the game list).
 
+## Characters and animation
+A character is made like a prop (`--class character`, target about 14 x 16). Its other frames are poses of the chosen base frame: `make ... --brief "<the character, no pose>"
+--from <base> --align <base> --pose "<what the body does>"`. Use `--align` always for frames of one animation (same grid, same place: no jitter); `resnap` records the lattice of an older
+version for free. Make the key poses only, show them side by side (and a GIF: Pillow), and say what turned to blobs. Frames are separate versions for now: an asset that holds a frame
+set is not built (docs/ART_PIPELINE.md).
+
 ## Things that go wrong
 
 - **The snap cannot reach the size** ("could not reach 10 x 14"): the model drew something too detailed or too wide. Make the brief simpler
