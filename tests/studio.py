@@ -291,8 +291,10 @@ with sync_playwright() as p:
     check('a multisample: the note picks the zone by its range (A4 from the low zone, E5 from the high one)', abs(s2['multi'][0] - 370) < 6 and abs(s2['multi'][1] - 933) < 14, s2['multi'])
     pg.goto(f'{BASE}/studio/?game=spacemouse'); pg.wait_for_function('window.studio && studio.st.song')
     pg.click('#trackList .trk:nth-child(1)'); pg.select_option('#lane', 'volume')
-    box = pg.locator('#roll').bounding_box(); lane_y = box['y'] + box['height'] - 72
-    pt = lambda tick, frac: (box['x'] + 54 + (tick - st('st.view.x')) * st('st.view.zoom') + 1, lane_y + 5 + (1 - frac) * 62)
+    # (measured at every click: the hint under the roll changes with the lane, and when it wraps the roll gets shorter)
+    def pt(tick, frac):
+        box = pg.locator('#roll').bounding_box()
+        return (box['x'] + 54 + (tick - st('st.view.x')) * st('st.view.zoom') + 1, box['y'] + box['height'] - 72 + 5 + (1 - frac) * 62)
     pg.mouse.click(*pt(96, .9)); pg.mouse.click(*pt(384, .2))
     vol = st('st.song.tracks[0].auto.volume')
     check('VOLUME lane: clicks add points on the grid, at the height clicked', [p[0] for p in vol] == [96, 384] and vol[0][1] > .8 and vol[1][1] < .3, vol)
