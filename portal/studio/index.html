@@ -29,8 +29,8 @@
     <button id="wavBtn">Export WAV</button>
     <button id="exportBtn">Download song file (.song.json)</button>
     <label class="file">Open a song file…<input type="file" id="importFile" accept=".json,application/json"></label>
-    <button id="midiExportBtn" title="The notes, instruments, tempo and loop as a Standard MIDI File (not the effects, automation or samples)">Export MIDI file (.mid)</button>
-    <label class="file" title="A Standard MIDI File becomes a new song, each instrument a track">Open a MIDI file…<input type="file" id="importMidi" accept=".mid,.midi,audio/midi,audio/x-midi"></label>
+    <button id="midiExportBtn" title="The notes, instruments, tempo and loop, the volume, pan and pitch-bend lanes and the song's own samples as a Standard MIDI File (not the effects or the other lanes)">Export MIDI file (.mid)</button>
+    <label class="file" title="A Standard MIDI File becomes a new song, each instrument a track (you choose which)">Open a MIDI file…<input type="file" id="importMidi" accept=".mid,.midi,audio/midi,audio/x-midi"></label>
     <button id="dupSongBtn">Save as a copy</button>
     <button id="delSongBtn">Delete from the site</button>
   </div>
@@ -77,7 +77,12 @@
     <canvas id="arr" class="arr" aria-label="Song overview: every track, the bar ruler and the loop"></canvas>
     <div class="rollWrap"><canvas id="roll" class="roll" tabindex="0" aria-label="Piano roll of the selected track"></canvas>
       <select id="lane" class="lane" aria-label="What the lane under the notes shows" title="The lane under the notes: velocity, or a line that changes the track (or the tempo) over the song">
-        <option value="vel">VELOCITY</option><option value="volume">VOLUME</option><option value="pan">PAN</option><option value="filter">FILTER</option><option value="tempo">TEMPO</option></select></div>
+        <option value="vel">VELOCITY</option>
+        <optgroup label="This track">
+          <option value="volume">VOLUME</option><option value="pan">PAN</option><option value="filter">FILTER</option><option value="pitch">PITCH BEND</option>
+          <option value="echo">ECHO SEND</option><option value="reverb">REVERB SEND</option><option value="loop">LOOP POINT</option></optgroup>
+        <optgroup label="The whole song">
+          <option value="tempo">TEMPO</option><option value="mecho">ECHO LEVEL</option><option value="mfeedback">ECHO FEEDBACK</option></optgroup></select></div>
     <p class="hint muted" id="hint">Click to add a note, drag it to move, drag its end to lengthen. Shift-drag selects. Right-click deletes.</p>
   </section>
   <aside class="strip" id="strip" aria-label="The selected track's sound and the master effects"></aside>
@@ -114,16 +119,34 @@
     <dt>wheel</dt><dd>scroll the notes (<kbd>Shift</kbd>: sideways, <kbd>Ctrl</kbd>: zoom)</dd>
     <dt>bar ruler</dt><dd>click: where play starts; drag: the loop</dd>
     <dt>velocity lane</dt><dd>drag up and down under a note to make it louder or softer</dd>
-    <dt>VOLUME, PAN, FILTER, TEMPO</dt><dd>the lane's menu: click to add a point, drag it, right-click deletes; the track (or the
-      whole song, for tempo) follows the line as it plays</dd>
-    <dt>[ MORE ] ▸ MIDI files</dt><dd>open a .mid as a new song (each channel becomes a track, with its General MIDI instrument mapped to the nearest
-      one here; channel 10 is the drum kit), or export the song as a .mid for another program</dd>
-    <dt>instrument ▸ Load a sample…</dt><dd>your own sound (WAV, MP3, OGG): set its note, loop and grit under SAMPLE</dd>
+    <dt>the lane menu</dt><dd>VOLUME, PAN, FILTER, PITCH BEND, the ECHO and REVERB sends, the LOOP POINT of a sample, and for the whole song TEMPO and
+      the ECHO's level and feedback: click to add a point, drag it, right-click deletes; the track (or the song) follows the line as it plays.
+      <kbd>Shift</kbd> + drag a stretch of the line bends it into a curve; <kbd>Shift</kbd> + click a tempo point makes the tempo glide to it</dd>
+    <dt>[ MORE ] ▸ MIDI files</dt><dd>open a .mid as a new song (you choose which instruments; each becomes a track, with its General MIDI instrument
+      mapped to the nearest one here; channel 10 is the drum kit; volume, pan and pitch bend that move become lanes), or export the song as a .mid
+      for another program (the song's own samples ride along inside it)</dd>
+    <dt>instrument ▸ Load a sample…, Record a sample…, New multisample…</dt><dd>your own sound (WAV, MP3, OGG, or the microphone): set its note, loop
+      (start, end and crossfade) and grit under SAMPLE; a multisample plays several samples, each over its own range of notes</dd>
     <dt>WHERE IT PLAYS</dt><dd>the places in the game the song is for; play the level with the song inside the game</dd>
   </dl>
   <p class="muted">A MIDI keyboard plays the selected track (sustain pedal and pitch bend work). Without one, turn on KEYS and
     play the computer keyboard. Songs save to the site; a Claude session puts one into a game ([ MORE ] has the prompt).</p>
   <form method="dialog"><button class="btn small">[ CLOSE ]</button></form>
+</dialog>
+
+<dialog id="midiPick">
+  <h2>Open which instruments?</h2>
+  <p class="muted" id="midiPickInfo"></p>
+  <div id="midiPickList" class="picklist"></div>
+  <form method="dialog" class="row"><button class="btn small" type="button" id="midiPickAll">[ ALL ]</button><button class="btn small" type="button" id="midiPickNone">[ NONE ]</button>
+    <span class="spacer"></span><button class="btn small primary" value="ok" id="midiPickOk">[ OPEN ]</button><button class="btn small" value="cancel">[ CANCEL ]</button></form>
+</dialog>
+
+<dialog id="recDlg">
+  <h2>Record a sample</h2>
+  <p class="muted" id="recInfo">Sing, play or tap something into the microphone (up to 6 seconds). It becomes a sample you can play on the keyboard.</p>
+  <canvas id="recMeter" class="recmeter" width="360" height="40"></canvas>
+  <form method="dialog" class="row"><button class="btn small primary" type="button" id="recGo">[ ● START ]</button><span class="spacer"></span><button class="btn small" value="cancel" id="recCancel">[ CANCEL ]</button></form>
 </dialog>
 
 <dialog id="promptDlg">

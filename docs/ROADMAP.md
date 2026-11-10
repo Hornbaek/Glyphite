@@ -34,14 +34,19 @@ The owner found ASCII too dark and chose pixel art, keeping every mechanic:
 ## Sound: the SOUND STUDIO (HISTORY 36)
 
 Done: the engine's 16-bit Sampler, the studio at /studio/, songs saved on the site and played in Space Mouse. Next:
-- ~~**Your own samples**~~ (HISTORY 37). Next: a loop end of its own, crossfaded loops, a microphone, several samples as one
-  multisampled instrument (a note range each).
+- ~~**Your own samples**~~ (HISTORY 37, 52): a loop end of its own, crossfaded loops, a microphone, several samples as one multisampled
+  instrument (a note range each). Next: layers by loudness (a zone per velocity range), a loop found automatically (the
+  nearest zero crossing), a start offset.
 - ~~**Projects and places**~~ (HISTORY 37): next, music that changes inside a level (a place per area or event, not only per level).
-- ~~**Automation**~~ (HISTORY 38): volume, pan and filter lanes per track, tempo changes, glide. Next: curved segments,
-  automating the sends and the echo, a lane per sample's loop point, tempo ramps (not only steps).
+- ~~**Automation**~~ (HISTORY 38, 52): volume, pan and filter lanes per track, tempo changes, glide, curved segments, the sends, pitch bend,
+  the echo's level and feedback, a lane for a sample's loop point, tempo ramps. Next: curves for the tempo ramp, a lane for the chorus
+  and the EQ, a loop lane that moves while a note holds (Web Audio's loop points are not parameters: it would take two crossfaded
+  sources).
 - **Patterns**: SNES composers worked in short patterns; clips that repeat would make long songs quicker to write.
-- ~~**MIDI files**~~ (HISTORY 51): import a .mid into tracks, export the song as .mid (`tools/midi.mjs` too). Next: pitch bends and the volume and pan
-  automation as CC events, a choice of tracks to open, a song's own samples as one-note General MIDI sounds.
+- ~~**MIDI files**~~ (HISTORY 51, 52): import a .mid into tracks, export the song as .mid (`tools/midi.mjs` too); pitch bend and the volume and
+  pan that move are lanes, a tempo ramp is a ramp, a file with several instruments asks which to open, and a song's own samples
+  travel inside the file (a pad or a marimba to other programs). Next: the filter, the sends and the echo as CC events (74, 91, 93), time
+  signature changes.
 - **Making instruments off the main thread** (a Worker): a game's first song costs ~0.3 s of blocked frames on its title.
 - **Music that follows the game**: a director helper over `Sampler.track` (layers by state), and songs for Regolith and
   Fjordheim (Regolith's MIDI can now be turned into Sampler songs to re-voice: `node tools/midi.mjs import games/regolith/music/<name>.mid`).

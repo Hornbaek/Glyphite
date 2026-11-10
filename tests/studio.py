@@ -4,7 +4,8 @@ a stand-in for the songs API). The sound is checked by rendering offline: pitch,
 the EQ, every instrument at a like loudness. The studio is driven like a person would: notes with the mouse, undo, a fake
 MIDI keyboard recording with the sustain pedal, the computer keyboard, saving (and a save that clashes), the draft
 surviving a reload, a WAV export, MIDI files out and in. Automation: a tempo change, a volume lane, glide, lanes drawn with the mouse. Projects: the picker, songs kept per game. Samples: a recorded tone loaded, its note heard,
-played at the right pitch, looped. WHERE IT PLAYS: the places saved in the song, the level opened in the game with the song inside.
+played at the right pitch, looped, with a loop end of its own, recorded with a (fake) microphone, several samples as one multisample. More lanes:
+the echo and reverb sends, pitch bend, the loop point, the echo's own level; curves, tempo ramps. MIDI: a choice of instruments. WHERE IT PLAYS: the places saved in the song, the level opened in the game with the song inside.
 Build first: npm run build.
 
   python3 tests/studio.py
@@ -87,9 +88,47 @@ async () => {
 }
 """
 
+SOUND2 = r"""
+async () => {
+  const S = Sampler, out = {}, quiet = { echo: 0, reverb: 0 };
+  const base = { format: 'pixelite-song', bpm: 120, bars: 4, master: { reverb: { volume: 0 }, comp: 0, echo: { delay: 8, feedback: .9, fir: 'flat', volume: .9 } } };
+  const rms = (b, t0, t1) => { const d = b.getChannelData(0), sr = b.sampleRate; let s = 0, n = 0; for (let i = Math.round(t0 * sr); i < t1 * sr; i++) { s += d[i] * d[i]; n++; } return Math.sqrt(s / n); };
+  const pitch = (b, t0, t1) => { const d = b.getChannelData(0), sr = b.sampleRate, a = Math.round(t0 * sr), n = Math.round((t1 - t0) * sr); let best = 0, bf = 0;
+    for (let f = 150; f < 1200; f *= 1.002) { let re = 0, im = 0; for (let i = 0; i < n; i += 2) { const w = 2 * Math.PI * f * i / sr; re += d[a + i] * Math.cos(w); im += d[a + i] * Math.sin(w); } if (re * re + im * im > best) { best = re * re + im * im; bf = f; } } return bf; };
+  const render = (song, secs) => S.render(S.check(song), { seconds: secs, loop: false });
+  // the echo send lane: closed for the first note, open for the second; the echo's own level lane the same
+  const marimba = auto => ({ ...base, tracks: [{ instrument: 'marimba', notes: [[0, 24, 72, 120], [768, 24, 72, 120]], sends: { echo: 1, reverb: 0 }, auto }] });
+  const sendLane = await render(marimba({ echo: [[0, 0], [767, 0], [768, 1]] }), 7);
+  out.send = [rms(sendLane, .2, 1.2), rms(sendLane, 4.2, 5.2)];
+  const levelLane = await render({ ...marimba({}), auto: { echo: [[0, 0], [767, 0], [768, .9]] } }, 7);
+  out.level = [rms(levelLane, .2, 1.2), rms(levelLane, 4.2, 5.2)];
+  const open = await render(marimba({}), 7); out.open = [rms(open, .2, 1.2), rms(open, 4.2, 5.2)];
+  // the pitch lane: an organ A4 that bends up an octave in the first second
+  const bent = await render({ ...base, tracks: [{ instrument: 'organ', notes: [[0, 1536, 69, 110]], sends: quiet, auto: { pitch: [[0, 0], [96, 0], [192, 12]] } }] }, 3);
+  out.bend = [pitch(bent, .15, .4), pitch(bent, 1.4, 1.9)];
+  // a tempo ramp: 120 → 60 BPM over the first four beats; a note at tick 384 begins when the ramp ends, at 4 * ln2 / ... = 2.77 s
+  const ramp = (await render({ ...base, tempo: [[384, 60, 1]], tracks: [{ instrument: 'marimba', notes: [[384, 24, 72, 120]], sends: quiet }] }, 4)).getChannelData(0);
+  out.ramp = -1; for (let i = 0; i < ramp.length; i++) if (Math.abs(ramp[i]) > .02) { out.ramp = i / 44100; break; }
+  // a curved volume lane: rushes down, then settles; halfway it is far quieter than the straight line's
+  const fade = c => render({ ...base, tracks: [{ instrument: 'organ', notes: [[0, 1536, 60, 110]], sends: quiet, auto: { volume: [[0, 1], [384, 0, c]] } }] }, 3);
+  out.curve = [rms(await fade(0), .9, 1.1), rms(await fade(-1), .9, 1.1)];
+  // a sample whose loop ends before the end of the sound: a 440 Hz half, then an 880 Hz half
+  const rate = 32000, n = 12800, x = new Float32Array(n);
+  for (let i = 0; i < n; i++) x[i] = Math.sin(2 * Math.PI * (i < 6400 ? 440 : 880) * i / rate) * .8;
+  const two = loopEnd => ({ ...base, samples: { two: { name: 'Two', rate, root: 69, loop: 0, ...(loopEnd ? { loopEnd } : {}), brr: S.toB64(S.brrEncode(x)) } }, tracks: [{ instrument: 'sample:two', notes: [[0, 288, 69, 110]], sends: quiet }] });
+  out.loopEnd = [pitch(await render(two(6400), 1.6), .62, .78), pitch(await render(two(0), 1.6), .62, .78)];
+  // a multisample: the note picks the zone by its range (the samples' declared notes are deliberately wrong for the ranges)
+  const tone = f => S.toB64(S.brrEncode(Float32Array.from({ length: 16000 }, (_, i) => Math.sin(2 * Math.PI * f * i / rate) * .8)));
+  const multi = await render({ ...base, samples: { lo: { name: 'Lo', root: 60, brr: tone(220) }, hi: { name: 'Hi', root: 70, brr: tone(660) } },
+    multis: { m: { name: 'M', zones: [{ sample: 'lo', lo: 0, hi: 70 }, { sample: 'hi', lo: 71, hi: 127 }] } }, tracks: [{ instrument: 'multi:m', notes: [[0, 96, 69, 110], [192, 96, 76, 110]], sends: quiet }] }, 2);
+  out.multi = [pitch(multi, .1, .4), pitch(multi, 1.1, 1.4)];
+  return out;
+}
+"""
+
 with sync_playwright() as p:
-    b = p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required'])
-    ctx = b.new_context(viewport={'width': 1440, 'height': 900}, accept_downloads=True)
+    b = p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'])
+    ctx = b.new_context(viewport={'width': 1440, 'height': 900}, accept_downloads=True, permissions=['microphone'])
     ctx.add_init_script(FAKE_MIDI)
     pg = ctx.new_page(); errs = []
     pg.on('pageerror', lambda e: errs.append(str(e)))
@@ -199,14 +238,25 @@ with sync_playwright() as p:
     pg2.route('**/api/songs**', api); pg2.route('**/fonts.g*/**', lambda r: r.abort())
     pg2.goto(f'{BASE}/studio/?game=spacemouse'); pg2.wait_for_function('window.studio && studio.st.song')
     st2 = lambda js: pg2.evaluate(f'(() => {{ const st = studio.st; return {js}; }})()')
-    pg2.set_input_files('#importMidi', str(mid_path)); pg2.wait_for_function("studio.st.song.title === 'Test tune'")
+    def choose(page, only=None):   # the instrument picker: all ticked, or only these
+        page.wait_for_selector('#midiPick[open]')
+        if only is not None:
+            for i in range(page.locator('#midiPickList input').count()):
+                page.locator('#midiPickList input').nth(i).set_checked(i in only)
+        page.click('#midiPickOk')
+    pg2.set_input_files('#importMidi', str(mid_path)); choose(pg2); pg2.wait_for_function("studio.st.song.title === 'Test tune'")
     check('MIDI import: the exported file opens as the same song (names, instruments, every note)', st2('st.song.tracks.map(t => [t.name, t.instrument, t.notes])') == mine, st2('st.song.tracks.map(t => [t.name, t.instrument, t.notes.length])'))
     check('a MIDI file opens as a new song: not saved, not the old one', st2('st.dirty') and st2('st.meta.id') is None and 'MIDI file opened' in pg2.text_content('#saved'), pg2.text_content('#saved'))
     answer['accept'] = False
-    pg2.set_input_files('#importMidi', str(ROOT / 'games/regolith/music/descent.mid')); pg2.wait_for_timeout(500)
+    pg2.set_input_files('#importMidi', str(ROOT / 'games/regolith/music/descent.mid')); choose(pg2); pg2.wait_for_timeout(500)
     check('opening another file asks before it throws away unsaved changes, and "cancel" keeps them', any('Replace the song' in m for m in dialogs) and st2('st.song.title') == 'Test tune', dialogs)
     answer['accept'] = True
-    pg2.set_input_files('#importMidi', str(ROOT / 'games/regolith/music/descent.mid')); pg2.wait_for_function("studio.st.song.title === 'Powered Descent'")
+    pg2.set_input_files('#importMidi', str(ROOT / 'games/regolith/music/descent.mid'))
+    names = pg2.eval_on_selector_all('#midiPickList .pickrow b', 'bs => bs.map(b => b.textContent)')
+    check('a MIDI file with several instruments asks which to open, listing them all', names == ['Lead', 'Arpeggio', 'Bass', 'Counter', 'Drums'], names)
+    choose(pg2, only=[2, 4]); pg2.wait_for_function("studio.st.song.title === 'Powered Descent'")
+    check('opening some of them: just those tracks, and only their notes make the song', st2('st.song.tracks.map(t => t.name)') == ['Bass', 'Drums'], st2('st.song.tracks.map(t => t.name)'))
+    pg2.set_input_files('#importMidi', str(ROOT / 'games/regolith/music/descent.mid')); choose(pg2); pg2.wait_for_function('studio.st.song.tracks.length === 5')
     check('a MIDI file made elsewhere (Regolith\'s descent) opens: tempo, drums, tracks', st2('st.song.bpm') == 132 and st2("st.song.tracks.some(t => t.instrument === 'kit')") and st2('st.song.tracks.length') == 5, st2('[st.song.bpm, st.song.tracks.map(t => t.instrument)]'))
     pg2.click('#playBtn'); pg2.wait_for_timeout(700)
     check('and it plays', st2('studio.S.playing'))
@@ -231,10 +281,20 @@ with sync_playwright() as p:
     check('a tempo change: a note after 120 BPM for a bar, then 60, starts at 3 s', abs(auto['onset'] - 3) < .02, auto['onset'])
     check('a volume lane fades a held chord out', auto['vol'][0] > auto['vol'][1] * 1.5 and auto['vol'][2] < auto['vol'][0] * .02, auto['vol'])
     check('glide: a mono lead slides from A3 to E4 (220 → in between → 330 Hz)', abs(auto['glide'][0] - 220) < 3 and 235 < auto['glide'][1] < 315 and abs(auto['glide'][2] - 329.6) < 4, auto['glide'])
+    s2 = pg.evaluate(SOUND2)
+    check('the echo SEND lane: closed for one note (almost no echo), open for the next (the echo rings on)', s2['send'][1] > s2['send'][0] * 2 and s2['send'][0] < s2['open'][0] * .6, [s2['send'], s2['open']])
+    check("the ECHO LEVEL lane (the song's own): the same, for the echo's return", s2['level'][1] > s2['level'][0] * 2, s2['level'])
+    check('the PITCH BEND lane: an A4 bends up an octave (440 → 880 Hz)', abs(s2['bend'][0] - 440) < 6 and abs(s2['bend'][1] - 880) < 12, s2['bend'])
+    check('a tempo RAMP: 120 BPM gliding to 60 over four beats takes 2.77 s, not the 2 s of a step', abs(s2['ramp'] - 2.7726) < .03, s2['ramp'])
+    check('a curved lane: bent to rush down then settle, it is far quieter at the middle than the straight line', s2['curve'][1] < s2['curve'][0] * .3, s2['curve'])
+    check("a sample's loop END: the loop stops at its own end (440 Hz) and never reaches the sound after it (880 Hz)", abs(s2['loopEnd'][0] - 440) < 8 and abs(s2['loopEnd'][1] - 880) < 14, s2['loopEnd'])
+    check('a multisample: the note picks the zone by its range (A4 from the low zone, E5 from the high one)', abs(s2['multi'][0] - 370) < 6 and abs(s2['multi'][1] - 933) < 14, s2['multi'])
     pg.goto(f'{BASE}/studio/?game=spacemouse'); pg.wait_for_function('window.studio && studio.st.song')
     pg.click('#trackList .trk:nth-child(1)'); pg.select_option('#lane', 'volume')
-    box = pg.locator('#roll').bounding_box(); lane_y = box['y'] + box['height'] - 72
-    pt = lambda tick, frac: (box['x'] + 54 + (tick - st('st.view.x')) * st('st.view.zoom') + 1, lane_y + 5 + (1 - frac) * 62)
+    # (measured at every click: the hint under the roll changes with the lane, and when it wraps the roll gets shorter)
+    def pt(tick, frac):
+        box = pg.locator('#roll').bounding_box()
+        return (box['x'] + 54 + (tick - st('st.view.x')) * st('st.view.zoom') + 1, box['y'] + box['height'] - 72 + 5 + (1 - frac) * 62)
     pg.mouse.click(*pt(96, .9)); pg.mouse.click(*pt(384, .2))
     vol = st('st.song.tracks[0].auto.volume')
     check('VOLUME lane: clicks add points on the grid, at the height clicked', [p[0] for p in vol] == [96, 384] and vol[0][1] > .8 and vol[1][1] < .3, vol)
@@ -246,6 +306,21 @@ with sync_playwright() as p:
     check('TEMPO lane: a tempo change for the whole song', len(st('st.song.tempo')) == 1 and st('st.song.tempo[0][0]') == 768 and 150 < st('st.song.tempo[0][1]') < 180, st('st.song.tempo'))
     pg.keyboard.press('Control+z'); pg.keyboard.press('Control+z')
     check('lane edits undo like notes', st('st.song.tempo.length') == 0 and len(st('st.song.tracks[0].auto.volume')) == 2)
+    pg.select_option('#lane', 'echo'); pg.mouse.click(*pt(96, .8)); pg.mouse.click(*pt(384, .1))
+    check('ECHO SEND lane: points go into the track\'s own lane', [p[0] for p in st('st.song.tracks[0].auto.echo')] == [96, 384], st('st.song.tracks[0].auto.echo'))
+    pg.keyboard.down('Shift'); x1, y1 = pt(240, .45); pg.mouse.move(x1, y1); pg.mouse.down(); pg.mouse.move(x1, y1 + 30, steps=5); pg.mouse.up(); pg.keyboard.up('Shift')
+    bend = st('st.song.tracks[0].auto.echo[1][2]') or 0
+    check('shift-drag on a stretch of the line bends it (the segment arriving at the point)', abs(bend) > .3 and len(st('st.song.tracks[0].auto.echo')) == 2, st('st.song.tracks[0].auto.echo'))
+    pg.keyboard.down('Shift'); pg.mouse.click(*pt(384, .1)); pg.keyboard.up('Shift')
+    check('shift-click on a bent point makes the segment straight again', len(st('st.song.tracks[0].auto.echo[1]')) == 2)
+    pg.select_option('#lane', 'mecho'); pg.mouse.click(*pt(192, .5))
+    check("ECHO LEVEL lane: it is the song's, not the track's", len(st('st.song.auto.echo')) == 1 and len(st('st.song.tracks[0].auto.echo')) == 2)
+    pg.select_option('#lane', 'pitch'); pg.mouse.click(*pt(96, .75))
+    check('PITCH BEND lane: a point above the middle bends up', st('st.song.tracks[0].auto.pitch[0][1]') > 3, st('st.song.tracks[0].auto.pitch'))
+    pg.select_option('#lane', 'tempo'); pg.mouse.click(*pt(768, .5)); bpm = st('st.song.tempo[0][1]')
+    pg.keyboard.down('Shift'); pg.mouse.click(*pt(768, (bpm - 30) / 270)); pg.keyboard.up('Shift')
+    check('TEMPO lane: shift-click on a point makes the tempo glide to it (a ramp)', st('st.song.tempo[0]') == [768, bpm, 1], st('st.song.tempo'))
+    check('the hint under the roll says how', 'glide' in pg.text_content('#hint'))
     pg.select_option('#lane', 'vel')
 
     # ---- samples: a tone a little sharp of A4 (440 Hz + 2 harmonics), loaded onto a new track ----
@@ -269,8 +344,34 @@ with sync_playwright() as p:
     check('played as an E5 it sounds at 659 Hz (pitched from the note it plays)', abs(pitch / 659.26 - 1) < .01, pitch)
     pg.click('#strip [data-a="loop"]')
     check('LOOP holds a note by repeating the sample\'s end', st('Object.values(st.song.samples)[0].loop') > 0)
+    check('LOOP offers a loop end and a crossfade', pg.locator('#strip label.ctl', has_text='Loop end').count() == 1 and pg.locator('#strip label.ctl', has_text='Crossfade').count() == 1)
+    wv = pg.locator('#strip canvas.wave').bounding_box(); n_s = st('Sampler.sampleLen(Object.values(st.song.samples)[0])')
+    pg.keyboard.down('Shift'); pg.mouse.click(wv['x'] + wv['width'] * .8, wv['y'] + 45); pg.keyboard.up('Shift')
+    le = st('Object.values(st.song.samples)[0].loopEnd') or 0
+    check('shift-click on the sound sets where the loop ends', abs(le / n_s - .8) < .04, [le, n_s])
+    pg.locator('#strip label.ctl', has_text='Crossfade').locator('input').fill('20')
+    xf = st('Object.values(st.song.samples)[0].xfade') or 0
+    check('the crossfade slider sets a crossfade of that many milliseconds at the seam', abs(xf - 640) < 40, xf)
     pg.select_option('#strip .sec select', '16000'); pg.wait_for_function('Object.values(studio.st.song.samples)[0].rate === 16000', timeout=10000)
     check('more grit: the sample made again at 16 kHz, half the size', st('Object.values(st.song.samples)[0].brr.length') < sm['brr'].__len__() * .6)
+    check('the loop follows the sample to its new grit: end and crossfade scale with it', st('Object.values(st.song.samples)[0].loopEnd') < le * .6 and 250 < st('Object.values(st.song.samples)[0].xfade') < 400, st('Object.values(st.song.samples)[0]').keys())
+    pg.select_option('#addIns', 'strings'); pg.click('#addTrack'); n2 = st('st.song.tracks.length')
+    pg.select_option(f'#trackList .trk:nth-child({n2}) .tins', '__multi')
+    check('a new multisample on a track: one zone over every note', st(f'st.song.tracks[{n2 - 1}].instrument') == 'multi:multi' and st('st.song.multis.multi.zones') == [{'sample': 'glass-hum', 'lo': 0, 'hi': 127}], st('st.song.multis'))
+    pg.click('#strip [data-a="add"]'); pg.wait_for_function('studio.st.song.multis.multi.zones.length === 2')
+    pg.locator('#strip .zrow').nth(0).locator('input').nth(1).fill('59'); pg.locator('#strip .zrow').nth(0).locator('input').nth(1).press('Enter')
+    check('a zone\'s range is set with its note numbers', st('st.song.multis.multi.zones[0].hi') == 59, st('st.song.multis.multi.zones'))
+    pg.click('#strip [data-a="roots"]')
+    z = st('st.song.multis.multi.zones'); check('FROM THEIR NOTES shares the keyboard between the zones (no gap, no overlap)', z[0]['lo'] == 0 and z[1]['hi'] == 127 and z[0]['hi'] + 1 == z[1]['lo'], z)
+    pg.click('#strip [data-a="remove"]'); pg.wait_for_function("studio.st.song.multis === undefined")
+    check('removing a multisample sends its track back to the piano and keeps the samples', st(f'st.song.tracks[{n2 - 1}].instrument') == 'piano' and len(st('Object.keys(st.song.samples)')) == 1)
+    # the microphone (Chromium's fake one: a beeping tone)
+    pg.select_option('#addIns', 'strings'); pg.click('#addTrack'); n3 = st('st.song.tracks.length')
+    pg.select_option(f'#trackList .trk:nth-child({n3}) .tins', '__record'); pg.wait_for_selector('#recDlg[open]')
+    pg.click('#recGo'); pg.wait_for_timeout(1500); pg.click('#recGo')
+    pg.wait_for_function('Object.keys(studio.st.song.samples).length === 2', timeout=20000)
+    check('the microphone: a recording becomes a sample (Recording 1) played by the track', st(f'st.song.tracks[{n3 - 1}].instrument') == 'sample:recording-1' and st('st.song.samples["recording-1"].name') == 'Recording 1', st('Object.keys(st.song.samples)'))
+    check('and the recording is a real sound (BRR with some length)', st('Sampler.sampleLen(st.song.samples["recording-1"])') > 4000, st('Sampler.sampleLen(st.song.samples["recording-1"])'))
     pg.click('#saveBtn'); pg.wait_for_function("document.querySelector('#saved').textContent === 'saved'")
     saved = DB[st('st.meta.id')]
     check('the sample is saved inside the song, for the project', 'glass-hum' in saved['song']['samples'] and saved['game'] == 'spacemouse')

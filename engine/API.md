@@ -412,14 +412,27 @@ writes them into the game's `songs.js` as `SONGS['<id>']`.
 - **A song's own samples** (loaded in the studio): `song.samples[id] = { name, rate, root, loop, brr }`: real SNES BRR bytes in
   base64 (`Sampler.brrEncode` / `brrDecode`, 9 bytes per 16 samples), the rate they are at, the note they sound (`root`, MIDI,
   with cents), and the sample they loop from (-1: play once). A track plays one as `instrument: 'sample:<id>'`; it travels in
-  the song, so a game needs nothing else.
+  the song, so a game needs nothing else. A loop may have its own end (`loopEnd`, a block: the loop runs `loop` to `loopEnd`
+  and the sound after it is never played while a note holds) and a crossfade (`xfade`, in samples: that much of the loop's tail is
+  blended with the sound before its start, so it flows into the loop's start); both are only in the song when set.
+  `brrDecode(bytes, loopAt, loopEnd, xfade)`.
+- **Multisamples:** `song.multis[id] = { name, zones: [{ sample, lo, hi }] }` plays several of the song's samples as one instrument
+  (`instrument: 'multi:<id>'`): a note plays the zone whose notes (`lo`..`hi`, MIDI) hold it (the nearest zone when none does), pitched
+  from that sample's own `root`; each zone is made as loud as the others. Only in the song when there is one.
 - **Where it plays:** `song.places = { title, levels: [level indices], note }`, set in the studio's WHERE IT PLAYS.
   `tools/song.mjs` collects them into `SONG_AT` beside `SONGS` (`SONG_AT.title`, `SONG_AT.levels[i]`, `SONG_AT.other`): play
   `SONG_AT.levels[level]` when a level starts (Space Mouse: `stationMusic()` in `main.js`).
 - **Automation:** `track.auto = { volume, pan, filter }`, each a list of `[tick, value]` points (volume 0..1 on top of the fader,
   pan -1..1 in place of the track's own, filter 0..1 = 40 Hz..16 kHz, which turns a track's filter on as a low-pass): straight
-  lines between points, level before the first and after the last. `song.tempo = [[tick, bpm], ...]`: tempo changes after the
-  start (the song's `bpm` holds until the first). `Sampler.secAt(song, tick)`, `tickAt(song, seconds)`, `bpmAt`, `laneAt`.
+  lines between points, level before the first and after the last. A third number on a point bends the segment that arrives at it
+  (`[tick, value, c]`, c -1..1: above 0 it waits then rushes, below 0 it rushes then settles; the engine ramps through it in 1/8-beat
+  pieces, `Sampler.laneRamp`). More lanes, each only in `track.auto` once it has points: `echo` and `reverb` (the sends, 0..1, in
+  place of the track's own), `pitch` (a bend in semitones, -12..12, on every note of the track at once; a MIDI file's pitch bend),
+  `loop` (0..1 along a looping sample: where the loop starts for each note, taken when the note starts, in 16 steps; a held note
+  does not move). `song.auto = { echo, feedback }` are the master echo's level (0..1) and feedback (-.95..95).
+  `song.tempo = [[tick, bpm], ...]`: tempo changes after the start (the song's `bpm` holds until the first); a third number 1 makes the
+  tempo glide to that point from the one before it (a ramp, linear in ticks) instead of jumping. `Sampler.secAt(song, tick)`,
+  `tickAt(song, seconds)`, `bpmAt`, `laneAt`.
 - **Glide:** `track.sound.glide` (seconds, 0 = off): the track plays one note at a time, and a note that starts while the last
   is still held slides to its pitch from that one (a lead line).
 - `Sampler.force(song | null)`: play this song and nothing else (the game's own `play` calls and the Chip keep quiet) until
