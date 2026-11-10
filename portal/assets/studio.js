@@ -106,14 +106,17 @@ function renderTracks() {
   });
 }
 function insOptions(load) {
-  const own = Object.entries(st.song.samples || {});
+  const own = Object.entries(st.song.samples || {}), multi = Object.entries(st.song.multis || {});
   return S.INSTRUMENTS.map(i => `<option value="${i.id}">${esc(i.group)} · ${esc(i.name)}</option>`).join('')
     + (own.length ? `<optgroup label="This song's samples">${own.map(([id, sm]) => `<option value="sample:${esc(id)}">Sample · ${esc(sm.name)}</option>`).join('')}</optgroup>` : '')
-    + (load ? '<option value="__load">+ Load a sample…</option>' : '');
+    + (multi.length ? `<optgroup label="This song's multisamples">${multi.map(([id, mu]) => `<option value="multi:${esc(id)}">Multi · ${esc(mu.name)}</option>`).join('')}</optgroup>` : '')
+    + (load ? '<option value="__load">+ Load a sample…</option><option value="__record">+ Record a sample…</option><option value="__multi">+ New multisample…</option>' : '');
 }
-const insName = id => id.startsWith('sample:') ? st.song.samples[id.slice(7)]?.name : S.INSTRUMENTS.find(x => x.id === id)?.name;
+const insName = id => id.startsWith('sample:') ? st.song.samples[id.slice(7)]?.name : id.startsWith('multi:') ? st.song.multis?.[id.slice(6)]?.name : S.INSTRUMENTS.find(x => x.id === id)?.name;
 function setInstrument(i, id) {
   if (id === '__load') { renderTracks(); return pickSample(i); }
+  if (id === '__record') { renderTracks(); return recordSample(i); }
+  if (id === '__multi') { renderTracks(); return newMulti(i); }
   edit(() => {
     const t = st.song.tracks[i], was = insName(t.instrument);
     if (!t.name || t.name === 'Track' || t.name === was) t.name = insName(id) || 'Track';
@@ -164,8 +167,9 @@ function renderStrip() {
       <button class="btn small" data-a="dup" title="Duplicate the track">DUP</button><button class="btn small" data-a="del" title="Delete the track">DEL</button>`;
     head.querySelectorAll('[data-a]').forEach(b => b.onclick = () => trackAction(b.dataset.a));
     box.append(head);
-    const own = t.instrument.startsWith('sample:');
-    if (own) box.append(sampleSection(t.instrument.slice(7)));
+    const multi = t.instrument.startsWith('multi:'), own = multi || t.instrument.startsWith('sample:');
+    if (multi) box.append(multiSection(t.instrument.slice(6)));
+    else if (own) box.append(sampleSection(t.instrument.slice(7)));
     const sound = section('SOUND');
     if (!own) sound.append(pick('Grit', S.RATES.map(r => [r, `${r / 1000} kHz${r === 32000 ? ' (SNES)' : ''}`]), () => s.rate, v => { s.rate = +v; S.prepare(st.song); }));
     if (!kit) sound.append(
@@ -406,6 +410,7 @@ R.cv.addEventListener('pointermove', e => {
   const r = R.cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top, tick = tOf(px);
   if (drag.mode === 'vel') return velAt(px, py);
   if (drag.mode === 'lane') return laneMove(px, py);
+  if (drag.mode === 'curve') return curveMove(py);
   if (drag.mode === 'box') {
     Object.assign(drag, { bx: Math.min(drag.x0, px), by: Math.min(drag.y0, py), bw: Math.abs(px - drag.x0), bh: Math.abs(py - drag.y0) });
     const ta = tOf(drag.bx), tb = tOf(drag.bx + drag.bw), pa = nOf(drag.by + drag.bh), pb = nOf(drag.by);
@@ -428,40 +433,72 @@ R.cv.addEventListener('pointermove', e => {
   }
   drawRoll();
 });
-// ---------- automation lanes: a line the track (or, for tempo, the song) follows as it plays ----------
-// points are [tick, value]; the engine draws straight lines between them (tempo steps), and holds the first and last
+// ---------- automation lanes: a line the track (or, for tempo and the echo, the song) follows as it plays ----------
+// points are [tick, value, bend]: the engine draws straight lines between them, or curves (shift-drag a segment to bend the one that
+// arrives at a point); the first and last values hold. The tempo steps at each point, or glides to it (shift-click a point).
+// pts() reads a lane (without making it); make() gives the array to add to, kept in the song only while it has points.
+const NOPTS = [];
+const loopRest = () => { const sm = ownSample(track()); if (!sm || sm.loop < 0) return .5; const n = S.sampleLen(sm), le = sm.loopEnd || n; return Math.max(0, Math.min(1, sm.loop / Math.max(1, le - 32))); };
+const trackLane = k => ({ pts: () => track().auto[k] || NOPTS, make: () => (track().auto[k] ??= []) });
+const songLane = k => ({ pts: () => (st.song.auto || {})[k] || NOPTS, make: () => ((st.song.auto ??= {})[k] ??= []) });
 const LANES = {
-  volume: { lo: 0, hi: 1, pts: () => track().auto.volume, rest: () => 1, fmt: v => `${Math.round(v * 100)}%` },
-  pan: { lo: -1, hi: 1, pts: () => track().auto.pan, rest: () => track().pan, fmt: v => Math.abs(v) < .02 ? 'centre' : `${Math.round(Math.abs(v) * 100)}% ${v < 0 ? 'left' : 'right'}` },
-  filter: { lo: 0, hi: 1, pts: () => track().auto.filter, rest: () => Math.log(track().filter.freq / 40) / Math.log(400), fmt: v => hzs(S.filterHz(v)) },
-  tempo: { lo: 30, hi: 300, pts: () => st.song.tempo, rest: () => st.song.bpm, fmt: v => `${Math.round(v)} BPM`, step: true, from: 1 }
+  volume: { lo: 0, hi: 1, ...trackLane('volume'), rest: () => 1, fmt: v => `${Math.round(v * 100)}%` },
+  pan: { lo: -1, hi: 1, ...trackLane('pan'), rest: () => track().pan, fmt: v => Math.abs(v) < .02 ? 'centre' : `${Math.round(Math.abs(v) * 100)}% ${v < 0 ? 'left' : 'right'}` },
+  filter: { lo: 0, hi: 1, ...trackLane('filter'), rest: () => Math.log(track().filter.freq / 40) / Math.log(400), fmt: v => hzs(S.filterHz(v)) },
+  echo: { lo: 0, hi: 1, ...trackLane('echo'), rest: () => track().sends.echo, fmt: pct },
+  reverb: { lo: 0, hi: 1, ...trackLane('reverb'), rest: () => track().sends.reverb, fmt: pct },
+  pitch: { lo: -12, hi: 12, ...trackLane('pitch'), rest: () => 0, fmt: v => `${v > 0 ? '+' : ''}${v.toFixed(1)} semitones`, places: 1 },
+  loop: { lo: 0, hi: 1, ...trackLane('loop'), rest: loopRest, fmt: v => `${Math.round(v * 100)}% along the sample`, sample: true },
+  mecho: { lo: 0, hi: 1, ...songLane('echo'), rest: () => st.song.master.echo.volume, fmt: pct },
+  mfeedback: { lo: -.95, hi: .95, ...songLane('feedback'), rest: () => st.song.master.echo.feedback, fmt: pct },
+  tempo: { lo: 30, hi: 300, pts: () => st.song.tempo, make: () => st.song.tempo, rest: () => st.song.bpm, fmt: v => `${Math.round(v)} BPM`, step: true, from: 1 }
 };
+// the first sample a track plays that loops (a multisample: its first zone that does)
+const ownSample = t => t && t.instrument.startsWith('sample:') ? st.song.samples[t.instrument.slice(7)]
+  : t && t.instrument.startsWith('multi:') ? (st.song.multis?.[t.instrument.slice(6)]?.zones || []).map(z => st.song.samples[z.sample]).find(sm => sm && sm.loop >= 0) || null : null;
+const HINTS = {
+  vel: 'Click to add a note, drag it to move, drag its end to lengthen. Shift-drag selects. Right-click deletes.',
+  line: 'Click to add a point, drag it, right-click deletes. Shift-drag a stretch of the line to bend it (shift-click a point: straight again).',
+  tempo: 'Click to add a tempo change, drag it, right-click deletes. Shift-click a point to glide to it (a ramp) instead of jumping.',
+  loop: 'Where along the sample a note\'s loop starts, taken when the note starts (the sample must loop). Click to add a point, drag it, right-click deletes.'
+};
+const showHint = () => { $('#hint').textContent = st.lane === 'vel' ? HINTS.vel : st.lane === 'tempo' ? HINTS.tempo : st.lane === 'loop' ? HINTS.loop : HINTS.line; };
 const laneY = (L, v, gB) => gB + 5 + (1 - (v - L.lo) / (L.hi - L.lo)) * (R.VEL - 10);
-const laneV = (L, py, gB) => { const v = L.lo + (1 - (py - gB - 5) / (R.VEL - 10)) * (L.hi - L.lo); return Math.max(L.lo, Math.min(L.hi, L.step ? Math.round(v) : Math.round(v * 100) / 100)); };
+const laneV = (L, py, gB) => { const v = L.lo + (1 - (py - gB - 5) / (R.VEL - 10)) * (L.hi - L.lo), d = L.step ? 1 : L.places ? 10 : 100; return Math.max(L.lo, Math.min(L.hi, Math.round(v * d) / d)); };
 const laneVal = (L, k) => L.step ? S.bpmAt(st.song, k) : S.laneAt(L.pts(), k) ?? L.rest();
 function drawLane(x, W, gB, col) {
-  const L = LANES[st.lane], pts = L.pts(), y = v => laneY(L, v, gB);
+  const L = LANES[st.lane], pts = L.pts(), y = v => laneY(L, v, gB), off = L.sample && !ownSample(track());
   x.strokeStyle = pts.length ? col : '#5d6b80'; x.lineWidth = 1.5; x.setLineDash(pts.length ? [] : [4, 4]); x.beginPath();
-  let px = R.KEYW, pv = laneVal(L, tOf(R.KEYW)); x.moveTo(px, y(pv));
-  for (const [at, v] of pts) { const X = xOf(at); if (X <= R.KEYW) continue; if (X > W) break; if (L.step) x.lineTo(X, y(pv)); x.lineTo(X, y(v)); px = X; pv = v; }
-  x.lineTo(W, y(laneVal(L, tOf(W)))); x.stroke(); x.setLineDash([]);
-  for (const p of pts) { const X = xOf(p[0]); if (X < R.KEYW - 4 || X > W) continue; x.fillStyle = drag && drag.pt === p ? '#eef3f9' : col; x.fillRect(X - 3, y(p[1]) - 3, 7, 7); }
+  for (let X = R.KEYW; X <= W + 2; X += 2) { const Y = y(laneVal(L, tOf(X))); X === R.KEYW ? x.moveTo(X, Y) : x.lineTo(X, Y); }
+  x.stroke(); x.setLineDash([]);
+  for (const p of pts) { const X = xOf(p[0]); if (X < R.KEYW - 4 || X > W) continue; x.fillStyle = drag && drag.pt === p ? '#eef3f9' : p[2] ? (L.step ? '#c79bff' : '#ffd678') : col; x.fillRect(X - 3, y(p[1]) - 3, 7, 7); }
   x.fillStyle = '#5d6b80'; x.font = '9px JetBrains Mono, monospace'; x.textBaseline = 'top';
-  const label = drag && drag.mode === 'lane' ? L.fmt(drag.pt[1]) : pts.length ? '' : `${L.fmt(L.rest())} all along: click to add a point`;
+  const label = drag && drag.mode === 'lane' ? L.fmt(drag.pt[1]) : drag && drag.mode === 'curve' ? `bend ${Math.round((drag.pt[2] || 0) * 100)}%` : off ? 'the track must play a sample that loops' : pts.length ? '' : `${L.fmt(L.rest())} all along: click to add a point`;
   if (label) x.fillText(label, R.KEYW + 8, gB + 4);
 }
 function laneDown(px, py, e) {
   const L = LANES[st.lane], pts = L.pts(), gB = R.h - R.VEL;
   const hit = pts.find(p => Math.abs(xOf(p[0]) - px) < 6 && Math.abs(laneY(L, p[1], gB) - py) < 7);
-  if (e.button === 2) { if (hit) edit(() => { pts.splice(pts.indexOf(hit), 1); }); return; }
+  if (e.button === 2) { if (hit) edit(() => { const a = L.make(); a.splice(a.indexOf(hit), 1); }); return; }
+  if (e.shiftKey) {
+    // shift on a point: the tempo glides to it (or jumps again); a bent segment goes straight
+    if (hit) { if (L.step) edit(() => { if (hit[2]) hit.length = 2; else hit[2] = 1; }); else if (hit[2]) edit(() => { hit.length = 2; }); return; }
+    // shift on the line between two points: drag up or down to bend the segment (it belongs to the point it arrives at)
+    const tick = tOf(px), i = pts.findIndex(p => p[0] > tick);
+    if (!L.step && i > 0) {
+      const pt = pts[i], dir = Math.sign(pt[1] - pts[i - 1][1]) || 1;
+      drag = { mode: 'curve', pt, pts, L, dir, y0: py, c0: pt[2] || 0, before: snap(), changed: false };
+    }
+    return;
+  }
   const before = snap();
   let pt = hit;
   if (!pt) {
-    const at = Math.max(L.from || 0, snapAt(tOf(px)));
-    pt = pts.find(p => p[0] === at) || (pts.push([at, laneVal(L, at)]), pts[pts.length - 1]);
-    pt[1] = laneV(L, py, gB); pts.sort((a, b) => a[0] - b[0]);
+    const at = Math.max(L.from || 0, snapAt(tOf(px))), a = L.make();
+    pt = a.find(p => p[0] === at) || (a.push([at, laneVal(L, at)]), a[a.length - 1]);
+    pt[1] = laneV(L, py, gB); a.sort((p, q) => p[0] - q[0]);
   }
-  drag = { mode: 'lane', pt, pts, L, before, changed: !hit };
+  drag = { mode: 'lane', pt, pts: L.make(), L, before, changed: !hit };
   if (S.ctx) S.sync();
   drawRoll();
 }
@@ -471,6 +508,11 @@ function laneMove(px, py) {
   if (!other) pt[0] = at;
   pt[1] = laneV(L, py, gB); pts.sort((a, b) => a[0] - b[0]);
   drag.changed = true; drawRoll();
+}
+function curveMove(py) {
+  const c = Math.max(-1, Math.min(1, Math.round((drag.c0 + drag.dir * (py - drag.y0) / 40) * 20) / 20));
+  if (c) drag.pt[2] = c; else drag.pt.length = 2;
+  drag.changed = true; if (S.ctx) S.sync(); drawRoll();
 }
 function velAt(px, py) {
   const t = track(), v = Math.max(1, Math.min(127, Math.round((R.h - 3 - py) / (R.VEL - 8) * 127)));
@@ -484,7 +526,7 @@ addEventListener('pointerup', () => {
   if (!drag) return;
   const d = drag; drag = null;
   if (d.v) S.noteOff(d.v);
-  if (d.mode === 'move' || d.mode === 'resize' || d.mode === 'vel' || d.mode === 'lane') {
+  if (d.mode === 'move' || d.mode === 'resize' || d.mode === 'vel' || d.mode === 'lane' || d.mode === 'curve') {
     if (d.changed) { if (d.before) { st.undo.push(d.before); st.redo = []; } if (d.mode === 'resize') st.len = [...d.orig.keys()][0]?.[1] || st.len; changed(); }
   }
   drawRoll();
@@ -703,15 +745,39 @@ const replaceOk = () => !st.dirty || confirm('Replace the song you are working o
 async function importFile(f) {
   try { const s = JSON.parse(await f.text()); if (replaceOk()) load(s, undefined, true); } catch (e) { alert(`That is not a song file: ${e.message}`); }
 }
-// MIDI files (midi-core.mjs): the notes, instruments, tempo and loop; effects, automation and a song's own samples are not in one
+// MIDI files (midi-core.mjs): the notes, instruments, tempo and loop, the volume, pan and pitch-bend lanes and the song's own samples;
+// effects, EQ and the other lanes are not in one
 function exportMidi() {
-  const { bytes, warnings } = midiFromSong(st.song);
+  const { bytes, warnings } = midiFromSong(st.song, S);
   download(new Blob([bytes], { type: 'audio/midi' }), `${slug(st.song.title)}.mid`);
-  showSaved('MIDI file made'); if (warnings.length) alert(`The MIDI file is made. Left out of it:\n- ${warnings.join('\n- ')}`);
+  showSaved('MIDI file made'); if (warnings.length) alert(`The MIDI file is made. Notes on it:\n- ${warnings.join('\n- ')}`);
+}
+// a file with several instruments asks which to open (all ticked); resolves to their indices, or null for cancel
+function pickInstruments(candidates) {
+  const dlg = $('#midiPick'), list = $('#midiPickList');
+  $('#midiPickInfo').textContent = `${candidates.length} instruments in the file. Untick the ones you do not want in the song (a song holds up to 32 tracks).`;
+  list.innerHTML = candidates.map(c => `<label class="pickrow"><input type="checkbox" value="${c.index}" checked><b>${esc(c.name)}</b>
+    <span class="muted">${c.instrument === 'kit' ? 'drum kit' : esc(insName(c.instrument) || S.INSTRUMENTS.find(x => x.id === c.instrument)?.name || c.instrument)} · channel ${c.channel} · ${c.notes} notes</span></label>`).join('');
+  const boxes = () => [...list.querySelectorAll('input')];
+  $('#midiPickAll').onclick = () => boxes().forEach(b => { b.checked = true; });
+  $('#midiPickNone').onclick = () => boxes().forEach(b => { b.checked = false; });
+  return new Promise(res => {
+    dlg.onclose = () => res(dlg.returnValue === 'ok' ? boxes().filter(b => b.checked).map(b => +b.value) : null);
+    dlg.returnValue = ''; dlg.showModal();
+  });
 }
 async function importMidi(f) {
   let r;
-  try { r = songFromMidi(new Uint8Array(await f.arrayBuffer()), S, { name: f.name.replace(/\.midi?$/i, '') }); } catch (e) { alert(`That MIDI file cannot be opened: ${e.message}`); return; }
+  const bytes = new Uint8Array(await f.arrayBuffer()), opts = { name: f.name.replace(/\.midi?$/i, '') };
+  try {
+    r = songFromMidi(bytes, S, opts);
+    if (r.info.candidates.length > 1) {
+      const only = await pickInstruments(r.info.candidates);
+      if (!only) return;
+      if (!only.length) { alert('No instrument was ticked: nothing was opened.'); return; }
+      if (only.length < r.info.candidates.length) r = songFromMidi(bytes, S, { ...opts, only });
+    }
+  } catch (e) { alert(`That MIDI file cannot be opened: ${e.message}`); return; }
   if (!replaceOk()) return;
   load(r.song, undefined, true); showSaved(`MIDI file opened: ${r.info.tracks} tracks, ${r.info.notes} notes`);
   if (r.warnings.length) alert(`The MIDI file is open. Notes on it:\n- ${r.warnings.join('\n- ')}`);
@@ -798,28 +864,154 @@ async function makeSample(id, opts = {}) {
   const data = await resample(src, opts.rate ?? sm.rate, opts.secs ?? sm.secs ?? MAX_SECS);
   return { brr: S.toB64(S.brrEncode(data)), length: data.length };
 }
+// a sound (a file's, or a recording's) becomes a new sample, played by track i
+async function addSample(src, name, i) {
+  let id = slug(name).slice(0, 24) || 'sample'; for (let k = 2; st.song.samples[id]; k++) id = `${slug(name).slice(0, 20)}-${k}`;
+  sources.set(id, src);
+  const rate = 32000, data = await resample(src, rate, MAX_SECS), root = detectRoot(data, rate) ?? 60;
+  edit(() => {
+    st.song.samples[id] = { name, rate, root, loop: -1, brr: S.toB64(S.brrEncode(data)) };
+    const t = st.song.tracks[i]; t.instrument = `sample:${id}`; t.name = name;
+    t.sound.attack = t.sound.decay = t.sound.sustain = t.sound.fall = t.sound.release = t.sound.vibrato = null;
+  }, { rebuild: true });
+  st.sel = i; renderAll(); S.prepare(st.song);
+  showSaved(`sample "${name}": ${(data.length / rate).toFixed(2)} s, plays ${noteName(Math.round(root))}`);
+}
+// a new sound in place of a sample's (the same name, note and place in the song's tracks)
+async function replaceSample(id, src) {
+  const sm = st.song.samples[id]; sources.set(id, src);
+  const data = await resample(src, sm.rate, MAX_SECS), root = detectRoot(data, sm.rate) ?? sm.root;
+  edit(() => { sm.brr = S.toB64(S.brrEncode(data)); sm.root = root; sm.loop = -1; delete sm.loopEnd; delete sm.xfade; }, { rebuild: true }); S.prepare(st.song);
+}
 $('#sampleFile').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
   audio(); showSaved('loading the sample…');
-  try {
-    const src = await decodeFile(f), name = f.name.replace(/\.[a-z0-9]+$/i, '').slice(0, 40) || 'sample';
-    let id = slug(name).slice(0, 24) || 'sample'; for (let k = 2; st.song.samples[id]; k++) id = `${slug(name).slice(0, 20)}-${k}`;
-    sources.set(id, src);
-    const rate = 32000, data = await resample(src, rate, MAX_SECS), root = detectRoot(data, rate) ?? 60;
-    edit(() => {
-      st.song.samples[id] = { name, rate, root, loop: -1, brr: S.toB64(S.brrEncode(data)) };
-      const t = st.song.tracks[sampleFor]; t.instrument = `sample:${id}`; t.name = name;
-      t.sound.attack = t.sound.decay = t.sound.sustain = t.sound.fall = t.sound.release = t.sound.vibrato = null;
-    }, { rebuild: true });
-    st.sel = sampleFor; renderAll(); S.prepare(st.song);
-    showSaved(`sample "${name}": ${(data.length / rate).toFixed(2)} s, plays ${noteName(Math.round(root))}`);
-  } catch (err) { showSaved(`could not use that sound: ${err.message || err}`); }
+  try { await addSample(await decodeFile(f), f.name.replace(/\.[a-z0-9]+$/i, '').slice(0, 40) || 'sample', sampleFor); }
+  catch (err) { showSaved(`could not use that sound: ${err.message || err}`); }
 };
+
+// ---------- the microphone: a sound recorded here becomes a sample ----------
+// recFor: { track } makes a new sample for that track; { id } puts the recording in place of that sample's sound
+let recFor = null;
+function recordSample(i) { recFor = { track: i }; openRecorder(); }
+function openRecorder() {
+  const dlg = $('#recDlg'), go = $('#recGo'), info = $('#recInfo'), cv = $('#recMeter'), x = cv.getContext('2d'), idle = info.textContent;
+  let stream = null, rec = null, ac = null, an = null, raf = 0, timer = 0, chunks = [], t0 = 0, keep = false;
+  const stop = () => { cancelAnimationFrame(raf); clearTimeout(timer); if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; if (ac) ac.close(); ac = null; };
+  const meter = () => {
+    const buf = new Float32Array(an.fftSize); an.getFloatTimeDomainData(buf);
+    let s = 0; for (const v of buf) s += v * v;
+    const lvl = Math.min(1, Math.sqrt(s / buf.length) * 4), secs = (performance.now() - t0) / 1000;
+    x.fillStyle = '#05070c'; x.fillRect(0, 0, cv.width, cv.height);
+    x.fillStyle = lvl > .9 ? '#ff6048' : '#8ceb96'; x.fillRect(0, 8, lvl * cv.width, 14);
+    x.fillStyle = '#ffb340'; x.fillRect(0, 30, Math.min(1, secs / MAX_SECS) * cv.width, 4);
+    info.textContent = `recording… ${secs.toFixed(1)} s of ${MAX_SECS}: press STOP when you are done`;
+    raf = requestAnimationFrame(meter);
+  };
+  const reset = () => { go.textContent = '[ ● START ]'; go.disabled = false; info.textContent = idle; x.clearRect(0, 0, cv.width, cv.height); };
+  go.onclick = async () => {
+    if (rec && rec.state === 'recording') { keep = true; rec.stop(); return; }
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }); }
+    catch (err) { info.textContent = 'The microphone could not be used (it was not allowed, or there is none).'; return; }
+    ac = new AudioContext(); an = ac.createAnalyser(); ac.createMediaStreamSource(stream).connect(an);
+    chunks = []; rec = new MediaRecorder(stream);
+    rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    rec.onstop = async () => {
+      const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' }), job = recFor; stop(); dlg.close(); reset();
+      if (!keep || !job) return;
+      audio(); showSaved('making the sample from the recording…');
+      try {
+        const src = await decodeFile(blob);
+        if (job.id) await replaceSample(job.id, src);
+        else { const n = Object.values(st.song.samples).filter(s => /^Recording/.test(s.name)).length + 1; await addSample(src, `Recording ${n}`, job.track); }
+      } catch (err) { showSaved(`could not use the recording: ${err.message || err}`); }
+    };
+    rec.start(); t0 = performance.now(); go.textContent = '[ ■ STOP ]';
+    timer = setTimeout(() => { if (rec.state === 'recording') { keep = true; rec.stop(); } }, MAX_SECS * 1000);
+    meter();
+  };
+  dlg.onclose = () => { keep = false; if (rec && rec.state === 'recording') rec.stop(); stop(); reset(); };
+  reset(); dlg.showModal();
+}
+
+// ---------- samples and multisamples ----------
+// a sample taken out of the song: the multisamples that used it lose that zone, and the tracks that played it go back to the piano
+function dropSample(id) {
+  const s = st.song; delete s.samples[id];
+  for (const [mid, mu] of Object.entries(s.multis || {})) { mu.zones = mu.zones.filter(z => z.sample !== id); if (!mu.zones.length) delete s.multis[mid]; }
+  if (s.multis && !Object.keys(s.multis).length) delete s.multis;
+  for (const t of s.tracks) if ((t.instrument.startsWith('sample:') && !s.samples[t.instrument.slice(7)]) || (t.instrument.startsWith('multi:') && !(s.multis || {})[t.instrument.slice(6)])) t.instrument = 'piano';
+}
+function newMulti(i) {
+  const ids = Object.keys(st.song.samples);
+  if (!ids.length) { showSaved('load or record a sample first: a multisample is made of samples'); return; }
+  let id = 'multi'; for (let k = 2; st.song.multis?.[id]; k++) id = `multi-${k}`;
+  edit(() => {
+    (st.song.multis ??= {})[id] = { name: 'Multisample', zones: [{ sample: ids[0], lo: 0, hi: 127 }] };
+    const t = st.song.tracks[i]; t.instrument = `multi:${id}`; t.name = 'Multisample';
+    t.sound.attack = t.sound.decay = t.sound.sustain = t.sound.fall = t.sound.release = t.sound.vibrato = null;
+  }, { rebuild: true });
+  st.sel = i; renderAll(); S.prepare(st.song);
+}
+function multiSection(id) {
+  const mu = st.song.multis?.[id], sec = section('MULTISAMPLE');
+  if (!mu) return sec;
+  const samples = Object.entries(st.song.samples), used = st.song.tracks.filter(t => t.instrument === `multi:${id}`).length;
+  const info = document.createElement('p'); info.className = 'meta';
+  info.textContent = 'Each zone plays one sample over the notes from its low note to its high note (the nearest zone plays a note no zone holds). The sample sounds at its own note and is pitched from it.';
+  const name = document.createElement('label'); name.className = 'ctl';
+  name.innerHTML = `<span>Name</span><input value="${esc(mu.name)}" maxlength="40">`;
+  name.querySelector('input').onchange = e => edit(() => { mu.name = e.target.value || id; }, { rebuild: true });
+  const rows = document.createElement('div'); rows.className = 'zones';
+  mu.zones.forEach((z, k) => {
+    const row = document.createElement('div'); row.className = 'zrow';
+    row.innerHTML = `<select aria-label="Sample">${samples.map(([sid, sm]) => `<option value="${esc(sid)}">${esc(sm.name)}</option>`).join('')}</select>
+      <input type="number" min="0" max="127" value="${z.lo}" aria-label="Lowest note" title="Lowest note (MIDI number)"><b>–</b><input type="number" min="0" max="127" value="${z.hi}" aria-label="Highest note" title="Highest note (MIDI number)">
+      <output>${noteName(z.lo)}–${noteName(z.hi)}</output><button class="btn small" data-a="hear" title="Hear this zone">▶</button><button class="btn small" data-a="del" title="Remove this zone"${mu.zones.length < 2 ? ' disabled' : ''}>×</button>`;
+    const [sel, lo, hi] = row.querySelectorAll('select, input');
+    sel.value = z.sample;
+    sel.onchange = () => { edit(() => { z.sample = sel.value; }, { rebuild: true }); S.prepare(st.song); };
+    lo.onchange = () => { edit(() => { z.lo = Math.max(0, Math.min(127, Math.round(+lo.value) || 0)); if (z.hi < z.lo) z.hi = z.lo; }, { rebuild: true }); S.prepare(st.song); };
+    hi.onchange = () => { edit(() => { z.hi = Math.max(0, Math.min(127, Math.round(+hi.value) || 0)); if (z.lo > z.hi) z.lo = z.hi; }, { rebuild: true }); S.prepare(st.song); };
+    row.querySelector('[data-a="hear"]').onclick = () => { audio(); const v = S.noteOn(st.sel, Math.round((z.lo + z.hi) / 2), 110); setTimeout(() => S.noteOff(v), 700); };
+    row.querySelector('[data-a="del"]').onclick = () => { if (mu.zones.length > 1) { edit(() => { mu.zones.splice(k, 1); }, { rebuild: true }); S.prepare(st.song); } };
+    rows.append(row);
+  });
+  const row = document.createElement('div'); row.className = 'srow';
+  row.innerHTML = `<button class="btn small" data-a="add" title="Another sample, over the notes above the last zone">[ + ZONE ]</button>
+    <button class="btn small" data-a="roots" title="Divide the notes between the zones halfway between the samples' own notes">[ FROM THEIR NOTES ]</button>
+    <button class="btn small" data-a="remove">[ REMOVE ]</button>`;
+  row.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
+    const a = b.dataset.a;
+    if (a === 'add' && mu.zones.length < 16) {
+      const top = Math.max(...mu.zones.map(z => z.hi)), next = samples.find(([sid]) => !mu.zones.some(z => z.sample === sid)) || samples[0];
+      edit(() => { mu.zones.push({ sample: next[0], lo: Math.min(127, top + 1), hi: 127 }); }, { rebuild: true }); S.prepare(st.song);
+    }
+    if (a === 'roots') {
+      const order = mu.zones.map((z, k) => [st.song.samples[z.sample].root, k]).sort((p, q) => p[0] - q[0]);
+      edit(() => { order.forEach(([root, k], i) => { const z = mu.zones[k]; z.lo = i ? Math.round((order[i - 1][0] + root) / 2) + 1 : 0; z.hi = i < order.length - 1 ? Math.round((root + order[i + 1][0]) / 2) : 127; if (z.hi < z.lo) z.hi = z.lo; }); }, { rebuild: true }); S.prepare(st.song);
+    }
+    if (a === 'remove') {
+      if (!confirm(`Remove the multisample "${mu.name}"?${used ? ` The ${used} track(s) playing it go back to the piano.` : ''} (Its samples stay in the song.)`)) return;
+      edit(() => { delete st.song.multis[id]; if (!Object.keys(st.song.multis).length) delete st.song.multis; for (const t of st.song.tracks) if (t.instrument === `multi:${id}`) t.instrument = 'piano'; }, { rebuild: true });
+    }
+  });
+  sec.append(info, name, rows, row);
+  return sec;
+}
 const sampleSecs = sm => Math.floor(sm.brr.length * 3 / 4 / 9) * 16 / sm.rate;
 function drawWave(cv, sm) {
-  const x = cv.getContext('2d'), W = cv.width, H = cv.height, d = S.brrDecode(S.fromB64(sm.brr)), n = d.length;
+  const x = cv.getContext('2d'), W = cv.width, H = cv.height, d = S.brrDecode(S.fromB64(sm.brr)), n = d.length, X = i => i / n * W;
   x.fillStyle = '#05070c'; x.fillRect(0, 0, W, H);
-  if (sm.loop >= 0) { x.fillStyle = 'rgba(255,179,64,.18)'; x.fillRect(sm.loop / n * W, 0, W, H); x.fillStyle = '#ffb340'; x.fillRect(sm.loop / n * W, 0, 2, H); }
+  if (sm.loop >= 0) {
+    const le = sm.loopEnd || n;
+    x.fillStyle = 'rgba(255,179,64,.18)'; x.fillRect(X(sm.loop), 0, X(le) - X(sm.loop), H);
+    if (sm.xfade) {   // the crossfade: the end of the loop takes on the sound that came before its start
+      x.fillStyle = 'rgba(199,155,255,.30)'; x.fillRect(X(le - sm.xfade), 0, X(sm.xfade), H); x.fillRect(X(sm.loop - sm.xfade), 0, X(sm.xfade), H);
+    }
+    x.fillStyle = '#ffb340'; x.fillRect(X(sm.loop), 0, 2, H); x.fillRect(X(le) - 2, 0, 2, H);
+    if (le < n) { x.fillStyle = 'rgba(0,0,0,.55)'; x.fillRect(X(le), 0, W - X(le), H); }   // never played while the note holds
+  }
   x.fillStyle = '#78dcff';
   for (let c = 0; c < W; c++) {
     let lo = 1, hi = -1; for (let i = Math.floor(c / W * n); i < Math.floor((c + 1) / W * n); i++) { lo = Math.min(lo, d[i]); hi = Math.max(hi, d[i]); }
@@ -829,17 +1021,27 @@ function drawWave(cv, sm) {
 function sampleSection(id) {
   const sm = st.song.samples[id], sec = section('SAMPLE');
   if (!sm) return sec;
-  const used = st.song.tracks.filter(t => t.instrument === `sample:${id}`).length;
-  const kb = Math.round(sm.brr.length / 1024), total = Math.round(Object.values(st.song.samples).reduce((n, x) => n + x.brr.length, 0) / 1024);
+  const direct = st.song.tracks.filter(t => t.instrument === `sample:${id}`).length, viaMulti = Object.values(st.song.multis || {}).filter(mu => mu.zones.some(z => z.sample === id)).length, used = direct;
+  const n = S.sampleLen(sm), kb = Math.round(sm.brr.length / 1024), total = Math.round(Object.values(st.song.samples).reduce((a, x) => a + x.brr.length, 0) / 1024);
   const cv = document.createElement('canvas'); cv.className = 'wave'; cv.width = 520; cv.height = 90;
-  cv.title = 'The sample as the console stores it. With LOOP on, click where the loop should start: the note holds by repeating from there to the end.';
+  cv.title = 'The sample as the console stores it. With LOOP on, click where the loop should start, shift-click where it should end: the note holds by repeating that part.';
   const info = document.createElement('p'); info.className = 'meta';
-  info.textContent = `${sampleSecs(sm).toFixed(2)} s at ${sm.rate / 1000} kHz · ${kb} KB (all samples ${total} KB) · ${used} track${used === 1 ? '' : 's'}`;
-  const remake = async (opts, apply) => { showSaved('making the sample…'); const r = await makeSample(id, opts); edit(() => { apply(); sm.brr = r.brr; if (sm.loop >= r.length) sm.loop = -1; }, { rebuild: true }); S.prepare(st.song); showSaved(); };
+  info.textContent = `${sampleSecs(sm).toFixed(2)} s at ${sm.rate / 1000} kHz · ${kb} KB (all samples ${total} KB) · ${direct} track${direct === 1 ? '' : 's'}${viaMulti ? `, ${viaMulti} multisample${viaMulti === 1 ? '' : 's'}` : ''}`;
+  // grit and length re-make the sample from the sound as loaded (or, after a reload, from what is kept); the loop follows the sound along
+  const remake = async (opts, apply) => {
+    showSaved('making the sample…'); const r = await makeSample(id, opts);
+    edit(() => { apply(); sm.brr = r.brr; if (sm.loop >= r.length) { sm.loop = -1; delete sm.loopEnd; delete sm.xfade; } else if (sm.loopEnd && sm.loopEnd >= r.length - 15) delete sm.loopEnd; }, { rebuild: true });
+    S.prepare(st.song); showSaved();
+  };
+  // where the loop may end (a block, at least a block past its start), and how long a crossfade it can hold
+  const blockOf = at => Math.floor(at / 16) * 16;
+  const setEnd = at => { const e = blockOf(at); if (e >= n - 15) delete sm.loopEnd; else sm.loopEnd = Math.max(sm.loop + 16, e); if (sm.xfade) sm.xfade = Math.min(sm.xfade, sm.loop, ((sm.loopEnd || n) - sm.loop) >> 1); if (!sm.xfade) delete sm.xfade; };
   cv.onpointerdown = e => {
     if (sm.loop < 0) return;
-    const r = cv.getBoundingClientRect(), n = Math.floor(sm.brr.length * 3 / 4 / 9) * 16, at = Math.floor((e.clientX - r.left) / r.width * n / 16) * 16;
-    edit(() => { sm.loop = Math.max(0, Math.min(n - 16, at)); }, { rebuild: true }); S.prepare(st.song);
+    const r = cv.getBoundingClientRect(), at = (e.clientX - r.left) / r.width * n;
+    if (e.shiftKey) edit(() => setEnd(at), { rebuild: true });
+    else edit(() => { sm.loop = Math.max(0, Math.min((sm.loopEnd || n) - 32, blockOf(at))); if (sm.xfade) sm.xfade = Math.min(sm.xfade, sm.loop, ((sm.loopEnd || n) - sm.loop) >> 1); if (!sm.xfade) delete sm.xfade; }, { rebuild: true });
+    S.prepare(st.song);
   };
   const name = document.createElement('label'); name.className = 'ctl';
   name.innerHTML = `<span>Name</span><input value="${esc(sm.name)}" maxlength="40">`;
@@ -849,28 +1051,40 @@ function sampleSection(id) {
   root.querySelector('input').onchange = e => { edit(() => { sm.root = Math.max(0, Math.min(127, +e.target.value || 60)); }, { rebuild: true }); S.prepare(st.song); };
   const row = document.createElement('div'); row.className = 'srow';
   row.innerHTML = `<button class="btn small" data-a="detect" title="Listen for the note it plays">[ DETECT ]</button>
-    <button class="btn small${sm.loop >= 0 ? ' on' : ''}" data-a="loop" title="Loop: a held note repeats the end part (strings, organs); off: it plays once (drums, plucks)">[ LOOP ]</button>
+    <button class="btn small${sm.loop >= 0 ? ' on' : ''}" data-a="loop" title="Loop: a held note repeats the part between the loop's start and end (strings, organs); off: it plays once (drums, plucks)">[ LOOP ]</button>
     <button class="btn small" data-a="hear" title="Hear it at its own note">[ ▶ ]</button>
-    <button class="btn small" data-a="replace">[ REPLACE… ]</button><button class="btn small" data-a="remove">[ REMOVE ]</button>`;
+    <button class="btn small" data-a="replace">[ REPLACE… ]</button><button class="btn small" data-a="rerecord" title="Record a new sound with the microphone in its place">[ ● RECORD ]</button><button class="btn small" data-a="remove">[ REMOVE ]</button>`;
   row.querySelectorAll('[data-a]').forEach(b => b.onclick = async () => {
     const a = b.dataset.a;
     if (a === 'detect') { const r = detectRoot(S.brrDecode(S.fromB64(sm.brr)), sm.rate); if (r === null) return showSaved('no clear note in it'); edit(() => { sm.root = r; }, { rebuild: true }); S.prepare(st.song); showSaved(`it plays ${noteName(Math.round(r))} (${r.toFixed(2)})`); }
-    if (a === 'loop') { const n = Math.floor(sm.brr.length * 3 / 4 / 9) * 16; edit(() => { sm.loop = sm.loop >= 0 ? -1 : Math.floor(n / 2 / 16) * 16; }, { rebuild: true }); S.prepare(st.song); }
+    if (a === 'loop') { edit(() => { if (sm.loop >= 0) { sm.loop = -1; delete sm.loopEnd; delete sm.xfade; } else sm.loop = blockOf(n / 2); }, { rebuild: true }); S.prepare(st.song); }
     if (a === 'hear') { audio(); const v = S.noteOn(st.sel, Math.round(sm.root), 110); setTimeout(() => S.noteOff(v), 900); }
     if (a === 'replace') { sources.delete(id); replaceId = id; $('#replaceFile').click(); }
+    if (a === 'rerecord') { sources.delete(id); recFor = { id }; openRecorder(); }
     if (a === 'remove') {
-      if (!confirm(`Remove the sample "${sm.name}" from this song?${used ? ` The ${used} track(s) playing it go back to the piano.` : ''}`)) return;
-      edit(() => { delete st.song.samples[id]; for (const t of st.song.tracks) if (t.instrument === `sample:${id}`) t.instrument = 'piano'; }, { rebuild: true });
+      const inMulti = viaMulti ? ` It is a zone of ${viaMulti} multisample(s), which lose it.` : '';
+      if (!confirm(`Remove the sample "${sm.name}" from this song?${used ? ` The ${used} track(s) playing it go back to the piano.` : ''}${inMulti}`)) return;
+      edit(() => dropSample(id), { rebuild: true });
     }
   });
-  sec.append(cv, info, name, root, row,
-    pick('Grit', S.RATES.map(r => [r, `${r / 1000} kHz${r === 32000 ? ' (SNES)' : ''}`]), () => sm.rate, v => {}),
-    ctl('Length', () => sm.secs ?? Math.min(sampleSecs(sm), MAX_SECS), v => { sm.secs = v; }, { min: .05, max: MAX_SECS, step: .05, fmt: v => `${v.toFixed(2)} s`, title: 'Shorter keeps the song small; the rest is cut off' }));
-  // grit and length re-make the sample from the sound as loaded (or, after a reload, from what is kept)
-  const gritSel = sec.querySelector('select');
-  gritSel.onchange = () => remake({ rate: +gritSel.value }, () => { sm.rate = +gritSel.value; });
-  const len = sec.querySelector('.ctl:last-child input');
-  len.onchange = () => { const secs = sm.secs; delete sm.secs; st.pending = null; remake({ secs }, () => {}); };
+  const grit = pick('Grit', S.RATES.map(r => [r, `${r / 1000} kHz${r === 32000 ? ' (SNES)' : ''}`]), () => sm.rate, v => {});
+  const length = ctl('Length', () => sm.secs ?? Math.min(sampleSecs(sm), MAX_SECS), v => { sm.secs = v; }, { min: .05, max: MAX_SECS, step: .05, fmt: v => `${v.toFixed(2)} s`, title: 'Shorter keeps the song small; the rest is cut off' });
+  grit.querySelector('select').onchange = e => {
+    const to = +e.target.value, f = to / sm.rate;
+    remake({ rate: to }, () => { if (sm.loop >= 0) sm.loop = blockOf(sm.loop * f); if (sm.loopEnd) sm.loopEnd = blockOf(sm.loopEnd * f); if (sm.xfade) sm.xfade = Math.max(1, Math.round(sm.xfade * f)); sm.rate = to; });
+  };
+  length.querySelector('input').onchange = () => { const secs = sm.secs; delete sm.secs; st.pending = null; remake({ secs }, () => {}); };
+  sec.append(cv, info, name, root, row);
+  if (sm.loop >= 0) {   // a loop of its own end, and a crossfade at its seam (a studio extra: the sound under the seam is blended)
+    const le = () => sm.loopEnd || n;
+    const loopEnd = ctl('Loop end', () => le() / sm.rate, v => setEnd(v * sm.rate), { min: Math.min(sampleSecs(sm), (sm.loop + 16) / sm.rate), max: sampleSecs(sm), step: .01, fmt: v => `${v.toFixed(2)} s`, title: 'Where the loop ends and goes back to its start; what is after it is never played while the note is held (or click the sound with Shift)' });
+    const maxX = Math.max(0, Math.min(sm.loop, (le() - sm.loop) >> 1));
+    const xfade = ctl('Crossfade', () => (sm.xfade || 0) / sm.rate * 1000, v => { const x = Math.round(v * sm.rate / 1000); if (x >= 1) sm.xfade = Math.min(x, maxX); else delete sm.xfade; },
+      { min: 0, max: Math.max(1, Math.floor(maxX / sm.rate * 1000)), step: 1, fmt: v => v ? `${Math.round(v)} ms` : 'off', title: 'Blends the end of the loop with the sound before its start, so a held note has no click or jump where it goes round' });
+    for (const c of [loopEnd, xfade]) { c.querySelector('input').addEventListener('change', () => { S.prepare(st.song); drawWave(cv, sm); }); c.querySelector('input').addEventListener('input', () => drawWave(cv, sm)); }
+    sec.append(loopEnd, xfade);
+  }
+  sec.append(grit, length);
   requestAnimationFrame(() => drawWave(cv, sm));
   return sec;
 }
@@ -878,11 +1092,7 @@ let replaceId = null;
 const rf = document.createElement('input'); rf.type = 'file'; rf.accept = 'audio/*'; rf.id = 'replaceFile'; rf.hidden = true; document.body.append(rf);
 rf.onchange = async () => {
   const f = rf.files[0], id = replaceId; rf.value = ''; if (!f || !id) return;
-  try {
-    const src = await decodeFile(f), sm = st.song.samples[id]; sources.set(id, src);
-    const data = await resample(src, sm.rate, MAX_SECS), root = detectRoot(data, sm.rate) ?? sm.root;
-    edit(() => { sm.brr = S.toB64(S.brrEncode(data)); sm.root = root; sm.loop = -1; }, { rebuild: true }); S.prepare(st.song);
-  } catch (err) { showSaved(`could not use that sound: ${err.message || err}`); }
+  try { await replaceSample(id, await decodeFile(f)); } catch (err) { showSaved(`could not use that sound: ${err.message || err}`); }
 };
 
 // ---------- WHERE IT PLAYS: the places in the game, its levels to look at, and a live preview with the song inside ----------
@@ -983,7 +1193,7 @@ $('#clickBtn').onclick = () => { st.click = !st.click; S.metronome = st.click; s
 $('#countBtn').onclick = () => { st.countIn = !st.countIn; syncTransport(); };
 $('#quantBtn').onclick = () => { st.quant = !st.quant; syncTransport(); };
 $('#keysBtn').onclick = () => { audio(); st.keys = !st.keys; syncTransport(); $('#keysBtn').textContent = st.keys ? `KEYS C${st.octave}` : 'KEYS'; };
-$('#lane').onchange = e => { st.lane = e.target.value; drawRoll(); R.cv.focus({ preventScroll: true }); };
+$('#lane').onchange = e => { st.lane = e.target.value; showHint(); drawRoll(); R.cv.focus({ preventScroll: true }); };
 $('#grid').onchange = e => { st.grid = +e.target.value; st.len = Math.max(st.grid, st.len); drawRoll(); };
 $('#playBtn').onclick = play; $('#recBtn').onclick = record; $('#stopBtn').onclick = () => { if (S.playing) stopAll(); else { st.start = 0; showPos(); drawRoll(); drawArr(); } };
 $('#midiBtn').onclick = connectMidi;

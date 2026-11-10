@@ -311,3 +311,15 @@ way.
   (`frame.evaluate('Sampler...')` in Playwright, `postMessage` from the studio), never `iframe.contentWindow.Sampler`.
 - **Encoder and decoder must do the same arithmetic.** The BRR encoder tracks the decoder's own predictions (the decoded
   samples, not the input), so decoding its bytes gives exactly what it judged by; a test pins `brrDecode(brrEncode(x))`.
+- **A new field of a song stays optional.** The games ship songs that `tools/song.mjs` wrote with the engine's `check` of the day, and
+  the unit test fails when regenerating one differs. A lane, a sample setting or a multisample that did not exist then is left out of
+  `check`'s result until it has something in it (`auto.echo` only exists with points), and the engine reads it with `laneOf(tr, 'echo')`,
+  which is an empty list for a song made before. An empty array a lane left behind in the studio (the last point deleted) is the same as none.
+- **A tempo ramp is an integral.** Seconds along a glide from b0 to b1 BPM over t ticks are `60/PPQ · t/(b1−b0) · ln(b1/b0)`, not the
+  average of the two tempos; `tickAt` inverts it with an exponential. Both are tested round trip at ticks in the middle of a ramp.
+- **A MIDI controller is a step, our lanes are lines.** Reading CC events into a lane: events closer than a beat are a sweep (joined by a
+  line), a longer gap is a jump (hold the old value until a tick before); writing one: an event every 1/16 note, so what is read back is a
+  sweep and not a jump. A tempo ramp the same way, and an even run of tempo events is read as one ramp.
+- **A Windows checkout with `core.autocrlf` cannot build.** `checkSyntax` looks for `<script>\n` and the page template then has `\r\n`:
+  the build says "Unexpected identifier 'html'". Build in a clone with `-c core.autocrlf=false` (the unit tests that compare generated files fail
+  the same way in the checkout itself; CI, on Linux, is not affected).

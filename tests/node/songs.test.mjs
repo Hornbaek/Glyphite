@@ -147,3 +147,66 @@ test('Sampler: tempo changes map ticks to seconds and back; lanes interpolate; c
   const L = [[96, 0], [192, 1]];
   assert.deepEqual([Sampler.laneAt(L, 0), Sampler.laneAt(L, 144), Sampler.laneAt(L, 500), Sampler.laneAt([], 5)], [0, .5, 1, null]);
 });
+
+// ---- loops of their own end, crossfades, multisamples, curves, tempo ramps, more lanes ----
+const near = (a, b, eps, label) => assert.ok(Math.abs(a - b) <= eps, `${label}: ${a} vs ${b}`);
+
+test('Sampler: a tempo ramp glides linearly in ticks; seconds are its integral, ticks its inverse, and the tempo in between is the line', () => {
+  const s = Sampler.check({ format: 'pixelite-song', bpm: 120, tempo: [[384, 60, 1], [768, 180, 1], [1000, 100], [1500, 50, 0]] });
+  assert.deepEqual(s.tempo, [[384, 60, 1], [768, 180, 1], [1000, 100], [1500, 50]], 'only a ramp keeps its flag');
+  near(Sampler.secAt(s, 384), 384 * 60 / 96 / 60 * Math.log(2) * 1, 1e-9, 'a glide from 120 to 60 over 4 beats'); near(Sampler.secAt(s, 384), 2.772588722, 1e-6, 'ln 2 · 4 beats');
+  near(Sampler.bpmAt(s, 192), 90, 1e-9, 'halfway along the ramp'); assert.equal(Sampler.bpmAt(s, 384), 60); near(Sampler.bpmAt(s, 576), 120, 1e-9, 'the second ramp, halfway'); assert.equal(Sampler.bpmAt(s, 1200), 100);
+  for (const k of [-96, 0, 100, 384, 600, 768, 900, 1000, 1400, 2000]) near(Sampler.tickAt(s, Sampler.secAt(s, k)), k, 1e-6, `round trip at ${k}`);
+  // faster at the end of a ramp up: the second half of an accelerando takes less time than the first
+  const up = Sampler.check({ format: 'pixelite-song', bpm: 60, tempo: [[384, 180, 1]] });
+  assert.ok(Sampler.secAt(up, 192) > Sampler.secAt(up, 384) - Sampler.secAt(up, 192));
+  assert.equal(Sampler.check({ format: 'pixelite-song', bpm: 120, tempo: [[96, 90, 1]] }).tempo[0][2], 1);
+});
+
+test('Sampler: a lane\'s curve bends the segment that arrives at its point; the engine ramps through it in 1/8-beat pieces', () => {
+  const s = Sampler.check({ format: 'pixelite-song', tracks: [{ auto: { volume: [[0, 0], [96, 1, .5], [192, 0, -1], [288, 1, 7], [300, 1, 0]] } }] });
+  assert.deepEqual(s.tracks[0].auto.volume, [[0, 0], [96, 1, .5], [192, 0, -1], [288, 1, 1], [300, 1]], 'bend clamped to ±1, zero not kept');
+  const v = s.tracks[0].auto.volume;
+  near(Sampler.laneAt(v, 48), Math.pow(.5, 2.5), 1e-9, 'a positive bend waits, then rushes'); near(Sampler.laneAt(v, 144), Math.pow(.5, 4), 1e-9, 'a negative bend rushes, then settles');
+  const got = []; Sampler.laneRamp(v, 0, 96, (at, val) => got.push([at, val]));
+  assert.deepEqual(got.map(g => g[0]), [12, 24, 36, 48, 60, 72, 84], 'a curved segment is cut every 1/8 beat (a window is open at both ends: the point at 96 belongs to the next one)');
+  near(got[3][1], Sampler.laneAt(v, 48), 1e-12, 'on the curve');
+  const mid = []; Sampler.laneRamp(v, 50, 130, (at, val) => mid.push(at)); assert.deepEqual(mid, [60, 72, 84, 96, 108, 120], 'only what is in the window, and starting on the 12-tick steps');
+  const straight = []; Sampler.laneRamp([[0, 0], [96, 1]], -1, 200, (at) => straight.push(at)); assert.deepEqual(straight, [0, 96], 'a straight line needs only its points');
+});
+
+test('Sampler.check: the echo, reverb, pitch and loop lanes and the echo\'s own lanes exist only when they have points, so older songs read the same', () => {
+  const old = Sampler.check({ format: 'pixelite-song', tracks: [{ auto: { volume: [[0, 1]], echo: [], reverb: 'no', pitch: [['x', 1]], loop: [] } }], auto: { echo: [], feedback: [] } });
+  assert.deepEqual(old.tracks[0].auto, { volume: [[0, 1]], pan: [], filter: [] }); assert.equal(old.auto, undefined); assert.equal(old.multis, undefined);
+  const s = Sampler.check({ format: 'pixelite-song', auto: { echo: [[0, 2], [96, .1, .5]], feedback: [[0, -5]] }, tracks: [{ auto: { echo: [[0, 1]], reverb: [[0, -1]], pitch: [[0, 40], [96, -40]], loop: [[0, 3]] } }] });
+  assert.deepEqual(s.tracks[0].auto, { volume: [], pan: [], filter: [], echo: [[0, 1]], reverb: [[0, 0]], pitch: [[0, 12], [96, -12]], loop: [[0, 1]] }, 'values clamped to each lane\'s range');
+  assert.deepEqual(s.auto, { echo: [[0, 1], [96, .1, .5]], feedback: [[0, -.95]] }); assert.deepEqual(Sampler.check(s), s, 'checking twice changes nothing');
+});
+
+test('Sampler.check: a sample\'s own loop end and crossfade are kept when they make sense; multisamples are zones over the song\'s samples', () => {
+  const brr = Sampler.toB64(Sampler.brrEncode(new Float32Array(640).fill(.1))), mk = sm => Sampler.check({ format: 'pixelite-song', samples: { a: { brr, ...sm } } }).samples.a;
+  assert.deepEqual([mk({ loop: 160, loopEnd: 500 }).loopEnd, mk({ loop: 160, loopEnd: 500 }).xfade], [496, undefined], 'on a block');
+  for (const bad of [{ loop: 160, loopEnd: 170 }, { loop: 160, loopEnd: 640 }, { loop: 160, loopEnd: 9999 }, { loop: -1, loopEnd: 400 }, { loop: 160, loopEnd: 'x' }]) assert.equal(mk(bad).loopEnd, undefined, JSON.stringify(bad));
+  assert.equal(mk({ loop: 160, xfade: 99999 }).xfade, 160, 'no longer than what is before the loop'); assert.equal(mk({ loop: 160, loopEnd: 208, xfade: 99999 }).xfade, 24, 'nor half the loop');
+  assert.equal(mk({ loop: -1, xfade: 20 }).xfade, undefined, 'a crossfade needs a loop'); assert.equal(mk({ loop: 160, xfade: .4 }).xfade, undefined);
+  const s = Sampler.check({ format: 'pixelite-song', samples: { a: { brr }, b: { brr, root: 72 } },
+    multis: { m: { name: 'Two', zones: [{ sample: 'a', lo: 60, hi: 0 }, { sample: 'b', lo: 61, hi: 500 }, { sample: 'gone', lo: 0, hi: 9 }, { lo: 1 }] }, empty: { zones: [{ sample: 'gone', lo: 0, hi: 9 }] }, 'Bad id': { zones: [{ sample: 'a', lo: 0, hi: 9 }] } },
+    tracks: [{ instrument: 'multi:m' }, { instrument: 'multi:empty' }, { instrument: 'multi:nope' }] });
+  assert.deepEqual(s.multis, { m: { name: 'Two', zones: [{ sample: 'a', lo: 0, hi: 60 }, { sample: 'b', lo: 61, hi: 127 }] } }, 'ranges put in order and clamped; zones of missing samples dropped; a multisample with none is gone');
+  assert.deepEqual(s.tracks.map(t => t.instrument), ['multi:m', 'piano', 'piano']); assert.deepEqual(Sampler.check(s), s);
+});
+
+test('Sampler: a crossfade makes the end of a loop flow into its start, and a loop end makes the sound after it unreachable', () => {
+  const x = Float32Array.from({ length: 640 }, (_, i) => Math.sin(i / 9) * .6), bytes = Sampler.brrEncode(x);
+  const jump = d => Math.abs(d[639] - d[160]), plain = Sampler.brrDecode(bytes, 160), faded = Sampler.brrDecode(bytes, 160, 0, 80);
+  assert.ok(jump(plain) > .3 && jump(faded) < .05, `the seam jumps ${jump(plain).toFixed(3)} without a crossfade, ${jump(faded).toFixed(3)} with one`);
+  const short = Sampler.brrDecode(bytes, 160, 480, 60);
+  assert.ok(Math.abs(short[479] - short[160]) < .05, 'the loop ends at 480 now, and flows round from there');
+  assert.deepEqual(Array.from(Sampler.brrDecode(bytes, -1, 480, 60)), Array.from(Sampler.brrDecode(bytes)), 'no loop: neither a loop end nor a crossfade does anything');
+  assert.deepEqual(Array.from(Sampler.brrDecode(bytes, 160, 9999, 0)), Array.from(plain), 'a loop end past the sound is no loop end');
+  // outside the faded stretch the sound is untouched
+  for (let i = 0; i < 560; i += 37) assert.equal(faded[i], plain[i]);
+  assert.deepEqual([Sampler.loopStep(0), Sampler.loopStep(.5), Sampler.loopStep(1), Sampler.loopStep(7)], [0, 8, 15, 15], 'a loop lane picks one of 16 starts');
+  const sm = { brr: Sampler.toB64(bytes), loop: 160, loopEnd: 480 };
+  assert.deepEqual([0, 7, 15].map(s => Sampler.loopAtStep(sm, s)), [0, 208, 448], 'on blocks, never nearer than two blocks to the loop end');
+});

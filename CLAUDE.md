@@ -114,7 +114,7 @@ title, game = the project, data = the song as JSON, updated_at, updated_by). A s
   plays where; add it to game.json's parts), and make the game play `SONG_AT`'s songs at their places after `Sampler.prepare` at
   load (`engine/API.md`, Sampler; Space Mouse's `stationMusic()`). Do what the place's note asks. The repository's copy is what the
   game plays; a later save in the studio changes nothing until a session brings it over again.
-- **MIDI files**: the studio's [ MORE ] menu opens a .mid as a new song and exports the song as one; `node tools/midi.mjs import <file.mid>`
+- **MIDI files**: the studio's [ MORE ] menu opens a .mid as a new song (you choose which instruments) and exports the song as one; `node tools/midi.mjs list|import <file.mid>`
   / `export <file.song.json>` do the same from a session (notes, instruments, tempo, loop; not effects, automation or samples).
 - A session may also write a song itself: use the **`pixelite-song`** skill (it plans the song, writes it as code, checks its levels
   by rendering it, and ships it; the format is `Sampler.check`'s, see `games/spacemouse/music/cargo-bay.song.json`)

@@ -5,6 +5,9 @@
 // Around that sits a small studio: per track a 3-band EQ, a filter, chorus, pan, volume and sends; on the master the
 // SNES echo (a delay fed back through its 8-tap FIR filter), a reverb, EQ and a compressor. song.snes (the "SNES limits"
 // switch) keeps only what the console could do: 8 voices, echo, no EQ, filter, chorus, reverb or compressor.
+// A song's own samples can loop between a start and an end of their own, with a crossfade at the seam, and several play as one
+// multisample; lanes automate a track's volume, pan, filter, sends, pitch and loop point, and the song's tempo (in steps or
+// ramps) and echo; segments of a lane can be curved.
 // Songs are plain data (Sampler.check describes them), made in the SOUND STUDIO (/studio/), which runs this same file.
 // Self-contained on purpose (nothing from the other engine parts), so the studio page can load it on its own.
 const Sampler = (() => {
@@ -46,9 +49,10 @@ const Sampler = (() => {
     }
     return bytes;
   }
-  // BRR bytes → samples, read through the DSP's 4-point Gaussian kernel: a gentle low-pass (round the loop, from loopAt on,
-  // for a sample that loops)
-  function brrDecode(bytes, loopAt = -1) {
+  // BRR bytes → samples, read through the DSP's 4-point Gaussian kernel: a gentle low-pass (round the loop, from loopAt on, to
+  // loopEnd (0: the end), for a sample that loops). xfade samples before loopEnd are first blended with the samples before
+  // loopAt, so the loop's end flows into its start (a crossfaded loop: the sound under the seam is the same on both sides)
+  function brrDecode(bytes, loopAt = -1, loopEnd = 0, xfade = 0) {
     const nb = Math.floor(bytes.length / 9), n = nb * 16, out = new Float32Array(n);
     let p1 = 0, p2 = 0;
     for (let bi = 0; bi < nb; bi++) {
@@ -59,7 +63,13 @@ const Sampler = (() => {
         out[bi * 16 + k] = sv / 32768; p2 = p1; p1 = sv;
       }
     }
-    const g = new Float32Array(n), at = i => i < 0 ? out[0] : i < n ? out[i] : loopAt >= 0 ? out[loopAt + (i - n) % (n - loopAt)] : out[n - 1];
+    const le = loopAt >= 0 && loopEnd > loopAt + 15 && loopEnd < n ? loopEnd : n;
+    const x = loopAt >= 0 ? Math.min(Math.round(xfade) | 0, loopAt, (le - loopAt) >> 1) : 0;
+    for (let i = 0; i < x; i++) {   // equal-power blend: the tail of the loop turns into the sound that came before its start
+      const w = (i + 1) / (x + 1), a = Math.cos(w * Math.PI / 2), b = Math.sin(w * Math.PI / 2);
+      out[le - x + i] = out[le - x + i] * a + out[loopAt - x + i] * b;
+    }
+    const g = new Float32Array(n), at = i => i < 0 ? out[0] : i < le ? out[i] : loopAt >= 0 ? out[loopAt + (i - le) % (le - loopAt)] : out[n - 1];
     for (let i = 0; i < n; i++) g[i] = .16 * at(i - 1) + .68 * out[i] + .16 * at(i + 1);
     return g;
   }
@@ -183,19 +193,46 @@ const Sampler = (() => {
   const made = new Map();
   // a song's own sample (song.samples[id]): what it is, so a changed sample makes a new instrument
   const sampleOf = (id, song) => id.startsWith('sample:') && song && song.samples ? song.samples[id.slice(7)] : null;
+  // several samples as one instrument (song.multis[id]): each plays over its own range of notes
+  const multiOf = (id, song) => id.startsWith('multi:') && song && song.multis ? song.multis[id.slice(6)] : null;
   const hashStr = s => { let h = 5381; for (let i = 0; i < s.length; i += 7) h = (Math.imul(h, 33) ^ s.charCodeAt(i)) >>> 0; return h.toString(36) + s.length; };
-  const keyOf = (id, rate, song) => { const sm = sampleOf(id, song); return sm ? `${id}:${hashStr(sm.brr)}:${sm.rate}:${sm.root}:${sm.loop}` : id + '@' + rate; };
+  const sampleKey = (sm, loop = sm.loop) => `${hashStr(sm.brr)}:${sm.rate}:${sm.root}:${loop}:${sm.loopEnd || 0}:${sm.xfade || 0}`;
+  const keyOf = (id, rate, song) => {
+    const sm = sampleOf(id, song), mu = multiOf(id, song);
+    return mu ? `${id}:${mu.zones.map(z => `${z.lo}-${z.hi}=${sampleKey(song.samples[z.sample])}`).join('|')}` : sm ? `${id}:${sampleKey(sm)}` : id + '@' + rate;
+  };
   const SAMPLE_ENV = { a: .002, d: .1, s: 1, sd: 0, r: .2 };
+  const sampleLen = sm => Math.floor(sm.brr.length * 3 / 4 / 9) * 16;
+  // where a loop lane's 0..1 puts the loop start in a sample: in 16 steps along it (so at most 16 variants of a sample are made),
+  // always on a block, and never closer than two blocks to the loop's end
+  const loopStep = p => Math.round(cl(p, 0, 1) * 15);
+  const loopAtStep = (sm, s) => { const n = sampleLen(sm), le = sm.loopEnd > 31 && sm.loopEnd < n ? sm.loopEnd : n; return Math.max(0, Math.floor(s / 15 * Math.max(0, le - 32) / 16) * 16); };
+  // one zone from a song's sample: it loops from `loop` (the sample's own loop start, unless a loop lane moved it) to its loop end, or plays once
+  function sampleZone(sm, loop = sm.loop) {
+    const data = brrDecode(fromB64(sm.brr), loop, sm.loopEnd, sm.xfade), n = Math.min(data.length, Math.round(sm.rate * .3));
+    let e = 0; for (let i = 0; i < n; i++) e += data[i] * data[i];
+    const buffer = new AudioBuffer({ length: Math.max(16, data.length), sampleRate: sm.rate, numberOfChannels: 1 }); buffer.copyToChannel(data, 0);
+    const le = loop >= 0 && sm.loopEnd > loop + 15 && sm.loopEnd < data.length ? sm.loopEnd / sm.rate : buffer.duration;
+    return { root: sm.root, loop: loop >= 0, loopStart: Math.max(0, loop) / sm.rate, loopEnd: le, buffer, sm, level: Math.min(4, .25 / Math.sqrt(e / n || 1)) };
+  }
+  // the same zone with its loop start moved (a loop lane); made once per step, then kept
+  function loopZone(z, step) {
+    const ls = loopAtStep(z.sm, step), key = `zv:${sampleKey(z.sm, ls)}`;
+    if (!made.has(key)) made.set(key, sampleZone(z.sm, ls));
+    return { ...made.get(key), gain: z.gain, lo: z.lo, hi: z.hi };
+  }
   function instrument(id, rate, song) {
     const key = keyOf(id, rate, song);
     if (made.has(key)) return made.get(key);
-    const sm = sampleOf(id, song);
-    if (sm) {   // one zone at the sample's own root; it loops from sm.loop to its end, or plays once
-      const data = brrDecode(fromB64(sm.brr), sm.loop), n = Math.min(data.length, Math.round(sm.rate * .3));
-      let e = 0; for (let i = 0; i < n; i++) e += data[i] * data[i];
-      const buffer = new AudioBuffer({ length: Math.max(16, data.length), sampleRate: sm.rate, numberOfChannels: 1 }); buffer.copyToChannel(data, 0);
-      const level = Math.min(4, .25 / Math.sqrt(e / n || 1));
-      const inst = { zones: [{ root: sm.root, loop: sm.loop >= 0, loopStart: Math.max(0, sm.loop) / sm.rate, buffer }], level, env: SAMPLE_ENV, vib: [0, 5, .3], gain: level };
+    const sm = sampleOf(id, song), mu = multiOf(id, song);
+    if (sm) {
+      const z = sampleZone(sm), inst = { zones: [z], level: z.level, env: SAMPLE_ENV, vib: [0, 5, .3], gain: z.level };
+      made.set(key, inst);
+      return inst;
+    }
+    if (mu) {   // each zone as loud as the others; the notes pick the zone (lo..hi, in notes)
+      const zones = mu.zones.map(q => { const z = sampleZone(song.samples[q.sample]); return { ...z, gain: z.level, lo: q.lo, hi: q.hi }; });
+      const inst = { zones, level: 1, env: SAMPLE_ENV, vib: [0, 5, .3], gain: 1 };
       made.set(key, inst);
       return inst;
     }
@@ -233,32 +270,81 @@ const Sampler = (() => {
     }
     return dst;
   }
-  // [tick, value] points: whole ticks from 0, values clamped, sorted, one per tick (the last given wins), at most 512
-  function points(list, lo, hi) {
+  // [tick, value] points: whole ticks from 0, values clamped, sorted, one per tick (the last given wins), at most 512.
+  // A third number belongs to the segment that arrives at the point: kind 'curve' bends it (-1..1: below 0 it rushes then
+  // settles, above 0 it waits then rushes; 0 or none is a straight line), kind 'ramp' (tempo) glides to the point instead of jumping
+  function points(list, lo, hi, kind) {
     const m = new Map();
-    for (const p of Array.isArray(list) ? list : []) if (Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1])) m.set(Math.max(0, Math.round(p[0])), cl(p[1], lo, hi));
-    return [...m].sort((a, b) => a[0] - b[0]).slice(0, 512);
+    for (const p of Array.isArray(list) ? list : []) if (Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1])) {
+      const q = [Math.max(0, Math.round(p[0])), cl(p[1], lo, hi)], c = kind === 'curve' ? Math.round(cl(+p[2] || 0, -1, 1) * 100) / 100 : kind === 'ramp' ? (+p[2] ? 1 : 0) : 0;
+      if (c) q.push(c);
+      m.set(q[0], q);
+    }
+    return [...m.values()].sort((a, b) => a[0] - b[0]).slice(0, 512);
   }
   // ---------- time: ticks ↔ seconds through the song's tempo changes ----------
+  // The tempo is a list of runs from tick 0 on: it holds a tempo until the next change, or glides (a ramp point) from the
+  // one before to the new tempo, linearly in ticks; a glide's seconds are an integral: 60/PPQ · (t1−t0)/(b1−b0) · ln(b1/b0)
+  function tempoRuns(song) {
+    const P = [[0, song.bpm], ...(song.tempo || [])], runs = [];
+    for (let i = 0; i < P.length; i++) {
+      const nx = P[i + 1];
+      runs.push({ t0: P[i][0], t1: nx ? nx[0] : Infinity, b0: P[i][1], b1: nx && nx[2] ? nx[1] : P[i][1] });
+    }
+    return runs;
+  }
+  const runSecs = (r, d) => r.b1 === r.b0 ? d * 60 / r.b0 / PPQ : 60 / PPQ * (r.t1 - r.t0) / (r.b1 - r.b0) * Math.log((r.b0 + (r.b1 - r.b0) * d / (r.t1 - r.t0)) / r.b0);
   function secAt(song, k) {   // seconds from tick 0 to tick k (before 0: at the opening tempo, for a count-in)
-    let s = 0, t = 0, bpm = song.bpm;
-    for (const [at, b] of song.tempo || []) { if (at >= k) break; s += (at - t) * 60 / bpm / PPQ; t = at; bpm = b; }
-    return s + (k - t) * 60 / bpm / PPQ;
+    if (k <= 0) return k * 60 / song.bpm / PPQ;
+    let s = 0;
+    for (const r of tempoRuns(song)) { if (k <= r.t1) return s + runSecs(r, k - r.t0); s += runSecs(r, r.t1 - r.t0); }
+    return s;
   }
   function tickAt(song, sec) {
-    let s = 0, t = 0, bpm = song.bpm;
-    for (const [at, b] of song.tempo || []) { const d = (at - t) * 60 / bpm / PPQ; if (s + d > sec) break; s += d; t = at; bpm = b; }
-    return t + (sec - s) * bpm / 60 * PPQ;
+    if (sec <= 0) return sec * song.bpm / 60 * PPQ;
+    let s = 0;
+    for (const r of tempoRuns(song)) {
+      const full = r.t1 === Infinity ? Infinity : runSecs(r, r.t1 - r.t0);
+      if (sec <= s + full) {
+        const d = sec - s;
+        if (r.b1 === r.b0) return r.t0 + d * r.b0 / 60 * PPQ;
+        const C = 60 / PPQ * (r.t1 - r.t0) / (r.b1 - r.b0), b = r.b0 * Math.exp(d / C);   // the tempo reached after d seconds
+        return r.t0 + (b - r.b0) / (r.b1 - r.b0) * (r.t1 - r.t0);
+      }
+      s += full;
+    }
+    return 0;
   }
-  const bpmAt = (song, k) => { let bpm = song.bpm; for (const [at, b] of song.tempo || []) { if (at > k) break; bpm = b; } return bpm; };
-  // an automation lane's value at tick k: straight lines between its points, level before the first and after the last
+  const bpmAt = (song, k) => {
+    for (const r of tempoRuns(song)) if (k < r.t1) return r.b1 === r.b0 ? r.b0 : r.b0 + (r.b1 - r.b0) * Math.max(0, k - r.t0) / (r.t1 - r.t0);
+    return song.bpm;
+  };
+  // the shape of a curved segment: u in 0..1 along it → how far the value has got
+  const shape = (u, c) => !c ? u : c > 0 ? Math.pow(u, 1 + 3 * c) : 1 - Math.pow(1 - u, 1 - 3 * c);
+  // an automation lane's value at tick k: lines (or curves) between its points, level before the first and after the last
   function laneAt(pts, k) {
     if (!pts.length) return null;
     if (k <= pts[0][0]) return pts[0][1];
-    for (let i = 1; i < pts.length; i++) if (k < pts[i][0]) { const [a, va] = pts[i - 1], [b, vb] = pts[i]; return va + (vb - va) * (k - a) / (b - a); }
+    for (let i = 1; i < pts.length; i++) if (k < pts[i][0]) { const [a, va] = pts[i - 1], [b, vb, c] = pts[i]; return va + (vb - va) * shape((k - a) / (b - a), c); }
     return pts[pts.length - 1][1];
   }
+  // the ramp targets a lane gives inside (a, b): each point, and along a curved segment one every 1/8 beat (a straight ramp
+  // between those is as smooth as the curve needs)
+  const LANE_STEP = PPQ / 8;
+  function laneRamp(pts, a, b, fn) {
+    for (let i = 0; i < pts.length; i++) {
+      const [t, v, c] = pts[i];
+      if (t <= a) continue;
+      if (c && i) {
+        let k = pts[i - 1][0] + LANE_STEP; if (a > k) k += Math.ceil((a - k) / LANE_STEP) * LANE_STEP;
+        for (; k < t && k < b; k += LANE_STEP) fn(k, laneAt(pts, k));
+      }
+      if (t >= b) break;
+      fn(t, v);
+    }
+  }
   const filterHz = v => 40 * Math.pow(400, v);   // the filter lane's 0..1, as 40 Hz .. 16 kHz
+  const NONE = Object.freeze([]), laneOf = (tr, k) => tr.auto[k] || NONE;   // lanes made after the first songs only exist once they have points
 
   // a song with every field present and sane (missing fields take their defaults); throws on something that is not a song
   function check(s) {
@@ -267,7 +353,11 @@ const Sampler = (() => {
       loop: { on: false, start: 0, end: 8 * 4 * PPQ }, places: { title: false, levels: [], note: '' }, master: MASTER(), tracks: [] },
       { ...s, tracks: undefined, samples: undefined, tempo: undefined });
     // tempo changes after the start ([tick, bpm], a step at each): the song's bpm holds until the first
-    out.tempo = points(s.tempo, 30, 300).filter(([t]) => t > 0);
+    out.tempo = points(s.tempo, 30, 300, 'ramp').filter(([t]) => t > 0);
+    // the echo's own lanes (the song's, not a track's): its level and its feedback; only kept when they have points
+    const MA = s.auto && typeof s.auto === 'object' ? s.auto : {}, ma = { echo: points(MA.echo, 0, 1, 'curve'), feedback: points(MA.feedback, -.95, .95, 'curve') };
+    for (const k of Object.keys(ma)) if (!ma[k].length) delete ma[k];
+    if (Object.keys(ma).length) out.auto = ma;
     // where in its game the song plays: the title screen, levels (by index in the game's level list), and a note for the rest
     out.places.title = !!out.places.title; out.places.note = String(out.places.note).slice(0, 300);
     out.places.levels = [...new Set((Array.isArray(out.places.levels) ? out.places.levels : []).filter(Number.isInteger).filter(l => l >= 0 && l < 100))].sort((a, b) => a - b);
@@ -276,17 +366,33 @@ const Sampler = (() => {
     for (const [id, sm] of Object.entries(s.samples && typeof s.samples === 'object' ? s.samples : {})) {
       if (!/^[a-z0-9][a-z0-9-]{0,31}$/.test(id) || !sm || typeof sm.brr !== 'string' || !/^[A-Za-z0-9+/]*={0,2}$/.test(sm.brr) || !sm.brr.length) continue;
       const len = Math.floor(sm.brr.length * 3 / 4 / 9) * 16;
-      out.samples[id] = { name: String(sm.name || id).slice(0, 40), rate: RATES.includes(sm.rate) ? sm.rate : 32000, root: cl(+sm.root || 60, 0, 127),
-        loop: Number.isInteger(sm.loop) && sm.loop >= 0 && sm.loop < len ? sm.loop - sm.loop % 16 : -1, brr: sm.brr };
+      const loop = Number.isInteger(sm.loop) && sm.loop >= 0 && sm.loop < len ? sm.loop - sm.loop % 16 : -1, o = { name: String(sm.name || id).slice(0, 40), rate: RATES.includes(sm.rate) ? sm.rate : 32000, root: cl(+sm.root || 60, 0, 127), loop, brr: sm.brr };
+      // a loop of its own end (a block, at least a block past where it starts; the sound after it is never played), and a crossfade
+      // of that many samples at the seam (at most as long as what is before the loop and half the loop); both only when set
+      if (loop >= 0 && Number.isInteger(sm.loopEnd) && sm.loopEnd > loop + 16 && sm.loopEnd < len) o.loopEnd = sm.loopEnd - sm.loopEnd % 16;
+      if (loop >= 0 && Number.isFinite(sm.xfade) && sm.xfade >= 1) { const x = Math.min(Math.round(sm.xfade), loop, ((o.loopEnd || len) - loop) >> 1); if (x >= 1) o.xfade = x; }
+      out.samples[id] = o;
     }
+    // several samples as one instrument: zones of notes (lo..hi) over the song's own samples
+    out.multis = {};
+    for (const [id, mu] of Object.entries(s.multis && typeof s.multis === 'object' ? s.multis : {})) {
+      if (!/^[a-z0-9][a-z0-9-]{0,31}$/.test(id) || !mu || !Array.isArray(mu.zones)) continue;
+      const zones = mu.zones.filter(z => z && out.samples[z.sample] && Number.isFinite(z.lo) && Number.isFinite(z.hi)).slice(0, 16)
+        .map(z => ({ sample: z.sample, lo: cl(Math.round(Math.min(z.lo, z.hi)), 0, 127), hi: cl(Math.round(Math.max(z.lo, z.hi)), 0, 127) }));
+      if (zones.length) out.multis[id] = { name: String(mu.name || id).slice(0, 40), zones };
+    }
+    if (!Object.keys(out.multis).length) delete out.multis;
     out.bpm = cl(+out.bpm || 120, 30, 300); out.beatsPerBar = cl(Math.round(out.beatsPerBar) || 4, 1, 12); out.bars = cl(Math.round(out.bars) || 8, 1, 512);
     out.tracks = (Array.isArray(s.tracks) ? s.tracks : []).slice(0, 32).map(t => {
       const tr = merge(TRACK(), t);
-      if (!DEFS[tr.instrument] && !(tr.instrument.startsWith('sample:') && out.samples[tr.instrument.slice(7)])) tr.instrument = 'piano';
+      if (!DEFS[tr.instrument] && !(tr.instrument.startsWith('sample:') && out.samples[tr.instrument.slice(7)]) && !(tr.instrument.startsWith('multi:') && out.multis && out.multis[tr.instrument.slice(6)])) tr.instrument = 'piano';
       if (!RATES.includes(tr.sound.rate)) tr.sound.rate = 32000;
       tr.sound.glide = cl(+tr.sound.glide || 0, 0, 2);
-      const A = t.auto || {};
-      tr.auto = { volume: points(A.volume, 0, 1), pan: points(A.pan, -1, 1), filter: points(A.filter, 0, 1) };
+      const A = t.auto && typeof t.auto === 'object' ? t.auto : {};
+      tr.auto = { volume: points(A.volume, 0, 1, 'curve'), pan: points(A.pan, -1, 1, 'curve'), filter: points(A.filter, 0, 1, 'curve') };
+      // lanes added later are only there when they have points (so a song made without them reads the same): the sends, the
+      // pitch bend in semitones, and the loop point of a sample (0..1 along it) a note picks when it starts
+      for (const [k, lo, hi] of [['echo', 0, 1], ['reverb', 0, 1], ['pitch', -12, 12], ['loop', 0, 1]]) { const p = points(A[k], lo, hi, 'curve'); if (p.length) tr.auto[k] = p; }
       tr.notes = (Array.isArray(t.notes) ? t.notes : []).filter(n => Array.isArray(n) && n.length >= 4 && n.every(Number.isFinite))
         .map(([at, len, note, vel]) => [Math.max(0, Math.round(at)), Math.max(1, Math.round(len)), cl(Math.round(note), 0, 127), cl(Math.round(vel), 1, 127)])
         .sort((a, b) => a[0] - b[0] || a[2] - b[2]);
@@ -334,7 +440,9 @@ const Sampler = (() => {
   function makeStrip(M) {
     const c = M.ctx, g = v => { const n = c.createGain(); n.gain.value = v; return n; }, bq = (type, f) => { const n = c.createBiquadFilter(); n.type = type; n.frequency.value = f; return n; };
     const S = { in: g(1), lo: bq('lowshelf', 200), mid: bq('peaking', 1000), hi: bq('highshelf', 4000), filt: bq('allpass', 1000), dry: g(1), wet: g(0), cho: c.createDelay(.05),
-      lfo: c.createOscillator(), lfoAmt: g(0), pan: c.createStereoPanner(), vol: g(.64), av: g(1), mute: g(1), echo: g(0), rev: g(0), layer: 1, marks: [] };
+      lfo: c.createOscillator(), lfoAmt: g(0), pan: c.createStereoPanner(), vol: g(.64), av: g(1), mute: g(1), echo: g(0), rev: g(0), layer: 1, marks: [],
+      pitch: c.createConstantSource() };   // the pitch lane's bend, in cents, fed into every note's detune (only when the track has the lane)
+    S.pitch.offset.value = 0; S.pitch.start();
     S.mid.Q.value = .9; S.cho.delayTime.value = .012;
     S.in.connect(S.lo); S.lo.connect(S.mid); S.mid.connect(S.hi); S.hi.connect(S.filt);
     S.filt.connect(S.dry); S.filt.connect(S.cho); S.cho.connect(S.wet); S.lfo.connect(S.lfoAmt); S.lfoAmt.connect(S.cho.delayTime); S.lfo.start();
@@ -347,7 +455,9 @@ const Sampler = (() => {
     const m = song.master, now = M.ctx.currentTime, snes = song.snes;
     set(M.vol.gain, m.volume * m.volume, now, smooth);
     set(M.echoDelay.delayTime, cl(Math.round(m.echo.delay), 1, 15) * .016, now, smooth);
-    set(M.echoFb.gain, cl(m.echo.feedback, -.95, .95), now, smooth); set(M.echoVol.gain, cl(m.echo.volume, 0, 1), now, smooth);
+    const ma = song.auto || {};   // the echo's lanes, when it has any, set these as the song plays
+    if (!(ma.feedback || NONE).length) set(M.echoFb.gain, cl(m.echo.feedback, -.95, .95), now, smooth);
+    if (!(ma.echo || NONE).length) set(M.echoVol.gain, cl(m.echo.volume, 0, 1), now, smooth);
     if (M.firName !== m.echo.fir) { M.firName = m.echo.fir; M.fir.buffer = firBuffer(M.ctx, m.echo.fir); }
     const rk = `${m.reverb.size}:${m.reverb.damp}`;
     if (M.revKey !== rk) { M.revKey = rk; M.rev.buffer = reverbIR(M.ctx, cl(m.reverb.size, .2, 6), cl(m.reverb.damp, 0, 1)); }
@@ -370,7 +480,9 @@ const Sampler = (() => {
     if (!tr.auto.pan.length) set(S.pan.pan, cl(tr.pan, -1, 1), now, smooth); set(S.vol.gain, tr.volume * tr.volume, now, smooth); if (!tr.auto.volume.length) set(S.av.gain, 1, now, smooth);
     const audible = !tr.mute && (!solo || tr.solo);
     set(S.mute.gain, audible ? S.layer : 0, now, smooth);
-    set(S.echo.gain, cl(tr.sends.echo, 0, 1), now, smooth); set(S.rev.gain, snes ? 0 : cl(tr.sends.reverb, 0, 1), now, smooth);
+    if (!laneOf(tr, 'echo').length) set(S.echo.gain, cl(tr.sends.echo, 0, 1), now, smooth);
+    if (snes || !laneOf(tr, 'reverb').length) set(S.rev.gain, snes ? 0 : cl(tr.sends.reverb, 0, 1), now, smooth);
+    if (!laneOf(tr, 'pitch').length) set(S.pitch.offset, 0, now, smooth);
   }
   function syncMix(M, song, smooth = true) {
     while (M.strips.length < song.tracks.length) M.strips.push(makeStrip(M));
@@ -399,17 +511,23 @@ const Sampler = (() => {
   }
   const MAX_VOICES = 48;
   // start a note at time t on track ti; dur in seconds, or null for a live note (let go later with releaseVoice)
-  function startVoice(M, song, ti, note, vel, t, dur, bend = 0) {
+  // loopPos: where along its sample a loop lane puts the loop start for this note (0..1), or null
+  function startVoice(M, song, ti, note, vel, t, dur, bend = 0, loopPos = null) {
     const tr = song.tracks[ti], S = M.strips[ti]; if (!tr || !S) return null;
     const inst = instrument(tr.instrument, tr.sound.rate, song), c = M.ctx;
-    let buffer, rateMul, loop = false, loopStart = 0, choke = 0, kit = !!inst.kit;
+    let buffer, rateMul, loop = false, loopStart = 0, loopEnd = 0, choke = 0, kit = !!inst.kit, zgain = 1;
     if (kit) {
       const k = inst.kit[note]; if (!k) return null;
       buffer = k.buffer; rateMul = k.pitch; choke = k.choke;
     } else {
       const n = note + 12 * tr.sound.octave + tr.sound.fine / 100;
-      let z = inst.zones[0]; for (const q of inst.zones) if (Math.abs(q.root - n) < Math.abs(z.root - n) - .01) z = q;
-      buffer = z.buffer; rateMul = Math.pow(2, (n - z.root) / 12); loop = z.loop; loopStart = z.loopStart;
+      let z = inst.zones[0];
+      if (z.lo !== undefined) {   // a multisample: the zone whose notes the note falls in (the nearest one, when none does)
+        let best = Infinity;
+        for (const q of inst.zones) { const d = n < q.lo ? q.lo - n : n > q.hi ? n - q.hi : 0; if (d < best) { best = d; z = q; } }
+      } else for (const q of inst.zones) if (Math.abs(q.root - n) < Math.abs(z.root - n) - .01) z = q;
+      if (loopPos != null && z.sm && z.sm.loop >= 0) z = loopZone(z, loopStep(loopPos));
+      buffer = z.buffer; rateMul = Math.pow(2, (n - z.root) / 12); loop = z.loop; loopStart = z.loopStart; loopEnd = z.loopEnd || buffer.duration; zgain = z.gain || 1;
     }
     // voice limit (8 with SNES limits): end the voice that matters least (one already let go, else the oldest), quickly
     const cap = song.snes ? 8 : MAX_VOICES;
@@ -430,13 +548,14 @@ const Sampler = (() => {
       for (const v of held) cut(v, t);
     }
     const E = kit ? { a: .001, d: .001, s: 1, sd: 0, r: .05 } : envOf(inst, tr);
-    const peak = Math.pow(vel / 127, 1.5) * inst.gain * 1.2;
+    const peak = Math.pow(vel / 127, 1.5) * inst.gain * zgain * 1.2;
     const src = c.createBufferSource(), gn = c.createGain();
     src.buffer = buffer; src.detune.value = bend * 100;
     if (from) { src.playbackRate.setValueAtTime(from, t); src.playbackRate.exponentialRampToValueAtTime(rateMul, t + tr.sound.glide); }
     else src.playbackRate.value = rateMul;
-    if (loop) { src.loop = true; src.loopStart = loopStart; src.loopEnd = buffer.duration; }
+    if (loop) { src.loop = true; src.loopStart = loopStart; src.loopEnd = loopEnd; }
     src.connect(gn); gn.connect(S.in);
+    if (!kit && laneOf(tr, 'pitch').length) { S.pitch.connect(src.detune); src.onended = () => { try { S.pitch.disconnect(src.detune); } catch (e) { } }; }
     // the envelope: attack ramp, decay toward the sustain level, then (fall) toward silence while held; drums ignore note-offs
     const p = gn.gain, off = kit || dur == null ? Infinity : Math.max(.005, dur);
     p.setValueAtTime(0, t);
@@ -484,18 +603,24 @@ const Sampler = (() => {
   // there (fresh: the playhead just started or wrapped, so each lane is first set to its value at a)
   function scheduleRange(M, song, a, b, tickTime, loopEnd, clicks, fresh) {
     const dur = (at, len) => secAt(song, Math.min(at + len, loopEnd)) - secAt(song, at);
+    // a lane's points in [a, b) as ramps of an audio parameter (a curve as short straight pieces)
+    const follow = (param, pts, map) => {
+      if (fresh) { const t0 = Math.max(tickTime(a), M.ctx.currentTime); param.cancelScheduledValues(t0); param.setValueAtTime(map(laneAt(pts, Math.max(0, a))), t0); }
+      laneRamp(pts, a, b, (at, v) => param.linearRampToValueAtTime(map(v), tickTime(at)));
+    };
+    for (const [lane, param, map] of [['echo', M.echoVol.gain, v => v], ['feedback', M.echoFb.gain, v => v]]) { const pts = (song.auto || {})[lane]; if (pts && pts.length) follow(param, pts, map); }
     song.tracks.forEach((tr, ti) => {
       const S = M.strips[ti]; if (!S) return;
-      for (const [lane, param, map] of [['volume', S.av.gain, v => v * v], ['pan', S.pan.pan, v => v], ['filter', S.filt.frequency, filterHz]]) {
-        const pts = tr.auto[lane]; if (!pts.length || song.snes && lane === 'filter') continue;
-        if (fresh) { const t0 = Math.max(tickTime(a), M.ctx.currentTime); param.cancelScheduledValues(t0); param.setValueAtTime(map(laneAt(pts, Math.max(0, a))), t0); }
-        for (const [at, v] of pts) if (at > a && at < b) param.linearRampToValueAtTime(map(v), tickTime(at));
+      for (const [lane, param, map] of [['volume', S.av.gain, v => v * v], ['pan', S.pan.pan, v => v], ['filter', S.filt.frequency, filterHz],
+        ['echo', S.echo.gain, v => v], ['reverb', S.rev.gain, v => v], ['pitch', S.pitch.offset, v => v * 100]]) {
+        const pts = laneOf(tr, lane); if (!pts.length || song.snes && (lane === 'filter' || lane === 'reverb')) continue;
+        follow(param, pts, map);
       }
-      const N = tr.notes; let lo = 0, hi = N.length;
+      const N = tr.notes, loopLane = laneOf(tr, 'loop'); let lo = 0, hi = N.length;
       while (lo < hi) { const mid = (lo + hi) >> 1; if (N[mid][0] < a) lo = mid + 1; else hi = mid; }
       for (let i = lo; i < N.length && N[i][0] < b; i++) {
         const [at, len, note, vel] = N[i];
-        const v = startVoice(M, song, ti, note, vel, tickTime(at), dur(at, len));
+        const v = startVoice(M, song, ti, note, vel, tickTime(at), dur(at, len), 0, loopLane.length ? laneAt(loopLane, at) : null);
         if (v && tr.instrument === 'kit' && note >= 35 && note <= 40 && M.hits) M.hits.push([tickTime(at), vel / 127]);
       }
     });
@@ -512,13 +637,21 @@ const Sampler = (() => {
   const E = {
     PPQ, INSTRUMENTS, KIT: Object.fromEntries(Object.entries(KIT).map(([n, k]) => [n, k[3]])), RATES, FIRS: Object.keys(FIR),
     ctx: null, out: null, mix: null, song: null, playing: false, metronome: false, pending: null, timer: 0, gain: null, vol: 1,
-    check, newSong, newTrack, songEnd, envAt, secAt, tickAt, bpmAt, laneAt, filterHz, brr, brrEncode, brrDecode, toB64, fromB64, forced: null,
+    check, newSong, newTrack, songEnd, envAt, secAt, tickAt, bpmAt, laneAt, laneRamp, filterHz, brr, brrEncode, brrDecode, toB64, fromB64, sampleLen, loopStep, loopAtStep, forced: null,
     // an instrument's own envelope and vibrato (what a track's sound settings left at null mean)
-    defaults: id => id.startsWith('sample:') ? { env: { ...SAMPLE_ENV }, vib: [0, 5, .3] } : { env: { ...(DEFS[id] || DEFS.piano)[3] }, vib: [...((DEFS[id] || DEFS.piano)[4] || [0, 5, .3])] },
+    defaults: id => id.startsWith('sample:') || id.startsWith('multi:') ?{ env: { ...SAMPLE_ENV }, vib: [0, 5, .3] } : { env: { ...(DEFS[id] || DEFS.piano)[3] }, vib: [...((DEFS[id] || DEFS.piano)[4] || [0, 5, .3])] },
     // make a song's instruments now, one at a time between frames (making one takes ~0.1 s), so its first notes don't stall;
     // play() makes any that are missing on the spot
     async prepare(song) {
-      for (const tr of song.tracks) if (!made.has(keyOf(tr.instrument, tr.sound.rate, song))) { instrument(tr.instrument, tr.sound.rate, song); await new Promise(r => setTimeout(r, 0)); }
+      const frame = () => new Promise(r => setTimeout(r, 0));
+      for (const tr of song.tracks) {
+        if (!made.has(keyOf(tr.instrument, tr.sound.rate, song))) { instrument(tr.instrument, tr.sound.rate, song); await frame(); }
+        const ll = laneOf(tr, 'loop');
+        if (ll.length) {   // a loop lane: the loop starts it can pick, so a note does not make one while it is being heard
+          const vs = ll.map(p => p[1]), lo = loopStep(Math.min(...vs)), hi = loopStep(Math.max(...vs));
+          for (const z of instrument(tr.instrument, tr.sound.rate, song).zones || []) if (z.sm && z.sm.loop >= 0) for (let s = lo; s <= hi; s++) { loopZone(z, s); await frame(); }
+        }
+      }
     },
     init(ctx, dest) {
       if (this.ctx || !ctx) return;

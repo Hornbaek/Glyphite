@@ -1033,6 +1033,48 @@ a design of its own), MIDI files, and the rest. MIDI files first: import and exp
   fails a test each time. `tests/studio.py`: the export, the same file opened as the same song, "cancel" keeping the work, a Regolith file
   opened and played, a text file refused.
 
+## 52. The sound studio's follow-ups: samples, automation and MIDI (Claude Code, 2026-11-10)
+
+> "Fix the following follow-ups: Samples, Automation and MIDI"
+
+Every "Next:" the roadmap listed under those three items, done in one go.
+
+- **Samples** (`engine/13_sampler.js`, `portal/assets/studio.js`). A loop has an end of its own (`sample.loopEnd`: the sound after it is never
+  played while a note holds; shift-click the waveform, or the LOOP END slider) and a crossfade (`sample.xfade`, in samples, set in ms with
+  the CROSSFADE slider): `brrDecode(bytes, loopAt, loopEnd, xfade)` blends the tail of the loop with the sound before its start, equal-power,
+  before the DSP's Gaussian read-out, so the seam is a continuation (a 0.92 jump became 0.02 in the test). Grit changes carry the loop
+  along. A **microphone**: "+ Record a sample…" on a track, or [ ● RECORD ] on a sample (a dialog with a level meter and a 6-second limit,
+  `getUserMedia` and `MediaRecorder`, the same decode and resample as a file). **Multisamples** (`song.multis`, `instrument: 'multi:<id>'`): zones
+  of notes over the song's samples, a track picks "+ New multisample…", edits the zones under MULTISAMPLE ([ + ZONE ], [ FROM THEIR NOTES ]
+  shares the keyboard halfway between the samples' own notes); removing a sample removes its zones and sends tracks back to the piano.
+- **Automation.** Curved segments (`[tick, value, c]`, c -1..1 bends the segment that arrives at the point; shift-drag on the line;
+  shift-click a point makes it straight; the engine ramps through a curve in 1/8-beat pieces, `laneRamp`). New lanes in the studio's menu:
+  ECHO SEND, REVERB SEND, PITCH BEND (a constant source into every note's detune, semitones), LOOP POINT (a note picks one of 16 loop
+  starts of its sample when it starts: Web Audio's loop points are not parameters, so a held note does not move; the variants are made
+  once and kept, and `prepare` makes them), and for the song ECHO LEVEL and ECHO FEEDBACK (`song.auto`). **Tempo ramps**: a third number 1
+  on a tempo point glides to it from the one before (shift-click a tempo point); `secAt`/`tickAt`/`bpmAt` integrate and invert a glide. The lane
+  is drawn by sampling it, so curves and ramps look as they sound.
+- **MIDI** (`portal/assets/midi-core.mjs`). Pitch bend becomes the track's pitch lane (in the range the file's "pitch bend sensitivity" RPN sets,
+  2 semitones otherwise; drums are not bent) and is written as bends over ±12 with the RPN set. Volume (CC 7, with CC 11 expression on top) and pan
+  (CC 10) that move while the notes play become volume and pan lanes (a controller is a step, a run closer than a beat a sweep; at most 512
+  points), and a volume or pan lane is written as CC 11 / CC 10 every 1/16 note, so a song's lanes survive a file. A tempo ramp is written as
+  tempo events and an even run of them is read back as one ramp. A file with several instruments asks which to open (`info.candidates`,
+  `opts.only`; the song is only as long as what was opened; `node tools/midi.mjs list` and `import --tracks 0,2`). The song's own samples and
+  multisamples are carried in sequencer-specific events (manufacturer id 0x7D, the sample as JSON with its BRR in base64) and the track's text
+  event, so a file written here opens with its samples; any other program ignores them and plays a pad (looping sample) or a marimba.
+  `midiFromSong(song, S)` takes the Sampler now (it evaluates the lanes). Still left out of a file, and said so: the filter, send, loop-point and
+  echo lanes, effects and EQ.
+- **Old songs read the same.** Every new field exists in `check`'s result only when it has something in it (LESSONS), so the shipped songs and
+  `songs.js` did not change.
+- **Tests.** `tests/node/songs.test.mjs` (5 new: tempo ramps round trip, curves and `laneRamp`'s windows, optional lanes, loop end / crossfade /
+  multisample checks, the seam). `tests/node/midi.test.mjs` (6 new: pitch bend and its range, volume and pan lanes with steps and sweeps,
+  a song's lanes through a file, tempo ramps, the choice of instruments, samples in a file read by the NES chip's parser too).
+  `tests/studio.py` (about 30 new checks): offline renders of the echo send and level lanes, the pitch bend (440 → 880 Hz), a tempo ramp (the note
+  lands at 2.77 s, not 2 s), a curve, a loop end (440 Hz, never the 880 Hz half) and a multisample picking its zone by range; then the lanes by
+  mouse, the loop controls, a multisample edited, a recording from Chromium's fake microphone, the instrument picker for MIDI files.
+- **Verified:** build, unit tests, the studio test, and the smoke test of every game in both renderers (in a clone with LF line endings: see
+  LESSONS on this Windows checkout).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |
