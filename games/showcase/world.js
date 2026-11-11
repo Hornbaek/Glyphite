@@ -2,11 +2,11 @@
 // The showcase on the public landing page (unlisted): PIXELITE spelled in rock standing on the ground, sand pouring onto it,
 // meteors breaking it into chunks. The word is drawn by the browser into a tiny canvas and every lit pixel becomes rock, as
 // in the 404 game, so it breaks like any other terrain. It is sized to the view, so a phone sees the whole word too.
-const SAND = defineMaterial('sand', { albedo: [.86, .76, .52], ramp: ' .,:;=+*#%', granular: true, creep: true, tough: .1, friction: .7 });
-const SLAB = defineMaterial('glyph rock', { albedo: [.95, .64, .3], ramp: " .':oO8&%#", tough: .32, shiny: .1 });
-const GROUND = defineMaterial('basalt', { albedo: [.48, .5, .56], ramp: " .':oO8&%#", tough: .6, shiny: .05 });
-const BEDROCK = defineMaterial('bedrock', { albedo: [.28, .29, .34], ramp: ' .:;#XWM', tough: 99, density: 1.3, anchor: true });
-const RUBBLE = defineMaterial('rubble', { albedo: [.7, .52, .34], ramp: ' .,o%&', granular: true, tough: .2, grainGlyphs: 'o%&', debris: true });
+const SAND = defineMaterial('sand', { albedo: [.86, .76, .52], granular: true, creep: true, tough: .1, friction: .7 });
+const SLAB = defineMaterial('glyph rock', { albedo: [.95, .64, .3], tough: .32, shiny: .1 });
+const GROUND = defineMaterial('basalt', { albedo: [.48, .5, .56], tough: .6, shiny: .05 });
+const BEDROCK = defineMaterial('bedrock', { albedo: [.28, .29, .34], tough: 99, density: 1.3, anchor: true });
+const RUBBLE = defineMaterial('rubble', { albedo: [.7, .52, .34], granular: true, tough: .2, grainGlyphs: 'o%&', debris: true });
 worldMaterials({ edge: BEDROCK, rubble: RUBBLE, fill: GROUND });
 
 const WORD = 'PIXELITE';

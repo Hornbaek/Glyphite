@@ -57,8 +57,7 @@ function stepMouse(dt) {
   if (c.ground === GIRDER) hint('catwalk', 'S / DOWN DROPS THROUGH A CATWALK');
   if (c.wall && TUNE.wallJump) hint('wall', 'JUMP OFF WALLS: PRESS JUMP WHILE SLIDING DOWN ONE');
   // what the mouse touches
-  const hz = touching(c, mm => HAZARD[mm]);
-  if (hz) { killMouse(HAZARD[hz]); return; }
+  if (c.hazard) { killMouse(HAZARD[c.hazardMat]); return; }   // the engine reads the materials' hazard flag
   if (atGoal(c)) { clearSector(); return; }
   if (c.y > H * ASPECT + 4 * S) { killMouse('LOST IN THE DARK'); return; }
   const mx = c.x, my = c.y - c.o.h / 2;

@@ -1,11 +1,11 @@
 // ===================== GAME · the missing address, spelled out in rock =====================
 // The page asks the browser to draw the address it could not find into a tiny canvas, reads the pixels back and
 // builds every lit pixel as a block of rock standing on the ground. A rocket then breaks it like any other terrain.
-const REGO = defineMaterial('regolith', { albedo: [.72, .69, .63], ramp: ' .,:;=+*#%', granular: true, creep: true, tough: .12, friction: .75 });
-const SLAB = defineMaterial('slab', { albedo: [.86, .58, .3], ramp: " .':oO8&%#", tough: .3, shiny: .08 });
-const ROCK = defineMaterial('basalt', { albedo: [.5, .52, .57], ramp: " .':oO8&%#", tough: .55, shiny: .05 });
-const BEDROCK = defineMaterial('bedrock', { albedo: [.3, .31, .35], ramp: ' .:;#XWM', tough: 99, density: 1.3, anchor: true });
-const RUBBLE = defineMaterial('rubble', { albedo: [.6, .5, .4], ramp: ' .,o%&', granular: true, tough: .2, grainGlyphs: 'o%&', debris: true });
+const REGO = defineMaterial('regolith', { albedo: [.72, .69, .63], granular: true, creep: true, tough: .12, friction: .75 });
+const SLAB = defineMaterial('slab', { albedo: [.86, .58, .3], tough: .3, shiny: .08 });
+const ROCK = defineMaterial('basalt', { albedo: [.5, .52, .57], tough: .55, shiny: .05 });
+const BEDROCK = defineMaterial('bedrock', { albedo: [.3, .31, .35], tough: 99, density: 1.3, anchor: true });
+const RUBBLE = defineMaterial('rubble', { albedo: [.6, .5, .4], granular: true, tough: .2, grainGlyphs: 'o%&', debris: true });
 worldMaterials({ edge: BEDROCK, rubble: RUBBLE, fill: ROCK });
 
 // what the visitor asked for, made safe to draw: printable ASCII only, and the tail of it when it is long

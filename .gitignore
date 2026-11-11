@@ -7,3 +7,6 @@ dist/
 node_modules/
 .wrangler/
 .dev.vars
+
+# worktrees of sessions and sub-agents
+.claude/worktrees/

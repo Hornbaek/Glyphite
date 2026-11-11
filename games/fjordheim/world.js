@@ -13,16 +13,16 @@ const linC = (c, k = 1) => c.map(v => -Math.log(1 - Math.min(.93, v / 255)) / 1.
 const mixC = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
 const GRASS_SUMMER = linC(FJ_GROUND.grass, 1.45), GRASS_AUTUMN = linC(mixC(FJ_GROUND.grass, [170, 140, 70], .45), 1.45);
 const GROUND_MAT = {
-  [G_WATER]: defineMaterial('fjord', { albedo: linC(FJ_GROUND.water, 1.6), ramp: '.-~~=', style: 'flat' }),
-  [G_SAND]: defineMaterial('beach', { albedo: linC(FJ_GROUND.sand, 1.1), ramp: ".,:;'", style: 'flat' }),
-  [G_GRASS]: defineMaterial('grass', { albedo: GRASS_SUMMER, ramp: ".,'\";:", style: 'flat' }),
-  [G_MEADOW]: defineMaterial('meadow', { albedo: linC(mixC(FJ_GROUND.meadow, [150, 160, 70], .25), 1.45), ramp: ".,'\"*;", style: 'flat' }),
-  [G_SOIL]: defineMaterial('soil', { albedo: linC(FJ_GROUND.soil, 1.5), ramp: '.,-=~', style: 'flat' }),
-  [G_ROCKY]: defineMaterial('scree', { albedo: linC([128, 130, 122], 1.2), ramp: '.,:;o', style: 'flat' }),
+  [G_WATER]: defineMaterial('fjord', { albedo: linC(FJ_GROUND.water, 1.6), style: 'flat' }),
+  [G_SAND]: defineMaterial('beach', { albedo: linC(FJ_GROUND.sand, 1.1), style: 'flat' }),
+  [G_GRASS]: defineMaterial('grass', { albedo: GRASS_SUMMER, style: 'flat' }),
+  [G_MEADOW]: defineMaterial('meadow', { albedo: linC(mixC(FJ_GROUND.meadow, [150, 160, 70], .25), 1.45), style: 'flat' }),
+  [G_SOIL]: defineMaterial('soil', { albedo: linC(FJ_GROUND.soil, 1.5), style: 'flat' }),
+  [G_ROCKY]: defineMaterial('scree', { albedo: linC([128, 130, 122], 1.2), style: 'flat' }),
 };
 // the hills round the map, and the fjord's far shore: quiet, so the eye stays on the valley
-const FELL_MAT = defineMaterial('fell', { albedo: linC([112, 118, 104], 1.1), ramp: " .,'", style: 'flat' });
-const SNOW_MAT = defineMaterial('snow', { albedo: linC(FJ_GROUND.snow, .9), ramp: '.:-=*', style: 'flat' });
+const FELL_MAT = defineMaterial('fell', { albedo: linC([112, 118, 104], 1.1), style: 'flat' });
+const SNOW_MAT = defineMaterial('snow', { albedo: linC(FJ_GROUND.snow, .9), style: 'flat' });
 
 // the tile grid. thing: 0 nothing, T_TREE, T_STUMP, T_SAPLING, T_ROCK, T_BUSH, T_FIELD, T_BUILDING; ref: index into its list
 const T_TREE = 1, T_STUMP = 2, T_SAPLING = 3, T_ROCK = 4, T_BUSH = 5, T_FIELD = 6, T_BUILDING = 7;

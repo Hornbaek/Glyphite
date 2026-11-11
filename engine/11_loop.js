@@ -30,7 +30,7 @@
 // switches. 'title' shows the #titleBar buttons, 'paused' stops time, 'play' is where slow-frame hints
 // appear. Everything else is up to the game.
 let state = 'title', stateT = 0, perfAvg = 16, toastMsg = null;
-function setState(s) { state = s; stateT = 0; }
+function setState(s) { const prev = state; if (STATES && STATES[prev] && STATES[prev].exit) STATES[prev].exit(s); state = s; stateT = 0; if (STATES && STATES[s] && STATES[s].enter) STATES[s].enter(prev); }
 // Pause is a flag, so a game in any state can be paused. A game that names its pause state 'paused' keeps working: setting
 // state = 'paused' pauses, and pausing from 'play' still switches to it. Pixelite.pause(on) flips it; the page pauses itself
 // when it is hidden (a game that loses focus must not keep falling).
@@ -126,7 +126,11 @@ function updateCamera(dt, snap) {
 // Tests and AI probes step the game with update(DT) in a loop and freeze it with window.update = () => {}.
 function update(dt) {
   frameNo++; stateT += dt;
+  if (chunks.length) stepPlatforms(dt);
   if (GAME.update) GAME.update(dt);
+  if (STATES && STATES[state] && STATES[state].update) STATES[state].update(dt);
+  stepEntities(dt); stepTimers(dt); stepTriggers();
+  if (CHUNK_CONTACTS && chunks.length > 1) stepChunkContacts();
   Input.pressed.clear(); Input.fireQueued = false; Input.drag[0] = Input.drag[1] = 0;
   stepWorld(dt);
   updateCamera(dt);
@@ -144,6 +148,7 @@ const _lights = [];
 function gatherLights(t) {
   _lights.length = 0;
   if (GAME.lights) GAME.lights(t, _lights);
+  if (entities.length) entityLights(t, _lights);
   if (DEV) for (const l of _lights) devFinite('a light', l.x, l.y, l.r, l.I);
   const S = RES;
   for (const l of FX.lights) { const u = l.age / l.life; _lights.push({ x: l.x, y: l.y, r: Math.min(48 * S, l.r), c: l.c, I: l.I * (1 - u) * (1 - u), shadow: l.shadow, flicker: l.flicker, seed: l.seed }); }
@@ -163,11 +168,12 @@ function draw(t) {
   clearDyn();
   let dynTop = markChunksDyn();
   if (GAME.markDyn) dynTop = Math.min(dynTop, GAME.markDyn());
+  if (entities.length) dynTop = Math.min(dynTop, markEntitiesDyn());
   const ox = Math.floor(cam.x) - 1, oy = Math.floor(cam.y / ASPECT) - 1;
   const fx = cam.x - Math.floor(cam.x), fy = cam.y / ASPECT - Math.floor(cam.y / ASPECT);
   computeLighting(ox, oy, gatherLights(t), dynTop);
-  renderScene(ox, oy, t, GAME.draw ? () => GAME.draw(t) : null);
-  hudClear(); if (GAME.hud) GAME.hud(t); drawToast();
+  renderScene(ox, oy, t, () => { if (PROPS.length) drawProps(); if (entities.length) drawEntities(t); if (STATES && STATES[state] && STATES[state].draw) STATES[state].draw(t); if (GAME.draw) GAME.draw(t); });
+  hudClear(); if (GAME.hud) GAME.hud(t); if (STATES && STATES[state] && STATES[state].hud) STATES[state].hud(t); drawToast();
   presentFrame(fx, fy, t);
   const bar = document.getElementById('titleBar');
   if (bar && bar.hidden !== (state !== 'title')) bar.hidden = state !== 'title';
@@ -196,11 +202,12 @@ function frame(now) {
 let resizeNow = () => { };
 function setDetail(r, announce) {
   if (!DETAIL_LEVELS.includes(r)) r = 2;
+  const was = RES;
   setResVars(r);
   particlesAlloc(Math.round((GAME.particles || 9000) * r));
   try { localStorage.setItem(storeKey('detail'), String(r)); } catch (e) { }
   resizeNow();
-  if (GAME.regenerate) GAME.regenerate();
+  if (GAME.regenerate) GAME.regenerate(); else rescaleWorld(RES / was);   // no regenerate(): the same world, resampled
   updateCamera(0, true);
   const btn = document.getElementById('detailBtn'); if (btn) btn.textContent = `[ DETAIL ${detailLabel()} ]`;
   if (announce) say(`DETAIL ${detailLabel()} - ${R.cols} x ${R.rows} PIXELS`);
@@ -314,7 +321,7 @@ const Pixelite = {
     probe() {
       return { state, stateT: +stateT.toFixed(2), frame: frameNo, version: Pixelite.version, paused: isPaused(), errors: ERRORS.length, res: RES, renderer: R.mode, cols: R.cols, rows: R.rows,
         world: [W, H], cam: [+cam.x.toFixed(1), +cam.y.toFixed(1)], particles: P.n, chunks: chunks.length, perfMs: +perfAvg.toFixed(1),
-        tune: { ...TUNE }, game: GAME.probe ? GAME.probe() : null };
+        tune: { ...TUNE }, entities: entityCounts(), states: entityStates(), game: GAME.probe ? GAME.probe() : null };
     }
   }
 };
