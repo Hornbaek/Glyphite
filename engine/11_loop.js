@@ -125,11 +125,13 @@ function updateCamera(dt, snap) {
 // ---------- one fixed step, one frame ----------
 // Tests and AI probes step the game with update(DT) in a loop and freeze it with window.update = () => {}.
 function update(dt) {
+  const q = performance.now();
   frameNo++; stateT += dt;
   if (GAME.update) GAME.update(dt);
   Input.pressed.clear(); Input.fireQueued = false; Input.drag[0] = Input.drag[1] = 0;
   stepWorld(dt);
   updateCamera(dt);
+  perfAdd('step', performance.now() - q);
 }
 // the engine's world systems: falling chunks, particles, sand, heat and effects
 function stepWorld(dt) {
@@ -159,16 +161,17 @@ function drawToast() {
   hudBox(c0, r0, s.length + 4, 3, HC.dim, true); hudText(c0 + 2, r0 + 1, s, HC.cyan);
 }
 function draw(t) {
+  perfBegin();
   updateSkyline();
   clearDyn();
   let dynTop = markChunksDyn();
   if (GAME.markDyn) dynTop = Math.min(dynTop, GAME.markDyn());
   const ox = Math.floor(cam.x) - 1, oy = Math.floor(cam.y / ASPECT) - 1;
   const fx = cam.x - Math.floor(cam.x), fy = cam.y / ASPECT - Math.floor(cam.y / ASPECT);
-  computeLighting(ox, oy, gatherLights(t), dynTop);
-  renderScene(ox, oy, t, GAME.draw ? () => GAME.draw(t) : null);
-  hudClear(); if (GAME.hud) GAME.hud(t); drawToast();
-  presentFrame(fx, fy, t);
+  computeLighting(ox, oy, gatherLights(t), dynTop); perfLap('light');
+  renderScene(ox, oy, t, GAME.draw ? () => GAME.draw(t) : null); perfLap('scene');
+  hudClear(); if (GAME.hud) GAME.hud(t); drawToast(); perfOverlay(); perfLap('hud');
+  presentFrame(fx, fy, t); perfLap('present');
   const bar = document.getElementById('titleBar');
   if (bar && bar.hidden !== (state !== 'title')) bar.hidden = state !== 'title';
   if (GAME.afterFrame) GAME.afterFrame(t);
@@ -261,6 +264,7 @@ const Pixelite = {
   pause(on) { setPaused(on); },
   seed(n) { seedRandom(n); },   // the simulation's random numbers start from n: same seed + same inputs = same world
   get errors() { return ERRORS.slice(); },
+  perf: PERF,   // stage timers in ms (engine/API.md, Performance): step, light, scene, gameDraw, hud, present, draw; mean(), reset(), sync, show
   run(game) {
     GAME = game;
     devKeys('Pixelite.run', game, HOOKS);
@@ -313,7 +317,7 @@ const Pixelite = {
     render(t = clockT) { draw(t); },
     probe() {
       return { state, stateT: +stateT.toFixed(2), frame: frameNo, version: Pixelite.version, paused: isPaused(), errors: ERRORS.length, res: RES, renderer: R.mode, cols: R.cols, rows: R.rows,
-        world: [W, H], cam: [+cam.x.toFixed(1), +cam.y.toFixed(1)], particles: P.n, chunks: chunks.length, perfMs: +perfAvg.toFixed(1),
+        world: [W, H], cam: [+cam.x.toFixed(1), +cam.y.toFixed(1)], particles: P.n, chunks: chunks.length, perfMs: +perfAvg.toFixed(1), perf: PERF.avg(),
         tune: { ...TUNE }, game: GAME.probe ? GAME.probe() : null };
     }
   }

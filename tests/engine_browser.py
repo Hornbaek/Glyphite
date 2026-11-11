@@ -85,6 +85,23 @@ async def main():
         c2 = await page.evaluate("(() => { Pixelite.test.render(); const c = document.getElementById('screen'); return c.toDataURL ? c.toDataURL().length : 0 })()")
         check(a == c2, 'a frozen frame renders the same later (the draw clock is the simulation clock)')
         await b.close()
+        # --- the stage timers (Pixelite.perf), the F3 box -----------------------------
+        b, page, errs = await open_page(p, '?seed=5')
+        await page.evaluate('Pixelite.test.start(); Pixelite.test.freeze(); Pixelite.perf.reset()')
+        m = await page.evaluate("(() => { for (let i = 0; i < 12; i++) { Pixelite.test.step(1); Pixelite.test.render(); } return Pixelite.perf.mean(); })()")
+        check(all(k in m for k in ('step', 'light', 'scene', 'gameDraw', 'hud', 'present', 'draw')), f'perf.mean() has every stage ({sorted(m)})')
+        check(m['light'] > 0 and m['scene'] > 0 and m['step'] >= 0, f'the stages measure work ({m})')   # a step can be under the clock's 0.1 ms tick
+        check(abs(m['draw'] - (m['light'] + m['scene'] + m['gameDraw'] + m['hud'] + m['present'])) < .05, 'draw is the sum of its stages')
+        pr = await page.evaluate('Pixelite.test.probe().perf')
+        check(set(pr) == set(m), 'probe().perf carries the same stages')
+        await page.keyboard.press('F3')
+        shown = await page.evaluate('Pixelite.perf.show')
+        await page.evaluate('Pixelite.test.render()')
+        text = await page.evaluate("(() => { let s = ''; for (let r = 0; r < R.hrows; r++) { for (let c = 0; c < R.hcols; c++) { const g = R.hG[r * R.hcols + c]; s += g >= 32 && g < 127 ? String.fromCharCode(g) : ' '; } s += '\\n'; } return s; })()")
+        check(shown and 'PERF (F3)' in text and 'present' in text, 'F3 shows the stage times on the HUD')
+        await page.keyboard.press('F3')
+        check(not await page.evaluate('Pixelite.perf.show'), 'F3 again hides them')
+        await b.close()
     print('FAILED: ' + '; '.join(fails) if fails else 'PASS: engine in the browser')
     sys.exit(1 if fails else 0)
 

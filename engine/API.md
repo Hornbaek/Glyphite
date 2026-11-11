@@ -499,7 +499,7 @@ faster than real time):
 | `Pixelite.test.render()` | Draw one frame now (at the simulation clock's time, so a frozen frame draws the same twice). |
 | `Pixelite.test.record()` / `stop()` / `replay(log)` | Record the steps, presses and taps a test makes → `{ version, seed, steps }`; play such a log back (open the page with `?seed=<log.seed>` first). `?replay=<url or JSON>` in the page address plays a log after boot. A bug report or a level's solution is that small file. |
 | `Pixelite.test.hash()` | A checksum of the world (cells, back wall, heat) and the particle count: equal after equal runs. |
-| `Pixelite.test.probe()` | `{ state, frame, version, paused, errors, res, renderer, cols, rows, world, cam, particles, chunks, perfMs, tune, game: GAME.probe() }` |
+| `Pixelite.test.probe()` | `{ state, frame, version, paused, errors, res, renderer, cols, rows, world, cam, particles, chunks, perfMs, perf, tune, game: GAME.probe() }` (`perf`: the stage timers, see Performance) |
 
 **Random numbers.** The simulation (sand, blasts, particles, structures) and every game draw from one seeded generator: `rnd()` (0..1),
 `rr(a, b)`, `pick(string)`. `Pixelite.seed(n)` or `?seed=n` in the page address starts it from n. Use `rnd()` in game code, not
@@ -516,3 +516,23 @@ body, a character, a particle or a light. The build refuses a game that repeats 
 `game.json` key (`tools/authorcheck.mjs`), and warns about `Math.random` in game code.
 
 `tests/smoke.py <id>` uses exactly this for any game. URL hash `#2d` / `#gl` forces a renderer.
+
+## Performance: `Pixelite.perf`
+
+`perfAvg` (and `probe().perfMs`) is the time *between* frames, so it reads 16.7 ms whether a frame took 2 ms or 16. `Pixelite.perf` is the work, in
+milliseconds of main-thread time per stage, smoothed over about 25 frames (also `probe().perf`, and a box on screen: press **F3**):
+
+| Field | Stage |
+|---|---|
+| `step` | one fixed step (`GAME.update` and the engine's world step; a frame runs one to three) |
+| `light` | skyline, shadow marks (`GAME.markDyn`), `GAME.lights`, the sun, ambient occlusion, the lamps |
+| `scene` | terrain, particles, falling chunks, rings, the tone map into bytes, the sky layer; without `gameDraw` |
+| `gameDraw` | `GAME.draw` |
+| `hud` | `GAME.hud`, the toast and the F3 box |
+| `present` | handing the picture to WebGL or the canvas: the CPU's part only, the GPU finishes later |
+| `draw` | `light + scene + gameDraw + hud + present` |
+
+`Pixelite.perf.mean()` is the plain average since `Pixelite.perf.reset()` (a script that renders N frames reads one number per stage);
+`Pixelite.perf.sync = true` reads a pixel back after presenting, so `present` then includes the wait for the picture (software GL, a slow
+GPU). `tests/perf.py` runs every game at RES 2 and 3 and two screen sizes in both renderers and prints the table. Headless Chrome has no GPU,
+so its `present` says little; `light`, `scene` and `step` are JavaScript and mean the same everywhere.

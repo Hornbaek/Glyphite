@@ -230,6 +230,42 @@ function hudFlow(row, segs) {
 }
 const fmtS = (v, w, d) => (v < 0 ? '-' : '+') + Math.abs(v).toFixed(d).padStart(w, '0');   // signed, zero-padded
 
+// ---------- stage timers: where a frame's time goes (Pixelite.perf, probe().perf, the F3 overlay) ----------
+// perfAvg (11_loop.js) is the time BETWEEN frames, so it reads 16.7 ms whether the work took 2 ms or 16. These are the work: milliseconds of
+// main-thread time per stage, smoothed over about 25 frames. `step` is per fixed step (a frame runs one to three); `scene` leaves out
+// `gameDraw` (the game's own draw hook, which runs inside it); `present` is the time to hand the picture to WebGL or the canvas, which
+// is only the CPU's part: the GPU finishes later, unless `sync` is on (tests/perf.py does that: it reads one pixel back, so the
+// wait is counted). mean() is the plain average since reset(), for a script that wants one number.
+const PERF_STAGES = ['step', 'light', 'scene', 'gameDraw', 'hud', 'present'];
+const PERF = { show: false, sync: false, draw: 0, gd: 0, t0: 0, sum: {}, cnt: {},
+  avg() { const o = {}; for (const s of [...PERF_STAGES, 'draw']) o[s] = +this[s].toFixed(2); return o; },   // the smoothed numbers, rounded (probe().perf)
+  mean() { const o = {}; for (const s of PERF_STAGES) o[s] = this.cnt[s] ? +(this.sum[s] / this.cnt[s]).toFixed(3) : 0; o.draw = this.cnt.present ? +(this.sum.draw / this.cnt.present).toFixed(3) : 0; return o; },
+  reset() { for (const s of [...PERF_STAGES, 'draw']) { this.sum[s] = 0; this.cnt[s] = 0; } } };
+for (const s of PERF_STAGES) PERF[s] = 0;
+PERF.reset();
+let _perfFrame = 0;   // the draw stages of the frame in progress, added up
+function perfAdd(stage, ms) { PERF.sum[stage] += ms; PERF.cnt[stage]++; PERF[stage] += (ms - PERF[stage]) * .04; }
+function perfBegin() { PERF.t0 = performance.now(); _perfFrame = 0; }
+// the time since the last lap goes to `stage`; 'present' ends the frame
+function perfLap(stage) {
+  const now = performance.now(); let ms = now - PERF.t0; PERF.t0 = now;
+  if (stage === 'scene') { const g = Math.min(PERF.gd, ms); perfAdd('gameDraw', g); ms -= g; PERF.gd = 0; _perfFrame += g; }
+  perfAdd(stage, ms); _perfFrame += ms;
+  if (stage === 'present') perfAdd('draw', _perfFrame);
+}
+function perfFlush() { if (R.mode === 'gl') R.gl.readPixels(0, 0, 1, 1, R.gl.RGBA, R.gl.UNSIGNED_BYTE, new Uint8Array(4)); else R.ctx.getImageData(0, 0, 1, 1); }
+// the F3 overlay: the stage times and the picture's size, on the HUD
+function perfOverlay() {
+  if (!PERF.show) return;
+  const rows = [['step', PERF.step], ['light', PERF.light], ['scene', PERF.scene], ['game', PERF.gameDraw], ['hud', PERF.hud], ['present', PERF.present], ['draw', PERF.draw]];
+  const w = 24, c = 1, r = 1; hudBox(c, r, w, rows.length + 4, HC.dim, true);
+  hudText(c + 2, r, ' PERF (F3) ', HC.cyan);
+  rows.forEach(([n, v], i) => hudText(c + 2, r + 1 + i, `${n.padEnd(8)}${v.toFixed(2).padStart(6)} ms`, n === 'draw' ? HC.gold : HC.txt));
+  hudText(c + 2, r + rows.length + 1, `frame   ${perfAvg.toFixed(1).padStart(6)} ms`, HC.dim);
+  hudText(c + 2, r + rows.length + 2, `${R.cols}x${R.rows} ${R.mode} x${RES}`.slice(0, w - 4), HC.dim);
+}
+if (typeof window !== 'undefined') window.addEventListener('keydown', e => { if (e.code === 'F3' && !e.repeat && !e.ctrlKey && !e.metaKey) { e.preventDefault(); PERF.show = !PERF.show; } });
+
 // camera: the world position (units) of the screen's top-left corner
 const cam = { x: 0, y: 0 };
 // world position (units) → HUD cell
@@ -243,6 +279,7 @@ function presentFrame(fracX, fracY, time) {
   const dx = Math.round(-(1 + fracX) * R.cw + sx), dy = Math.round(-(1 + fracY) * R.chh + sy);
   const sdx = Math.round(-(1 + R.skyFX) * R.cw + sx), sdy = Math.round(-(1 + R.skyFY) * R.chh + sy);
   if (R.mode === 'gl') presentGL(dx, dy, sdx, sdy, time); else present2D(dx, dy, sdx, sdy, time);
+  if (PERF.sync) perfFlush();
 }
 
 function presentGL(dx, dy, sdx, sdy, time) {

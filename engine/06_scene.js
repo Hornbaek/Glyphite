@@ -195,7 +195,7 @@ function renderScene(ox, oy, time, drawExtras) {
 
   // 4) falling chunks, then the game's own objects
   drawChunks();
-  if (drawExtras) drawExtras();
+  if (drawExtras) { const q = performance.now(); drawExtras(); PERF.gd = performance.now() - q; }
 
   // 5) shock rings and floating text
   const band = 1.3 * Math.sqrt(RES);
