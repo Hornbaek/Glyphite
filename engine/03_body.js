@@ -12,15 +12,21 @@ class Body {
   toWorld(lx, ly, out) { const c = Math.cos(this.a), s = Math.sin(this.a); out[0] = this.x + lx * c - ly * s; out[1] = this.y + lx * s + ly * c; return out; }
   dirWorld(lx, ly, out) { const c = Math.cos(this.a), s = Math.sin(this.a); out[0] = lx * c - ly * s; out[1] = lx * s + ly * c; return out; }
   impulse(jx, jy, rx, ry) { this.vx += jx / this.m; this.vy += jy / this.m; this.w += (rx * jy - ry * jx) / this.I; }
+  // A fast body moves in sub-steps (each under about 0.7 of a unit, like a particle), so it cannot pass through a one-cell wall;
+  // hits from every sub-step are kept, so a game and the chunk impact code see the hardest one.
   step(dt) {
     this.vx += this.fx / this.m * dt; this.vy += (this.fy / this.m + G) * dt; this.w += this.tq / this.I * dt;
-    this.x += this.vx * dt; this.y += this.vy * dt; this.a += this.w * dt;
-    if (this.a > Math.PI) this.a -= 2 * Math.PI; else if (this.a < -Math.PI) this.a += 2 * Math.PI;
-    this.collide();
+    if (DEV) devFinite('Body.step', this.x, this.y, this.vx, this.vy, this.a, this.w);
+    const n = clamp(Math.ceil(Math.hypot(this.vx, this.vy) * dt / .7), 1, 8), h = dt / n;
+    for (let i = 0; i < n; i++) {
+      this.x += this.vx * h; this.y += this.vy * h; this.a += this.w * h;
+      if (this.a > Math.PI) this.a -= 2 * Math.PI; else if (this.a < -Math.PI) this.a += 2 * Math.PI;
+      this.collide(i === 0);
+    }
   }
-  collide() {
+  collide(first = true) {
     const c = Math.cos(this.a), s = Math.sin(this.a), hull = this.hull, n = [0, 0], SKIN = .3;
-    this.hits.length = 0; this.feetDown = 0; this.bodyDown = 0;
+    if (first) { this.hits.length = 0; this.feetDown = 0; this.bodyDown = 0; }
     const act = [];
     for (const p of hull) {
       const rx = p.x * c - p.y * s, ry = p.x * s + p.y * c, px = this.x + rx, py = this.y + ry;
@@ -95,6 +101,7 @@ function charDefaults() {
 class Character {
   constructor(x, y, o = {}) {
     this.x = x; this.y = y; this.vx = 0; this.vy = 0; this.facing = 1;
+    devKeys("new Character", o, Object.keys(charDefaults()));
     this.o = { ...charDefaults(), ...o };
     this.onGround = false; this.ground = 0; this.wall = 0;
     this.coyoteT = 0; this.bufferT = 0; this.lockT = 0; this.dropT = 0; this.rising = false; this.held = false;
@@ -187,6 +194,7 @@ class Character {
   step(dt, inp = {}) {
     const o = this.o, g = o.gravity || G, wasGround = this.onGround, dir = clamp(inp.x || 0, -1, 1);
     this.jumped = this.wallJumped = this.bumped = false; this.landed = 0;
+    if (DEV) devFinite('Character.step', this.x, this.y, this.vx, this.vy, dt, inp.x || 0);
     this._cb.length = 0;
     if (o.chunks) for (const ch of chunks) { const b = chunkCellBox(ch); b.push(ch); this._cb.push(b); }
     // the jump button: a press is remembered for `buffer` seconds, the ground for `coyote` seconds after leaving it

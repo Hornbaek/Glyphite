@@ -42,7 +42,7 @@ function regolithLights(t, out) {
   for (const lp of LEVEL.lamps) {
     if (lp.dead || lp.x + lp.r < cam.x || lp.x - lp.r > cam.x + R.cols) continue;
     if (!lp.chunk && cells[lp.mount] === EMPTY) { lp.dead = true; continue; }   // its mast or roof was blown away
-    const I = lp.flick > 0 && Math.random() < .55 ? lp.I * .12 : lp.I;
+    const I = lp.flick > 0 && rnd() < .55 ? lp.I * .12 : lp.I;
     out.push({ x: lp.x, y: lp.y, r: lp.r, c: lp.c, I, shadow: true, dx: lp.dx, dy: lp.dy, cos: lp.cos });
   }
 }
@@ -53,7 +53,7 @@ function drawWorld(t) {
   for (const p of LEVEL.pads) for (const [bx, by, col] of beaconSpots(p)) for (let q = 0; q < p.pw; q++) putEmit(Math.round(bx - (p.pw - 1) / 2) + q, by, on ? 42 : 46, on ? col[0] * 1.6 : .3, on ? col[1] * 1.6 : .2, on ? col[2] * 1.6 : .15);
   for (const lp of LEVEL.lamps) {
     if (lp.hx < cam.x - 10 * RES || lp.hx > cam.x + R.cols + 10 * RES) continue;
-    const on = !lp.dead && !(lp.flick > 0 && Math.random() < .55);
+    const on = !lp.dead && !(lp.flick > 0 && rnd() < .55);
     if (lp.rot) {   // riding a falling post: the shade tumbles with it
       const c = Math.cos(lp.rot), s = Math.sin(lp.rot), hx = lp.hx + .5, hy = (lp.hy + .5) * ASPECT;
       for (let q = -lp.w; q <= lp.w; q++) {

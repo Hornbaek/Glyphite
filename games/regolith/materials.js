@@ -15,8 +15,8 @@ const CRYST = defineMaterial('He-3 crystal', {
   // blasting a vein frees glowing shards that fly to the lander (see PT_PICKUP in lander.js)
   blast(x, y, vx, vy, how) {
     const S = RES;
-    if (how === 'chip') { if (Math.random() < .5) spawnP(PT_PICKUP, x, y, rr(-6, 6) * S, -rr(4, 10) * S, 40, 42, CRYST); }
-    else if (Math.random() < 1 / (S * S) + .05) spawnP(PT_PICKUP, x, y, vx * .5, vy * .5 - 6 * S, 40, 42, CRYST);
+    if (how === 'chip') { if (rnd() < .5) spawnP(PT_PICKUP, x, y, rr(-6, 6) * S, -rr(4, 10) * S, 40, 42, CRYST); }
+    else if (rnd() < 1 / (S * S) + .05) spawnP(PT_PICKUP, x, y, vx * .5, vy * .5 - 6 * S, 40, 42, CRYST);
   }
 });
 const GLASS = defineMaterial('impact glass', { albedo: [.32, .58, .46], ramp: ' .,;o', tough: .45, shiny: .8, grainGlyphs: ';o' });

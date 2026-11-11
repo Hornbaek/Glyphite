@@ -22,6 +22,8 @@ const scriptJSON = v => JSON.stringify(v).replace(/</g, '\\u003c').replace(LS, c
 export function assemble({ shell, engine, manifest, head = '', parts, tune = null, renderer = '' }) {
   const id = manifest.id;
   const pre = [
+    `const ENGINE_VERSION = ${scriptJSON(String(engine.version || ''))};`,
+    `const PIXELITE_LINE0 = 0;`,   // the page line of <script>: filled in below, so a runtime error can name its source file and line
     `const GAME_MANIFEST = ${scriptJSON({ id, title: manifest.title, tunables: manifest.tunables || {} })};`,
     tune ? `window.PIXELITE_TUNE = ${scriptJSON(tune)};` : '',
     renderer ? `window.PIXELITE_RENDERER = ${scriptJSON(renderer)};` : ''
@@ -40,7 +42,9 @@ export function assemble({ shell, engine, manifest, head = '', parts, tune = nul
     HTML: head.replace(/\s+$/, ''),
     SCRIPT: script
   };
-  return shell.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in vals ? vals[k] : m));
+  const page = shell.replace(/\{\{(\w+)\}\}/g, (m, k) => (k in vals ? vals[k] : m));
+  const line0 = page.slice(0, Math.max(0, page.indexOf('<script>\n'))).split('\n').length;
+  return page.replace('PIXELITE_LINE0 = 0;', `PIXELITE_LINE0 = ${line0};`);
 }
 
 // Where each line of an assembled page came from: map[pageLine] = [source path, line in that file]

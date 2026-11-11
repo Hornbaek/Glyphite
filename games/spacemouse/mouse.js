@@ -36,7 +36,7 @@ function stepMouse(dt) {
   }
   if (c.landed > 28 * S) { Sfx.thud(Math.min(6, c.landed / S / 12)); puff(c.x, c.y, 4 + c.landed / S / 10, c.ground); }
   m.slide = !!(c.wall && inp.x === c.wall && c.vy > 0);
-  if (m.slide && Math.random() < .3) spawnP(PT_DUST, c.x + c.wall * c.o.w / 2, c.y - c.o.h * .3, 0, -3 * S, .4, pick(".'"), HULL);
+  if (m.slide && rnd() < .3) spawnP(PT_DUST, c.x + c.wall * c.o.w / 2, c.y - c.o.h * .3, 0, -3 * S, .4, pick(".'"), HULL);
   // what the drawing shows: how far it has fallen from the top of its jump (a long fall tumbles), a squash after a hard
   // landing, chewing
   m.t += dt; m.airT = c.onGround ? 0 : m.airT + dt;
@@ -123,8 +123,8 @@ function bite(c, dir) {
   for (let k = 0; k < n; k++) {
     const [, cx, cy] = cand[k];
     setC(cx, cy, EMPTY);
-    if (Math.random() < .22) spawnGrain(cx + .5, (cy + .5) * ASPECT, rr(-4, 4) * S, -rr(0, 5) * S, CRUMBS);
-    else if (Math.random() < .3) spawnP(PT_DUST, cx + .5, (cy + .5) * ASPECT, rr(-5, 5) * S, -rr(1, 6) * S, rr(.2, .5), pick(".,'"), CHEESE);
+    if (rnd() < .22) spawnGrain(cx + .5, (cy + .5) * ASPECT, rr(-4, 4) * S, -rr(0, 5) * S, CRUMBS);
+    else if (rnd() < .3) spawnP(PT_DUST, cx + .5, (cy + .5) * ASPECT, rr(-5, 5) * S, -rr(1, 6) * S, rr(.2, .5), pick(".,'"), CHEESE);
   }
   grams += n * 5 * ASPECT / (S * S);   // 5 g per unit² at RES 1
   Sfx.burst(.05, rr(1600, 2400), 500, .1, 'bandpass', 2);

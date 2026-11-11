@@ -47,7 +47,7 @@ function gameKey(code) { if (code === 'Enter' || code === 'NumpadEnter') advance
 function stepCables(dt) {
   const S = RES;
   for (const [ty, a, b] of SEC.cableRuns) {
-    if (Math.random() > dt * 2.5) continue;
+    if (rnd() > dt * 2.5) continue;
     const x = rr(a, b + 1) * SEC.tw, cx = Math.floor(x);
     let cy = ty * SEC.th; while (cy < (ty + 1) * SEC.th && getC(cx, cy) !== CABLE) cy++;
     if (getC(cx, cy) !== CABLE) continue;

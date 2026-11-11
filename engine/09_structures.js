@@ -116,12 +116,45 @@ function settleIslands(onDrop) {
 function breakOff(comp) {
   const n = comp.length >> 1; let gran = 0;
   for (let i = 0; i < comp.length; i += 2) if (MAT_GRAN[cells[comp[i + 1] * W + comp[i]]]) gran++;
-  if (gran === n || n > 2600 * RES * RES) return;        // loose dust is the sand sim's job; whole hillsides stay put
+  if (gran === n) return;                                  // loose dust is the sand sim's job
+  if (n > 2600 * RES * RES) { startSlab(comp); return; }   // a whole hillside: too big to tumble, it sinks as a slab instead
   if (n <= 2) {                                            // crumbs just fall as grains
     for (let i = 0; i < comp.length; i += 2) { const cx = comp[i], cy = comp[i + 1], m = cells[cy * W + cx], c = crumbOf(m); setC(cx, cy, EMPTY); if (c) spawnGrain(cx + .5, (cy + .5) * ASPECT, 0, 0, c); }
     return;
   }
   makeChunk(comp);
+}
+
+// A piece too big to simulate as a rigid chunk (thousands of cells) still must not hang in the air: it sinks straight down, a row
+// a step, until it rests on something, then lands with a thud and a cloud of dust. Nothing below it (it would fall out of the
+// world) leaves it where it is.
+const slabs = [];
+function startSlab(comp) {
+  const own = new Set(), idx = [];
+  for (let i = 0; i < comp.length; i += 2) { const j = comp[i + 1] * W + comp[i]; own.add(j); idx.push(j); }
+  const N = W * H; let d = H;
+  for (const j of idx) {
+    if (own.has(j + W)) continue;
+    let g = 0, q = j + W; while (q < N && cells[q] === EMPTY) { g++; q += W; }
+    if (q >= N) return;                                      // a column with nothing under it: nowhere to land
+    if (own.has(q)) continue;
+    if (g < d) d = g;
+  }
+  if (d <= 0 || d >= H) return;
+  idx.sort((a, b) => b - a);                                 // bottom row first, so each cell moves into a cell already vacated
+  slabs.push({ idx, rows: d, y: ((idx[idx.length - 1] / W) | 0) });
+}
+function stepSlabs() {
+  for (let k = slabs.length - 1; k >= 0; k--) {
+    const sl = slabs[k], idx = sl.idx;
+    for (let i = 0; i < idx.length; i++) { const j = idx[i], m = cells[j], x = j % W, y = (j / W) | 0; if (m === EMPTY) continue; setC(x, y + 1, m); setC(x, y, EMPTY); idx[i] = j + W; heat[j + W] = heat[j]; heat[j] = 0; }
+    if (--sl.rows > 0) continue;
+    slabs.splice(k, 1);
+    let lo = 0; for (const j of idx) if (j > lo) lo = j;
+    const lx = lo % W, ly = ((lo / W) | 0) * ASPECT;
+    for (let q = 0; q < 14 * RES; q++) spawnP(PT_DUST, lx + rr(-30, 30) * RES, ly - rr(0, 2), rr(-8, 8) * RES, -rr(1, 6) * RES, rr(.8, 1.8), pick(".'`"), RUBBLE_MAT);
+    Sfx.thud(10); FX.shake = Math.min(1.2, FX.shake + .4);
+  }
 }
 
 function makeChunk(comp) {
@@ -193,6 +226,7 @@ function checkSupport(x, y, R, delay = 0) {
 
 function stepChunks(dt) {
   const S = RES;
+  if (slabs.length) stepSlabs();
   for (let i = rechecks.length - 1; i >= 0; i--) { const c = rechecks[i]; c.t -= dt; if (c.t <= 0) { rechecks.splice(i, 1); structuralCheck(c.x, c.y, c.R); } }
   for (let i = chunks.length - 1; i >= 0; i--) {
     const ch = chunks[i], b = ch.body; ch.age += dt;
@@ -205,9 +239,10 @@ function stepChunks(dt) {
     }
     if (!ch.n) { chunks.splice(i, 1); continue; }
     if (GAME.chunkStep) GAME.chunkStep(ch);
-    const still = Math.hypot(b.vx, b.vy) < .5 * S && Math.abs(b.w) < .25 && b.hits.length > 0;
+    // resting on the grid or on a game body that is itself still (chunkVsBody sets ch.onBody) both count as support
+    const still = Math.hypot(b.vx, b.vy) < .5 * S && Math.abs(b.w) < .25 && (b.hits.length > 0 || ch.onBody === frameNo);
     ch.rest = still ? ch.rest + dt : 0;
-    if (ch.rest > .6 || ch.age > 20) { freezeChunk(ch); chunks.splice(i, 1); }
+    if (ch.rest > .6 || ch.age > 20) { freezeChunk(ch, ch.rest <= .6); chunks.splice(i, 1); }
     else if (b.y > H * ASPECT + 40 * S || b.x < -40 * S || b.x > W + 40 * S) { mountsGone(ch); chunks.splice(i, 1); }
     else mountsMoved(ch);
   }
@@ -249,12 +284,21 @@ function chipChunk(ch, wx, wy, k, vx, vy) {
   b.hull = chunkHull(ch);
 }
 
-// back into the grid: rasterise the rotated chunk onto the world cells it now covers
-function freezeChunk(ch) {
+// back into the grid: rasterise the rotated chunk onto the world cells it now covers. Cells that cannot be placed (something
+// already stands there) are not lost: they turn into grains. A chunk frozen by force (it never came to rest) is first lifted out
+// of whatever it overlaps, so it does not freeze into the ground.
+function chunkOverlap(ch) {
+  const [x0, y0, x1, y1] = chunkCellBox(ch); let n = 0;
+  for (let cy = Math.max(0, y0); cy <= Math.min(H - 1, y1); cy++) for (let cx = Math.max(0, x0); cx <= Math.min(W - 1, x1); cx++) if (cells[cy * W + cx] !== EMPTY && chunkCellMat(ch, cx, cy)) n++;
+  return n;
+}
+function freezeChunk(ch, forced) {
+  if (forced) for (let up = 0, lift = chunkOverlap(ch); lift > 0 && up < ch.gh + 8; up++) { ch.body.y -= ASPECT; lift = chunkOverlap(ch); }
   const [x0, y0, x1, y1] = chunkCellBox(ch), placed = [];
   for (let cy = Math.max(0, y0); cy <= Math.min(H - 1, y1); cy++) for (let cx = Math.max(0, x0); cx <= Math.min(W - 1, x1); cx++) {
     const m = chunkCellMat(ch, cx, cy); if (!m) continue;
     if (cells[cy * W + cx] === EMPTY) { setC(cx, cy, m); placed.push(cy * W + cx); }
+    else { const c = crumbOf(m); if (c) spawnGrain(cx + .5, (cy + .5) * ASPECT, 0, -2 * RES, c); }
   }
   mountsFrozen(ch, placed);
 }
@@ -281,7 +325,8 @@ function chunkVsBody(ch, lb, onHit) {
       if (onHit && onHit(-vn, p)) return;
       const rn = rx * ny - ry * nx, qn = qx * ny - qy * nx;
       const j = -1.3 * vn / (1 / lb.m + rn * rn / lb.I + 1 / b.m + qn * qn / b.I);
-      lb.impulse(nx * j, ny * j, rx, ry); b.impulse(-nx * j, -ny * j, qx, qy); ch.rest = 0;
+      lb.impulse(nx * j, ny * j, rx, ry); b.impulse(-nx * j, -ny * j, qx, qy);
+      if (Math.hypot(lb.vx, lb.vy) < .5 * RES) ch.onBody = frameNo; else ch.rest = 0;   // resting on a still body is support; a moving one wakes it
     }
     lb.x += nx * .25; lb.y += ny * .25;
   }

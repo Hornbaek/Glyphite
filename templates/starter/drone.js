@@ -60,7 +60,7 @@ function stepBolts(dt) {
     const n = Math.max(1, Math.ceil(Math.hypot(o.vx, o.vy) * dt / .5));
     let hit = o.t > 2;
     for (let s = 0; s < n && !hit; s++) { o.x += o.vx * dt / n; o.y += o.vy * dt / n; hit = solidU(o.x, o.y) || !!chunkAt(o.x, o.y); }
-    if (Math.random() < .6) spawnP(PT_SPARK, o.x, o.y, rr(-3, 3) * S, rr(-3, 3) * S, rr(.1, .3), pick("'."), 0);
+    if (rnd() < .6) spawnP(PT_SPARK, o.x, o.y, rr(-3, 3) * S, rr(-3, 3) * S, rr(.1, .3), pick("'."), 0);
     if (hit) { bolts.splice(i, 1); blastFrom(o.vx, o.vy); explode(o.x, o.y, TUNE.blastRadius * S, 1); }
   }
 }

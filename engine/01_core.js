@@ -21,7 +21,12 @@ const CALM = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce
 
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const lerp = (a, b, t) => a + (b - a) * t;
-const rr = (a, b) => a + (b - a) * Math.random();
+// The simulation's own random numbers (sand, blasts, particles, structures): seeded, so the same seed and the same inputs
+// give the same world (Pixelite.seed(n), engine/API.md). Math.random stays for sound only.
+let _rndState = (Math.random() * 4294967296) >>> 0;
+function rnd() { _rndState = _rndState + 0x6D2B79F5 | 0; let t = Math.imul(_rndState ^ _rndState >>> 15, 1 | _rndState); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+function seedRandom(n) { _rndState = (n | 0) >>> 0; }
+const rr = (a, b) => a + (b - a) * rnd();
 const smooth = t => t * t * (3 - 2 * t);
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function hash2(x, y, s) { let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(s | 0, 1442695041)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return (h >>> 0) / 4294967296; }
@@ -74,6 +79,7 @@ const MAT_DEFAULTS = {
   blast: null               // (x, y, vx, vy, how) => void: replaces ejecta ('blast') / adds to chips ('chip')
 };
 function defineMaterial(name, opts = {}) {
+  devKeys(`defineMaterial('${name}')`, opts, Object.keys(MAT_DEFAULTS));
   const id = MATS.length; if (id >= MAT_MAX) throw new Error('too many materials');
   MATS.push(null); applyMaterial({ ...MAT_DEFAULTS, ...opts, id, name });
   return id;
@@ -106,11 +112,11 @@ const CS = 16; let CWn = 0, CHn = 0, frameNo = 0;
 function worldInit(w, h) {
   W = w; H = h; cells = new Uint8Array(w * h); heat = new Float32Array(w * h); vari = new Uint8Array(w * h); dyn = new Uint8Array(w * h);
   backCells = new Uint8Array(w * h);
-  for (let i = 0; i < w * h; i++) vari[i] = (Math.random() * 256) | 0;
+  for (let i = 0; i < w * h; i++) vari[i] = (rnd() * 256) | 0;
   CWn = Math.ceil(w / CS); CHn = Math.ceil(h / CS); awake = new Uint8Array(CWn * CHn);
   // a new world starts clean: no flying particles, effects, falling chunks or mounted objects
   P.n = 0; FX.rings.length = 0; FX.lights.length = 0; FX.texts.length = 0;
-  chunks = []; rechecks = []; mounts.length = 0;
+  chunks = []; rechecks = []; mounts.length = 0; slabs.length = 0;
 }
 function getC(x, y) { if (x < 0 || x >= W) return EDGE_MAT; if (y < 0) return EMPTY; if (y >= H) return EDGE_MAT; return cells[y * W + x]; }
 function wakeAt(x, y) {
@@ -173,13 +179,13 @@ function simGranular() {
           // slide down-diagonal while two cells below that side are free: sand rests at about 63°, as steep as it was on the
           // ASCII engine's cells (two units tall); a slope of 1 in 1 here would be 45° and every pile would slump
           if (cells[row + nx] === EMPTY && cells[row + W + nx] === EMPTY && (y + 2 >= H || cells[row + 2 * W + nx] === EMPTY)) {
-            if (Math.random() < .55) { cells[row + x] = EMPTY; cells[row + W + nx] = m; wakeAt(x, y); wakeAt(nx, y + 1); }
+            if (rnd() < .55) { cells[row + x] = EMPTY; cells[row + W + nx] = m; wakeAt(x, y); wakeAt(nx, y + 1); }
             else awake[ci] = 1;
             break;
           }
           if (MAT_CREEP[m]) {                                                 // fine dust creeps on down to ~45°
             if (cells[row + nx] === EMPTY && cells[row + W + nx] === EMPTY) {
-              if (Math.random() < .22) { cells[row + x] = EMPTY; cells[row + nx] = m; wakeAt(x, y); wakeAt(nx, y); }
+              if (rnd() < .22) { cells[row + x] = EMPTY; cells[row + nx] = m; wakeAt(x, y); wakeAt(nx, y); }
               else awake[ci] = 1;
               break;
             }

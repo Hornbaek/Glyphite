@@ -23,6 +23,7 @@ import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import vm from 'node:vm';
 import { assemble } from './assemble.mjs';
+import { checkAuthor } from './authorcheck.mjs';
 import { loadAssets, validate as validateArt, artDir } from './art/lib.mjs';
 import { buildText as artPipelineText } from './art.mjs';
 
@@ -184,6 +185,7 @@ function build(only) {
   for (const g of games) {
     const m = g.manifest, out = join(DIST, 'games', m.id);
     checkNames(engine, g);
+    const ac = checkAuthor(g); for (const w of ac.warnings) console.warn('warning: ' + w); if (ac.errors.length) die(ac.errors.join('\n'));
     const page = assemble({ shell: engine.shellCode, engine, manifest: m, head: g.head, parts: g.parts });
     checkSyntax(page, `${g.path}`);
     write(join(out, 'index.html'), page);

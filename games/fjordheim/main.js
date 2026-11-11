@@ -193,11 +193,11 @@ function stepGame(dt) {
   stepTime(dt); stepFields(dt); stepShip(dt);
   if ((assignT -= dt) <= 0) { assignT = .5; assignJobs(); }
   stepFolk(dt); stepAnimals(dt);
-  if (HOME.season === 3) for (let n = 0; n < 30 * RES * dt * (1 + Math.random()); n++)   // snow over the view
-    spawnP(PT_SNOW, cam.x + Math.random() * R.cols, cam.y - 2 * RES + Math.random() * R.rows * ASPECT * .6, 0, rr(5, 9) * RES, rr(4, 8), Math.random() < .3 ? 42 : 46, 0);
+  if (HOME.season === 3) for (let n = 0; n < 30 * RES * dt * (1 + rnd()); n++)   // snow over the view
+    spawnP(PT_SNOW, cam.x + rnd() * R.cols, cam.y - 2 * RES + rnd() * R.rows * ASPECT * .6, 0, rr(5, 9) * RES, rr(4, 8), rnd() < .3 ? 42 : 46, 0);
   const home = built('longhouse')[0];
-  if (home && Math.random() < dt * 1.5) { isoToWorld(home.i + 1.5, home.j + 1, _p); spawnP(PT_SMOKE, _p[0] + rr(-1, 1) * RES, _p[1] - 14 * RES, rr(-2, 2) * RES, rr(-6, -3) * RES, rr(2, 4), pick('.,:'), 0); }
-  if (!home && Math.random() < dt * 2) { isoToWorld(LANDING[0] + 1.5, LANDING[1] - .5, _p); spawnP(PT_SMOKE, _p[0], _p[1] - 2 * RES, rr(-2, 2) * RES, rr(-6, -3) * RES, rr(1.5, 3), pick('.,:'), 0); }
+  if (home && rnd() < dt * 1.5) { isoToWorld(home.i + 1.5, home.j + 1, _p); spawnP(PT_SMOKE, _p[0] + rr(-1, 1) * RES, _p[1] - 14 * RES, rr(-2, 2) * RES, rr(-6, -3) * RES, rr(2, 4), pick('.,:'), 0); }
+  if (!home && rnd() < dt * 2) { isoToWorld(LANDING[0] + 1.5, LANDING[1] - .5, _p); spawnP(PT_SMOKE, _p[0], _p[1] - 2 * RES, rr(-2, 2) * RES, rr(-6, -3) * RES, rr(1.5, 3), pick('.,:'), 0); }
 }
 const PT_SNOW = defineParticle({
   gravity: 0, drag: 0,

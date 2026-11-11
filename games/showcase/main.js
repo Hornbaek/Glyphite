@@ -8,7 +8,7 @@ function startShow() { genSite(); METEORS = []; nextMeteor = 1.5; rebuildT = -1;
 
 // a meteor from above the view, aimed at a world point
 function launchMeteor(tx, ty, byVisitor) {
-  const S = RES, side = Math.random() < .5 ? -1 : 1, top = cam.y - 6 * S;
+  const S = RES, side = rnd() < .5 ? -1 : 1, top = cam.y - 6 * S;
   const vy = 95 * S, t = Math.max(.2, (ty - top) / vy), vx = side * rr(18, 34) * S;
   METEORS.push({ x: tx - vx * t, y: top, vx, vy, loud: byVisitor });
 }
@@ -36,7 +36,7 @@ function pourSand(dt) {
   pourT += dt;
   const phase = (pourT / 9) % 2, x = phase < 1 ? SITE.x0 + (SITE.x1 - SITE.x0) * .3 : SITE.x0 + (SITE.x1 - SITE.x0) * .7;
   if ((pourT % 9) > 5) return;   // a pause between pours
-  for (let n = rate * dt + Math.random(); n >= 1; n--) spawnGrain(x + rr(-1.5, 1.5) * S, cam.y + 2 * S, rr(-3, 3) * S, rr(0, 6) * S, SAND);
+  for (let n = rate * dt + rnd(); n >= 1; n--) spawnGrain(x + rr(-1.5, 1.5) * S, cam.y + 2 * S, rr(-3, 3) * S, rr(0, 6) * S, SAND);
 }
 
 function gameUpdate(dt) {

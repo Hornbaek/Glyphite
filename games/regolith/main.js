@@ -25,7 +25,7 @@ function regolithUpdate(dt) {
     if (state === 'landed') { L.body.vx *= .9; L.body.w *= .9; }
   }
   stepBoulders(dt); stepLamps(dt);
-  if (state === 'title' && Math.random() < dt * .5) spawnMeteor(cam.x + rr(.15, .85) * R.cols);
+  if (state === 'title' && rnd() < dt * .5) spawnMeteor(cam.x + rr(.15, .85) * R.cols);
   stepRockets(dt); stepMeteors(dt);
 }
 

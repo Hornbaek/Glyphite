@@ -7,7 +7,7 @@ const BEDROCK = defineMaterial('bedrock', { albedo: [.26, .27, .31], ramp: ' .:;
 const GEM = defineMaterial('gem', {
   albedo: [1, .35, .85], ramp: ' .+*', tough: .3, shiny: .7, style: 'crystal', glow: [.18, .03, .14, 5], pulse: [.9, .2, .7],
   // blasting a gem vein throws out shards (PT_SHARD in drone.js) instead of rubble
-  blast(x, y, vx, vy, how) { if (how === 'blast' || Math.random() < .5) spawnP(PT_SHARD, x, y, vx * .4, vy * .4 - 5 * RES, 30, 42, GEM); }
+  blast(x, y, vx, vy, how) { if (how === 'blast' || rnd() < .5) spawnP(PT_SHARD, x, y, vx * .4, vy * .4 - 5 * RES, 30, 42, GEM); }
 });
 worldMaterials({ edge: BEDROCK, rubble: RUBBLE, fill: STONE });
 

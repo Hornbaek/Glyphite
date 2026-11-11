@@ -66,7 +66,7 @@ function stepWrecks(dt) {
   for (const w of SEC.wrecks) {
     const x = w.x * SEC.tw, y = w.y * SEC.tw, age = SEC.time - w.t;
     if (getC(Math.floor(x), Math.floor((y + .3) / ASPECT)) === EMPTY && y < H * ASPECT) { w.vy += G * dt; w.y += w.vy * dt / SEC.tw; } else w.vy = 0;
-    if (age < 2.5 && Math.random() < .25) spawnP(PT_SPARK, x + rr(-2, 2) * S, y - rr(1, 3) * S, rr(-8, 8) * S, -rr(4, 14) * S, rr(.15, .4), pick("*+'"), 0);
+    if (age < 2.5 && rnd() < .25) spawnP(PT_SPARK, x + rr(-2, 2) * S, y - rr(1, 3) * S, rr(-8, 8) * S, -rr(4, 14) * S, rr(.15, .4), pick("*+'"), 0);
   }
 }
 

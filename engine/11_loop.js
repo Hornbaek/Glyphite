@@ -31,7 +31,45 @@
 // appear. Everything else is up to the game.
 let state = 'title', stateT = 0, perfAvg = 16, toastMsg = null;
 function setState(s) { state = s; stateT = 0; }
+// Pause is a flag, so a game in any state can be paused. A game that names its pause state 'paused' keeps working: setting
+// state = 'paused' pauses, and pausing from 'play' still switches to it. Pixelite.pause(on) flips it; the page pauses itself
+// when it is hidden (a game that loses focus must not keep falling).
+let PAUSED = false;
+const isPaused = () => PAUSED || state === 'paused';
+function setPaused(on) {
+  on = on === undefined ? !isPaused() : !!on;
+  if (on === isPaused()) return;
+  if (on) { if (state === 'play') state = 'paused'; else PAUSED = true; }
+  else { PAUSED = false; if (state === 'paused') state = 'play'; }
+  Input.pressed.clear(); Input.fireQueued = false; Input.drag[0] = Input.drag[1] = 0;
+}
+// The simulation's clock for drawing: whole steps plus the part of a step not yet run. It stops in pause and slows in slow motion,
+// and a test that steps by hand gets the same time every run (the wall clock only runs the toast).
+let clockT = 0;
 function say(text) { toastMsg = { text: text.slice(0, Math.max(10, R.hcols - 6)), t0: performance.now() / 1000 }; }
+// ---------- errors: shown, not swallowed ----------
+// In ?dev and in the editor's preview an overlay says what broke and where (the source file and line, from the '// ----- path -----'
+// markers the assembler writes); a player sees one line on the HUD instead of a frozen picture.
+const DEV = /[?&]dev\b/.test(location.search) || window.parent !== window;
+const ERRORS = [];
+function sourceLine(line) {   // a line of the page's script -> 'games/<id>/file.js:line'
+  const el = document.querySelector('body > script'); if (!el || typeof PIXELITE_LINE0 === 'undefined') return '';
+  const lines = el.textContent.split('\n'), n = line - PIXELITE_LINE0 + 1;   // index into the script text (its first line is PIXELITE_LINE0 + 0 of the page)
+  for (let i = Math.min(n, lines.length) - 1, k = 0; i >= 0; i--, k++) { const m = /^\/\/ ----- (.+) -----$/.exec(lines[i]); if (m) return `${m[1]}:${k}`; }
+  return '';
+}
+function reportError(msg, line) {
+  const where = line ? sourceLine(line) : '';
+  ERRORS.push(where ? `${msg} (${where})` : String(msg));
+  if (ERRORS.length > 1) return;
+  if (DEV) {
+    const d = document.createElement('pre'); d.id = 'pixeliteError';
+    d.style.cssText = 'position:fixed;left:0;right:0;top:0;margin:0;padding:8px 12px;background:#300;color:#fdd;font:12px/1.4 ui-monospace,Consolas,monospace;white-space:pre-wrap;z-index:9;max-height:40vh;overflow:auto';
+    d.textContent = ERRORS[0]; document.body.appendChild(d);
+  }
+}
+window.addEventListener('error', e => reportError(e.message || 'error', e.lineno));
+window.addEventListener('unhandledrejection', e => reportError('unhandled promise: ' + (e.reason && e.reason.message || e.reason)));
 const storeKey = k => `${GAME.id || 'glyphite'}.${k}`;   // the old name stays in the key, so saves made before the rename to Pixelite survive
 const detailLabel = () => `${RES.toFixed(1)}x`;
 
@@ -106,6 +144,7 @@ const _lights = [];
 function gatherLights(t) {
   _lights.length = 0;
   if (GAME.lights) GAME.lights(t, _lights);
+  if (DEV) for (const l of _lights) devFinite('a light', l.x, l.y, l.r, l.I);
   const S = RES;
   for (const l of FX.lights) { const u = l.age / l.life; _lights.push({ x: l.x, y: l.y, r: Math.min(48 * S, l.r), c: l.c, I: l.I * (1 - u) * (1 - u), shadow: l.shadow, flicker: l.flicker, seed: l.seed }); }
   // flickering lights get a copy with this moment's intensity (games may push the same object every frame)
@@ -113,6 +152,7 @@ function gatherLights(t) {
   return _lights;
 }
 function drawToast() {
+  if (ERRORS.length && !DEV) { const s = 'SOMETHING BROKE - RELOAD THE PAGE', c0 = Math.floor((R.hcols - s.length - 4) / 2); hudBox(c0, 2, s.length + 4, 3, HC.dim, true); hudText(c0 + 2, 3, s, HC.cyan); return; }
   const t = performance.now() / 1000;
   if (!toastMsg || t - toastMsg.t0 > 1.6) return;
   const s = toastMsg.text, c0 = Math.floor((R.hcols - s.length - 4) / 2), r0 = state === 'title' ? Math.floor(R.hrows * .32) : Math.max(5, Math.floor(R.hrows * .76));
@@ -138,13 +178,17 @@ let lastT = 0, acc = 0, slowT = 0, slowHinted = false;
 function frame(now) {
   const real = Math.min(.1, (now - lastT) / 1000 || DT); lastT = now;
   if (FX.slowT > 0) { FX.slowT -= real; FX.slow = .22; } else FX.slow = Math.min(1, FX.slow + real * 1.2);
-  acc += real * (state === 'paused' ? 0 : FX.slow);
+  const paused = isPaused();
+  acc += real * (paused ? 0 : FX.slow);
+  // presses made while paused would all fire on the first step after resuming: drop them (while running, update() clears them)
+  if (paused) { Input.pressed.clear(); Input.fireQueued = false; Input.drag[0] = Input.drag[1] = 0; }
   let n = 0; while (acc >= DT && n < 3) { update(DT); acc -= DT; n++; }
   if (n === 3) acc = 0;
-  draw(now / 1000);
+  clockT = frameNo * DT + acc;
+  draw(clockT);
   perfAvg = lerp(perfAvg, real * 1000, .04);
   // once per session, suggest coarser detail when frames are slow
-  if (perfAvg > 34 && state === 'play' && RES > 1) { slowT += real; if (slowT > 4 && !slowHinted) { slowHinted = true; say('RUNNING SLOW - PRESS - FOR LESS DETAIL'); } } else slowT = 0;
+  if (perfAvg > 34 && state === 'play' && !PAUSED && RES > 1) { slowT += real; if (slowT > 4 && !slowHinted) { slowHinted = true; say('RUNNING SLOW - PRESS - FOR LESS DETAIL'); } } else slowT = 0;
   requestAnimationFrame(frame);
 }
 
@@ -173,7 +217,7 @@ function engineKey(code) {
   else if (k.bloom !== false && code === 'KeyG') R.bloom = !R.bloom;
   else if (k.detail !== false && (code === 'Minus' || code === 'NumpadSubtract')) stepDetail(-1);
   else if (k.detail !== false && (code === 'Equal' || code === 'NumpadAdd')) stepDetail(1);
-  else if (k.pause !== false && (code === 'KeyP' || code === 'Escape') && (state === 'play' || state === 'paused')) state = state === 'play' ? 'paused' : 'play';
+  else if (k.pause !== false && (code === 'KeyP' || code === 'Escape') && state !== 'title') setPaused();
   else if (GAME.onKey) GAME.onKey(code);
 }
 
@@ -197,6 +241,7 @@ function boot(data) {
   }
   if (GAME.init) GAME.init(data);
   updateCamera(0, true);
+  document.addEventListener('visibilitychange', () => { if (document.hidden && state !== 'title') setPaused(true); });
   window.claude?.hot?.snapshot?.(() => ({ detail: RES, ...(GAME.snapshot ? GAME.snapshot() : {}) }));
   if (window.parent !== window) window.parent.postMessage({ type: 'pixelite:ready', id: GAME.id, levels: !!GAME.levels }, '*');   // the editor's preview
   requestAnimationFrame(t => { lastT = t; frame(t); });
@@ -204,10 +249,18 @@ function boot(data) {
 
 // ---------- the public object: run a game, and drive it from tests ----------
 const _engineUpdate = update;
+// every key Pixelite.run() reads (a misspelt hook would be ignored without a word)
+const HOOKS = ['id', 'touch', 'keys', 'detail', 'particles', 'cameraTop', 'init', 'regenerate', 'update', 'camera', 'markDyn', 'lights', 'draw', 'hud',
+  'afterFrame', 'onKey', 'onBlast', 'chunkStep', 'skyBegin', 'sky', 'stars', 'starGlare', 'onTune', 'start', 'snapshot', 'probe', 'levels', 'listener'];
 const Pixelite = {
-  version: '0.5.0',
+  version: typeof ENGINE_VERSION === 'string' ? ENGINE_VERSION : '0.0.0',
+  get paused() { return isPaused(); },
+  pause(on) { setPaused(on); },
+  seed(n) { seedRandom(n); },   // the simulation's random numbers start from n: same seed + same inputs = same world
+  get errors() { return ERRORS.slice(); },
   run(game) {
     GAME = game;
+    devKeys('Pixelite.run', game, HOOKS);
     window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
   },
   // Test and probe helpers (headless checks, AI sessions). They step the simulation directly, so they
@@ -224,9 +277,9 @@ const Pixelite = {
     },
     freeze() { if (!window.__pixeliteUpdate) { window.__pixeliteUpdate = window.update; window.update = () => { }; } },
     unfreeze() { if (window.__pixeliteUpdate) { window.update = window.__pixeliteUpdate; window.__pixeliteUpdate = null; } },
-    render(t = performance.now() / 1000) { draw(t); },
+    render(t = clockT) { draw(t); },
     probe() {
-      return { state, stateT: +stateT.toFixed(2), frame: frameNo, res: RES, renderer: R.mode, cols: R.cols, rows: R.rows,
+      return { state, stateT: +stateT.toFixed(2), frame: frameNo, version: Pixelite.version, paused: isPaused(), errors: ERRORS.length, res: RES, renderer: R.mode, cols: R.cols, rows: R.rows,
         world: [W, H], cam: [+cam.x.toFixed(1), +cam.y.toFixed(1)], particles: P.n, chunks: chunks.length, perfMs: +perfAvg.toFixed(1),
         tune: { ...TUNE }, game: GAME.probe ? GAME.probe() : null };
     }
