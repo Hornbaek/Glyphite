@@ -18,7 +18,6 @@ function gameUpdate(dt) {
     droneContacts();
     if (D.alive && D.gems >= TUNE.gemsToWin) { setState('cleared'); Sfx.win(); Sfx.engine(0); }
   }
-  stepBolts(dt);
 }
 
 function gameKey(code) {
@@ -31,11 +30,9 @@ function gameLights(t, out) {
   const b = D.body, S = RES, [dx, dy] = aimDir(state === 'play' ? mouseAim() : null);
   out.push({ x: b.x, y: b.y, r: 90 * S, c: [.85, .92, 1], I: 2.2, shadow: true, dx, dy, cos: Math.cos(.65), skip: 3 * S });  // headlamp
   out.push({ x: b.x, y: b.y, r: 40 * S, c: [.5, .7, 1], I: .7, shadow: true, skip: 3 * S });                                 // light all around the drone
-  for (const o of bolts) out.push({ x: o.x, y: o.y, r: 16 * S, c: [.6, .85, 1], I: 1, shadow: true });
 }
 
 function gameDraw(t) {
-  for (const o of bolts) putEmit(Math.floor(o.x), Math.floor(o.y / ASPECT), slopeGlyph(o.vx, o.vy), .9, 1.3, 1.6);
   if (D && D.alive && state !== 'title') drawSprite(DRONE_SPRITE, D.body.x, D.body.y, D.body.a);
 }
 
@@ -52,7 +49,6 @@ function gameHud(t) {
   }
   hudText(1, 0, `CAVE ${CAVE.n}`, HC.gold);
   hudFlow(1, [[`GEMS ${D.gems}/${TUNE.gemsToWin}`, HC.txt], [`SCORE ${String(score).padStart(5, '0')}`, HC.txt], [`SPEED ${(Math.hypot(D.body.vx, D.body.vy) * UNIT_M).toFixed(1)} M/S`, HC.dim]]);
-  for (const tx of FX.texts) { const p = worldToHud(tx.x, tx.y - tx.age * 5 * RES, [0, 0]); hudText(p[0] - (tx.text.length >> 1), p[1], tx.text, tx.c); }
   if (state === 'paused') msgBox([['PAUSED', HC.amber], ['P or ESC to resume', HC.dim]]);
   if (state === 'over' && stateT > .8) msgBox([['DRONE LOST', HC.red], [D.reason, HC.txt], ['', HC.txt], ['[ ENTER / TAP ]  TRY AGAIN', HC.amber]]);
   if (state === 'cleared' && stateT > .8) msgBox([['CAVE CLEARED', HC.green], [`SCORE ${score}`, HC.gold], ['', HC.txt], ['[ ENTER / TAP ]  NEXT CAVE', HC.amber]]);

@@ -24,7 +24,7 @@ export function assemble({ shell, engine, manifest, head = '', parts, tune = nul
   const pre = [
     `const ENGINE_VERSION = ${scriptJSON(String(engine.version || ''))};`,
     `const PIXELITE_LINE0 = 0;`,   // the page line of <script>: filled in below, so a runtime error can name its source file and line
-    `const GAME_MANIFEST = ${scriptJSON({ id, title: manifest.title, tunables: manifest.tunables || {} })};`,
+    `const GAME_MANIFEST = ${scriptJSON({ id, title: manifest.title, tagline: manifest.tagline || '', controls: manifest.controls || [], actions: manifest.actions || {}, tunables: manifest.tunables || {} })};`,
     tune ? `window.PIXELITE_TUNE = ${scriptJSON(tune)};` : '',
     renderer ? `window.PIXELITE_RENDERER = ${scriptJSON(renderer)};` : ''
   ].filter(Boolean).join('\n');

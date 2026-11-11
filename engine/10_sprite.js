@@ -22,6 +22,30 @@
 //   light  false: fixed colours; default: lit by the scene, but never dark
 //   flip   true: mirrored left to right in its own frame (a character facing the other way)
 //   cache  true: a still sprite (a = 0, no shift) is worked out once per detail level and then only lit (trees, buildings)
+//   tint     [r, g, b] multiplies the colours (1 = unchanged: [1, .5, .5] reddens)
+//   flash    0..1: mixes the sprite toward white, unlit (a hit flash)
+//   palette  [[r, g, b], ...] (bytes) replaces the sprite's palette, entry for entry (a team colour, a poisoned state)
+// ---------- animation ----------
+// defineAnim(sprites, { fps: 10, loop: true, tags: { run: [0, 5], jump: [6, 7] } }) → anim: sprites is an array (frame 0, 1, 2 ...);
+// a tag is [first, last] frame. animFrame(anim, t, tag) → the sprite at t seconds; drawAnim(anim, x, y, a, o) draws it with drawSprite's
+// options plus o.tag and o.t (seconds into the animation; default: the simulation clock, so it stops in pause). animFromAsset(asset, o)
+// makes one from an art pipeline asset that holds frames (PIPE_ART.hero): o.order lists the frame names, o.tags maps a tag to its
+// frame names, [first, last] or a list of names.
+function defineAnim(frames, o = {}) { return { frames, fps: o.fps || 10, loop: o.loop !== false, tags: o.tags || {} }; }
+function animFrame(anim, t, tag) {
+  const n0 = anim.frames.length, tg = tag && anim.tags[tag], a = tg ? tg[0] : 0, b = tg ? tg[1] : n0 - 1, n = b - a + 1;
+  let i = Math.floor(Math.max(0, t) * anim.fps); i = anim.loop ? i % n : Math.min(i, n - 1);
+  return anim.frames[a + i];
+}
+function drawAnim(anim, x, y, a, o = {}) { drawSprite(animFrame(anim, o.t ?? clockT, o.tag), x, y, a, o); }
+function animFromAsset(asset, o = {}) {
+  const names = o.order || Object.keys(asset.frames);
+  const frames = names.map(n => { const f = asset.frames[n]; return defineSprite({ w: asset.w, h: asset.h, pal: asset.pal, rows: f.rows, normals: f.normals }, { k: asset.k, ox: o.ox, oy: o.oy }); });
+  const tags = {};
+  for (const k in o.tags || {}) { const v = o.tags[k]; tags[k] = Array.isArray(v) && typeof v[0] === 'number' ? v : [names.indexOf(v[0]), names.indexOf(v[v.length - 1])]; }
+  return defineAnim(frames, { ...o, tags });
+}
+
 // markSpriteDyn(spr, x, y, a, o) → top row; marks the covered cells as dynamic shadow casters.
 const SPR_S = 3, SPR_FILL = .45;   // samples across a cell (and per unit of its height); the share that must land on the art
 const HUD_ASPECT = FONT_H / FONT_W;   // a HUD cell is twice as tall as wide, unlike the world's square cells
@@ -103,7 +127,25 @@ function sprEmit(cx, cy, glyph, r, g, b, lit, nx = 0, ny = 0, nz = 1) {
   }
   putEmit(cx, cy, glyph, r * f * (.75 + .4 * Math.min(1.3, _sprL[0])), g * f * (.75 + .4 * Math.min(1.3, _sprL[1])), b * f * (.75 + .4 * Math.min(1.3, _sprL[2])));
 }
+// a sprite with its palette swapped (cached per palette on the sprite)
+function spritePalette(spr, pal) {
+  const key = JSON.stringify(pal), vs = spr.variants || (spr.variants = new Map());
+  let v = vs.get(key);
+  if (!v) { v = { ...spr, stamps: undefined, icons: undefined, variants: undefined, lin: pal.map(([r, g, b]) => [r, g, b].map(q => -Math.log(1 - Math.min(.93, q / 255)) / 1.7)) }; vs.set(key, v); }
+  return v;
+}
+// the colour options of drawSprite wrapped around sprEmit
+function sprTintEmit(o) {
+  const t = o.tint || [1, 1, 1], f = o.flash || 0;
+  return (cx, cy, g, r, gg, b, lit, nx, ny, nz) => {
+    r *= t[0]; gg *= t[1]; b *= t[2];
+    if (f > 0) { r += (1.6 - r) * f; gg += (1.6 - gg) * f; b += (1.6 - b) * f; if (f > .6) lit = false; }
+    sprEmit(cx, cy, g, r, gg, b, lit, nx, ny, nz);
+  };
+}
 function drawSprite(spr, x, y, a, o = {}) {
+  if (o.palette) spr = spritePalette(spr, o.palette);
+  const em = o.tint || o.flash ? sprTintEmit(o) : sprEmit;
   const sh = o.shift || _sprNoShift, [bx, by, x0, y0, x1, y1] = spriteBox(spr, x, y, o), fl = o.flip ? -1 : 1, lit = o.light !== false;
   if (x1 < L_OX || y1 < L_OY || x0 >= L_OX + R.RW || y0 >= L_OY + R.RH) return;   // nothing of it on screen
   if (o.cache && !a && !sh.length) {
@@ -113,10 +155,10 @@ function drawSprite(spr, x, y, a, o = {}) {
     const stamps = spr.stamps || (spr.stamps = new Map());
     let st = stamps.get(key);
     if (!st) { st = []; sprCells(spr, bx, by, x0, y0, x1, y1, 0, sh, fl, false, (cx, cy, g, r, gg, b, _, nx, ny, nz) => st.push(cx - bx, cy - row0, g, r, gg, b, nx, ny, nz)); stamps.set(key, st); }
-    for (let k = 0; k < st.length; k += 9) sprEmit(bx + st[k], row0 + st[k + 1], st[k + 2], st[k + 3], st[k + 4], st[k + 5], lit, st[k + 6], st[k + 7], st[k + 8]);
+    for (let k = 0; k < st.length; k += 9) em(bx + st[k], row0 + st[k + 1], st[k + 2], st[k + 3], st[k + 4], st[k + 5], lit, st[k + 6], st[k + 7], st[k + 8]);
     return;
   }
-  sprCells(spr, bx, by, x0, y0, x1, y1, a, sh, fl, lit, sprEmit);
+  sprCells(spr, bx, by, x0, y0, x1, y1, a, sh, fl, lit, em);
 }
 // asp: the cell's height in units (the world's ASPECT, or HUD_ASPECT for a picture on the HUD)
 function sprCells(spr, bx, by, x0, y0, x1, y1, a, sh, fl, lit, emit, asp = ASPECT) {

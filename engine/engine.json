@@ -19,6 +19,8 @@
     "12_iso.js",
     "13_sampler.js",
     "14_entities.js",
-    "15_world.js"
+    "15_world.js",
+    "16_actions.js",
+    "17_ui.js"
   ]
 }

@@ -42,12 +42,13 @@ function raycast(x0, y0, dx, dy, max = 400, opts = {}) {
 
 // ---------- projectiles ----------
 // fireProjectile({ x, y, vx, vy, gravity: 1, drag: 0, bounce: 0, life: 4, color: [255, 220, 120], size: 1, light: { r, c, I },
-//   hits: ['enemy'] (entity types it can hit), owner: entity (ignored), onHit(p, hit) → return false to keep flying })
+//   hits: ['enemy'] (entity types it can hit), owner: entity (ignored), onStep(p, dt) each step, onHit(p, hit) → return false to keep flying })
 // It moves by rays, so a fast one cannot pass through a one-cell wall; bounce > 0 reflects it off terrain that many times.
 defineEntity('projectile', {
   size: [1, 1], always: true,
   update(p, dt) {
     p.life -= dt; if (p.life <= 0) { p.dead = true; return; }
+    if (p.onStep) p.onStep(p, dt);
     p.vy += G * p.gravity * dt; if (p.drag) { const k = Math.max(0, 1 - p.drag * dt); p.vx *= k; p.vy *= k; }
     const dx = p.vx * dt, dy = p.vy * dt, d = Math.hypot(dx, dy);
     if (d < 1e-9) return;
@@ -66,7 +67,7 @@ defineEntity('projectile', {
 });
 function fireProjectile(o) {
   return spawn('projectile', o.x, o.y, { vx: o.vx || 0, vy: o.vy || 0, gravity: o.gravity ?? 1, drag: o.drag || 0, bounce: o.bounce || 0, maxBounces: o.maxBounces ?? 3, bounces: 0, life: o.life ?? 4,
-    color: o.color || [255, 220, 120], size: o.size ?? 1, light: o.light || null, hits: o.hits || false, owner: o.owner || null, onHit: o.onHit || null });
+    color: o.color || [255, 220, 120], size: o.size ?? 1, light: o.light || null, hits: o.hits || false, owner: o.owner || null, onHit: o.onHit || null, onStep: o.onStep || null });
 }
 
 // ---------- triggers ----------

@@ -102,15 +102,10 @@ function startGantry(g) {
 }
 
 // ---------- low gravity ----------
-// Inside a sector's lowG rectangles ([x0, y0, x1, y1] in tiles) gravity is halved and jumps go twice as high (same launch
+// Inside a sector's lowG rectangles ([x0, y0, x1, y1] in tiles) gravity is halved (an engine gravity zone, made in buildSector) and jumps go twice as high (same launch
 // speed): the gravity generator is failing.
 function lowGravityAt(x, y) {
   const z = SEC.def.lowG; if (!z) return false;
   const tx = x / SEC.tw, ty = y / ASPECT / SEC.th;
   return z.some(([x0, y0, x1, y1]) => tx >= x0 && tx < x1 + 1 && ty >= y0 && ty < y1 + 1);
-}
-function applyGravityZone(c, base) {
-  const low = lowGravityAt(c.x, c.y - c.o.h / 2);
-  c.o.gravity = low ? G * .5 : 0; c.o.jump = base * (low ? 2 : 1);
-  return low;
 }

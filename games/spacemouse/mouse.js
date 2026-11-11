@@ -26,7 +26,7 @@ function mouseInput() {
 function stepMouse(dt) {
   const m = MOUSE, c = m.ch, S = RES, inp = mouseInput(), wasGround = c.onGround;
   m.safeT = Math.max(0, m.safeT - dt);
-  m.low = applyGravityZone(c, TUNE.jumpHeight * MOUSE_H * S);
+  m.low = lowGravityAt(c.x, c.y - c.o.h / 2);
   if (m.low) hint('lowg', 'LOW GRAVITY: THE GENERATOR IS FAILING. JUMPS GO TWICE AS HIGH');
   c.step(dt, inp);
   if (c.blocked(c.x, c.y)) c.unstick(6);   // sand (peas, flakes, crumbs) poured onto the mouse: climb out on top
