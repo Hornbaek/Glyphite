@@ -23,9 +23,11 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const lerp = (a, b, t) => a + (b - a) * t;
 // The simulation's own random numbers (sand, blasts, particles, structures): seeded, so the same seed and the same inputs
 // give the same world (Pixelite.seed(n), engine/API.md). Math.random stays for sound only.
-let _rndState = (Math.random() * 4294967296) >>> 0;
+// ?seed=n in the page address starts the world from that seed, so a recorded run can be played again (Pixelite.test.replay).
+const _urlSeed = /[?&]seed=(-?\d+)/.exec(typeof location !== 'undefined' ? location.search : '');
+let _rndState = _urlSeed ? (+_urlSeed[1] | 0) >>> 0 : (Math.random() * 4294967296) >>> 0, _seed0 = _rndState;
 function rnd() { _rndState = _rndState + 0x6D2B79F5 | 0; let t = Math.imul(_rndState ^ _rndState >>> 15, 1 | _rndState); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
-function seedRandom(n) { _rndState = (n | 0) >>> 0; }
+function seedRandom(n) { _rndState = _seed0 = (n | 0) >>> 0; }
 const rr = (a, b) => a + (b - a) * rnd();
 const smooth = t => t * t * (3 - 2 * t);
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }

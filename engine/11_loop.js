@@ -45,7 +45,7 @@ function setPaused(on) {
 }
 // The simulation's clock for drawing: whole steps plus the part of a step not yet run. It stops in pause and slows in slow motion,
 // and a test that steps by hand gets the same time every run (the wall clock only runs the toast).
-let clockT = 0;
+let clockT = 0, REC = null;
 function say(text) { toastMsg = { text: text.slice(0, Math.max(10, R.hcols - 6)), t0: performance.now() / 1000 }; }
 // ---------- errors: shown, not swallowed ----------
 // In ?dev and in the editor's preview an overlay says what broke and where (the source file and line, from the '// ----- path -----'
@@ -245,6 +245,9 @@ function boot(data) {
   window.claude?.hot?.snapshot?.(() => ({ detail: RES, ...(GAME.snapshot ? GAME.snapshot() : {}) }));
   if (window.parent !== window) window.parent.postMessage({ type: 'pixelite:ready', id: GAME.id, levels: !!GAME.levels }, '*');   // the editor's preview
   requestAnimationFrame(t => { lastT = t; frame(t); });
+  const rp = new URLSearchParams(location.search).get('replay');
+  if (rp) { const play = log => { try { Pixelite.test.replay(log); } catch (err) { reportError('replay: ' + err.message); } };
+    if (rp.trim().startsWith('{')) play(JSON.parse(rp)); else fetch(rp).then(r => r.json()).then(play).catch(err => reportError('replay: ' + err.message)); }
 }
 
 // ---------- the public object: run a game, and drive it from tests ----------
@@ -266,14 +269,44 @@ const Pixelite = {
   // Test and probe helpers (headless checks, AI sessions). They step the simulation directly, so they
   // work while the frame loop is frozen and run far faster than real time.
   test: {
-    start() { if (GAME.start) GAME.start(); else engineKey('Enter'); },
-    press(code) { Input.pressed.add(code); engineKey(code); },
+    // leave the title screen. The step counter and the random numbers go back to their start first (frames run live before a test
+    // gets here, and no two page loads run the same number), so one seed and one list of inputs always make the same run.
+    start() { frameNo = 0; seedRandom(_seed0); if (GAME.start) GAME.start(); else engineKey('Enter'); },
+    press(code) { if (REC) REC.steps.push({ press: code }); Input.pressed.add(code); engineKey(code); },
+    // a tap or click at a world point (x in cells, y in units): the next step sees 'Tap', 'TapUp' and Input.aim there
+    tap(wx, wy) {
+      if (REC) REC.steps.push({ tap: [wx, wy] });
+      Input.aim = [(wx - cam.x) / R.cols, (wy - cam.y) / (R.rows * ASPECT)]; Input.fireQueued = true; Input.pressed.add('Tap'); Input.pressed.add('TapUp');
+    },
     // n fixed steps with these KeyboardEvent codes held (e.g. ['ArrowUp']); returns probe()
     step(n = 1, keys = []) {
+      if (REC) REC.steps.push({ n, keys: keys.slice() });
       for (const k of keys) Input.keys.add(k);
       for (let i = 0; i < n; i++) _engineUpdate(DT);
       for (const k of keys) Input.keys.delete(k);
       return Pixelite.test.probe();
+    },
+    // step with these keys held until fn(probe) is true (or max steps); { steps, probe, ok }
+    stepUntil(fn, max = 3600, keys = []) {
+      let n = 0, p = Pixelite.test.probe();
+      while (n < max && !fn(p)) { p = Pixelite.test.step(1, keys); n++; }
+      return { steps: n, probe: p, ok: !!fn(p) };
+    },
+    // Record what the test does (step / press / tap) and play it back on a fresh page started with ?seed=<log.seed>: the same
+    // inputs on the same seed give the same run. A bug report or a level's solution is that small JSON file.
+    // a checksum of the whole world (cells, back wall, heat) and the particle count: equal after equal runs
+    hash() {
+      let h = 2166136261 | 0;
+      for (let i = 0; i < cells.length; i++) h = Math.imul(h ^ (cells[i] + 31 * backCells[i]), 16777619);
+      for (let i = 0; i < heat.length; i += 7) h = Math.imul(h ^ Math.round(heat[i] * 100), 16777619);
+      return (h ^ P.n) >>> 0;
+    },
+    record() { REC = { version: Pixelite.version, seed: _seed0, steps: [] }; },
+    stop() { const r = REC; REC = null; return r; },
+    replay(log) {
+      const was = REC; REC = null;
+      for (const e of log.steps) { if (e.press) Pixelite.test.press(e.press); else if (e.tap) Pixelite.test.tap(e.tap[0], e.tap[1]); else Pixelite.test.step(e.n, e.keys); }
+      REC = was; return Pixelite.test.probe();
     },
     freeze() { if (!window.__pixeliteUpdate) { window.__pixeliteUpdate = window.update; window.update = () => { }; } },
     unfreeze() { if (window.__pixeliteUpdate) { window.update = window.__pixeliteUpdate; window.__pixeliteUpdate = null; } },

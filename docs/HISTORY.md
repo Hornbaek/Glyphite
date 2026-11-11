@@ -1075,6 +1075,29 @@ Every "Next:" the roadmap listed under those three items, done in one go.
 - **Verified:** build, unit tests, the studio test, and the smoke test of every game in both renderers (in a clone with LF line endings: see
   LESSONS on this Windows checkout).
 
+## 53. The engine plan, part 1: a safe foundation (Claude Code, 2026-11-11)
+
+> "Work through all the tiers and also work on all the improvements from the plan. I want them all :)" (the plan: `docs/ENGINE_PLAN.md`, PR 47)
+
+Packages A1-A8, B1-B4 of the plan, on branch `feature/a-foundations`.
+
+- **A1 builds on Windows.** `.gitattributes` (`* text=auto eol=lf`, binaries marked), `read()` in `tools/pixelite.mjs` strips `
+`, the art tool writes
+  `/` in recorded paths, `git apply` in the diff test ignores autocrlf, `node tools/py.mjs` runs `python3` or `python`, and the smoke test takes
+  `PIXELITE_BROWSER_CHANNEL=chrome` where Playwright's Chromium is not installed (and a `file:///` URL that works on Windows). 135 unit tests pass here.
+- **A2** one engine version: the assembler writes `ENGINE_VERSION` from `engine.json`; `Pixelite.version` and `probe().version` read it.
+- **A3, A4** presses made while paused are dropped; pause is a flag (`Pixelite.pause`, `Pixelite.paused`) any game state can use, with the old
+  `'paused'` state kept as an alias; the page pauses when hidden.
+- **A5, A6** author checks (`engine/00_dev.js`, `tools/authorcheck.mjs`) and errors shown (overlay with file and line in `?dev` and the editor, a HUD
+  line for players). Every game's `Math.random` became `rnd()`.
+- **A7** structures: a hillside too big for a chunk sinks as a slab instead of hanging; a forced freeze lifts the chunk out of the ground and keeps cells
+  that do not fit as grains; a chunk resting on a still game body rests. **A8** `Body.step` sub-steps by speed. Found by the new sand test: `deposit()`
+  gave a grain up after four cells, so sand landing on a steep pile vanished (a pile lost a third of its mass); it now looks 12 cells up and 4 columns across.
+- **B1, B2** seeded `rnd()` and `Pixelite.seed(n)` / `?seed=n`; draw time is the simulation clock. **B3** `test.record/replay/tap/stepUntil/hash`,
+  `?replay=`. **B4** `tests/node/engine-harness.mjs` loads the engine into a Node `vm` (no browser): `tests/node/engine.test.mjs` (sand keeps its
+  mass, jump height and step-up equal at RES 1-3, no tunnelling, chunks freeze with their mass, slabs, pause), `tests/node/author.test.mjs`, and
+  `tests/engine_browser.py` (pause, errors, replay gives the same world).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

@@ -490,11 +490,29 @@ faster than real time):
 
 | | |
 |---|---|
-| `Pixelite.test.start()` | Leave the title screen (`GAME.start`, else Enter). |
+| `Pixelite.test.start()` | Leave the title screen (`GAME.start`, else Enter). It first sets the step counter to 0 and the random numbers back to the page's seed, so a seed and a list of inputs always make the same run. |
 | `Pixelite.test.step(n, ['ArrowUp'])` | n fixed steps with these keys held → `probe()`. |
+| `Pixelite.test.stepUntil(fn, max, keys)` | Step until `fn(probe)` is true or `max` steps → `{ steps, probe, ok }`. |
 | `Pixelite.test.press(code)` | A one-shot key press. |
-| `Pixelite.test.freeze()` / `unfreeze()` | Stop / resume the frame loop (for screenshots). |
-| `Pixelite.test.render()` | Draw one frame now. |
-| `Pixelite.test.probe()` | `{ state, frame, res, renderer, cols, rows, world, cam, particles, chunks, perfMs, tune, game: GAME.probe() }` |
+| `Pixelite.test.tap(x, y)` | A tap or click at a world point (x in cells, y in units): the next step sees `Tap`, `TapUp` and `Input.aim` there. |
+| `Pixelite.test.freeze()` / `unfreeze()` | Stop / resume the frame loop (for screenshots). Freeze first when a test needs exact repeatability: frames that run live change the step counter. |
+| `Pixelite.test.render()` | Draw one frame now (at the simulation clock's time, so a frozen frame draws the same twice). |
+| `Pixelite.test.record()` / `stop()` / `replay(log)` | Record the steps, presses and taps a test makes → `{ version, seed, steps }`; play such a log back (open the page with `?seed=<log.seed>` first). `?replay=<url or JSON>` in the page address plays a log after boot. A bug report or a level's solution is that small file. |
+| `Pixelite.test.hash()` | A checksum of the world (cells, back wall, heat) and the particle count: equal after equal runs. |
+| `Pixelite.test.probe()` | `{ state, frame, version, paused, errors, res, renderer, cols, rows, world, cam, particles, chunks, perfMs, tune, game: GAME.probe() }` |
+
+**Random numbers.** The simulation (sand, blasts, particles, structures) and every game draw from one seeded generator: `rnd()` (0..1),
+`rr(a, b)`, `pick(string)`. `Pixelite.seed(n)` or `?seed=n` in the page address starts it from n. Use `rnd()` in game code, not
+`Math.random()` (the build warns): `Math.random` makes a run unrepeatable. Sound keeps `Math.random`; it is not simulation.
+
+**Pause.** `Pixelite.pause(true|false)` and `Pixelite.paused`. Pause is a flag, so a game in any state (`'build'`, `'night'`) can be paused;
+a game that names its pause state `'paused'` still works (setting `state = 'paused'` pauses, and pausing from `'play'` switches to it). Key
+presses made while paused are dropped, not saved up for the first step after resuming. The page pauses itself when it is hidden.
+
+**Errors.** An error in a page shows an overlay with the message and its source file and line in `?dev` and in the editor's preview, and
+one line on the HUD for a player; `Pixelite.errors` lists them and `probe().errors` counts them. With `?dev` (or in the editor) the engine
+also warns, with the nearest valid name, about an unknown option to `defineMaterial`, `new Character` or `Pixelite.run`, and about a NaN in a
+body, a character, a particle or a light. The build refuses a game that repeats a key in its `Pixelite.run({...})` hooks or has an unknown
+`game.json` key (`tools/authorcheck.mjs`), and warns about `Math.random` in game code.
 
 `tests/smoke.py <id>` uses exactly this for any game. URL hash `#2d` / `#gl` forces a renderer.
