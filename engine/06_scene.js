@@ -120,21 +120,24 @@ function renderScene(ox, oy, time, drawExtras) {
   }
 
   // 2) terrain (empty cells stay code 0: transparent, so the sky layer shows through them)
+  // (cells are read straight from the arrays inside the world: getC with its four bounds tests for every cell, and again for the
+  // back wall's shadow search, was the bulk of this loop; occAt reads the occupancy the lighting built, which is getC !== EMPTY)
   for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) {
-    const k = j * RW + i, cx = ox + i, cy = oy + j; let m = getC(cx, cy);
+    const k = j * RW + i, cx = ox + i, cy = oy + j, inW = cx >= 0 && cx < W && cy >= 0 && cy < H, ci = inW ? cy * W + cx : -1;
+    let m = inW ? cells[ci] : getC(cx, cy);
     const lr = LR[k], lg = LG[k], lb = LB[k];
     let glyph = 0, r = 0, g = 0, b = 0, raw = -1;
     if (m === EMPTY) {
       Z[k] = 0;   // particles and rings always draw over the back wall
-      const bm = cx >= 0 && cx < W && cy >= 0 && cy < H ? backCells[cy * W + cx] : 0;
+      const bm = inW ? backCells[ci] : 0;
       if (bm) {   // the back wall: the light in the air in front of it, dimmer, with a drop shadow from the world cells
         let f = BACK.dim;
-        for (let s = 0; s < bkN; s++) if (getC(cx - BK_OFF[2 * s], cy - BK_OFF[2 * s + 1]) !== EMPTY) { f *= 1 - BACK.shadow * (1 - s / bkN); break; }
+        for (let s = 0; s < bkN; s++) if (occAt(cx - BK_OFF[2 * s], cy - BK_OFF[2 * s + 1])) { f *= 1 - BACK.shadow * (1 - s / bkN); break; }
         const alb = MAT_ALB[bm];
         // a mast-style back wall (girders) shows its joints one shade brighter
         const joint = MAT_STYLE[bm] === 2 && (getBack(cx, cy - 1) === bm || getBack(cx, cy + 1) === bm) && (getBack(cx - 1, cy) === bm || getBack(cx + 1, cy) === bm);
         raw = (.3 * alb[0] * lr + .59 * alb[1] * lg + .11 * alb[2] * lb) * f;
-        shadeCell(bm, alb[0] * lr * f, alb[1] * lg * f, alb[2] * lb * f, lr, lg, lb, texOf(vari[cy * W + cx]), joint ? 1 : 0, _shd);
+        shadeCell(bm, alb[0] * lr * f, alb[1] * lg * f, alb[2] * lb * f, lr, lg, lb, texOf(vari[ci]), joint ? 1 : 0, _shd);
         r = _shd[0]; g = _shd[1]; b = _shd[2]; glyph = SOLID;
       }
     } else {
@@ -142,7 +145,6 @@ function renderScene(ox, oy, time, drawExtras) {
         const a = getC(cx - 1, cy), c = getC(cx + 1, cy), d = getC(cx, cy + 1), ok = q => q !== EMPTY && MAT_STYLE[q] !== 2;
         m = ok(a) ? a : ok(c) ? c : ok(d) ? d : m;
       }
-      const inW = cx >= 0 && cx < W && cy >= 0 && cy < H, ci = inW ? cy * W + cx : -1;
       const alb = MAT_ALB[m], v = inW ? vari[ci] : 77, h = inW ? heat[ci] : 0, s = LSURF[k], st = MAT_STYLE[m];
       if (s === 1) { const fl = .1 + .13 * LAOD[k]; r = alb[0] * Math.max(lr, fl); g = alb[1] * Math.max(lg, fl); b = alb[2] * Math.max(lb, fl * 1.25); }
       else { r = alb[0] * lr; g = alb[1] * lg; b = alb[2] * lb; }

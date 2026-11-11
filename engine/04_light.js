@@ -60,9 +60,22 @@ function lightAlloc(rw, rh) {
   LSUN = new Uint8Array(n); LAO = new Float32Array(n); LAOD = new Float32Array(n); LSTAMP = new Uint32Array(n);
   LOCC = new Uint8Array(LOW * LOH); LSAT = new Int32Array((LOW + 1) * (LOH + 1)); LSSAT = new Int32Array((rw + 1) * (rh + 1));
 }
+// colTop[x]: the first solid row of each column. updateSkyline() rescans every column (call it after writing cells[] yourself, as a level
+// generator does); syncSkyline(), which the frame loop calls, rescans only the 16-column strips where a chunk changed since the last scan
+// (the revision counter, 01_core.js): a still world costs nothing, and a world with no solid cells at all (an isometric game's) is scanned once.
+let skyRev = null;   // per 16-column strip: the world revision it was last scanned at
+function scanColumns(x0, x1) { for (let x = x0; x < x1; x++) { let y = 0; while (y < H && cells[y * W + x] === EMPTY) y++; colTop[x] = y; } }
 function updateSkyline() {
   if (!colTop || colTop.length !== W) colTop = new Int32Array(W);
-  for (let x = 0; x < W; x++) { let y = 0; while (y < H && cells[y * W + x] === EMPTY) y++; colTop[x] = y; }
+  scanColumns(0, W); skyRev = new Uint32Array(CWn).fill(WREV);
+}
+function syncSkyline() {
+  if (!colTop || colTop.length !== W || !skyRev || skyRev.length !== CWn) { updateSkyline(); return; }
+  for (let c = 0; c < CWn; c++) {
+    let dirty = false;
+    for (let q = c; q < CREV.length; q += CWn) if (CREV[q] > skyRev[c]) { dirty = true; break; }
+    if (dirty) { scanColumns(c * CS, Math.min(W, (c + 1) * CS)); skyRev[c] = WREV; }
+  }
 }
 function satBox(i0, j0, i1, j1) {
   i0 = clamp(i0, 0, LOW - 1); i1 = clamp(i1, 0, LOW - 1); j0 = clamp(j0, 0, LOH - 1); j1 = clamp(j1, 0, LOH - 1);
@@ -75,12 +88,25 @@ function occAt(cx, cy) {
   return getC(cx, cy) !== EMPTY ? 1 : 0;
 }
 
+// LOCC: is the terrain solid (getC !== EMPTY), for the window and its margin. Rows inside the world are read straight from cells[]; beyond the
+// sides and the bottom the edge material counts, above the top nothing does (getC's rules, without the call and its four tests per cell).
+function fillOcc(ox, oy) {
+  const OW = LOW, OH = LOH, edge = EDGE_MAT !== EMPTY ? 1 : 0, x0 = ox - LMX, i0 = Math.min(OW, Math.max(0, -x0)), i1 = Math.max(i0, Math.min(OW, W - x0));
+  for (let j = 0; j < OH; j++) {
+    const cy = oy - LMY + j, o = j * OW;
+    LOCC.fill(edge, o, o + i0); LOCC.fill(edge, o + i1, o + OW);
+    if (cy < 0) LOCC.fill(0, o + i0, o + i1);
+    else if (cy >= H) LOCC.fill(edge, o + i0, o + i1);
+    else { const row = cy * W + x0; for (let i = i0; i < i1; i++) LOCC[o + i] = cells[row + i] === EMPTY ? 0 : 1; }
+  }
+}
+
 let L_NLIGHTS = 0;
 function computeLighting(ox, oy, lights, dynTop) {
   L_OX = ox; L_OY = oy; L_NLIGHTS = lights.length;
   const RW = L_RW, RH = L_RH, OW = LOW, OH = LOH, B = LBOX;
   // 1) occupancy + summed-area table
-  for (let j = 0; j < OH; j++) { const cy = oy - LMY + j; for (let i = 0; i < OW; i++) LOCC[j * OW + i] = getC(ox - LMX + i, cy) !== EMPTY ? 1 : 0; }
+  fillOcc(ox, oy);
   const S = LSAT, sw = OW + 1;
   for (let j = 0; j < OH; j++) { let run = 0; for (let i = 0; i < OW; i++) { run += LOCC[j * OW + i]; S[(j + 1) * sw + i + 1] = S[j * sw + i + 1] + run; } }
   // 2) sun: sweep columns in the light's direction, tracking which rays are blocked

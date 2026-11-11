@@ -111,11 +111,16 @@ const crumbOf = m => MAT_GRAN[m] ? m : RUBBLE_MAT;
 // ---------- world grid ----------
 let W = 0, H = 0, cells = null, heat = null, vari = null, dyn = null, awake = null, backCells = null;
 const CS = 16; let CWn = 0, CHn = 0, frameNo = 0;
+// The world's revision: every change to a cell stamps its 16 x 16 chunk with a new, higher number (setC, and wakeAt for the engine's own
+// writes: sand, blasts, structures), so a cache can ask "did anything change in this box since I looked?" for the price of a few reads
+// (the lamp cache and the still-frame reuse in 04_light.js, the skyline). Code that writes cells[] itself while the game runs says so
+// with worldChanged().
+let CREV = null, WREV = 0;
 function worldInit(w, h) {
   W = w; H = h; cells = new Uint8Array(w * h); heat = new Float32Array(w * h); vari = new Uint8Array(w * h); dyn = new Uint8Array(w * h);
   backCells = new Uint8Array(w * h);
   for (let i = 0; i < w * h; i++) vari[i] = (rnd() * 256) | 0;
-  CWn = Math.ceil(w / CS); CHn = Math.ceil(h / CS); awake = new Uint8Array(CWn * CHn);
+  CWn = Math.ceil(w / CS); CHn = Math.ceil(h / CS); awake = new Uint8Array(CWn * CHn); CREV = new Uint32Array(CWn * CHn).fill(++WREV);
   // a new world starts clean: no flying particles, effects, falling chunks or mounted objects
   P.n = 0; FX.rings.length = 0; FX.lights.length = 0; FX.texts.length = 0;
   chunks = []; rechecks = []; mounts.length = 0; slabs.length = 0;
@@ -123,10 +128,16 @@ function worldInit(w, h) {
 function getC(x, y) { if (x < 0 || x >= W) return EDGE_MAT; if (y < 0) return EMPTY; if (y >= H) return EDGE_MAT; return cells[y * W + x]; }
 function wakeAt(x, y) {
   const cx = (x / CS) | 0, cy = (y / CS) | 0, lx = x - cx * CS, ly = y - cy * CS;
+  if (cx >= 0 && cy >= 0 && cx < CWn && cy < CHn) CREV[cy * CWn + cx] = ++WREV;
   const i0 = lx === 0 ? -1 : 0, i1 = lx === CS - 1 ? 1 : 0, j0 = ly === 0 ? -1 : 0, j1 = ly === CS - 1 ? 1 : 0;
   for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
     const a = cx + i, b = cy + j; if (a >= 0 && b >= 0 && a < CWn && b < CHn) awake[b * CWn + a] = 1;
   }
+}
+// cells x0..x1, y0..y1 (all of them with no arguments) were written without setC while the game runs: stamp their chunks as changed
+function worldChanged(x0 = 0, y0 = 0, x1 = W - 1, y1 = H - 1) {
+  const r = ++WREV, a = Math.max(0, x0 | 0) >> 4, b = Math.max(0, y0 | 0) >> 4, c = Math.min(CWn - 1, Math.max(0, x1 | 0) >> 4), d = Math.min(CHn - 1, Math.max(0, y1 | 0) >> 4);
+  for (let cy = b; cy <= d; cy++) for (let cx = a; cx <= c; cx++) CREV[cy * CWn + cx] = r;
 }
 // dynamic occluders: cells covered by moving bodies this frame (they cast sun shadows)
 let dynList = [];

@@ -142,15 +142,21 @@ function stepWorld(dt) {
   stepFX(dt);
 }
 
-const _lights = [];
+const _lights = [], _lightPool = [];
+// the effect lights and the moment-copies of flickering lights are pooled objects, reused from frame to frame instead of allocated; they
+// always carry the same fields, so a lamp never sees a cone or a skip left over from an earlier use
+function pooled(n) { return _lightPool[n] || (_lightPool[n] = { x: 0, y: 0, r: 0, c: null, I: 0, shadow: false, flicker: null, seed: 0, cos: undefined, dx: undefined, dy: undefined, skip: undefined }); }
 function gatherLights(t) {
   _lights.length = 0;
   if (GAME.lights) GAME.lights(t, _lights);
   if (DEV) for (const l of _lights) devFinite('a light', l.x, l.y, l.r, l.I);
-  const S = RES;
-  for (const l of FX.lights) { const u = l.age / l.life; _lights.push({ x: l.x, y: l.y, r: Math.min(48 * S, l.r), c: l.c, I: l.I * (1 - u) * (1 - u), shadow: l.shadow, flicker: l.flicker, seed: l.seed }); }
+  const S = RES; let used = 0;
+  for (const l of FX.lights) { const u = l.age / l.life, o = pooled(used++); o.x = l.x; o.y = l.y; o.r = Math.min(48 * S, l.r); o.c = l.c; o.I = l.I * (1 - u) * (1 - u); o.shadow = l.shadow; o.flicker = l.flicker; o.seed = l.seed; o.cos = o.dx = o.dy = o.skip = undefined; _lights.push(o); }
   // flickering lights get a copy with this moment's intensity (games may push the same object every frame)
-  for (let i = 0; i < _lights.length; i++) { const L = _lights[i]; if (L.flicker) _lights[i] = { ...L, I: L.I * flickerAt(L.flicker, t, L.seed || 0), flicker: null }; }
+  for (let i = 0; i < _lights.length; i++) {
+    const L = _lights[i]; if (!L.flicker) continue;
+    const o = pooled(used++); o.x = L.x; o.y = L.y; o.r = L.r; o.c = L.c; o.I = L.I * flickerAt(L.flicker, t, L.seed || 0); o.shadow = L.shadow; o.flicker = null; o.seed = L.seed; o.cos = L.cos; o.dx = L.dx; o.dy = L.dy; o.skip = L.skip; _lights[i] = o;
+  }
   return _lights;
 }
 function drawToast() {
@@ -162,7 +168,7 @@ function drawToast() {
 }
 function draw(t) {
   perfBegin();
-  updateSkyline();
+  syncSkyline();
   clearDyn();
   let dynTop = markChunksDyn();
   if (GAME.markDyn) dynTop = Math.min(dynTop, GAME.markDyn());
