@@ -28,7 +28,7 @@ import { buildText as artPipelineText } from './art.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist');
-const read = p => readFileSync(join(ROOT, p), 'utf8');
+const read = p => readFileSync(join(ROOT, p), 'utf8').replace(/\r\n/g, '\n');   // LF always: a Windows checkout may have CRLF
 const readJSON = p => JSON.parse(read(p));
 const write = (p, s) => { mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, s); };
 const ID_RE = /^[a-z][a-z0-9-]{1,31}$/;

@@ -11,7 +11,7 @@ default Up / Right / Space), switches detail levels, and saves a screenshot of t
 shots/smoke_<id>_<renderer>.png. It prints one JSON line per run and exits 1 on any failure.
 Look at the screenshots: passing here means "runs", not "looks right".
 """
-import argparse, asyncio, json, pathlib, sys
+import argparse, asyncio, json, os, pathlib, sys
 from playwright.async_api import async_playwright
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -19,14 +19,14 @@ FLAGS = {'gl': ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-sw
 
 
 async def run_one(p, gid, renderer, res_levels, steps, keys):
-    browser = await p.chromium.launch(args=FLAGS[renderer])
+    browser = await p.chromium.launch(args=FLAGS[renderer], channel=os.environ.get('PIXELITE_BROWSER_CHANNEL') or None)   # e.g. 'chrome' where Playwright's own Chromium is not installed
     page = await browser.new_page(viewport={'width': 1280, 'height': 800})
     errors = []
     page.on('pageerror', lambda e: errors.append(str(e)))
     page.on('console', lambda m: errors.append('console.error: ' + m.text) if m.type == 'error' and 'fonts.g' not in m.text else None)
     out = {'game': gid, 'renderer': renderer, 'ok': False}
     try:
-        await page.goto(f'file://{ROOT}/dist/games/{gid}/index.html#{renderer}')
+        await page.goto(f'file:///{ROOT.as_posix()}/dist/games/{gid}/index.html#{renderer}')
         await page.wait_for_timeout(1200)
         title = await page.evaluate('Pixelite.test.probe()')
         out['title'] = {k: title[k] for k in ('state', 'renderer', 'cols', 'rows', 'world')}
