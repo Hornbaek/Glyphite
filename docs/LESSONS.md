@@ -342,7 +342,7 @@ way.
   the build says "Unexpected identifier 'html'". Build in a clone with `-c core.autocrlf=false` (the unit tests that compare generated files fail
   the same way in the checkout itself; CI, on Linux, is not affected).
 
-## Speed and caches (the engine plan, speed work; HISTORY 54)
+## Speed and caches (the engine plan, speed work; HISTORY 57)
 
 - **Measure the work, not the gap between frames.** `perfAvg` read 16.7 ms whether a frame took 2 ms or 16. The stage timers (`Pixelite.perf`) showed the lighting as the biggest stage of
   every game but Fjordheim (11 to 60 ms at RES 2 and 3 in headless Chrome; Fjordheim has no shadowed lamp, and its terrain pass is the biggest), and two shadowed lamps of radius 90 base units
@@ -370,3 +370,20 @@ way.
 - **Check that the "optimisation" is one, in the same process.** The terrain pass called `getC` for every cell and again for the back wall's shadow search; replacing the second with a read of the lighting's
   occupancy buffer through a function (`occAt`) looked free and was 5 to 20% slower (it does more work per call than `getC`). Reading the cell itself from the array, the thing the plan named, moved the scene stage
   by less than the noise. Timing the P1 `renderScene` against the new one in one page, alternating, and varying the loop found it; the build-to-build numbers (10 to 20% scatter between page loads) could not.
+## Liquids
+
+- **"Solid" used to mean "not empty", in forty places.** A liquid lives in the grid, so every `cells[i] !== EMPTY` that meant *something stands here* (collision, light occlusion, the sun
+  sweep, the skyline, structural support, island flood fills, chunk landing, raycast, carve) had to become `MAT_SOLID[cells[i]]`. A new place that asks "is anything here" must pick which it means;
+  `MAT_SOLID[m]` is exactly `m !== 0` in a world with no liquid, which is how the frames of the old games stayed pixel for pixel the same.
+- **Hash the finished frame before you touch a renderer.** Block `requestAnimationFrame` with an init script (so no live frame runs), seed the page (`?seed=3`), `Pixelite.test.start()`, step, `render()`, and
+  hash `R.wPix`, `R.sPix` and the HUD in both renderers; run it on the old build and the new one. Two runs of the old build must agree first (the 404 game does not: it has its own clock).
+- **Make room for displaced liquid through the liquid, not up its column.** The first `displaceLiquid` walked straight up and sideways and gave up at the first solid cell, so a chunk freezing in a pool
+  (whose own top row closed the column) lost a cell of water. A breadth-first search through the liquid cells to the nearest free one finds the surface whatever lies on top.
+- **A move that only goes lower never jitters.** The flow lets a cell run along its row only to a cell that has free space under it, so a settled pool is a fixed point, its chunks sleep, and the
+  surface is flat to within the run length; moving to a neighbour at the same height would slosh forever (and keep every chunk awake).
+- **Strokes at the surface act like a jump.** Swimming up at full speed through the surface threw the swimmer out of the water; with the head out, holding up only treads water, and a press hops out
+  (a one-frame press hops low because letting go early cuts a jump). The box bobs at the boundary where its middle leaves the liquid, so "swimming" flips every few steps there: a hop after swimming
+  needs a short grace time (`swimT`), and tests should count steps, not read one instant.
+- **`const` inside `E.run('...')` of the Node harness is gone after the call** (a direct eval keeps its own scope): share state with `globalThis.x = ...`.
+- **Fire needs a source that outlasts the first cell.** A cell burnt away leaves its heat in an empty cell, which conducts nothing, so ignition has to come from the burning cells' own heating
+  of their neighbours (a step of +.35 catches wood at .3 at once); a test that lights one cell of fast-burning wood fails one run in a few.

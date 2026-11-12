@@ -64,7 +64,7 @@ function lightAlloc(rw, rh) {
 // generator does); syncSkyline(), which the frame loop calls, rescans only the 16-column strips where a chunk changed since the last scan
 // (the revision counter, 01_core.js): a still world costs nothing, and a world with no solid cells at all (an isometric game's) is scanned once.
 let skyRev = null;   // per 16-column strip: the world revision it was last scanned at
-function scanColumns(x0, x1) { for (let x = x0; x < x1; x++) { let y = 0; while (y < H && cells[y * W + x] === EMPTY) y++; colTop[x] = y; } }
+function scanColumns(x0, x1) { for (let x = x0; x < x1; x++) { let y = 0; while (y < H && !MAT_SOLID[cells[y * W + x]]) y++; colTop[x] = y; } }
 function updateSkyline() {
   if (!colTop || colTop.length !== W) colTop = new Int32Array(W);
   scanColumns(0, W); skyRev = new Uint32Array(CWn).fill(WREV);
@@ -85,19 +85,19 @@ function satBox(i0, j0, i1, j1) {
 function occAt(cx, cy) {
   const a = cx - L_OX + LMX, b = cy - L_OY + LMY;
   if (a >= 0 && b >= 0 && a < LOW && b < LOH) return LOCC[b * LOW + a];
-  return getC(cx, cy) !== EMPTY ? 1 : 0;
+  return MAT_SOLID[getC(cx, cy)];
 }
 
-// LOCC: is the terrain solid (getC !== EMPTY), for the window and its margin. Rows inside the world are read straight from cells[]; beyond the
+// LOCC: is the terrain solid (MAT_SOLID of getC: a liquid is not), for the window and its margin. Rows inside the world are read straight from cells[]; beyond the
 // sides and the bottom the edge material counts, above the top nothing does (getC's rules, without the call and its four tests per cell).
 function fillOcc(ox, oy) {
-  const OW = LOW, OH = LOH, edge = EDGE_MAT !== EMPTY ? 1 : 0, x0 = ox - LMX, i0 = Math.min(OW, Math.max(0, -x0)), i1 = Math.max(i0, Math.min(OW, W - x0));
+  const OW = LOW, OH = LOH, edge = MAT_SOLID[EDGE_MAT], x0 = ox - LMX, i0 = Math.min(OW, Math.max(0, -x0)), i1 = Math.max(i0, Math.min(OW, W - x0));
   for (let j = 0; j < OH; j++) {
     const cy = oy - LMY + j, o = j * OW;
     LOCC.fill(edge, o, o + i0); LOCC.fill(edge, o + i1, o + OW);
     if (cy < 0) LOCC.fill(0, o + i0, o + i1);
     else if (cy >= H) LOCC.fill(edge, o + i0, o + i1);
-    else { const row = cy * W + x0; for (let i = i0; i < i1; i++) LOCC[o + i] = cells[row + i] === EMPTY ? 0 : 1; }
+    else { const row = cy * W + x0; for (let i = i0; i < i1; i++) LOCC[o + i] = MAT_SOLID[cells[row + i]]; }
   }
 }
 
@@ -174,11 +174,12 @@ function terrainKeys(lights, ox, oy) {
   k[i++] = BACK.dim; k[i++] = BACK.shadow; k[i++] = BACK.dir[0]; k[i++] = BACK.dir[1]; k[i++] = BACK.depth; k[i++] = EYE.e; k[i++] = backSig(ox, oy);
   _tkN = i;
 }
-function matsSame() {
-  const m = STILL.mats; if (!m || m.length !== MATS.length) return false;
+function sameMats(m) {
+  if (!m || m.length !== MATS.length) return false;
   for (let i = 0; i < m.length; i++) if (m[i] !== MATS[i]) return false;   // setMaterial puts a new object in MATS
   return true;
 }
+const matsSame = () => sameMats(STILL.mats);
 // decide, for this frame, what can come from the last one (sets STILL.baseReuse, snapBase, terrain, snapTerrain)
 function stillPlan(ox, oy, lights, dynTop) {
   const S = STILL;
@@ -187,11 +188,12 @@ function stillPlan(ox, oy, lights, dynTop) {
   const same = eqF(_kbNow, _kbLast, KB_N); _kbLast.set(_kbNow);
   let x0 = ox - LMX, y0 = oy - LMY, x1 = ox + L_RW + LMX, y1 = oy + L_RH + LMY;   // the part of the world the base depends on
   if (SUN_ON) { sunBox(ox, oy, dynTop); x0 = Math.min(x0, _sunX0); y0 = Math.min(y0, _sunY0); x1 = Math.max(x1, _sunX1); y1 = Math.max(y1, _sunY1); }
-  let valid = S.have && S.crev === CREV && eqF(_kbNow, S.kb, KB_N);
+  if (ANY_LIQ) y0 = Math.min(y0, oy - 200);   // the sun and ambient are dimmed by the liquid above each column, up to 200 rows above the window (dimLiquidLight)
+  let valid = S.have && S.crev === CREV && eqF(_kbNow, S.kb, KB_N) && (!ANY_LIQ || sameMats(S.bmats));   // (a liquid's colour and murk decide the dimming)
   if (valid) valid = !chunksChangedSince(Math.min(x0, S.x0), Math.min(y0, S.y0), Math.max(x1, S.x1), Math.max(y1, S.y1), S.rev);
   S.baseReuse = valid;
   if (!valid) { S.have = false; S.tHave = false; }
-  if (!valid && same) { S.snapBase = true; S.kb.set(_kbNow); S.rev = WREV; S.crev = CREV; S.x0 = x0; S.y0 = y0; S.x1 = x1; S.y1 = y1; S.gen++; }
+  if (!valid && same) { S.snapBase = true; S.bmats = ANY_LIQ ? MATS.slice() : null; S.kb.set(_kbNow); S.rev = WREV; S.crev = CREV; S.x0 = x0; S.y0 = y0; S.x1 = x1; S.y1 = y1; S.gen++; }
   if ((S.baseReuse || S.snapBase) && BEAT_K === 0 && lights.length <= 64 && !emissiveIn(ox, oy) && heatCalm(ox, oy)) {
     terrainKeys(lights, ox, oy);
     const tSame = _tkN === _tkLastN && eqF(_tkNow, _tkLast, _tkN);
@@ -260,9 +262,11 @@ function computeLighting(ox, oy, lights, dynTop) {
       }
       LR[k] = r; LG[k] = g; LB[k] = b;
     }
+    if (ANY_LIQ) dimLiquidLight(ox, oy);   // sun and ambient die with the depth of liquid they cross (engine/19_liquid.js); lamps below keep theirs. Part of the base
     if (ST.baseReuse) stillCompareBase();   // (audit: what was kept must equal what was just made)
     if (ST.snapBase) stillSaveBase();
   }
+  if (ANY_LIQ) dimLiquidLight(ox, oy);   // sun and ambient die with the depth of liquid they cross (engine/19_liquid.js); lamps below keep theirs
   // 4) point & cone lights, shadowed by voxels
   LDX.fill(0); LDY.fill(0);
   for (const L of lights) addPointLight(L, ox, oy);
@@ -302,7 +306,7 @@ function sunSweep(ox, oy, dynTop) {
   for (let x = xs0; x < x1; x++) {
     const kx = k * x, inX = x >= ox;
     for (let y = yTop; y < yBot; y++) {
-      const ci = y * W + x, solid = cells[ci] !== EMPTY, dy = dyn[ci];
+      const ci = y * W + x, solid = MAT_SOLID[cells[ci]] === 1, dy = dyn[ci];
       const v = RB[((y + .5 - kx - k * .5 - bMin) * 2) | 0];
       if (inX && y >= oy && (dy ? v !== 1 : v === 0)) LSUN[(y - oy) * RW + x - ox] = 1;
       if (solid || dy) {
@@ -486,7 +490,7 @@ function castLamp(L, ox, oy, cr, cg, cb, rec) {
 // ---------- visibility queries for gameplay ----------
 // Positions are body coordinates (x in cells, y in units: cell row × ASPECT). Both read the world directly, so they work
 // anywhere, not only in the lit window, and they ignore moving bodies (the lander, boulders): terrain and frozen chunks only.
-const solidAt = (cx, cy) => cx >= 0 && cx < W && cy >= 0 && cy < H && cells[cy * W + cx] !== EMPTY;
+const solidAt = (cx, cy) => cx >= 0 && cx < W && cy >= 0 && cy < H && MAT_SOLID[cells[cy * W + cx]] === 1;
 // is the straight line from (x0, y0) to (x1, y1) free of terrain, ignoring the first `skip` units and the cell it ends in
 function lineClear(x0, y0, x1, y1, skip) {
   const dx = x1 - x0, dy = y1 - y0, d = Math.hypot(dx, dy);

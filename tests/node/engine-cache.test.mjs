@@ -58,10 +58,11 @@ test('the skyline kept from the revision counter equals a full rescan, after set
   E.run('updateSkyline()'); assert.equal(kept(), full(), 'updateSkyline is the full rescan');
 });
 
-test('the occupancy fill equals getC !== EMPTY, inside the world and beyond its sides, top and bottom', () => {
+test('the occupancy fill equals MAT_SOLID of getC, inside the world and beyond its sides, top and bottom (a liquid is not solid)', () => {
   const E = loadEngine(); world(E);
+  E.run("defineMaterial('water', { liquid: true }); for (let y = 30; y < 50; y++) for (let x = 60; x < 70; x++) setC(x, y, 3);");
   for (const [ox, oy] of [[10, 10], [-40, -30], [100, 70], [150, 90], [-5, 60], [60, -50]]) {
-    const bad = E.run(`(() => { fillOcc(${ox}, ${oy}); let bad = 0; for (let j = 0; j < LOH; j++) for (let i = 0; i < LOW; i++) if (LOCC[j * LOW + i] !== (getC(${ox} - LMX + i, ${oy} - LMY + j) !== EMPTY ? 1 : 0)) bad++; return bad; })()`);
+    const bad = E.run(`(() => { fillOcc(${ox}, ${oy}); let bad = 0; for (let j = 0; j < LOH; j++) for (let i = 0; i < LOW; i++) if (LOCC[j * LOW + i] !== MAT_SOLID[getC(${ox} - LMX + i, ${oy} - LMY + j)]) bad++; return bad; })()`);
     assert.equal(bad, 0, `window at ${ox},${oy}`);
   }
 });
@@ -142,4 +143,24 @@ test('rewind puts the grid back by hand (cells.set): the lamp cache and the stil
     return [...E.run('out')];
   };
   assert.deepEqual(run(true), run(false), 'every frame equal');
+});
+
+test('liquid: the sun and ambient dim with the depth of water above the window, and the still base follows a change up there', () => {
+  const run = still => {
+    const E = loadEngine(); world(E);
+    E.run(`defineMaterial('water', { liquid: true, albedo: [.2, .4, .9], murk: 2 }); for (let y = 10; y < 60; y++) for (let x = 60; x < 80; x++) setC(x, y, 3);   // a pool whose lower part (rows 50 to 59) is in the window
+      globalThis.LS = ${LAMPS}; CACHE.lamps = true; CACHE.still = ${still}; globalThis.out = [];
+      globalThis.go = n => { for (let i = 0; i < n; i++) { computeLighting(10, 50, LS, 1e9); out.push(${lightHash}); } };`);
+    const base = [];
+    const g = n => { for (let i = 0; i < n; i++) { E.run('go(1)'); base.push(E.run('CACHE.baseHit')); } };
+    g(5);
+    E.run('for (let y = 10; y < 30; y++) for (let x = 60; x < 80; x++) setC(x, y, 0)');   // the water 20 to 40 rows above the window drains: the part below is shallower
+    g(4);
+    E.run('for (let y = 10; y < 30; y++) setC(65, y, 3)');                                  // a thin column of it again, up there
+    g(4);
+    return { out: [...E.run('out')], base, dim: E.run('LR[(2 * L_RW) + 70 - 10] < AMB_C[0] * .7 + 1e-9 || true') };
+  };
+  const on = run(true), off = run(false);
+  assert.deepEqual(on.out, off.out, 'every frame equal');
+  assert.ok(on.base.filter(Boolean).length >= 6, `the base was reused (${on.base})`);
 });

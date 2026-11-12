@@ -59,6 +59,7 @@ function heroUpdate(e, dt) {
   if (c.jumped) { Sfx.tone(520, .07, .07, 'square'); }
   if (c.landed > 14 * S) { puff(e.x, e.y, Math.min(8, c.landed / S / 8)); Sfx.thud(c.landed / S * .12); }
   if (c.bounced) { Sfx.tone(300, .25, .1, 'triangle'); puff(e.x, e.y, 6); }
+  if (c.splashed) Sfx.burst(.22, 1100, 250, Math.min(.2, c.splashed / S / 300), 'lowpass');   // into the water
   if ((actionPressed('fire') || Input.pressed.has('Tap')) && COOL.fire <= 0) throwPebble(e);   // a tap on the screen throws one too
   if (actionPressed('bomb') && COOL.bomb <= 0 && STATS.bombs > 0) throwBomb(e);
   if (actionPressed('dig') && COOL.dig <= 0) dig(e);

@@ -122,6 +122,13 @@ Returns the id (1..255; `EMPTY = 0` is built in). Define materials at load time,
 | `grip` | 1 | 0..1, how well a `Character`'s feet hold on it: scales its acceleration and braking (ice: `.08`). |
 | `conveyor` | 0 | Base units/s along the surface (negative = left): carries a `Character`, a `Body` and sand standing on it. |
 | `bouncy` | 0 | > 0: a `Character` landing on it is thrown back up at that share of its impact speed (at least `bounceMin`; holding jump adds a third); a `Body` bounces on it with that restitution (springs, rubber pads, trampolines). |
+| `liquid` | false | Flows: falls, spreads level and pools. Not solid to anything (a `Character` swims in it, a `Body` floats, particles splash, light dims in it) and never structure. See Liquids. |
+| `viscosity` | .1 | Liquid only, 0..1: how thick. Thin liquids level out several cells a step, thick ones (lava, honey) creep. |
+| `murk` | 1 | Liquid only: how fast light dies in it (1 water-like, 3 lava-like); its colour decides which channels go first. |
+| `reacts` | null | `[{ with, makes, leaves: 0, heat: 0, chance: .25 }]`: a cell touching a `with` cell becomes `makes` (0: gone) and that cell becomes `leaves` (0: used up). See Reactions and heat. |
+| `flammable`, `ignite`, `burnsTo` | 0, .35, 0 | A flammable cell hotter than `ignite` burns (chance `flammable` per step to be burnt away into `burnsTo`) and heats its neighbours: fire spreads through the `heat` field. |
+| `conduct` | 0 | 0..1: heat flows between touching cells that both conduct. |
+| `hot` | 0 | 0..1.6: its cells stay this hot (lava); set with `setC` or `addHeat`. |
 | `style` | `'terrain'` | `'terrain'` (bright top edges, dark undersides), `'flat'` (no edges), `'deck'` (like terrain: a bright top), `'mast'` (girders: joints one shade brighter; buried parts look like the ground), `'crystal'` (twinkling facets with a colour `pulse`). |
 | `grainGlyphs` / `grains` | `".,'`:"` | Codes of its flying grains (their brightness, see Cell codes); `debris: true` makes them heavier, bouncier debris. |
 | `sublimate` | 0 | Chance per exhaust-gas hit to turn into vapour. `vaporize: true`: blasts turn it into vapour. |
@@ -175,7 +182,7 @@ b.fx = fx; b.fy = fy; b.tq = torque;              // set forces before each step
 b.step(dt);                                       // integrate + collide with the grid
 for (const h of b.hits) if (h.vn > 9 * RES) crash();   // h: {kind, vn (impact speed, units/s), mat, x, y, nx, ny}
 ```
-Fields: `x, y, vx, vy, a, w, m, I, hull, hits, feetDown, bodyDown`. Helpers: `b.toWorld(lx, ly, out)`,
+Fields: `x, y, vx, vy, a, w, m, I, hull, hits, feetDown, bodyDown`, and in a liquid `dens` (density against the liquid's, default 1.5: sinks slowly; below 1 it floats), `inLiquid` (share of the hull under, 0..1), `liquid`. Helpers: `b.toWorld(lx, ly, out)`,
 `b.dirWorld(lx, ly, out)`, `b.impulse(jx, jy, rx, ry)`. Hull point kinds: 0 structure, 1 foot (uses the ground
 material's friction), 2 strut side; the kind only matters for friction, your game decides what a hit means.
 A mass of 1 is about a lander; a chunk of 120 cells weighs ~2.
@@ -228,6 +235,15 @@ among the cells it overlaps or is within `o.hazardReach` units of, default .4) w
 platform it stands on). Ice (`grip`) slows its acceleration and braking, a conveyor carries it, a platform carries it by whole cells.
 Gravity zones (`addGravityZone`) change its fall; a jump's launch speed uses the world's gravity, so a jump in a low-gravity zone goes higher.
 
+### Character: swimming
+
+While the middle of its box is in a liquid (`hero.swimming`) gravity gives way to strokes: up or jump rises, down dives, left / right swims, and doing nothing sinks slowly; a thick
+liquid slows every stroke. Holding up with the head already out only keeps it at the surface (it treads water, the middle of the box bobbing there); a jump *press* with the head out of
+the liquid, or a moment after swimming, hops out, launched like a jump from the ground (standing on the bottom of a shallow pool, a press is the ordinary jump). A fast entry
+splashes (`hero.splashed` = the speed, else 0, for a sound) and a fall into water is no landing (`landed` stays 0). Readable after every step: `inLiquid` (0..1 share of its height in
+liquid), `submerged` (the head is under), `swimming`, `liquid` (which material). Options: `swim` (true; false wades and falls through), `swimSpeed` (`16·RES` units/s), `swimRise`
+(`20·RES`), `sink` (`6·RES`, negative floats up); entity `character` options give them in base units.
+
 ## Breakable structures
 
 After every `explode()` the engine checks support around the blast. Solid regions that lost their connection
@@ -255,6 +271,48 @@ pixel art, so a `Character` standing on it (carried by `dx`, `dy`) keeps its fee
 shadow-casting like any chunk; sand and particles pass through it. A blast that bites or shoves it turns it into an ordinary falling chunk. A `Character`
 squeezed between it and a wall gets `crushed`. A structure that loses its support and is too big to fall as a chunk (more than 2600 x RES² cells)
 sinks as a slab until it rests, instead of hanging in the air.
+
+## Liquids
+
+```js
+const WATER = defineMaterial('water', { albedo: [.22, .5, .9], liquid: true, viscosity: .05, density: 1, murk: 1 });
+setC(x, y, WATER); fill(x, y, R, WATER);          // pour it: a liquid is a material in the grid
+```
+A liquid cell falls into a free cell below and otherwise runs along its row over free cells to the nearest place where it can drop, up to about `12·RES·(1 − viscosity)²` cells a step, so a
+poured column levels out in a few steps and a pool at rest is flat to within the reach (chunks of a settled pool go to sleep; any `setC` or blast wakes them). A cell only moves when it ends
+up lower, every move swaps with an empty cell, so **a liquid is neither made nor lost** (the unit test pours a column and counts); viscosity makes a move a matter of chance (thick liquids
+creep). A heavier liquid sinks through a lighter one (`density`). **Sand** (a `granular` material) sinks through a liquid when its `density` is at least the liquid's (the two swap
+places, nothing is lost) and floats on one that is denser; grains thrown into a pool sink with drag, a grain lighter than the liquid floats, droplets of a liquid (`spawnGrain` with its material,
+what a blast throws) rejoin it, fire, sparks, dust and exhaust are put out where they enter it, and a fast entry sprays droplets (`splash(x, y, speed, liquid)` does that by hand).
+
+**It is not solid.** `MAT_SOLID[m]` is 0 for a liquid (and `MAT_LIQ[m]` 1): `solidU`, `Character`, `Body`, particles, `lineClear`, `sunAt`, `raycast` and the light's occlusion all pass through
+it, `carve` does not dig it (it flows into the hole) and `fill` only fills empty cells. It is never structure: `checkSupport`, `structuralCheck`, `settleIslands` and `breakOff` ignore it, so a pool
+never hangs in the air as a chunk. When something solid takes a liquid's cell (`putSolid(x, y, m)`: a chunk freezing in a pool, a slab sinking into one, sand landing in water) the liquid moves to the
+nearest free cell reached through liquid (`displaceLiquid(x, y)`): the level rises and nothing is lost, unless the pool is sealed. `setC` simply replaces the cell, as it always did.
+
+**Light and look.** The sun and ambient light that reach a liquid cell (and the floor and walls of the pool) are dimmed by the depth of liquid above them, per colour channel: `exp(-absorb · murk ·
+depth / RES / 6)`, where a channel's absorption is higher the less of it the liquid's colour holds, so blue water loses red first and deep water goes dark blue; lamps under water keep their
+light, and a liquid casts no sun shadow. A liquid cell is drawn as a translucent flat colour (its bands, lit, mixed with the back wall behind it), a brighter top row and the odd glint on the
+surface, in the CPU's colour buffers, so the WebGL and the 2D canvas renderer show the same picture; a hot liquid glows with its heat. Worlds without a liquid take none of these paths
+(`ANY_LIQ` is 0) and draw exactly as before.
+
+Not done: pressure (a U-tube does not level through the bend: a liquid only runs along its row), waves, a veil of water drawn over a sprite standing in it (it is darker and bluer by the light only),
+gas, and gravity along x for the flow.
+
+## Reactions and heat
+
+```js
+const LAVA = defineMaterial('lava', { liquid: true, albedo: [1, .4, .1], viscosity: .7, density: 2, hot: 1.2, conduct: .6, murk: 3, glow: [1, .5, .2, 6] });
+setMaterial(LAVA, { reacts: [{ with: WATER, makes: STONE, heat: .6, chance: .5 }] });      // after STONE and WATER exist
+defineMaterial('wood', { albedo: [.5, .35, .2], flammable: .03, ignite: .3, conduct: .4, burnsTo: ASH });
+```
+`reacts`: a cell touching (up, down, left, right) a `with` cell becomes `makes` (0: gone) at `chance` per step, and the touched cell becomes `leaves` (default 0: used up; `leaves: with` keeps it).
+`heat` is added to the new cell (it glows and cools off) and, when positive, steams: lava + water makes hot stone and puffs of steam, one water cell per stone cell. A reaction that has not happened
+yet keeps its chunk awake. `flammable` (0..1, the chance per step a burning cell is burnt away) with `ignite` (the heat at which it catches) and `burnsTo`: a cell hotter than `ignite` burns:
+it keeps itself hot, heats its four neighbours (that is how fire spreads through the `heat` field; `explode`, `carve({ heat })` and `addHeat` light it), throws flames and smoke, and a liquid
+beside it that is not hot puts it out. `conduct` (0..1): heat flows between touching cells that both conduct, from hot to cold (a metal bar carries a fire across a gap that plain rock
+stops; the pair's lesser rating × .2 of the difference a step; conserved), for the cells near the camera like every heat effect. `hot`: the cells keep this heat (`setC` sets it, a liquid
+carries it as it flows, cooling never takes it below it). The engine never names a material: all of this is data on the game's own materials.
 
 ## Particles, blasts and effects
 
@@ -403,7 +461,7 @@ exit(next) }, play: {...} })` makes `setState` call them. **Steering**: `seek(e,
 
 ## World tools
 
-- `raycast(x0, y0, dx, dy, max, { entities: true | ['type'], ignore, through })` → `{ x, y, dist, nx, ny, cell, material, chunk, entity }` or null.
+- `raycast(x0, y0, dx, dy, max, { entities: true | ['type'], ignore, through, liquids })` → `{ x, y, dist, nx, ny, cell, material, chunk, entity }` or null (a liquid does not stop a ray unless `liquids: true`).
 - **Triggers**: `addTrigger({ x, y, w, h }, { onEnter(actor), onLeave(actor), who: ['type'] | fn, once })` (units; x, w in cells). Actors are entities and anything
   given to `watchActor(obj)` (a `Character`: its box is x ± o.w/2, y − o.h .. y).
 - **Tile maps**: `loadTileMap(rows, legend, { tile: 4, margin: 0 })`: `legend` maps a character to `{ mat, back, prop (sprite), entity: 'name' | ['name', props],

@@ -78,9 +78,9 @@ column on the lockers' right edge (a cut artefact the gallery will make visible)
 
 Done on `feature/a-foundations`: **A1-A8** (Windows build, one version, pause as a flag, author checks, errors shown, structures, fast bodies), **B1-B4** (seeded random,
 simulation clock, record and replay, the Node engine test bench), **C1-C10** (detail levels a game chooses, resampling a world, entities, animation, actions with gamepad and
-touch, camera rigs, HUD kit, messages, the shell, settings and saves), **D1, D3-D10** (material flags, moving platforms, bodies, gravity, carve and fill, rays and projectiles,
+touch, camera rigs, HUD kit, messages, the shell, settings and saves), **D1, D2, D3-D10** (material flags, moving platforms, bodies, gravity, carve and fill, rays and projectiles,
 tile maps and triggers, path finding, timers and state machines), **F1, F3, F4** (sound as data, a music director, instruments off the main thread), **G2** (07 split).
-Open, in the plan's order: **D2** liquids (a pool, swimming, water + lava, flammables, heat conduction: the next station for the Proving Ground), **E1** the sun from either
+**D2** (liquids, HISTORY 56) is done too: `liquid` materials that flow level and keep their mass, swimming and floating, splashes, light that dims with depth, `reacts`, `flammable`, `conduct`, `hot`, and a pool in the Proving Ground. What D2 left open: pressure (a liquid only runs along its row: a U-tube does not level through the bend; the fix is a flood fill of the connected surface), waves and ripples on the surface, a veil of water drawn over a sprite standing in it, gas as a material (steam is only particles), reactions between a cell and a particle (fire particles only heat what they hit), sand sinking at gravity's pace rather than a cell every other step, and the falling-sand sandbox game the plan wanted as the proof (the pool and `engine-liquid.test.mjs` are the proof for now; rain and snow in E8 can now land as liquid cells and pile). Open, in the plan's order: **E1** the sun from either
 side, **E3** emissive sprite pixels, **E5** layers in front and far behind, **E4** per-light back-wall shadows, **E6** a screen palette and post effects, **E7** zoom, **E8**
 weather and time of day, **C11** the generated `api.json` and a lint of game code against it, **C12** starters per genre (the Proving Ground is the platformer one), **B5** golden
 screenshots and budgets in CI, **F2** key remapping is in the shell (the colour-blind HUD set and hold-to-toggle are not), **G1** the roadmap as "open work only". The speed
@@ -207,7 +207,7 @@ Each new game should need no engine edits. Every engine edit it forces goes on t
 
 - **Deterministic simulation:** a seeded RNG in the engine (`Pixelite.rand`) for replays and
   reliable tests.
-- **Performance** (the engine plan's P and E2 packages, HISTORY 54, engine 0.15.2):
+- **Performance** (the engine plan's P and E2 packages, HISTORY 57, engine 0.17.1):
   - ~~Profile lighting at RES 3 on large screens~~: `Pixelite.perf` (stage timers, F3), `tests/perf.py` (every game, both renderers, RES 2 and 3, two screen sizes).
   - ~~Cheaper inner loops (P3)~~, ~~lamps cached while nothing changes (E2)~~, ~~still frames reuse the sun, ambient and terrain shading (P2)~~ (exact: `tests/engine_cache.py`),
     ~~smaller pages: optional engine parts and `build --minify` (P6)~~.

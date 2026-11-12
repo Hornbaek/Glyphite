@@ -290,7 +290,7 @@ for bit):
   comparisons. (A first version shaded those cells again each frame, in one shared loop with a list mode; the extra per-cell work cost a tenth of the scene in every
   game, so the pass stayed one plain loop.)
 
-Measured and written down in HISTORY section 54.
+Measured and written down in HISTORY section 57.
 
 **Visibility queries** (`sunAt`, `isLitBy`, same file) march straight lines through `cells` with the lighting's own
 conventions (step 0.6, sun rays that start left of the world or above it are clear, a light's `skip`), so a game can ask

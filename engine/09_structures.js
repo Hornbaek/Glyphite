@@ -37,7 +37,7 @@ function structuralCheck(x, y, R) {
   const cx0 = Math.floor(x), cy0 = Math.floor(y / ASPECT);
   const x0 = Math.max(0, cx0 - rx), x1 = Math.min(W - 1, cx0 + rx), y0 = Math.max(0, cy0 - ry), y1 = Math.min(H - 1, cy0 + ry);
   const gw = x1 - x0 + 1, gh = y1 - y0 + 1, mark = new Uint8Array(gw * gh), stack = [];
-  const push = (cx, cy, v) => { const k = (cy - y0) * gw + cx - x0; if (!mark[k] && cells[cy * W + cx] !== EMPTY) { mark[k] = v; stack.push(k); } };
+  const push = (cx, cy, v) => { const k = (cy - y0) * gw + cx - x0; if (!mark[k] && MAT_SOLID[cells[cy * W + cx]]) { mark[k] = v; stack.push(k); } };   // a liquid is not structure
   // anchors: solid cells on the edge of the region (they continue into the world) and anything immovable
   for (let cx = x0; cx <= x1; cx++) { push(cx, y0, 1); push(cx, y1, 1); }
   for (let cy = y0; cy <= y1; cy++) { push(x0, cy, 1); push(x1, cy, 1); }
@@ -53,7 +53,7 @@ function structuralCheck(x, y, R) {
   let comp = [];
   flood(1);                                   // support flows through any solid neighbour, regolith included
   for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {
-    const k = (cy - y0) * gw + cx - x0; if (mark[k] || cells[cy * W + cx] === EMPTY) continue;
+    const k = (cy - y0) * gw + cx - x0; if (mark[k] || !MAT_SOLID[cells[cy * W + cx]]) continue;
     comp = []; push(cx, cy, 2); flood(2);     // a floating island
     breakOff(comp);
   }
@@ -72,18 +72,18 @@ function settleIslands(onDrop) {
   const flood = (sp, v, out) => {
     while (sp > 0) {
       const i = st[--sp], x = i % W; if (out) out.push(i);
-      if (x > 0 && !id[i - 1] && cells[i - 1]) { id[i - 1] = v; st[sp++] = i - 1; }
-      if (x < W - 1 && !id[i + 1] && cells[i + 1]) { id[i + 1] = v; st[sp++] = i + 1; }
-      if (i >= W && !id[i - W] && cells[i - W]) { id[i - W] = v; st[sp++] = i - W; }
-      if (i < N - W && !id[i + W] && cells[i + W]) { id[i + W] = v; st[sp++] = i + W; }
+      if (x > 0 && !id[i - 1] && MAT_SOLID[cells[i - 1]]) { id[i - 1] = v; st[sp++] = i - 1; }
+      if (x < W - 1 && !id[i + 1] && MAT_SOLID[cells[i + 1]]) { id[i + 1] = v; st[sp++] = i + 1; }
+      if (i >= W && !id[i - W] && MAT_SOLID[cells[i - W]]) { id[i - W] = v; st[sp++] = i - W; }
+      if (i < N - W && !id[i + W] && MAT_SOLID[cells[i + W]]) { id[i + W] = v; st[sp++] = i + W; }
     }
   };
   const findIslands = () => {
     id.fill(0); let sp = 0;
-    for (let i = 0; i < N; i++) { const m = cells[i]; if ((MAT_ANCHOR[m] || (i >= N - W && m)) && !id[i]) { id[i] = -1; st[sp++] = i; } }
+    for (let i = 0; i < N; i++) { const m = cells[i]; if ((MAT_ANCHOR[m] || (i >= N - W && MAT_SOLID[m])) && !id[i]) { id[i] = -1; st[sp++] = i; } }
     flood(sp, -1);
     const islands = [];
-    for (let i = 0; i < N; i++) if (cells[i] && !id[i]) { const v = islands.length + 1, comp = []; id[i] = v; st[0] = i; flood(1, v, comp); islands.push(comp); }
+    for (let i = 0; i < N; i++) if (MAT_SOLID[cells[i]] && !id[i]) { const v = islands.length + 1, comp = []; id[i] = v; st[0] = i; flood(1, v, comp); islands.push(comp); }
     return islands;
   };
   for (let pass = 0; pass < 12; pass++) {
@@ -95,13 +95,13 @@ function settleIslands(onDrop) {
       const comp = islands[k], v = k + 1; let d = H;
       for (const j of comp) {
         if (j + W < N && id[j + W] === v) continue;
-        let g = 0, q = j + W; while (q < N && cells[q] === EMPTY) { g++; q += W; }
+        let g = 0, q = j + W; while (q < N && !MAT_SOLID[cells[q]]) { g++; q += W; }
         if (q < N && id[q] === v) continue;          // its own lower part lands first
         if (g < d) d = g;
       }
       if (d <= 0 || d >= H) continue;
       comp.sort((a, b) => b - a);
-      for (const j of comp) { cells[j + d * W] = cells[j]; cells[j] = EMPTY; id[j + d * W] = v; id[j] = 0; }
+      for (const j of comp) { if (MAT_LIQ[cells[j + d * W]]) displaceLiquid((j + d * W) % W, ((j + d * W) / W) | 0); cells[j + d * W] = cells[j]; cells[j] = EMPTY; id[j + d * W] = v; id[j] = 0; }
       moved++;
       if (onDrop) onDrop(comp, d);
     }
@@ -109,7 +109,7 @@ function settleIslands(onDrop) {
   }
   if (FILL_MAT) for (const comp of findIslands()) {
     let lo = -1; for (const j of comp) if (!MAT_GRAN[cells[j]] && j > lo) lo = j;
-    if (lo >= 0) for (let q = lo + W; q < N; q += W) { const m = cells[q]; if (m !== EMPTY && !MAT_GRAN[m]) break; cells[q] = FILL_MAT; }
+    if (lo >= 0) for (let q = lo + W; q < N; q += W) { const m = cells[q]; if (MAT_SOLID[m] && !MAT_GRAN[m]) break; cells[q] = FILL_MAT; }
   }
 }
 
@@ -135,7 +135,7 @@ function startSlab(comp) {
   const N = W * H; let d = H;
   for (const j of idx) {
     if (own.has(j + W)) continue;
-    let g = 0, q = j + W; while (q < N && cells[q] === EMPTY) { g++; q += W; }
+    let g = 0, q = j + W; while (q < N && !MAT_SOLID[cells[q]]) { g++; q += W; }
     if (q >= N) return;                                      // a column with nothing under it: nowhere to land
     if (own.has(q)) continue;
     if (g < d) d = g;
@@ -147,7 +147,7 @@ function startSlab(comp) {
 function stepSlabs() {
   for (let k = slabs.length - 1; k >= 0; k--) {
     const sl = slabs[k], idx = sl.idx;
-    for (let i = 0; i < idx.length; i++) { const j = idx[i], m = cells[j], x = j % W, y = (j / W) | 0; if (m === EMPTY) continue; setC(x, y + 1, m); setC(x, y, EMPTY); idx[i] = j + W; heat[j + W] = heat[j]; heat[j] = 0; }
+    for (let i = 0; i < idx.length; i++) { const j = idx[i], m = cells[j], x = j % W, y = (j / W) | 0; if (!MAT_SOLID[m]) continue; putSolid(x, y + 1, m); setC(x, y, EMPTY); idx[i] = j + W; heat[j + W] = heat[j]; heat[j] = 0; }
     if (--sl.rows > 0) continue;
     slabs.splice(k, 1);
     let lo = 0; for (const j of idx) if (j > lo) lo = j;
@@ -337,7 +337,7 @@ function chipChunk(ch, wx, wy, k, vx, vy) {
 // of whatever it overlaps, so it does not freeze into the ground.
 function chunkOverlap(ch) {
   const [x0, y0, x1, y1] = chunkCellBox(ch); let n = 0;
-  for (let cy = Math.max(0, y0); cy <= Math.min(H - 1, y1); cy++) for (let cx = Math.max(0, x0); cx <= Math.min(W - 1, x1); cx++) if (cells[cy * W + cx] !== EMPTY && chunkCellMat(ch, cx, cy)) n++;
+  for (let cy = Math.max(0, y0); cy <= Math.min(H - 1, y1); cy++) for (let cx = Math.max(0, x0); cx <= Math.min(W - 1, x1); cx++) if (MAT_SOLID[cells[cy * W + cx]] && chunkCellMat(ch, cx, cy)) n++;
   return n;
 }
 function freezeChunk(ch, forced) {
@@ -345,7 +345,8 @@ function freezeChunk(ch, forced) {
   const [x0, y0, x1, y1] = chunkCellBox(ch), placed = [];
   for (let cy = Math.max(0, y0); cy <= Math.min(H - 1, y1); cy++) for (let cx = Math.max(0, x0); cx <= Math.min(W - 1, x1); cx++) {
     const m = chunkCellMat(ch, cx, cy); if (!m) continue;
-    if (cells[cy * W + cx] === EMPTY) { setC(cx, cy, m); placed.push(cy * W + cx); }
+    const c0 = cells[cy * W + cx];
+    if (c0 === EMPTY || MAT_LIQ[c0]) { putSolid(cx, cy, m); placed.push(cy * W + cx); }   // a pool gives way: its liquid is moved, not lost
     else { const c = crumbOf(m); if (c) spawnGrain(cx + .5, (cy + .5) * ASPECT, 0, -2 * RES, c); }
   }
   mountsFrozen(ch, placed);

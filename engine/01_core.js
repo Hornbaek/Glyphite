@@ -55,6 +55,15 @@ const MAT_DEBRIS = new Uint8Array(MAT_MAX), MAT_SUBL = new Float32Array(MAT_MAX)
 const MAT_FUSE = new Uint8Array(MAT_MAX), MAT_FUSEP = new Float32Array(MAT_MAX), MAT_EJECT = new Uint8Array(MAT_MAX), MAT_ONEWAY = new Uint8Array(MAT_MAX);
 let ANY_HAZ = 0;   // 1 once any material has a hazard: Character skips scanning for hazards until then
 const MAT_CLIMB = new Uint8Array(MAT_MAX), MAT_HAZ = new Float32Array(MAT_MAX), MAT_GRIP = new Float32Array(MAT_MAX).fill(1), MAT_CONV = new Float32Array(MAT_MAX), MAT_BOUNCY = new Float32Array(MAT_MAX);
+// Liquids: MAT_LIQ marks them, MAT_SOLID is what collision, light and structures read (a liquid cell is in the grid, but it is not solid: a character
+// swims in it, particles pass into it, it casts no sun shadow and is never structure). MAT_FALL says how the cellular step treats a cell:
+// 1 falls like sand, 2 flows like a liquid, 0 stays put. ANY_LIQ is 1 once any material is a liquid (bodies and light skip their liquid work until then).
+const MAT_LIQ = new Uint8Array(MAT_MAX), MAT_SOLID = new Uint8Array(MAT_MAX), MAT_FALL = new Uint8Array(MAT_MAX), MAT_VISC = new Float32Array(MAT_MAX), MAT_MURK = new Float32Array(MAT_MAX).fill(1);
+let ANY_LIQ = 0;
+// Reactions, burning and heat (engine/20_reactions.js): MAT_FALL also carries 4 for a material that reacts or burns, MAT_RX its reactions,
+// MAT_FLAM / MAT_IGN / MAT_BURN how it burns, MAT_COND how well heat flows through it, MAT_HOT the heat it holds (lava).
+const MAT_RX = [null], MAT_FLAM = new Float32Array(MAT_MAX), MAT_IGN = new Float32Array(MAT_MAX), MAT_BURN = new Uint8Array(MAT_MAX), MAT_COND = new Float32Array(MAT_MAX), MAT_HOT = new Float32Array(MAT_MAX);
+let ANY_COND = 0, ANY_HOT = 0;
 const STYLE = { terrain: 0, deck: 1, mast: 2, crystal: 3, flat: 4 };
 const MAT_DEFAULTS = {
   albedo: [.6, .6, .6],     // surface colour under white light
@@ -77,6 +86,17 @@ const MAT_DEFAULTS = {
   conveyor: 0,              // base units/s along the surface (negative = left): carries a Character, a Body and sand standing on it
   bouncy: 0,                // > 0: a Character landing on it is thrown back up at that share of its impact speed (at least Character's
                             // `bounceMin`); a Body bounces on it with that restitution (springs, rubber pads, trampolines)
+  liquid: false,            // flows: falls, spreads level and pools (the cellular step). Not solid to anything: a Character swims in it, a Body floats,
+                            // particles splash, light dims in it; never structure. A granular material sinks through it, or floats on it if its density is lower
+  viscosity: .1,            // liquid only, 0..1: how thick. Thin liquids level out several cells a step; thick ones (lava, honey) creep
+  murk: 1,                  // liquid only: how fast light dies in it (1 water-like, 3 lava-like); its colour decides which channels go first
+  reacts: null,             // [{ with: material, makes: material, leaves: 0, heat: 0, chance: .25 }]: a cell touching a `with` cell becomes `makes` (0: gone) and that
+                            // cell becomes `leaves` (default 0: used up; leaves: with keeps it); `heat` is added to the new cell, and a hot one gives off steam
+  flammable: 0,             // 0..1: a cell hotter than `ignite` burns, with this chance per step to be burnt away (0: it does not burn); a burning cell heats its neighbours
+  ignite: .35,              // the heat (0..1.6) at which a flammable cell catches
+  burnsTo: 0,               // what a burnt cell leaves behind (0: nothing)
+  conduct: 0,               // 0..1: heat flows between touching cells that both conduct, from hot to cold (0: it stays where it is and cools)
+  hot: 0,                   // 0..1.6: its cells stay this hot (lava); set with setC or addHeat
   style: 'terrain',         // 'terrain' | 'deck' | 'mast' | 'crystal' | 'flat' (see renderScene)
   grainGlyphs: ".,'`:",     // its flying grains: one picked per grain, as bright as the character is dense (see INK); `grains` is the same
   grains: null,
@@ -106,11 +126,15 @@ function applyMaterial(m) {
   MAT_SHADES[id] = clamp(m.shades | 0, 2, 16);
   // a palette's bytes in light units, so that after tone mapping the material shows exactly those colours
   MAT_PAL[id] = m.palette ? m.palette.map(c => c.map(v => -Math.log(1 - Math.min(.97, v / 255)) / 1.7)) : null;
-  MAT_GRAN[id] = m.granular ? 1 : 0; MAT_CREEP[id] = m.creep ? 1 : 0; MAT_TOUGH[id] = m.tough; MAT_SHINY[id] = m.shiny;
+  MAT_GRAN[id] = m.granular && !m.liquid ? 1 : 0; MAT_CREEP[id] = m.creep ? 1 : 0; MAT_TOUGH[id] = m.tough; MAT_SHINY[id] = m.shiny;
   MAT_FRIC[id] = m.friction; MAT_DENS[id] = m.density; MAT_BRITTLE[id] = m.brittle ? 1 : 0; MAT_ANCHOR[id] = m.anchor ? 1 : 0; MAT_ONEWAY[id] = m.oneWay ? 1 : 0;
   MAT_CLIMB[id] = m.climbable ? 1 : 0; MAT_HAZ[id] = m.hazard || 0; if (m.hazard) ANY_HAZ = 1; MAT_GRIP[id] = m.grip ?? 1; MAT_CONV[id] = m.conveyor || 0; MAT_BOUNCY[id] = m.bouncy || 0;
   MAT_STYLE[id] = STYLE[m.style]; MAT_DEBRIS[id] = m.debris ? 1 : 0; MAT_SUBL[id] = m.sublimate; MAT_VAPOR[id] = m.vaporize ? 1 : 0;
-  MAT_FUSE[id] = m.fuseTo; MAT_FUSEP[id] = m.fuseChance; MAT_EJECT[id] = m.ejecta || (m.granular ? id : 0);
+  MAT_FUSE[id] = m.fuseTo; MAT_FUSEP[id] = m.fuseChance; MAT_EJECT[id] = m.ejecta || (m.granular || m.liquid ? id : 0);   // a blast throws droplets of a liquid, which rejoin it
+  MAT_LIQ[id] = m.liquid ? 1 : 0; MAT_SOLID[id] = m.liquid ? 0 : 1; MAT_VISC[id] = clamp(+m.viscosity || 0, 0, 1); MAT_MURK[id] = m.murk ?? 1;
+  MAT_RX[id] = m.reacts && m.reacts.length ? m.reacts.map(r => ({ with: r.with, makes: r.makes | 0, leaves: r.leaves ?? 0, heat: r.heat || 0, chance: r.chance ?? .25 })) : null;
+  MAT_FLAM[id] = m.flammable || 0; MAT_IGN[id] = m.ignite ?? .35; MAT_BURN[id] = m.burnsTo | 0; MAT_COND[id] = m.conduct || 0; MAT_HOT[id] = m.hot || 0;
+  MAT_FALL[id] = (m.liquid ? 2 : m.granular ? 1 : 0) | (MAT_RX[id] || m.flammable ? 4 : 0); if (m.liquid) ANY_LIQ = 1; if (m.conduct) ANY_COND = 1; if (m.hot) ANY_HOT = 1;
 }
 // world-wide material roles: what lies beyond the sides and bottom of the grid, what broken solid
 // crumbles into, and what props up anything left floating when a level settles
@@ -155,8 +179,8 @@ function worldChanged(x0 = 0, y0 = 0, x1 = W - 1, y1 = H - 1) {
 let dynList = [];
 function markDynCell(i) { if (!dyn[i]) { dyn[i] = 1; dynList.push(i); } }
 function clearDyn() { for (const i of dynList) dyn[i] = 0; dynList.length = 0; }
-function setC(x, y, m) { if (x < 0 || y < 0 || x >= W || y >= H) return; const i = y * W + x; if (cells[i] === m) return; cells[i] = m; wakeAt(x, y); }
-const solidU = (xu, yu) => getC(Math.floor(xu), Math.floor(yu / ASPECT)) !== EMPTY;
+function setC(x, y, m) { if (x < 0 || y < 0 || x >= W || y >= H) return; const i = y * W + x; if (cells[i] === m) return; cells[i] = m; if (MAT_HOT[m]) heat[i] = MAT_HOT[m]; wakeAt(x, y); }
+const solidU = (xu, yu) => MAT_SOLID[getC(Math.floor(xu), Math.floor(yu / ASPECT))] === 1;
 
 // ---------- the back wall: a second grid behind the world ----------
 // Walls, panels and pipes behind the rooms of a station, a house, a cave. Never solid: nothing collides with it, sand and
@@ -175,7 +199,7 @@ const matU = (xu, yu) => getC(Math.floor(xu), Math.floor(yu / ASPECT));
 // surface normal from local occupancy (isotropic units)
 function normalAt(xu, yu, out) {
   const cx = Math.floor(xu), cy = Math.floor(yu / ASPECT), ri = Math.round(3 * RES), rj = Math.round(4 * RES / ASPECT); let nx = 0, ny = 0;
-  for (let j = -rj; j <= rj; j++) for (let i = -ri; i <= ri; i++) if (getC(cx + i, cy + j) !== EMPTY) { nx -= i; ny -= j * ASPECT; }
+  for (let j = -rj; j <= rj; j++) for (let i = -ri; i <= ri; i++) if (MAT_SOLID[getC(cx + i, cy + j)]) { nx -= i; ny -= j * ASPECT; }
   const l = Math.hypot(nx, ny);
   if (l < 1e-6) { out[0] = 0; out[1] = -1; } else { out[0] = nx / l; out[1] = ny / l; }
   return out;
@@ -191,11 +215,18 @@ function simGranular() {
     for (let y = y1 - 1; y >= y0; y--) {
       const row = y * W;
       for (let k = 0; k < x1 - x0; k++) {
-        const x = flip ? x0 + k : x1 - 1 - k, m = cells[row + x];
-        if (!MAT_GRAN[m]) continue;
-        if (cells[row + W + x] === EMPTY) {               // unsupported → ballistic grain
+        const x = flip ? x0 + k : x1 - 1 - k, m = cells[row + x]; let fall = MAT_FALL[m];
+        if (!fall) continue;
+        if (fall > 3) { if (reactCell(x, y, m, ci)) continue; fall &= 3; if (!fall) continue; }   // it reacts or burns (engine/20_reactions.js); true: the cell changed
+        if (fall === 2) { flowLiquid(x, y, m, ci); continue; }   // a liquid falls cell by cell and spreads level (engine/19_liquid.js)
+        const below = cells[row + W + x];
+        if (below === EMPTY) {                            // unsupported → ballistic grain
           cells[row + x] = EMPTY; wakeAt(x, y);
           if (!spawnGrain(x + .5, (y + .5) * ASPECT, rr(-.3, .3) * RES, 0, m)) { cells[row + W + x] = m; wakeAt(x, y + 1); }
+          continue;
+        }
+        if (MAT_LIQ[below] && MAT_DENS[m] >= MAT_DENS[below]) {   // sand in water sinks through it (the two swap places: nothing is made or lost); on a denser liquid it floats
+          if (rnd() < .5) { cells[row + x] = below; cells[row + W + x] = m; wakeAt(x, y); wakeAt(x, y + 1); } else awake[ci] = 1;
           continue;
         }
         const cv = MAT_CONV[cells[row + W + x]];   // resting on a conveyor: carried along, a row of sand at a time
@@ -230,6 +261,7 @@ function simGranular() {
 // heat cools off (only the band near the camera is worth simulating)
 function coolHeat(x0, y0, x1, y1) {
   x0 = Math.max(0, x0); y0 = Math.max(0, y0); x1 = Math.min(W, x1); y1 = Math.min(H, y1);
-  for (let y = y0; y < y1; y++) { const row = y * W; for (let x = x0; x < x1; x++) { const i = row + x; if (heat[i] > 0) { heat[i] = heat[i] * .985 - .0008; if (heat[i] < 0) heat[i] = 0; } } }
+  for (let y = y0; y < y1; y++) { const row = y * W; for (let x = x0; x < x1; x++) { const i = row + x; if (heat[i] > 0) { heat[i] = heat[i] * .985 - .0008; if (heat[i] < 0) heat[i] = 0; if (ANY_HOT && MAT_HOT[cells[i]] > heat[i]) heat[i] = MAT_HOT[cells[i]]; } } }
+  if (ANY_COND) conductHeat(x0, y0, x1, y1);
 }
-function addHeat(x, y, h) { if (x < 0 || y < 0 || x >= W || y >= H) return; const i = y * W + x; if (cells[i] !== EMPTY) heat[i] = Math.min(1.6, heat[i] + h); }
+function addHeat(x, y, h) { if (x < 0 || y < 0 || x >= W || y >= H) return; const i = y * W + x, m = cells[i]; if (m !== EMPTY) { heat[i] = Math.min(1.6, heat[i] + h); if (MAT_FLAM[m]) wakeAt(x, y); } }

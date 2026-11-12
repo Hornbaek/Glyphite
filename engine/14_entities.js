@@ -15,7 +15,7 @@
 const entities = [], ENTITY_TYPES = {};
 const ENTITY_KEYS = ['size', 'sprite', 'anim', 'anchor', 'flip', 'character', 'props', 'touches', 'always', 'sleep', 'tint', 'init', 'update', 'draw', 'lights', 'onTouch', 'onLeave'];
 // Character options that are lengths or speeds: given in base units, scaled by RES
-const CHAR_SCALED = ['w', 'h', 'run', 'jump', 'step', 'climb', 'bounceMin', 'fallMax', 'wallSlide', 'gravity'];
+const CHAR_SCALED = ['w', 'h', 'run', 'jump', 'step', 'climb', 'bounceMin', 'fallMax', 'wallSlide', 'gravity', 'swimSpeed', 'swimRise', 'sink'];
 function scaleCharOpts(o) {
   const r = { ...o };
   for (const k of CHAR_SCALED) if (typeof r[k] === 'number') r[k] *= RES;

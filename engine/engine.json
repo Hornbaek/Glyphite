@@ -1,6 +1,6 @@
 {
   "name": "Pixelite",
-  "version": "0.16.1",
+  "version": "0.17.1",
   "shell": "shell.html",
   "parts": [
     "00_dev.js",
@@ -23,7 +23,9 @@
     "15_world.js",
     "16_actions.js",
     "17_ui.js",
-    "18_toys.js"
+    "18_toys.js",
+    "19_liquid.js",
+    "20_reactions.js"
   ],
   "optional": {
     "chip": ["08_chip.js", "stubs/chip.js"],

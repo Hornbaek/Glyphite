@@ -1155,9 +1155,40 @@ level that uses them all.
 - **Verified**: build, 175 unit tests, the smoke test of seven games in both renderers, `tests/engine_browser.py`, Space Mouse reach and mechanics, Fjordheim's playthrough,
   the Proving Ground's check and mechanics (three runs).
 
-## 56. The engine plan, speed: stage timers, cached lamps, still frames, smaller pages (Claude Code, 2026-11-12)
+## 56. The engine plan: liquids, swimming and reactions (D2) (Claude Code, 2026-11-12)
 
-> "Please continue the performance work (P1, P3, E2, P2, P6, P4 if justified)... Pixel-identical output is required for P3/E2/P2 (check with Pixelite.test.hash() and frozen-frame screenshots in both renderers for all games)... report briefly with real before/after numbers" (packages P1, P2, P3, P4, P6 and E2 of `docs/ENGINE_PLAN.md`; engine 0.16.1, merged with `feature/a-foundations` 0.16.0)
+> Package D2 of `docs/ENGINE_PLAN.md`: liquids that fall, spread level and pool, swimming and buoyancy, splashes, light that dims with depth, reactions as data, and a water station for the Proving Ground.
+
+Engine 0.17.0, two new parts: `engine/19_liquid.js` and `engine/20_reactions.js`.
+
+- **Liquids** (`liquid: true`, `viscosity`, `murk`): a liquid is a material in the grid that is not solid (`MAT_SOLID` is 0, `MAT_LIQ` 1), so `solidU`, `Character`, `Body`, particles,
+  `lineClear`, `sunAt`, `raycast` and the light's occlusion pass through it, and it is never structure (`structuralCheck`, `settleIslands`, `breakOff`, `startSlab` and the chunk
+  freeze all ignore it). The cellular step moves a liquid cell down, or along its row to the nearest drop within `12 x RES x (1 - viscosity)^2` cells, one swap with an empty cell at a time, so
+  **its mass is exact** and a poured column settles flat (to within a row) in a second or two at every detail level; a heavier liquid sinks through a lighter one; sand sinks through water
+  (two cells swap) or floats on a denser liquid, grains lighter than the liquid float, droplets rejoin it. A solid taking a liquid's cell (a chunk freezing in a pool, a slab sinking in,
+  sand landing) moves the liquid to the nearest free cell reachable through liquid (`displaceLiquid`, `putSolid`): the level rises, nothing is lost.
+- **Swimming and floating**: `Character` swims while the middle of its box is in a liquid (strokes up, down and across, slow sink, treading water at the surface, a press at the surface hops
+  out; `inLiquid`, `submerged`, `swimming`, `liquid`, `splashed`; options `swim`, `swimSpeed`, `swimRise`, `sink`). `Body` gets buoyancy by the share of its hull under, its density against the
+  liquid's (`dens`, default 1.5), and drag. Fast entries splash (`splash`, droplets in the liquid's colour); fire and sparks are put out.
+- **Light and look**: the sun and ambient light dim per colour channel with the depth of liquid above (a table per liquid), lamps under water keep theirs, a liquid casts no sun shadow; a liquid
+  cell is drawn as a translucent flat colour with a brighter top row and glints, in the shared colour buffers, so WebGL and the 2D canvas show the same. Games without a liquid draw
+  pixel for pixel as before (checked by hashing the finished frame of all seven games in both renderers against the build before the change).
+- **Reactions as data**: `reacts: [{ with, makes, leaves, heat, chance }]` (lava + water makes hot stone and steam, one water cell per stone cell), `flammable` / `ignite` / `burnsTo` (a burning
+  cell heats its neighbours: fire spreads through the `heat` field; a liquid beside it puts it out), `conduct` (heat flows between conducting cells: a metal bar carries a fire across a gap) and
+  `hot` (lava stays hot, a liquid carries its heat). The engine names no material.
+- **Proving Ground**: a pool station between the brick tower and the dirt wall (the goal moved 20 tiles right): a basin four tiles deep with three of water, four coins on the bottom and in the water, steps up
+  the far side, a hint, a splash sound; `check.mjs` swims it (the reach search needs nothing new: its tries of holding jump and a direction already swim to the steps) and proves all 35 coins and the goal can be
+  reached; `mechanics.py` has 11 new checks (falling in with a splash, a soft landing, a slow sink, treading water, diving, every coin, the water drawn blue with a bright top row, light dimmer and bluer at
+  the bottom, swimming across and hopping out).
+- **Tests**: `tests/node/engine-liquid.test.mjs` (mass and a flat pool at three detail levels, drops and blasts, thick against thin, sand and pumice and oil, not solid, no structure, a chunk landing in a pool,
+  swimming, floating bodies) and `engine-reactions.test.mjs` (water and lava, fire across a rock gap, a metal bar and under water, conduction conserves heat, lava lights wood).
+- **Found on the way**: a displaced liquid first went straight up its own column and was lost when a chunk's own top row closed it (fixed: it searches through the liquid); the strokes up at the surface
+  threw the swimmer clear of the water like a jump (holding up with the head out now only treads water); a one-frame jump press at the surface hops low because letting go early cuts a jump (hold it).
+- **Not done**: see ROADMAP (pressure through a bend, waves, a veil over sprites, gas, particles that react, the falling-sand sandbox game).
+
+## 57. The engine plan, speed: stage timers, cached lamps, still frames, smaller pages (Claude Code, 2026-11-12)
+
+> "Please continue the performance work (P1, P3, E2, P2, P6, P4 if justified)... Pixel-identical output is required for P3/E2/P2 (check with Pixelite.test.hash() and frozen-frame screenshots in both renderers for all games)... report briefly with real before/after numbers" (packages P1, P2, P3, P4, P6 and E2 of `docs/ENGINE_PLAN.md`; engine 0.17.1, merged with `feature/a-foundations` 0.17.0: liquids and reactions)
 
 - **P1 measure first.** `Pixelite.perf` (also `probe().perf`, and a box on the F3 key) times `step`, `light`, `scene`, `gameDraw`, `hud`, `present`, their sum `draw`, and `tone` (the last pass of the scene, a part of
   `scene`); `mean()` / `reset()` for scripts, `sync` to count the wait for the picture. `perfAvg` is the time between frames; these are the work. `tests/perf.py` runs every game, both renderers, RES 2 and 3, 1280 x 800 and

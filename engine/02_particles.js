@@ -49,7 +49,11 @@ function deposit(x, y, m) {
   const cx0 = Math.floor(x), cy0 = Math.floor(y / ASPECT);
   for (let d = 0; d <= 4; d++) for (const cx of d ? [cx0 - d, cx0 + d] : [cx0]) {
     if (cx < 0 || cx >= W) continue;
-    for (let k = 0, cy = cy0; k < 12 && cy >= 0; k++, cy--) if (getC(cx, cy) === EMPTY) { setC(cx, cy, m); return true; }
+    for (let k = 0, cy = cy0; k < 12 && cy >= 0; k++, cy--) {
+      const c = getC(cx, cy);
+      if (c === EMPTY) { setC(cx, cy, m); return true; }
+      if (MAT_LIQ[c] && !MAT_LIQ[m]) { putSolid(cx, cy, m); return true; }   // a grain landing in a liquid takes its cell; the liquid moves aside, nothing is lost
+    }
   }
   return false;
 }
@@ -92,9 +96,10 @@ function stepParticles(dt) {
       const cx = Math.floor(nx), cy = Math.floor(ny / ASPECT);
       const m = cy < 0 ? EMPTY : cells[cy * W + cx];
       if (m === EMPTY) { X[i] = nx; Y[i] = ny; continue; }
+      if (MAT_LIQ[m]) { if (particleInLiquid(i, t, m, h)) { dead = true; break; } X[i] = nx; Y[i] = ny; continue; }   // a liquid is not a wall
       // --- collision: find the blocking axis ---
-      const hitX = getC(cx, Math.floor(Y[i] / ASPECT)) !== EMPTY;
-      const hitY = getC(Math.floor(X[i]), cy) !== EMPTY;
+      const hitX = MAT_SOLID[getC(cx, Math.floor(Y[i] / ASPECT))] === 1;
+      const hitY = MAT_SOLID[getC(Math.floor(X[i]), cy)] === 1;
       const bothOrDiag = (!hitX && !hitY) || (hitX && hitY);
       const vin = Math.hypot(VX[i], VY[i]);
       if (t === PT_GRAIN || t === PT_DEBRIS) {
@@ -167,7 +172,7 @@ function explode(x, y, R, power, quiet) {
     if (mb) mb(cx + .5, (cy + .5) * ASPECT, dx * v, dy * v, 'blast');
     else if (MAT_VAPOR[m]) {
       for (let k = 0; k < 2; k++) spawnP(PT_VAPOR, cx + .5, (cy + .5) * ASPECT, dx * v * .6 + rr(-4, 4) * S, dy * v * .6 - 3 * S, rr(.8, 1.8), pick('~-.'), 0);
-    } else if (rnd() < (MAT_GRAN[m] ? .7 : .55)) {
+    } else if (rnd() < (MAT_LIQ[m] ? .9 : MAT_GRAN[m] ? .7 : .55)) {
       const om = ejectaOf(m);
       if (om) spawnGrain(cx + .5, (cy + .5) * ASPECT, dx * v + rr(-2, 2) * S, dy * v - rr(2, 8) * power * S, om);
     }

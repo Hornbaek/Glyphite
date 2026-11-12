@@ -8,6 +8,7 @@ class Body {
     this.m = mass; this.I = inertia; this.hull = hull;
     this.fx = 0; this.fy = 0; this.tq = 0;
     this.hits = []; this.feetDown = 0; this.bodyDown = 0; this.gs = 1;   // gs scales gravity for this body (0: floats)
+    this.dens = 1.5; this.inLiquid = 0; this.liquid = 0;   // dens: its density against a liquid's (a little denser than water: it sinks slowly; below 1 it floats); inLiquid: share of its hull under, 0..1
   }
   toWorld(lx, ly, out) { const c = Math.cos(this.a), s = Math.sin(this.a); out[0] = this.x + lx * c - ly * s; out[1] = this.y + lx * s + ly * c; return out; }
   dirWorld(lx, ly, out) { const c = Math.cos(this.a), s = Math.sin(this.a); out[0] = lx * c - ly * s; out[1] = lx * s + ly * c; return out; }
@@ -17,6 +18,7 @@ class Body {
   step(dt) {
     const gz = gravityZones.length ? gravityAt(this.x, this.y) : null, gy = (gz ? gz[1] : G) * this.gs, gx = (gz ? gz[0] : GX) * this.gs;
     this.vx += (this.fx / this.m + gx) * dt; this.vy += (this.fy / this.m + gy) * dt; this.w += this.tq / this.I * dt;
+    if (ANY_LIQ) this.wet(dt, gx, gy);
     if (DEV) devFinite('Body.step', this.x, this.y, this.vx, this.vy, this.a, this.w);
     const n = clamp(Math.ceil(Math.hypot(this.vx, this.vy) * dt / .7), 1, 8), h = dt / n;
     for (let i = 0; i < n; i++) {
@@ -24,6 +26,21 @@ class Body {
       if (this.a > Math.PI) this.a -= 2 * Math.PI; else if (this.a < -Math.PI) this.a += 2 * Math.PI;
       this.collide(i === 0);
     }
+  }
+  // In a liquid: the share of the hull's points that are under it (inLiquid) sets the buoyancy, the liquid's density over the body's own `dens`
+  // times gravity pushing up, and a drag that slows it down (thicker liquid, more drag). A fast first contact splashes.
+  wet(dt, gx, gy) {
+    const hull = this.hull, c = Math.cos(this.a), s = Math.sin(this.a), was = this.inLiquid; let n = 0, lm = 0, wx = 0, wy = 0;
+    for (const p of hull) {
+      const px = this.x + p.x * c - p.y * s, py = this.y + p.x * s + p.y * c, m = getC(Math.floor(px), Math.floor(py / ASPECT));
+      if (MAT_LIQ[m]) { n++; lm = m; wx = px; wy = py; }
+    }
+    const f = hull.length ? n / hull.length : 0;
+    this.inLiquid = f; this.liquid = f ? lm : 0;
+    if (!f) return;
+    if (!was) splash(wx, wy, Math.hypot(this.vx, this.vy), lm);
+    const up = f * MAT_DENS[lm] / this.dens, k = Math.exp(-f * (1.4 + 3 * MAT_VISC[lm]) * dt);
+    this.vx = (this.vx - gx * up * dt) * k; this.vy = (this.vy - gy * up * dt) * k; this.w *= k * k;
   }
   collide(first = true) {
     const c = Math.cos(this.a), s = Math.sin(this.a), hull = this.hull, n = [0, 0], SKIN = .3;
@@ -105,6 +122,10 @@ function charDefaults() {
     climb: 20 * S,                    // climbing speed on climbable materials (units/s); 0 = it cannot climb
     bounceMin: 22 * S,                // slowest launch off a bouncy material (units/s)
     hazardReach: .4,                  // how far outside its box (units) a hazardous material still hurts
+    swim: true,                       // swims while the middle of its box is in a liquid (false: it wades, and falls through)
+    swimSpeed: 16 * S,                // horizontal speed swimming (units/s)
+    swimRise: 20 * S,                 // how fast up / down moves it swimming (units/s)
+    sink: 6 * S,                      // how fast it sinks when it does nothing (units/s; negative: it floats up)
     chunks: true                      // falling chunks are solid to it
   };
 }
@@ -117,6 +138,7 @@ class Character {
     this.coyoteT = 0; this.bufferT = 0; this.lockT = 0; this.dropT = 0; this.rising = false; this.held = false;
     this.jumped = this.wallJumped = this.bumped = this.crushed = false; this.landed = 0; this.bounced = 0;
     this.climbing = false; this.hanging = false; this.carry = 0; this.hazard = 0; this.hazardMat = 0; this.platform = null;
+    this.inLiquid = 0; this.submerged = this.swimming = false; this.liquid = 0; this.splashed = 0; this.swimLock = this.swimT = 0;   // liquids (see scanLiquid)
     this.contacts = { under: 0, left: 0, right: 0, above: 0, inside: 0 };
     this._cb = [];
   }
@@ -124,7 +146,7 @@ class Character {
   // feetY (the feet before the move) at or above its top, and not dropping through. Climbable cells are never solid to it.
   solid(cx, cy, feetY) {
     const m = getC(cx, cy);
-    if (m !== EMPTY) return MAT_CLIMB[m] ? 0 : !MAT_ONEWAY[m] || (feetY !== undefined && this.dropT <= 0 && feetY <= cy * ASPECT + 1e-3) ? m : 0;
+    if (MAT_SOLID[m]) return MAT_CLIMB[m] ? 0 : !MAT_ONEWAY[m] || (feetY !== undefined && this.dropT <= 0 && feetY <= cy * ASPECT + 1e-3) ? m : 0;
     for (const b of this._cb) if (cx >= b[0] && cx <= b[2] && cy >= b[1] && cy <= b[3]) { const cm = chunkCellMat(b[4], cx, cy); if (cm) return cm; }
     return 0;
   }
@@ -164,7 +186,7 @@ class Character {
     const row = Math.round(this.y / ASPECT), hw = this.o.w / 2;
     for (const b of this._cb) {
       if (!b[4].kin) continue;
-      for (let cx = Math.floor(this.x - hw + 1e-4); cx <= Math.floor(this.x + hw - 1e-4); cx++) if (getC(cx, row) === EMPTY && cx >= b[0] && cx <= b[2] && row >= b[1] && row <= b[3] && chunkCellMat(b[4], cx, row)) return b[4];
+      for (let cx = Math.floor(this.x - hw + 1e-4); cx <= Math.floor(this.x + hw - 1e-4); cx++) if (!MAT_SOLID[getC(cx, row)] && cx >= b[0] && cx <= b[2] && row >= b[1] && row <= b[3] && chunkCellMat(b[4], cx, row)) return b[4];
     }
     return null;
   }
@@ -239,6 +261,20 @@ class Character {
       for (let cx = Math.floor(this.x - hw + 1e-4); cx <= Math.floor(this.x + hw - 1e-4); cx++) if (this.solid(cx, r, this.y)) { this.y = r * ASPECT; return; }
     }
   }
+  // how deep in a liquid the box is: inLiquid (the share of its rows, in the middle column, that are liquid), submerged (its top row is), swimming
+  // (the middle row is, and o.swim), liquid (which one). Going into a liquid fast sets `splashed` (the speed) and sprays droplets.
+  scanLiquid() {
+    const o = this.o, was = this.swimming;
+    this.inLiquid = 0; this.submerged = this.swimming = false; this.liquid = 0;
+    if (!ANY_LIQ) return;
+    const cx = Math.floor(this.x), r0 = Math.floor((this.y - o.h + 1e-4) / ASPECT), r1 = Math.floor((this.y - 1e-4) / ASPECT), mid = (r0 + r1) >> 1;
+    let n = 0;
+    for (let cy = r0; cy <= r1; cy++) { const m = getC(cx, cy); if (MAT_LIQ[m]) { n++; this.liquid = m; } }
+    if (!n) return;
+    this.inLiquid = n / (r1 - r0 + 1); this.submerged = !!MAT_LIQ[getC(cx, r0)];
+    const mm = getC(cx, mid); if (MAT_LIQ[mm]) { this.liquid = mm; this.swimming = !!o.swim; }
+    if (this.swimming && !was && Math.abs(this.vy) > 10 * RES) { this.splashed = Math.abs(this.vy); splash(this.x, this.y - o.h / 2, this.splashed, this.liquid); }
+  }
   // after the move: what is under the feet, what is beside the box in the air, what it touches
   settle(dir) {
     const o = this.o;
@@ -254,7 +290,7 @@ class Character {
         if (this.wall) break;
       }
     }
-    this.scanContacts();
+    this.scanContacts(); this.scanLiquid();
   }
   // hanging from a rope { x, y, len } (a Grapple's): beyond its length the character is pulled back onto the circle and loses the outward part of its
   // velocity, so it swings; `hanging` is true while the rope is taut
@@ -269,7 +305,7 @@ class Character {
   }
   step(dt, inp = {}) {
     const o = this.o, gw = o.gravity || G, wasGround = this.onGround, dir = clamp(inp.x || 0, -1, 1), vdir = clamp((inp.down ? 1 : 0) - (inp.up ? 1 : 0), -1, 1);
-    this.jumped = this.wallJumped = this.bumped = this.crushed = false; this.landed = 0; this.bounced = 0;
+    this.jumped = this.wallJumped = this.bumped = this.crushed = false; this.landed = 0; this.bounced = 0; this.splashed = 0;
     if (DEV) devFinite('Character.step', this.x, this.y, this.vx, this.vy, dt, inp.x || 0);
     const gz = gravityZones.length ? gravityAt(this.x, this.y - o.h / 2) : null, g = o.gravity || (gz ? gz[1] : G);   // launches use the world's gravity, the flight the zone's
     this._cb.length = 0;
@@ -282,7 +318,7 @@ class Character {
     const press = !!inp.jump && !this.held; this.held = !!inp.jump;
     this.bufferT = press ? o.buffer : Math.max(0, this.bufferT - dt);
     this.coyoteT = wasGround ? o.coyote : Math.max(0, this.coyoteT - dt);
-    this.lockT = Math.max(0, this.lockT - dt); this.dropT = Math.max(0, this.dropT - dt);
+    this.lockT = Math.max(0, this.lockT - dt); this.dropT = Math.max(0, this.dropT - dt); this.swimLock = Math.max(0, this.swimLock - dt);
     if (inp.down && wasGround && MAT_ONEWAY[this.ground]) { this.dropT = .25; this.coyoteT = 0; }
     // climbing: grab a ladder or vine with up (or down, in the air), let go off the top, or with jump
     const onLadder = o.climb > 0 && this.climbCell();
@@ -297,6 +333,26 @@ class Character {
         const hit = this.moveY(this.vy * dt);
         if (hit > 0) { this.vy = 0; this.climbing = false; }
         else if (hit < 0) this.vy = 0;
+        this.settle(dir); return;
+      }
+    }
+    // swimming: while the middle of the box is in a liquid, gravity gives way to strokes. Up / jump rises, down dives, left / right swims, doing
+    // nothing sinks slowly (o.sink); a thick liquid slows every stroke. A jump press with the head out of the liquid (or within a moment of swimming: the
+    // box bobs at the surface) hops out, launched like a jump from the ground. Standing on the bottom of a shallow pool, a press is the ordinary jump.
+    this.swimT = this.swimming ? .15 : Math.max(0, this.swimT - dt);
+    if (press && o.swim && this.swimT > 0 && !this.submerged && !wasGround && this.swimLock <= 0) { this.vy = -Math.sqrt(2 * gw * o.jump * .8); this.jumped = this.rising = true; this.bufferT = 0; this.swimLock = .25; this.swimT = 0; }
+    if (this.swimming && o.swim && this.swimLock <= 0) {
+      if (press && wasGround && !this.submerged) { /* the ordinary jump below */ }
+      else {
+        // holding up with the head already out only keeps it there (treading water: the middle of the box bobs at the surface); a press hops out
+        const slow = 1 - MAT_VISC[this.liquid] * .6, stroke = inp.jump || inp.up, tvy = stroke ? -o.swimRise * slow * (this.submerged ? 1 : .12) : inp.down ? o.swimRise * slow : o.sink;
+        this.vx += (dir * o.swimSpeed * slow - this.vx) * (1 - Math.exp(-6 * dt));
+        this.vy += (tvy - this.vy) * (1 - Math.exp(-(stroke || inp.down ? 7 : 3.5) * dt));
+        if (dir) this.facing = dir > 0 ? 1 : -1;
+        this.rising = false; this.bufferT = 0;
+        this.moveX(this.vx * dt, wasGround);
+        const hit = this.moveY(this.vy * dt);
+        if (hit > 0) this.vy = 0; else if (hit < 0) { this.vy = Math.max(0, this.vy); this.bumped = true; }
         this.settle(dir); return;
       }
     }

@@ -16,6 +16,7 @@ const SPRING = defineMaterial('spring', { albedo: [.95, .45, .8], tough: 5, boun
 const STEEL = defineMaterial('steel', { albedo: [.55, .6, .68], tough: 5, brittle: false, style: 'mast' });
 const LADDER = defineMaterial('ladder', { albedo: [.62, .46, .26], tough: 5, climbable: true, style: 'mast' });
 const LOWG = defineMaterial('low-gravity glow', { albedo: [.22, .3, .55], tough: 5, style: 'flat' });
+const WATER = defineMaterial('water', { albedo: [.22, .5, .9], liquid: true, viscosity: .05, density: 1, shades: 4 });   // a liquid: the hero swims in it
 worldMaterials({ edge: ROCK, rubble: RUBBLE });
 
 // ---------- pixel art: small enough to type, drawn at 0.5 base units per pixel ----------
@@ -48,8 +49,8 @@ const GOAL_SPR = defineSprite({ w: 8, h: 12, pal: [[120, 80, 20, 0], [255, 214, 
 // ---------- the level as a text map ----------
 // The legend is the engine's loadTileMap legend. Characters: # rock, d dirt (dig it: L), B brick (blast it), = catwalk (jump up through it, S drops
 // through), ^ spikes, i ice, > < belts, s spring, H ladder (on the back wall), ~ low-gravity room, c coin, e slime, t torch, F checkpoint, G goal,
-// P start, 1-9 hint zones. The moving platforms and the gravity zone are put in by setup (FERRY, LIFT, LOW_G below).
-const COLS = 112, ROWS = 24, GROUND = 18;
+// P start, w water, C a coin in the water, a-9 hint zones. The moving platforms and the gravity zone are put in by setup (FERRY, LIFT, LOW_G below).
+const COLS = 132, ROWS = 24, GROUND = 18;
 function levelRows() {
   const g = Array.from({ length: ROWS }, () => Array(COLS).fill(' '));
   const put = (c, r, ch) => { if (c >= 0 && c < COLS && r >= 0 && r < ROWS) g[r][c] = ch; };
@@ -75,8 +76,14 @@ function levelRows() {
   fill(92, 6, 104, 17, '~'); fill(97, 12, 101, 12, '#'); coins(11, 98, 99, 100);
   put(94, 17, 'e'); put(101, 17, 'e'); fill(106, 12, 107, 17, 'B'); put(106, 11, 'e'); coins(16, 103, 104);
   put(91, 17, 't');
-  // F: a dirt wall to dig and the goal
-  fill(109, 14, 109, 17, 'd'); put(110, 17, 'c'); put(111, 17, 'G');
+  // F: a pool: a basin four tiles deep with water three deep (its surface a tile below the ground), coins on the bottom and in the water, and steps up the
+  // far side (the reach check swims it: it needs no hop out)
+  fill(110, GROUND, 121, ROWS - 3, ' '); fill(110, 19, 121, ROWS - 3, 'w');
+  put(112, 21, 'C'); put(114, 20, 'C'); put(116, 21, 'C'); put(118, 20, 'C');
+  put(119, 21, '#'); fill(120, 20, 120, 21, '#'); fill(121, 19, 121, 21, '#');
+  put(108, 17, 't'); put(124, 17, 'F');
+  // G: a dirt wall to dig and the goal
+  fill(129, 14, 129, 17, 'd'); put(130, 17, 'c'); put(131, 17, 'G');
   // hint zones (triggers), last, so they only take tiles nothing else uses
   zone(1, 13, 9, 17, '1');
   zone(16, 12, 18, 14, '2');
@@ -86,16 +93,17 @@ function levelRows() {
   zone(55, 13, 57, 17, '6');
   zone(85, 9, 88, 17, '7');
   zone(92, 14, 96, 17, '8');
-  zone(108, 12, 110, 17, '9');
+  zone(128, 12, 130, 17, '9');
+  zone(108, 14, 118, 18, 'a');
   zone(66, 11, 70, 17, '7');
   return g.map(r => r.join(''));
 }
 const LEGEND = {
   '#': { mat: ROCK }, d: { mat: DIRT }, B: { mat: BRICK }, '=': { mat: CATWALK }, '^': { mat: SPIKES }, i: { mat: ICE }, '>': { mat: BELT_R }, '<': { mat: BELT_L },
-  s: { mat: SPRING }, H: { back: LADDER }, '~': { back: LOWG }, c: { entity: 'coin' }, e: { entity: 'slime' }, t: { entity: 'torch' }, F: { entity: 'checkpoint' },
+  s: { mat: SPRING }, H: { back: LADDER }, '~': { back: LOWG }, w: { mat: WATER }, C: { mat: WATER, entity: 'coin' }, c: { entity: 'coin' }, e: { entity: 'slime' }, t: { entity: 'torch' }, F: { entity: 'checkpoint' },
   G: { entity: 'goal' }, P: { spawn: 'start' },
   1: { trigger: 'hint1' }, 2: { trigger: 'hint2' }, 3: { trigger: 'hint3' }, 4: { trigger: 'hint4' }, 5: { trigger: 'hint5' }, 6: { trigger: 'hint6' }, 7: { trigger: 'hint7' },
-  8: { trigger: 'hint8' }, 9: { trigger: 'hint9' }
+  8: { trigger: 'hint8' }, 9: { trigger: 'hint9' }, a: { trigger: 'hint10' }
 };
 const HINTS = {
   hint1: () => `MOVE ${actionLabel('left')} ${actionLabel('right')}   JUMP ${actionLabel('jump')} (HOLD FOR HEIGHT, A PRESS JUST BEFORE LANDING STILL COUNTS)`,
@@ -106,7 +114,8 @@ const HINTS = {
   hint6: () => 'SPIKES HURT. THE PINK BLOCK IS A SPRING',
   hint7: () => `A FERRY CARRIES YOU OVER THE SPIKES (OR SWING OVER THE BEAM: ${actionLabel('grapple')} SHOOTS A HOOK UP AND FORWARD, AGAIN LETS GO). A LIFT TAKES YOU UP`,
   hint8: () => `LOW GRAVITY: JUMPS GO HIGHER.  ${actionLabel('fire')} THROWS A PEBBLE, ${actionLabel('bomb')} A BOMB`,
-  hint9: () => `${actionLabel('dig')} DIGS DIRT IN FRONT OF YOU. THE FLAG AT THE END WINS`
+  hint9: () => `${actionLabel('dig')} DIGS DIRT IN FRONT OF YOU. THE FLAG AT THE END WINS`,
+  hint10: () => `WATER: HOLD ${actionLabel('jump')} OR ${actionLabel('up')} TO SWIM UP, ${actionLabel('down')} TO DIVE, ${actionLabel('left')} ${actionLabel('right')} TO SWIM. THE COINS ARE UNDER THE SURFACE; A PRESS AT THE SURFACE HOPS OUT`
 };
 // moving parts and the zone, in tiles (setup turns them into cells)
 const FERRY = { col: 71, row: GROUND, cols: 4, to: 80, speed: 9 };   // 4 tiles wide, rides along the row to column `to` (its top is flush with the ground)

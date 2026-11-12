@@ -119,7 +119,8 @@ function sceneTerrain(ox, oy, time, bkN, bp) {
   let anim = 0;
   for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) {
     const k = j * RW + i, cx = ox + i, cy = oy + j, inW = cx >= 0 && cx < W && cy >= 0 && cy < H, ci = inW ? cy * W + cx : -1;
-    let m = inW ? cells[ci] : getC(cx, cy);
+    let m = inW ? cells[ci] : getC(cx, cy), liq = 0;
+    if (MAT_LIQ[m]) { liq = m; m = EMPTY; anim++; }   // a liquid cell is drawn as what is behind it, then painted over (paintLiquid); its surface glints follow the clock
     const lr = LR[k], lg = LG[k], lb = LB[k];
     let glyph = 0, r = 0, g = 0, b = 0, raw = -1;
     if (m === EMPTY) {
@@ -127,7 +128,7 @@ function sceneTerrain(ox, oy, time, bkN, bp) {
       const bm = inW ? backCells[ci] : 0;
       if (bm) {   // the back wall: the light in the air in front of it, dimmer, with a drop shadow from the world cells
         let f = BACK.dim;
-        for (let s = 0; s < bkN; s++) if (getC(cx - BK_OFF[2 * s], cy - BK_OFF[2 * s + 1]) !== EMPTY) { f *= 1 - BACK.shadow * (1 - s / bkN); break; }
+        for (let s = 0; s < bkN; s++) if (MAT_SOLID[getC(cx - BK_OFF[2 * s], cy - BK_OFF[2 * s + 1])]) { f *= 1 - BACK.shadow * (1 - s / bkN); break; }
         const alb = MAT_ALB[bm];
         // a mast-style back wall (girders) shows its joints one shade brighter
         const joint = MAT_STYLE[bm] === 2 && (getBack(cx, cy - 1) === bm || getBack(cx, cy + 1) === bm) && (getBack(cx - 1, cy) === bm || getBack(cx + 1, cy) === bm);
@@ -159,6 +160,7 @@ function sceneTerrain(ox, oy, time, bkN, bp) {
       Z[k] = raw;
     }
     G[k] = glyph; cR[k] = r; cG[k] = g; cB[k] = b; cL[k] = raw;
+    if (liq) paintLiquid(k, cx, cy, liq, time);
   }
   return anim;
 }

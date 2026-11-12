@@ -1,5 +1,5 @@
 {
- "version": "0.16.1",
+ "version": "0.17.1",
  "names": {
   "_auditR": {
    "kind": "value",
@@ -20,6 +20,11 @@
    "kind": "value",
    "params": null,
    "part": "09_structures.js"
+  },
+  "_dseen": {
+   "kind": "value",
+   "params": null,
+   "part": "19_liquid.js"
   },
   "_engineUpdate": {
    "kind": "value",
@@ -56,10 +61,20 @@
    "params": null,
    "part": "04_light.js"
   },
+  "_ldepth": {
+   "kind": "value",
+   "params": null,
+   "part": "19_liquid.js"
+  },
   "_lights": {
    "kind": "value",
    "params": null,
    "part": "11_loop.js"
+  },
+  "_liqTab": {
+   "kind": "value",
+   "params": null,
+   "part": "19_liquid.js"
   },
   "_n": {
    "kind": "value",
@@ -226,7 +241,17 @@
    "params": 2,
    "part": "10_sprite.js"
   },
+  "ANY_COND": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
   "ANY_HAZ": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "ANY_LIQ": {
    "kind": "value",
    "params": null,
    "part": "01_core.js"
@@ -556,6 +581,11 @@
    "params": 4,
    "part": "04_light.js"
   },
+  "conductHeat": {
+   "kind": "function",
+   "params": 4,
+   "part": "20_reactions.js"
+  },
   "coolHeat": {
    "kind": "function",
    "params": 4,
@@ -645,6 +675,16 @@
    "kind": "function",
    "params": 2,
    "part": "00_dev.js"
+  },
+  "dimLiquidLight": {
+   "kind": "function",
+   "params": 2,
+   "part": "19_liquid.js"
+  },
+  "displaceLiquid": {
+   "kind": "function",
+   "params": 2,
+   "part": "19_liquid.js"
   },
   "DRAG_PX": {
    "kind": "value",
@@ -890,6 +930,11 @@
    "kind": "function",
    "params": 3,
    "part": "04_light.js"
+  },
+  "flowLiquid": {
+   "kind": "function",
+   "params": 4,
+   "part": "19_liquid.js"
   },
   "fmtS": {
    "kind": "function",
@@ -1311,6 +1356,11 @@
    "params": 5,
    "part": "04_light.js"
   },
+  "liquidLight": {
+   "kind": "function",
+   "params": 1,
+   "part": "19_liquid.js"
+  },
   "listSaves": {
    "kind": "function",
    "params": 0,
@@ -1411,7 +1461,17 @@
    "params": null,
    "part": "01_core.js"
   },
+  "MAT_LIQ": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
   "MAT_NAME": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "MAT_RX": {
    "kind": "value",
    "params": null,
    "part": "01_core.js"
@@ -1506,6 +1566,11 @@
    "params": 3,
    "part": "15_world.js"
   },
+  "nbIndex": {
+   "kind": "function",
+   "params": 3,
+   "part": "20_reactions.js"
+  },
   "near": {
    "kind": "function",
    "params": 4,
@@ -1551,10 +1616,20 @@
    "params": null,
    "part": "16_actions.js"
   },
+  "paintLiquid": {
+   "kind": "function",
+   "params": 5,
+   "part": "19_liquid.js"
+  },
   "parseMidi": {
    "kind": "function",
    "params": 1,
    "part": "08_chip.js"
+  },
+  "particleInLiquid": {
+   "kind": "function",
+   "params": 4,
+   "part": "19_liquid.js"
   },
   "particlesAlloc": {
    "kind": "function",
@@ -1671,6 +1746,11 @@
    "params": 7,
    "part": "06_scene.js"
   },
+  "putSolid": {
+   "kind": "function",
+   "params": 3,
+   "part": "19_liquid.js"
+  },
   "R": {
    "kind": "value",
    "params": null,
@@ -1685,6 +1765,11 @@
    "kind": "function",
    "params": 1,
    "part": "15_world.js"
+  },
+  "reactCell": {
+   "kind": "function",
+   "params": 4,
+   "part": "20_reactions.js"
   },
   "removePlatform": {
    "kind": "function",
@@ -1770,6 +1855,11 @@
    "kind": "function",
    "params": 2,
    "part": "01_core.js"
+  },
+  "sameMats": {
+   "kind": "function",
+   "params": 1,
+   "part": "04_light.js"
   },
   "Sampler": {
    "kind": "function",
@@ -2075,6 +2165,11 @@
    "kind": "function",
    "params": 8,
    "part": "02_particles.js"
+  },
+  "splash": {
+   "kind": "function",
+   "params": 4,
+   "part": "19_liquid.js"
   },
   "splatLight": {
    "kind": "function",
