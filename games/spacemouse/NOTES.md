@@ -14,7 +14,8 @@ Sectors (`sectors.js`, one character per 4 × 4 base-unit tile; the legend is at
    gallery under huge windows with cat-bots on two levels, and the captain's cabin with the captain's cheese.
 
 **The remake.** `story/` holds the story for a full remake, *Star Whiskers: The Holy Cow* (`STORY.md`, the owner's Swedish
-originals in `sv/`, feedback in `FEEDBACK.md`; the cover is `ref/cover_star_whiskers.png`). Nothing in the game uses it yet.
+originals in `sv/`, feedback in `FEEDBACK.md`; the cover is `ref/cover_star_whiskers.png`). Names: Pip (the mouse), Tinka (the inventor cat),
+MEGA-MJAU (the great robot cat), Stellamoo (the Holy Cow). Nothing in the game uses it yet.
 
 **Controls.** A D / arrows run, W / Up / Space jump (hold for height; press again against a wall to wall-jump), S / Down drops
 through catwalks and eats the cheese you stand on, walking into cheese eats it. Touch: < > on the left, v and JUMP on the
