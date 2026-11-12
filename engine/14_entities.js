@@ -7,13 +7,15 @@
 //     props: { hp: 3 },                     // default fields of every one spawned
 //     touches: ['player'],                  // types whose overlap calls onTouch(e, other) every step
 //     always: true,                         // keep updating off screen (default: entities more than 2 screens away sleep)
+//     front: true,                          // drawn in the front pass, after the game's draw hook (grass, a foreground pillar the hero walks behind)
+//     blocksLamps: true,                    // its sprite also stops the light of lamps (it always stops the sun): it casts a shadow from a lamp
 //     init(e) {}, update(e, dt) {}, draw(e, t) {}, lights(e, t, out) {}, onTouch(e, other) {}, onLeave(e) {}
 //   });
 //   const e = spawn('slime', x, y, { hp: 5 });   e.dead = true removes it at the end of the step.
 // The engine steps, culls, draws (before the game's draw hook), marks sprites as shadow casters and collects lights for them.
 // Queries: near(x, y, r, type?) and overlapping(e, type?) over a uniform hash; entities are in probe() by type.
 const entities = [], ENTITY_TYPES = {};
-const ENTITY_KEYS = ['size', 'sprite', 'anim', 'anchor', 'flip', 'character', 'props', 'touches', 'always', 'sleep', 'tint', 'init', 'update', 'draw', 'lights', 'onTouch', 'onLeave'];
+const ENTITY_KEYS = ['size', 'sprite', 'anim', 'anchor', 'flip', 'character', 'props', 'touches', 'always', 'sleep', 'tint', 'front', 'blocksLamps', 'init', 'update', 'draw', 'lights', 'onTouch', 'onLeave'];
 // Character options that are lengths or speeds: given in base units, scaled by RES
 const CHAR_SCALED = ['w', 'h', 'run', 'jump', 'step', 'climb', 'bounceMin', 'fallMax', 'wallSlide', 'gravity', 'swimSpeed', 'swimRise', 'sink'];
 function scaleCharOpts(o) {
@@ -95,9 +97,10 @@ function entityDrawOpts(e) {
   if (e.tint) o.tint = e.tint; if (e.flash) o.flash = e.flash; if (e.palette) o.palette = e.palette;
   return o;
 }
-function drawEntities(t) {
+// front: the front pass (entities defined with front: true, drawn after the game's draw hook) or the ordinary one
+function drawEntities(t, front = false) {
   for (const e of entities) {
-    if (e.dead || e.asleep || !entityOnScreen(e)) continue;
+    if (e.dead || e.asleep || !entityOnScreen(e) || !!e.def.front !== front) continue;
     const d = e.def;
     if (d.draw) d.draw(e, t);
     else { const spr = entitySprite(e); if (spr) drawSprite(spr, e.x, d.anchor === 'feet' ? e.y : e.y - e.h / 2, 0, entityDrawOpts(e)); }
@@ -108,7 +111,8 @@ function markEntitiesDyn() {
   for (const e of entities) {
     if (e.dead || e.asleep || !entityOnScreen(e)) continue;
     const spr = entitySprite(e); if (!spr) continue;   // an entity with a sprite or anim casts a shadow even if it draws itself
-    top = Math.min(top, markSpriteDyn(spr, e.x, e.def.anchor === 'feet' ? e.y : e.y - e.h / 2, 0, entityDrawOpts(e)));
+    const o = entityDrawOpts(e); if (e.def.blocksLamps) o.blocksLamps = true;
+    top = Math.min(top, markSpriteDyn(spr, e.x, e.def.anchor === 'feet' ? e.y : e.y - e.h / 2, 0, o));
   }
   return top;
 }

@@ -85,7 +85,7 @@ function loadSettings() {
 function saveSettings() { try { localStorage.setItem(storeKey('settings'), JSON.stringify(SETTINGS)); } catch (e) { } }
 function applySettings() {
   Sfx.muted = SETTINGS.mute; if (Sfx.master) Sfx.master.gain.value = SETTINGS.mute ? 0 : .5;
-  R.bloom = SETTINGS.bloom;
+  R.bloom = SETTINGS.bloom && POST.bloom;   // the player's choice, and the game's (setPost)
   if (Sfx.setVolumes) Sfx.setVolumes({ music: SETTINGS.music, sfx: SETTINGS.sfx });
 }
 function setSetting(k, v) {

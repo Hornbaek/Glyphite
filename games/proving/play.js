@@ -30,7 +30,7 @@ defineEntity('coin', {
 });
 defineEntity('torch', {
   size: [2, 4], anchor: 'feet', sprite: TORCH_SPR,
-  lights(e, t, out) { out.push({ x: e.x, y: e.y - 4 * RES, r: 44 * RES, c: [1, .62, .28], I: 1.25 + .15 * Math.sin(t * 13 + e.x), shadow: true }); }
+  lights(e, t, out) { out.push({ x: e.x, y: e.y - 4 * RES, r: 44 * RES, c: [1, .62, .28], I: (1.25 + .15 * Math.sin(t * 13 + e.x)) * (1 + .8 * (TUNE.daylight ? nightNow() : 0)), shadow: true }); }   // (brighter at night when the clock is on)
 });
 defineEntity('checkpoint', {
   size: [3, 6], anchor: 'feet', touches: ['hero'], props: { on: false },
@@ -159,7 +159,7 @@ function newLevel(fresh) {
   const saved = fresh ? null : Pixelite.load('run');
   MAP = loadTileMap(levelRows(), LEGEND, { tile: TILE, triggerWho: ['hero'] });
   const tc = MAP.tc;
-  setSun(52, [1, .93, .8]); setAmbient([.5, .56, .72]);
+  lookBackdrops(); applyLook();   // the hills, and the sun, sky, weather and screen look the tunables ask for (look.js)
   TAKEN = new Set(saved ? saved.taken : []);
   for (const e of entities) if (e.type === 'coin' && TAKEN.has(e.tile.join())) e.dead = true;   // already collected in the saved run
   CHECKS = entities.filter(e => e.type === 'checkpoint').sort((a, b) => a.x - b.x);

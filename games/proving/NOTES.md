@@ -12,6 +12,7 @@ Read `CLAUDE.md`, then this file; the engine side is `engine/API.md` ("Character
 | `game.json` | title, controls, **actions** (keys, gamepad, touch), tunables (gravity, run speed, jump height, coyote time, jump buffer, wall jump) |
 | `world.js` | the materials (every flag: `hazard`, `grip`, `conveyor`, `bouncy`, `climbable`, `oneWay`, and `liquid` for the water), the pixel art (hero frames, slime, coin, torch, flag), **the level as a text map** (`levelRows()`, `LEGEND`, `HINTS`) and the moving parts (`FERRY`, `LIFT`, `LOW_G`) |
 | `play.js` | the hero and slimes as entities with a `Character`, coins, flags (checkpoints), the goal, pebbles and bombs (projectiles), digging (`carve`), hurting and dying, saving, `newLevel()` (loadTileMap, platforms, gravity zone, camera rig) |
+| `look.js` | **the look (engine plan E1 to E8)**: two backdrop layers of hills, the grass in the front pass, the torches' glowing flames (in `world.js`), and `applyLook()`, which the seven look tunables call (below) |
 | `main.js` | the HUD (hints from triggers), the shell, the sky, `provingCheck()`, `Pixelite.run` |
 | `tests/check.mjs` | **the level can be finished** (Node, no browser, about a minute): the engine's `reachSearch` plays the hero's controller; moving platforms are put in as bridges and stairs, the dirt wall as dug |
 | `tests/mechanics.py` | each station in a real page: walking, jump height, coin, ladder, catwalk, ice, belt, spring, spikes, ferry, lift, low gravity, stomp, pebble, bomb, dig, the pool (falling in, treading water, diving, every coin, the water's look and light, a way out), checkpoint + save, goal, reload, rebinding, gamepad, replay |
@@ -31,6 +32,24 @@ Read `CLAUDE.md`, then this file; the engine side is `engine/API.md` ("Character
 Also on show: **rewind** (hold R: `Rewind`, the last 8 seconds, with the game's numbers kept through `Rewind.keep`), a **ghost** of your best run replayed beside you (`GhostRecorder`, `spawnGhost`, kept with `Pixelite.save`), the **camera rig** (dead zone, look-ahead, bounds), **actions** with gamepad (A jump, X pebble, B bomb, Y dig) and touch buttons made
 from them, the **shell** (title, pause menu, rebinding), **settings** and **saves** (the run continues at its checkpoint after a reload;
 "NEW GAME" in the pause menu erases it), seeded **record/replay**, **tunables** that act live, and `Pixelite.run({ detail: { levels: [2] } })`.
+
+## The look (engine 0.18.0)
+
+Always there: hills behind the level (`addBackdrop`, two layers, painted by `look.js`: the far one lighter and slower), grass on the plain rock of the ground in the **front pass** (`drawFront`: the hero walks behind it,
+it leans with the wind), the torches' flames as an **emit** layer (their own colour at any hour, a little light of their own), the mouse wheel and a pinch for **zoom** (`zoom: { min: .5, max: 3 }`).
+Tunables, all `live` and all off by default so the level plays and looks as it always did (change them in the web editor, or `TUNE.x = v; applyLook()` in a test):
+
+| Tunable | What it does |
+|---|---|
+| `daylight` (0 / 1) | `setTimeOfDay` drives the sun, the shadows, the sky gradient, the stars and the ambient light; the old painted daytime sky then paints only its clouds, as bright as the hour; the torches burn brighter at night |
+| `hour` (0 to 24) | the clock's start (and what moving it in the editor sets); 6 is sunrise, 18 sunset |
+| `dayRate` (hours a second) | the engine runs the clock by itself (`rate`) |
+| `weather` (0 / 1 / 2) | none, rain (cools, splashes, ends in the pool), snow (piles up as `SNOW` cells: they are in the hero's way) |
+| `wind` (-30 to 30) | blows the weather, smoke and dust, and leans the grass |
+| `fog` (0 to 1) | `setFog`, a ground mist, thicker over the hills and the sky |
+| `look` (0 / 1 / 2) | normal / four greens with a dither (`setPost` palette) / a CRT (scanlines and a strong vignette) |
+
+`tests/check.mjs` and `tests/mechanics.py` run with these off. The pool check in `mechanics.py` finds the first water cell of its column (the surface is a row higher while the water sloshes after the hero has swum about).
 
 ## Commands
 

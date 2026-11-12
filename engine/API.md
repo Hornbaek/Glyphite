@@ -47,6 +47,7 @@ Pixelite.run({
   markDyn() {},           // mark moving bodies as shadow casters; return the top row they cover (or 1e9)
   lights(t, out) {},      // push this frame's lights (see Lighting)
   draw(t) {},             // draw game objects into the world grid (putEmit, putLit, drawSprite)
+  drawFront(t) {},        // the front pass: drawn after everything above, so the hero walks behind it (see Layers in front and far behind)
   hud(t) {},              // draw the HUD (hudText, msgBox...)
   afterFrame(t) {},       // after presenting (music, DOM)
   onKey(code) {},         // one-shot key presses (KeyboardEvent.code) the built-in keys did not take
@@ -58,6 +59,7 @@ Pixelite.run({
   shell: true,            // the engine's title screen, pause menu and controls screen (see The standard shell)
   menu: [{ label: 'HELP', onSelect() {} }], restart() {}, quit() {},   // the pause menu's extra entries, RESTART and QUIT TO TITLE
   detail: { levels: [2] },// offer only these detail levels (default: all five); no keys or button for one
+  zoom: { default: 1, min: .5, max: 4, wheel: true, pinch: true },   // the view's zoom (see Camera): its first value and limits, and the mouse wheel and a pinch drive it
   cameraEase: 3.2,        // how fast the camera catches up (per second); setCamera() has its own
   floatText: false,       // do not draw addText() labels (default: the engine draws them)
   saveVersion: 1, migrate(oldVersion, data) {},   // Pixelite.save / load (see Settings and saves)
@@ -73,7 +75,8 @@ Pixelite.run({
 chunks, particles, sand, heat, effects) → camera.
 
 **One frame** (`draw(t)`): skyline → dynamic marks (chunks, then `GAME.markDyn`) → lighting (`GAME.lights` + entities' lights +
-effect lights) → scene (terrain, particles, chunks, then props, entities, the state's `draw`, `GAME.draw`, then shock rings) →
+effect lights) → scene (terrain, particles, chunks, then props, entities, the state's `draw`, `GAME.draw`, the front pass (front props and entities, the state's and
+`GAME.drawFront`), then shock rings) →
 HUD (`GAME.hud`, the state's `hud`, floating texts, the shell, the message feed) → present → `GAME.afterFrame`.
 
 **State**: the globals `state` (string) and `stateT` (seconds in it). `setState('play')` switches and resets `stateT`.
@@ -172,7 +175,7 @@ draws seams and pipes (`| = +` from its back-wall neighbours), every other style
 | | |
 |---|---|
 | `setBack(x, y, m)`, `getBack(x, y)` | Write / read one back-wall cell (or fill `backCells[y * W + x]` directly while generating). `worldInit` clears it. |
-| `setBackdrop({ dim, shadow, dir, depth })` | `dim` (.42): brightness against the world; `shadow` (.6): how dark the drop shadow is; `dir` ([.6, .8]): the way shadows fall, in units (down and right); `depth` (2.2): how far they reach, base units. |
+| `setBackdrop({ dim, shadow, dir, depth })` | `dim` (.42): brightness against the world; `shadow` (.6): how dark the drop shadow is; `dir` ([.6, .8]): the way shadows fall, in units (down and right); `depth` (2.2): how far they reach, base units; `lamps` (false): the shadow falls away from the lamps that light each cell instead of one way for the whole screen (it turns smoothly toward `dir` where no lamp reaches; the sun does not turn it). |
 
 ## Bodies and contacts
 
@@ -326,7 +329,10 @@ Custom types:
 ```js
 const PT_SHARD = defineParticle({
   gravity: 1, drag: 0, bounce: .5, friction: .6,
+  wind: 0,                                                                       // how fast the wind (setWind) pulls it, a share a second; 0: it does not
   update(i, dt) { /* steer, collect: P.age[i] = P.life[i] */ },
+  onHit(i, cx, cy, m, hitX, hitY) { return true; },                              // it ran into solid cell (cx, cy): true ends it there, false bounces as usual
+  onLiquid(i, m, h) { return true; },                                            // it is about to enter a liquid cell: true ends it there (default: it goes on, slowed)
   light(i, cx, cy, life) { splatLight(cx, cy, .3, .05, .25, 4); },              // optional glow
   look(i, k, life, time, out) { out[0] = 1.3; out[1] = .3; out[2] = 1; return SOLID; }   // colour + cell code
 });
@@ -347,8 +353,10 @@ Lights are pushed each frame from `GAME.lights(t, out)`:
 out.push({ x, y, r: 60 * RES, c: [1, .9, .8], I: 1.5, shadow: true });                          // point light
 out.push({ x, y, r: 70 * RES, c: [.8, .9, 1], I: 2, shadow: true, dx, dy, cos: Math.cos(.5), skip: 3 * RES });   // cone
 ```
-`skip` keeps a light from being shadowed by its own body. `setSun(elevationDegrees, colour?)` (light from the
-left, 1..89°; `setSun(null)` for no sun: caves, indoors), `setAmbient([r, g, b])`. Emissive things: `splatLight(cx, cy,
+`skip` keeps a light from being shadowed by its own body. `setSun(angleDegrees, colour?)`: the sun's angle from the left horizon, so 1..89° is the sun in
+the left half of the sky (light travels right and down, shadows fall to the right), 91..179° the right half (a sun at 145° is the one at 35° seen from the other
+side: shadows fall to the left; 180 − angle is its height, so an atmosphere reddens both the same); 90° is taken as 89°, and the angle is kept in `SUN_EL`.
+A day is `setSun(180 * (hour - 6) / 12)` (see `setTimeOfDay`, Weather). `setSun(null)` is no sun: caves, indoors. `setAmbient([r, g, b])`. Emissive things: `splatLight(cx, cy,
 r, g, b, radiusBaseCells)`; materials with `glow`; heat. `lightAtCell(cx, cy, out)` reads the light at a cell.
 
 **The sun's colour.** `setSun(el, [r, g, b])` pins it. `setSun(el, { kelvin: 5772, intensity?: 1.15 })` sets the base colour
@@ -411,6 +419,18 @@ then multiplied by `0.5 + 0.5·sprRelief(n, l)`, where `l` points toward the lig
 the lamps' own direction, `LDX/LDY`, and a little sky from above): up to ×1.35 facing the light, down to ×0.65 facing away,
 exactly ×1 for a flat pixel or a sprite without normals.
 
+**Glowing pixels (the `emit` layer).** A sprite's data may also carry `emit: ['....99..', ...]`, rows the size of `rows`: `.` where a pixel does not glow, a base-36 digit where it
+does (`9`: the pixel is fully its own colour, unlit, a window, a screen, eyes; `1`..`8` that share of it, the rest lit as usual; `a`..`z` brighter than the art, up to 3.9). A glowing
+pixel is drawn **unlit** (the art's own colours at any hour) and **gives light**: `drawSprite` records where, and the scene pass of the *next* frame pours the record into the light
+buffers like fire (`splatLight`): the terrain and particles drawn after it, and the next frame's sprites, are lit by it, one frame behind, which is not visible for anything that moves like a
+character. The glowing cells of a sprite are added up in blocks of RES × RES cells (a big screen is a few splats, its light the same in total, per base cell, so it is the same at every
+detail level). `defineSprite(data, { glow: 3, glowGain: .05 })`: `glow` is the radius of that light in base cells (0: glowing pixels but no light), `glowGain` its strength per base cell of
+glow; `drawSprite(spr, x, y, a, { emit: .5 })` scales the glow of one draw (0: the lamp is off: ordinary lit pixels and no light; a flicker). A sprite without an `emit` layer is drawn
+exactly as before. Made from the art by `tools/pixelsprite.py --emit '#ffe08a' [--emit-mask glow.png]` or, in the art pipeline, `node tools/art.mjs add ... --emit '#ffe08a'` (docs/ART_PIPELINE.md).
+**Sprites that block lamp light.** A sprite stops the sun through `markSpriteDyn`; `markSpriteDyn(spr, x, y, a, { blocksLamps: true })` (and `blocksLamps: true` in a `defineEntity`)
+makes its cells stop the light of lamps as well (shadowed lamps only: a character between a lamp and a wall casts a shadow on it), the lit side of the sprite itself still being lit. A lamp
+whose reach touches such a sprite is cast again every frame instead of being kept (`Pixelite.cache`), and goes back to the cache when the sprite has gone.
+
 **Cleaning AI art.** `node tools/snap.mjs in.png out.png [--colors 16] [--pixel-size P] [--palette hex,...]` runs Pixel
 Snapper (Sprite Fusion, MIT): it snaps AI-made pixel art to the grid it was meant to have and to a palette.
 `k` = base units per pixel, `(ox, oy)` the origin pixel (centre of mass). `part(c, r)` gives movable parts (1..n)
@@ -438,6 +458,8 @@ defineEntity('slime', {
   props: { hp: 3 },                     // default fields (copied) of every one spawned
   touches: ['player'],                  // types whose overlap calls onTouch(e, other) every step
   always: true,                         // update off screen too (default: more than 2 screens away it sleeps; sleep: 3 changes that)
+  front: true,                          // drawn in the front pass, after the game's draw hook (see Layers in front and far behind)
+  blocksLamps: true,                    // its sprite also stops the light of lamps, not only the sun's (see Sprites, Glowing pixels)
   init(e) {}, update(e, dt) {}, draw(e, t) {}, lights(e, t, out) {}, onTouch(e, other) {}, onLeave(e) {}
 });
 const e = spawn('slime', x, y, { hp: 5 });      // e.dead = true removes it at the end of the step
@@ -511,6 +533,76 @@ sky cell and returns a cell code (0 = nothing, -1 = dark body that hides stars, 
 Cell codes) with `out = [r, g, b]`. Stars are single pixels.
 See `earthBegin` / `earthCell` in `games/regolith/view.js`.
 
+## Layers in front and far behind
+
+**The front pass.** Everything a game draws lands over the terrain, in this order: props, entities, the state's `draw`, `GAME.draw`. The **front pass** comes after
+all of it, so a character walks behind what is drawn there: front props (a tile map legend entry `{ prop: GRASS, front: true }`), entities defined with `front: true`
+(`defineEntity('pillar', { front: true, sprite })`), the state's `drawFront(t)` and `GAME.drawFront(t)`. They write cells and sprites the same way (`putEmit`,
+`putLit`, `drawSprite`); in the front pass they cover the game's own objects, particles and the terrain, never the HUD.
+
+**Backdrops** are layers between the sky and the world: hills, a far city, mountains. Each has a grid of its own scrolled by the camera times its `parallax`, with the
+sky layer's sub-cell offset (so it glides instead of stepping a cell at a time, in both renderers), and shows behind every world cell that is empty: the back wall,
+the terrain and everything drawn cover it, and the sky shows through where it paints nothing. The first one added is the farthest; at most three.
+```js
+addBackdrop({ parallax: .35, horizon: 24 * 8 * RES,                  // 0 holds still on the screen, 1 moves with the world; horizon: a world row (see below)
+  paint(gx, dy, out, t) { const top = -14 * RES - 6 * RES * vnoise1(gx * .03, 5); if (dy < top) return 0; out[0] = .1; out[1] = .25; out[2] = .35; return SOLID; } });
+addBackdrop({ underground: [.02, .02, .05] });                      // a dark wall below the skyline: a cave and the ground show no stars
+```
+`paint(gx, dy, out, t)` is asked for every cell when the layer is rebuilt: `gx` is the column in the layer's own space (it scrolls by `cam.x × parallax`, so a hill that
+is a function of `gx` stays put), `dy` the row; it returns a cell code (0 = nothing, `SOLID`, or a character's brightness) with `out = [r, g, b]` in light units, as
+`GAME.sky` does. Backdrop colours are the painter's own (not lit), baked with the exposure and the vignette like the sky. `horizon` (a world row in units, scaled by RES) makes
+`dy = 0` the layer's row that stands where that world row does when the camera is centred on it: hills painted below `dy = 0` sit on the ground of a level whose ground is
+at that row, whatever the parallax; without it `dy` is the layer's own row. `parallax` may be `[x, y]`. `begin(ox, oy, t)` runs before each rebuild; `animate: 4` rebuilds that
+many times a second even when the layer has not scrolled (drifting clouds); `key: (ox, oy) => value` rebuilds when the value changes (a layer that follows the time of day).
+A layer is rebuilt when it has scrolled a whole cell, so keep `paint` cheap (it runs for about 64 000 cells at 1280 × 800: 1 to 3 ms). `removeBackdrop(layer)`, `clearBackdrops()`;
+`worldInit` clears them like everything else that belongs to a world (the detail rescale keeps them). `underground: [r, g, b]` (with `grain`) is a built-in painter at
+parallax 1 for the cells under the world's skyline (`colTop`): the answer to stars showing in a cave.
+
+## The screen look: palette and post effects
+
+Colours are continuous (banded per material, then tinted by the lamps), so a frame holds thousands of them. `setPost` lets a game choose one look for the whole screen; every
+option is off, or as it always was, until it is asked for, so a game that never calls it renders bit for bit as before.
+```js
+setPost({ palette: ['#0f380f', '#306230', '#8bac0f', '#9bbc0f'], dither: .6 });   // four greens: the world, the backdrops and the sky lock to them
+setPost({ scanlines: .25, vignette: .6, bloom: false });                           // a CRT: thin dark lines, darker corners, no glow
+setPost({ palette: null });                                                        // one option at a time; the others stay as they were
+getPost()                                                                          // what is set now: { vignette, bloom, palette, dither, scanlines }
+```
+| Option | |
+|---|---|
+| `palette` | `null`, or 2 to 255 colours (`'#rrggbb'`, `'#rgb'` or `[r, g, b]` in bytes). Every pixel of the world, the backdrops and the sky becomes the nearest palette colour (the "redmean" distance, which follows the eye better than plain RGB). The HUD keeps its own colours so text stays readable. **Put the background colour in the palette** (`setBackground`): a cell filled with it is snapped, but the empty space behind everything is drawn by the renderer as it is. A game with `art/` can pass its master palette. |
+| `dither` | 0..1 (default 0): an ordered (Bayer 4 x 4) offset added before the palette picks, so a gradient becomes a pattern and not bands. It is fixed to world cells, so it does not shimmer while the camera moves. Only matters with a `palette`. |
+| `vignette` | 0..1 (default .42, what every game had): how much the corners darken. |
+| `bloom` | `false` switches the glow off for this game; the player's own setting (`setSetting('bloom', …)`, the G key) can still switch it off, and neither undoes the other. |
+| `scanlines` | 0..1 (default 0): a thin dark line at the bottom of each cell row, fixed on the screen, over the world, backdrops and sky but not the HUD. The same lines in WebGL and 2D. |
+
+The palette is applied after the exposure and the light, so a game that uses `setEyeAdaptation` or lamps still reads as light and dark, only in few colours. The glow
+(bloom) is added by the renderer over the locked colours and is not a palette colour, so a game that wants a strict palette switches it off. `setPost` is not undone by
+`worldInit` (it is the game's look, like `setBackdrop`).
+
+## Weather, wind, fog and the time of day
+
+A small kit on the existing parts (`engine/21_weather.js`). Each piece is off until a game asks for it, and a game that never calls any of it renders and plays bit for bit as
+before (no particle types are even made until `setWeather` is called). They run on the simulation's steps, so pause, slow motion and replays hold.
+```js
+setTimeOfDay(14.5);                                  // the clock drives the sun, the ambient light, the sky and the stars
+setTimeOfDay(6, { rate: 0.25, sunrise: 6, sunset: 20 });   // and the engine can run it: a quarter of an hour a second
+setWeather('snow', { amount: .6, pile: SNOW });      // an emitter above the view; some of what lands becomes cells of SNOW
+setWind(14, .5);                                     // blows right at 14 units a second, swelling and dropping
+setFog({ colour: [.85, .9, 1], density: .35, ground: .6 });   // a ground mist over the world, thicker over the hills and the sky
+```
+| Call | |
+|---|---|
+| `setTimeOfDay(hour, opts?)` → `{ hour, daylight, sunAngle }` | `hour` 0..24, wraps (12 is noon). The sun rises on the left at `sunrise` (default 6) and sets on the right at `sunset` (18), climbing and falling by a sine, so its shadows swing across the world (the angle is kept between 8 and 172 degrees: a shadow from the last degrees is a stripe across the world). Its colour goes from a thin red at the horizon to white by a third of the way up and its strength follows its height; it is off (`setSun(null)`) at night. The ambient light goes from night blue to day, with a warm band an hour or so either side of sunrise and sunset, and the sky and the stars follow (below). Options stay set until changed: `sunrise`, `sunset`, `rate` (hours a second the engine runs the clock by itself, 0 stops it), `sun` (the day sun's strength, default 1), `horizon` (the sky gradient's `at`: where on the screen the sky reaches its horizon colour, default 1), `sky: false` and `ambient: false` (leave those to the game). It calls `setSun` with a pinned colour, so an atmosphere does not redden it a second time. `setTimeOfDay(null)` switches the clock off: it stops, and the sky gradient goes; the sun and the ambient light stay as they were, for the game to set. |
+| `getTimeOfDay()` | `{ hour, on, sunrise, sunset, rate, daylight }`; `daylight` is 0..1, how much of the day's light there is: a game's own "is it night" test (turn the lamps on below .3). |
+| `setSkyGradient({ top, horizon, stars, at })` | The sky layer's base colour, `top` at the top of the screen to `horizon` at the share `at` of its height (default 1, the bottom; a side view whose ground fills the bottom third wants about .7, so the sky just above the ground is the horizon colour and a sunset's warm band is not hidden behind it), in light units, under the stars and under what `GAME.sky` paints. `stars` 0..1 is how visible the stars are (below .06 they are not drawn). `setSkyGradient(null)` gives back the plain sky. Used by `setTimeOfDay`; a game may use it alone for a dusk level or a purple planet. |
+| `setWeather(kind, { amount, pile, pileChance })` | `'rain'` or `'snow'`, or `null` to stop (what is in the air finishes falling). An emitter above the view, scaled to its width, that never takes more than three quarters of the particle budget. `amount` 0..1 is how heavy (default .5). Rain falls fast, takes heat out of what it hits (fire and hot rock cool), splashes, and ends in a liquid with a few droplets back; snow drifts and sways, and cools a little. `pile: material` turns a share of what lands (`pileChance`: default .03 for snow, .01 for rain) into cells of that material: a granular snow material piles into drifts and slides down slopes, a liquid one makes puddles that flow (see Liquids). Piles are mass the weather adds, so keep the chance small and melt them if the game should (a hot cell, `reacts`). |
+| `setWind(speed, gust = 0)` | `speed` in base units a second (scaled by RES like every speed; positive blows right), `gust` 0..1 how much it swells and drops (about every few seconds). A particle is pulled toward the wind at its type's `wind` coupling (a share a second): smoke and vapour .9, dust 1.5, rain 4, snow 2.5, a type a game defines with `wind: k`; everything else (grains, debris, sparks, fire) is not moved. Rain and snow are launched slanted so they still land across the view. `windNow()` is its speed this moment, for a game's own flags and sails. 0 is no wind, and then nothing runs. |
+| `setFog({ colour, density, ground })` | A veil of one colour over the finished picture. `density` 0..1 is how much of it covers the world (0 or `null` switches it off); the backdrops are further away and get more of it, the farthest most, and the sky more still. `ground` 0..1 thickens it toward the bottom of the screen and thins it toward the top (a ground mist). `colour` is in light units and is lit by the scene (the ambient light and the sun's height), so a fog is pale by day and dark at night. It is applied before a palette lock (`setPost`). |
+
+`setTimeOfDay` with a `rate` is all a day and night cycle takes; put the lamps' intensity on `1 - getTimeOfDay().daylight`. The sky (and the fog and the backdrops) are cached
+layers: they are made again only when a colour has moved by about a sixty-fourth, so a slow day does not cost a pass a frame. `probe()` reports `weather` and `hour`.
+
 ## HUD
 
 A fixed grid of readable cells (`R.hcols × R.hrows`), redrawn every frame inside `GAME.hud(t)`. Text is drawn in the
@@ -551,6 +643,20 @@ menu (CONTROLS); `bindAction(name, token)`, `resetActions()`.
 share of the view [w, h] it moves in before the camera follows (it is on the camera's real position, so a long fall does not leave it trailing); `rooms` jumps
 screen by screen (w, h in units; default the view); `bounds` the most the camera may show. `GAME.camera()` still overrides. `setCamera(null)` removes the rig.
 `cameraShake(n)` adds trauma to `FX.shake`.
+
+**Zoom.** The view's scale used to be fixed: a cell is the same size on the screen whatever happens. `setZoom(z, at?)` makes a cell `z` times as wide: 2 shows a quarter
+of the cells, twice as big, .5 shows four times as many, half the size. It changes only how many device pixels a cell takes (the physics, the detail level and the world are
+not touched), in whole device pixels so it stays crisp: the zoom you get is the nearest the pixels allow, and `getZoom()` says what it came to (it is 1 when the game never
+zooms). The camera keeps what is at `at` (fractions of the canvas, default the middle) where it was, so zooming in on the mouse is `setZoom(2, [Input.mouseX, Input.mouseY])`;
+a camera hook or rig that follows something keeps following it. `zoomStep(dir, at?)` is one step of about 15 percent in (`dir > 0`) or out, never less than one device pixel.
+```js
+Pixelite.run({ zoom: { default: 1, min: .5, max: 3 }, /* ... */ });   // the mouse wheel zooms on the pointer and a two finger pinch zooms (wheel: false, pinch: false: not)
+setZoom(2);  getZoom();  zoomStep(-1);  setZoom(1)                  // or from the game's own code: a map key, a boss that fills the screen
+```
+The limits default to .5 and 4, and a game with a `zoom` hook object is the only one the wheel and the pinch reach (the page still scrolls over the canvas for the others).
+The cost is in the cells: zooming out lights and draws more of them (about four times at .5 on the same screen), the smallest cell being 2 device pixels. `R.cols` and
+`R.rows` (the HUD and your own culling should use them, as they do for a window resize) change with it; `Input.wheel` and `Input.wheelAt` carry the wheel for a game that
+wants it itself. `probe().zoom` reports it. The HUD is a grid of its own and does not zoom.
 
 ## HUD kit, messages and the standard shell
 

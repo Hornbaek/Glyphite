@@ -387,3 +387,21 @@ way.
 - **`const` inside `E.run('...')` of the Node harness is gone after the call** (a direct eval keeps its own scope): share state with `globalThis.x = ...`.
 - **Fire needs a source that outlasts the first cell.** A cell burnt away leaves its heat in an empty cell, which conducts nothing, so ignition has to come from the burning cells' own heating
   of their neighbours (a step of +.35 catches wood at .3 at once); a test that lights one cell of fast-burning wood fails one run in a few.
+- **Cherry-pick a branch that was made before a squash merge; do not merge the main into it.** The look branch carried all of PR 48's original commits, so merging `main` into it would have conflicted on
+  every file the squash touched. Three `git cherry-pick`s of the branch's own commits onto `main` were clean, and the diff of the engine, tests and tools against the branch's tip was empty.
+- **A look that is off must give the old picture back, pixel for pixel, and a test must ask it.** Every look option (palette, vignette, scanlines, fog, sky gradient, zoom) is checked both ways: on, then off, and
+  the frame equals the one before. It is the check that makes "every game renders as before" a fact (and it is what showed the star density missing from the sky's key, next), and it is cheap (`tests/engine_look.py`).
+- **Cached layers must be keyed on everything that paints them.** The sky and the backdrops are rebuilt only when their key changes: the key now carries the post look, the sky gradient and the fog's colour. The
+  star density (`GAME.stars`) is still not in it, which showed as a test whose "before" picture had no stars until an unrelated change forced a rebuild; a test that changes it resets `skyKey`.
+- **A palette or a fog only touches cells that were drawn.** The plain sky has no cells (nothing is painted where nothing is), so a fog over it, or a palette, has nothing to change until a gradient or a painter gives
+  it cells. Test that on a layer that has some.
+- **Look at the pictures, not only at the numbers.** Every number in the weather tests passed when the first contact sheet showed a sunset with its stars out, the warm band of the sky hidden behind the ground, and
+  rain that looked like snow. All three were one-line fixes once seen (the stars fade by the sun's height and the hour after sunset, `at` / `horizon` place the sky's horizon, a second pixel behind a drop makes a streak).
+- **A fixed pixel row is not "the top of the water".** The pool check sampled row 19 * 8 and failed one run in ten once the water had been thrashed about; find the first water cell of the column. The same goes for
+  any test that assumes a settled liquid, a settled sand pile or a settled camera: ask the world where the thing is.
+- **A test that depends on chance needs a seed.** `hotWorld()` of the reactions tests used the page's random start, and "fire spreads through wood" failed 2 runs in 40 on a tree nobody had touched. Seed it
+  (`seedRandom(7)`), then run it forty times before believing it is fixed.
+- **Make particle types when they are asked for.** `defineParticle` numbers the types from `PT_CUSTOM` up, so weather that made its two types at load would have moved every game's own types. They are made the first time
+  `setWeather` is called, and a test says a game that never calls it has none.
+- **A zoom the pixels cannot meet exactly says what it came to.** The cell is a whole number of device pixels, so `setZoom(1.3)` on an 8 pixel cell is 10 pixels (1.25); `getZoom()` reports it, the request is kept for
+  the next resize, and a pinch adds up in the request, not in the rounded cell, or a slow pinch would never move it.

@@ -67,6 +67,10 @@ Each game keeps its own scripts in `games/<id>/tests/` (see `docs/TESTING.md`). 
 | Sprites | `test18.py 2d`, `test18.py gl`, `perf_lander_sprite.py` |
 | Anything | `test16.py gl 2d` (real-time smoke), `python3 tests/smoke.py --all` |
 
+Engine changes also run the engine's own probes (`docs/TESTING.md`): `tests/engine_browser.py`, `engine_light.py`, `engine_cache.py` (every game must render the same with the caches on), and for anything
+that changes how a frame looks (light, sky, backdrops, the palette, fog, zoom, weather) `tests/engine_look.py`, which also checks that each effect, switched off again, gives the old picture back pixel for pixel.
+A look change is also **looked at**: render the scene and view the picture (numbers passed on a sunset whose stars were out and whose warm band was hidden behind the ground).
+
 Always collect `pageerror` events and treat any as a failure.
 
 ## 5. Performance sanity

@@ -92,6 +92,12 @@ export function validate(game, { root = ROOT, pipeline = null } = {}) {
       if (!KINDS.includes(M.kind)) out.push(`${vt}: kind "${M.kind}" is not one of ${KINDS.join(', ')}`);
       if (M.parent != null && !nums.has(M.parent)) out.push(`${vt}: parent ${M.parent} does not exist`);
       for (const f of ['sprite.png', 'normals.png', 'preview.png']) if (!existsSync(join(v.dir, f))) out.push(`${vt}: ${f} is missing`);
+      // the glowing pixels (engine/10_sprite.js, `emit`): meta.emit lists the sprite's colours that glow, emit.png is a mask the size of the sprite
+      if (M.emit !== undefined && !(Array.isArray(M.emit) && M.emit.length && M.emit.every(c => HEX.test(c)))) out.push(`${vt}: meta.json emit is a list of the colours that glow, ["#rrggbb", ...]`);
+      if (existsSync(join(v.dir, 'emit.png')) && existsSync(join(v.dir, 'sprite.png'))) {
+        const e = decodePNG(readFileSync(join(v.dir, 'emit.png'))), s = decodePNG(readFileSync(join(v.dir, 'sprite.png')));
+        if (e.width !== s.width || e.height !== s.height) out.push(`${vt}: emit.png is ${e.width} x ${e.height}, the sprite ${s.width} x ${s.height}`);
+      }
       if (existsSync(join(v.dir, 'sprite.png'))) {
         const { width, height } = decodePNG(readFileSync(join(v.dir, 'sprite.png')));
         if (A.emit !== false && M.kind !== 'imported' && (width !== A.target.w || height !== A.target.h)) out.push(`${vt}: sprite is ${width} x ${height}, the target is ${A.target.w} x ${A.target.h}`);

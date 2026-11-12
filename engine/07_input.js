@@ -7,9 +7,10 @@
 // cleared after every step); pointer: what was used last, 'mouse', 'touch' (a pen counts as touch) or 'pad' (a gamepad button was pressed).
 // A second finger makes a pinch: Input.pinch is how much the two fingers' distance changed since the last step, as a share of the canvas
 // width (positive = apart, cleared every step); Input.touches counts the fingers down. A finger held still for 0.45 s adds 'TapHold'.
+// Input.wheel / Input.wheelAt: the mouse wheel, for a game with a `zoom` (see setZoom): the engine takes it in notches and zooms; a game may read it too.
 const Input = {
   keys: new Set(), fireQueued: false, aim: null, mouseX: 0, mouseY: 0, mouseSeen: 0,
-  touch: {}, pressed: new Set(), held: false, drag: [0, 0], pinch: 0, touches: 0,
+  touch: {}, pressed: new Set(), held: false, drag: [0, 0], pinch: 0, touches: 0, wheel: 0, wheelAt: [.5, .5],
   pointer: window.matchMedia && matchMedia('(hover: none) and (pointer: coarse)').matches ? 'touch' : 'mouse'
 };
 const DRAG_PX = 10;   // a press that moves further than this (CSS pixels) is a drag, and no longer a tap
@@ -64,6 +65,12 @@ function setupInput(canvas, onKey, touchSpec) {
   };
   canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up); canvas.addEventListener('lostpointercapture', up);
   canvas.addEventListener('contextmenu', e => e.preventDefault());
+  // the wheel, only for a game that asked for zoom (Pixelite.run({ zoom })): Input.wheel adds up how far it turned (pixels; a notch is about 100, positive = away from you)
+  // and Input.wheelAt is where on the canvas (0..1), which the zoom keeps still. The page does not scroll over the canvas then.
+  canvas.addEventListener('wheel', e => {
+    if (!GAME.zoom || GAME.zoom.wheel === false) return;
+    e.preventDefault(); Input.wheel += e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1); Input.wheelAt = toCanvas(e);
+  }, { passive: false });
   canvas.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') Input.mouseSeen = 0; });   // off the canvas: no aim
   const bind = (b, sp) => {
     const key = sp.hold;

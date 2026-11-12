@@ -18,10 +18,12 @@ shows every platformer feature, and how it is tested). The package texts further
 | D1, D3-D10 | done | HISTORY 55. Not converted on purpose (risk): Regolith's `boulderVsLander` and rockets, Space Mouse's station builder to `loadTileMap`, `explode()` calling `carve` |
 | D2 liquids, reactions, heat | done | HISTORY 56. **Left (the agent's own list):** pressure (a U-tube does not level), waves, a veil of water over a sprite standing in it, gas as a material, particles that react, the falling-sand sandbox proof game |
 | E2 lamp cache, P1-P3, P6 | done | HISTORY 57. P4 (GPU tone mapping) decided against on the numbers; P5 not needed. **Left:** keep a lamp's cast across a camera move ("shift and fill the edge"); a terrain snapshot that survives flickering lamps |
-| E1 sun from either side | **done on a branch, not merged** | `origin/worktree-agent-a276acf83fb7dbba3`, commit 277fb80 |
-| E5 layers in front and far behind | **done on a branch, not merged** | same branch, commit f80aa60 |
-| E3 emissive sprite pixels, E4 back-wall shadows per light | **work in progress, unverified** | same branch, tip 0d0f8c1 ("WIP (not verified)"): the engine, tools (`tools/pixelsprite.py`, `tools/art.mjs`, `tools/art/`) and tests are partly written; finish, verify, then merge |
-| E6 palette lock / post effects, E7 zoom, E8 weather and time of day | not started | E8 is a new part `engine/21_weather.js` |
+| E1 sun from either side | done (engine 0.18.0, branch `feature/look`) | HISTORY 58 |
+| E5 layers in front and far behind | done (0.18.0) | HISTORY 58; the Proving Ground has hills and front grass |
+| E3 emissive sprite pixels, E4 back-wall shadows per light | done, finished and verified (0.18.0) | HISTORY 58. E4 had no test: `tests/engine_look.py` has one now |
+| E6 palette lock / post effects | done (0.18.0) | `setPost({ palette, dither, vignette, bloom, scanlines })`, HISTORY 58. **Left:** a palette from a game's `art/` master palette automatically |
+| E7 zoom | done (0.18.0) | `setZoom` / `getZoom` / `zoomStep`, `Pixelite.run({ zoom })` (wheel, pinch). **Left:** a key; timings of zoomed-out views on a real GPU |
+| E8 weather and time of day | done (0.18.0) | new part `engine/21_weather.js`: `setTimeOfDay`, `setSkyGradient`, `setWeather`, `setWind`, `setFog`. **Left:** an overcast that dims the sun, lightning, wind on bodies and structures |
 | F1, F3, F4 | done | HISTORY 54. Not done: a `Music` source for Chip songs, bar-line-quantised transitions, `explode()` sound with pan |
 | F2 key remapping | partly | rebinding is in the shell's pause menu. **Left:** a colour-blind-safe HUD set, hold-to-toggle |
 | G1 (roadmap as "open work only") | not done | `docs/ROADMAP.md` still mixes done and open; the section "The engine plan" is the up to date part |
@@ -32,13 +34,10 @@ replaceable; P5 (cross-origin isolation headers) not touched.
 
 ### What to do next (suggested order)
 
-1. **Take the look branch**: `git fetch`, check out `worktree-agent-a276acf83fb7dbba3` as a feature branch (`feature/look`), merge `main` into it (`git -c core.autocrlf=false merge`),
-   run the whole verification list below, finish E3 and E4 (read its WIP commit and `tests/node/engine-look.test.mjs`, `tests/engine_look.py`), then E6, E7, E8, and show them in the
-   Proving Ground (a front layer of grass, a backdrop of hills, a day and night cycle on a tunable, an emissive lamp sprite). Bump the engine to 0.18.0, regenerate `engine/api.json` and
-   `engine/internal.json` (`node tools/apicheck.mjs --write`), document in `engine/API.md`, add a HISTORY section. The lighting caches (`04_light.js`, `06_scene.js`) mean anything that
-   changes a frame must be in the cache keys or invalidate them: `tests/engine_cache.py` and `tests/node/engine-cache.test.mjs` must keep passing, and every existing game must
-   render bit for bit as before when a new feature is off (`Pixelite.test.hash()`, the buffer checksums of `engine_cache.py`).
-2. **B5 golden screenshots** and the **other starter kits** (C12), the **F2** leftovers, **G1** (rewrite the roadmap as open work only, with this plan's packages).
+1. ~~**The look branch** (E1 to E8, engine 0.18.0)~~: done on `feature/look`, see HISTORY 58 (take the pull request to `main` first: it is the next thing). Anything new that changes a frame must still be in the cache keys
+   or invalidate them (`04_light.js`, `06_scene.js`: the sky and the backdrops are keyed on the post look, the sky gradient and the fog's colour), and every existing game must render bit for bit as before when it is off:
+   `tests/engine_cache.py`, `tests/node/engine-cache.test.mjs` and the "off gives the old picture back, pixel for pixel" checks of `tests/engine_look.py`.
+2. **B5 golden screenshots** (the look packages make them worth having: a day, a dusk, a night, a fog, a palette, per renderer) and the **other starter kits** (C12), the **F2** leftovers, **G1** (rewrite the roadmap as open work only, with this plan's packages).
 3. **Platformer ideas from the idea bank not built yet**, now cheap with the toolkit: a boss as a breakable structure with mounts (and a boss rush kit), a jump-link navgraph *follower*
    for enemies (the graph exists: `reachSearch`, `navPath`, `navInput`), difficulty presets from tunables (`presets` is an allowed `game.json` key but nothing reads it yet), a
    speedrun timer with splits and author medals (the replay and ghost exist), onboarding hints from bot struggles, a platformer reachability overlay in the web editor (`jumpArc`
@@ -47,21 +46,25 @@ replaceable; P5 (cross-origin isolation headers) not touched.
 
 ### Branches and pull requests
 
-- Everything up to engine **0.17.1** (A, B, C, D, F, liquids, speed) is meant to be on `main` through PR 48 (`feature/a-foundations`). The sub-agents' branches
+- Everything up to engine **0.17.1** (A, B, C, D, F, liquids, speed) is on `main` through PR 48 (`feature/a-foundations`). The sub-agents' branches
   `worktree-agent-ad780a119f7e58834` (audio), `-aa798658ee76e87af` (liquids), `-ac4b8929a6f13b2d3` (speed) are fully contained in it and can be deleted.
-- `worktree-agent-a276acf83fb7dbba3` (look: E1, E5 and WIP E3/E4) is **not** on `main`; it is the starting point of the next session (step 1).
+- Engine **0.18.0** (the look: E1 to E8) is on `feature/look`, which is `main` plus the three commits of `worktree-agent-a276acf83fb7dbba3` (cherry-picked: that branch was made before PR 48 was squash-merged, and
+  merging `main` into it would have conflicted on all of PR 48's history) and the work that finished and verified them. When the pull request is merged, `worktree-agent-a276acf83fb7dbba3` can be deleted too.
 - PR 47 (the original plan document) is superseded by this file and conflicts with it: close it.
 
 ### Working notes (things that cost time)
 
 - **Windows**: `.gitattributes` forces LF; `git status` may list every file as modified if `core.autocrlf=true` (harmless; never "fix" it with `reset --hard`). `python` not `python3`.
-  Playwright's own Chromium may be missing: run browser scripts with `python tools/with_chrome.py <script> [args]` or set `PIXELITE_BROWSER_CHANNEL=chrome`.
+  Playwright's own Chromium may be missing: run browser scripts with `python tools/with_chrome.py <script> [args]` or set `PIXELITE_BROWSER_CHANNEL=chrome` (with a Playwright as new as the Chrome:
+  Chrome 157 exits at once under 1.56, `pip install playwright==1.63.0`). Node 22 is not installed by default: `winget install OpenJS.NodeJS.22 --source winget` (a prompt for administrator rights
+  appears; a new shell finds it, or put `C:\Program Files\nodejs` on the PATH). A git commit with no identity set fails: set one, or `GIT_AUTHOR_*` / `GIT_COMMITTER_*` for the one command.
+  A commit message with double quotes through PowerShell's here-string is split into arguments: `git commit -F <file>`.
 - **Editing**: heredocs with backslashes (regexes, `\n`) get mangled when a script is written inline; use the Edit tool or write the script to a file first.
 - **One script scope**: engine and game share globals. The build refuses a game function that repeats an engine name; a `let`/`const` clash shows up as a syntax error (`REC` was one). Name game things with a prefix.
 - **Tests that wait on wall time are flaky on CI**: freeze the game (`Pixelite.test.freeze()`), render at an explicit time (`Pixelite.test.render(2.5)`), clear `FEED`.
 - **The engine test bench**: `loadEngine({ game: 'proving' })` loads any game's parts into a Node `vm` with `Pixelite.run` recorded: fast tests of physics and level logic with no browser.
 - **Verification list (run before a PR)**: `npm run build` (SYNTAX_OK), `npm test`, `python tests/smoke.py --all` and `--all --renderers 2d --phone`, `python tests/engine_browser.py`,
-  `engine_light.py`, `engine_audio.py`, `engine_sound.py`, `engine_cache.py`, `node games/proving/tests/check.mjs` (about a minute), `python games/proving/tests/mechanics.py`,
+  `engine_light.py`, `engine_audio.py`, `engine_sound.py`, `engine_cache.py`, `engine_look.py`, `node games/proving/tests/check.mjs` (about a minute), `python games/proving/tests/mechanics.py`,
   `python games/spacemouse/tests/reach.py --res 1`, `python games/spacemouse/tests/mechanics.py`, `python games/fjordheim/tests/playthrough.py`, Regolith's `check_x3_clearance.py` and
   `check_floating_islands.py`. CI runs the same.
 - **Shipping** (CLAUDE.md): branch, PR, wait for both checks, squash-merge, check the deploy.

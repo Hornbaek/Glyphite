@@ -23,15 +23,17 @@ function kelvinColor(K, peak = 1.15) {
   return c.map(v => v / m * peak);
 }
 function sunTint() {
-  const k = ATMOS > 0 && !SUN_FIXED ? ATMOS * (airmass(SUN_EL) - 1) : 0;   // airmass 1 = sun overhead: the base colour
+  const k = ATMOS > 0 && !SUN_FIXED ? ATMOS * (airmass(Math.min(SUN_EL, 180 - SUN_EL)) - 1) : 0;   // airmass 1 = sun overhead: the base colour (past 90 the sun is on the other side: the same height)
   for (let i = 0; i < 3; i++) SUN_C[i] = SUN_BASE[i] * (k ? Math.exp(-AIR_TAU[i] * k) : 1);
 }
-// elevation in degrees above the horizon, light coming from the left (1..89); null = no sun (caves, indoors).
+// The sun's angle in degrees from the left horizon: 1..89 is the sun in the left half of the sky (light travels right and down), 91..179
+// the right half (it travels left and down, 180 - the angle is its height). 90, straight overhead, has no shadow direction to sweep: it
+// is taken as 89. null = no sun (caves, indoors).
 // colour: [r, g, b] pins the colour; { kelvin, intensity? } sets the base from a blackbody (5772 = our sun); left out, the
-// last base colour stays. Only with an atmosphere does the colour then follow the elevation.
+// last base colour stays. Only with an atmosphere does the colour then follow the height.
 function setSun(elevationDeg, color) {
   SUN_ON = elevationDeg !== null && elevationDeg !== false;
-  if (SUN_ON) { SUN_EL = clamp(elevationDeg, 1, 89); const el = SUN_EL * Math.PI / 180; SUN_L[0] = Math.cos(el); SUN_L[1] = Math.sin(el); }
+  if (SUN_ON) { SUN_EL = elevationDeg > 90 ? clamp(elevationDeg, 91, 179) : clamp(elevationDeg, 1, 89); const el = SUN_EL * Math.PI / 180; SUN_L[0] = Math.cos(el); SUN_L[1] = Math.sin(el); }
   if (Array.isArray(color)) { SUN_BASE = [color[0], color[1], color[2]]; SUN_FIXED = true; }
   else if (color && color.kelvin) { SUN_BASE = kelvinColor(color.kelvin, color.intensity); SUN_FIXED = false; }
   sunTint();
@@ -137,8 +139,8 @@ function stillKeys(ox, oy, dynTop) {
   const k = _kbNow; let i = 0;
   k[i++] = ox; k[i++] = oy; k[i++] = L_RW; k[i++] = L_RH; k[i++] = RES; k[i++] = SUN_ON ? 1 : 0; k[i++] = SUN_L[0]; k[i++] = SUN_L[1];
   k[i++] = SUN_C[0]; k[i++] = SUN_C[1]; k[i++] = SUN_C[2]; k[i++] = AMB_C[0]; k[i++] = AMB_C[1]; k[i++] = AMB_C[2]; k[i++] = EDGE_MAT; k[i++] = ASPECT;
-  let h = 0, d = 0;   // the bodies that cast sun shadows: where the sweep stops, and a hash of the cells they cover
-  if (SUN_ON) { d = dynTop; h = dynList.length | 0; for (let q = 0; q < dynList.length; q++) h = Math.imul(h ^ dynList[q], 16777619); }
+  let h = 0, d = 0;   // the bodies that cast sun shadows: where the sweep stops, and a hash of the cells they cover (with lamp blockers about, of what each one blocks too)
+  if (SUN_ON || BLK.n) { if (SUN_ON) d = dynTop; h = dynList.length | 0; for (let q = 0; q < dynList.length; q++) h = Math.imul(h ^ (BLK.n ? dynList[q] * 4 + dyn[dynList[q]] : dynList[q]), 16777619); }
   k[i++] = d; k[i++] = h; k[i++] = LMX; k[i++] = LMY;
   while (i < KB_N) k[i++] = 0;
 }
@@ -172,6 +174,7 @@ function terrainKeys(lights, ox, oy) {
   }
   k[i++] = FX.flash * (CALM ? .3 : 1); k[i++] = FX.flashCol[0]; k[i++] = FX.flashCol[1]; k[i++] = FX.flashCol[2];
   k[i++] = BACK.dim; k[i++] = BACK.shadow; k[i++] = BACK.dir[0]; k[i++] = BACK.dir[1]; k[i++] = BACK.depth; k[i++] = EYE.e; k[i++] = backSig(ox, oy);
+  k[i++] = EMIT.hash; k[i++] = BACK.lamps ? 1 : 0;   // the light glowing sprite pixels pour in (10_sprite.js), and whether the back wall's shadow follows the lamps
   _tkN = i;
 }
 function sameMats(m) {
@@ -279,36 +282,38 @@ function computeLighting(ox, oy, lights, dynTop) {
 // cell is tested exactly once. Value 1 = blocked by terrain, 2 = blocked only by a dynamic
 // body (lander/boulder): dynamic cells stay lit behind each other but still cast shadows.
 // the box the sweep works in: columns [x0, x1) from where the rays start (far enough left that they reach the window), rows [y0, y1)
-// from the highest solid cell (everything above is lit) down to the window's bottom
-let _sunX0 = 0, _sunX1 = 0, _sunY0 = 0, _sunY1 = 0;
+// from the highest solid cell (everything above is lit) down to the window's bottom.
+// A sun on the right (SUN_L[0] < 0) is the same sweep over the mirrored world: column xm is the world's column W - 1 - xm, the window starts at W - ox - RW,
+// and the rays start beyond the right edge. _sunM0.._sunM1 are the sweep's own (mirrored) columns, _sunX0.._sunX1 the world's, for the cache's revision check.
+let _sunX0 = 0, _sunX1 = 0, _sunY0 = 0, _sunY1 = 0, _sunM0 = 0, _sunM1 = 0;
 function sunBox(ox, oy, dynTop) {
-  const RW = L_RW, RH = L_RH, k = SUN_L[1] / SUN_L[0] / ASPECT;
-  const yBot = Math.min(H, oy + RH), x1 = Math.min(W, ox + RW);
-  let xs0 = Math.max(0, ox), yTop = yBot;
+  const RW = L_RW, RH = L_RH, mir = SUN_L[0] < 0, k = Math.abs(SUN_L[1] / SUN_L[0]) / ASPECT, mx = mir ? W - ox - RW : ox;
+  const yBot = Math.min(H, oy + RH), x1 = Math.min(W, mx + RW);
+  let xs0 = Math.max(0, mx), yTop = yBot;
   for (let pass = 0; pass < 3; pass++) {
-    for (let x = xs0; x < x1; x++) if (colTop[x] < yTop) yTop = colTop[x];
+    for (let x = xs0; x < x1; x++) { const c = colTop[mir ? W - 1 - x : x]; if (c < yTop) yTop = c; }
     yTop = Math.max(0, Math.min(yTop, dynTop) - 1);
-    xs0 = Math.max(0, Math.floor(ox - (yBot - yTop) / k) - 2);
+    xs0 = Math.max(0, Math.floor(mx - (yBot - yTop) / k) - 2);
   }
-  _sunX0 = xs0; _sunX1 = x1; _sunY0 = yTop; _sunY1 = yBot;
+  _sunM0 = xs0; _sunM1 = x1; _sunX0 = mir ? W - x1 : xs0; _sunX1 = mir ? W - xs0 : x1; _sunY0 = yTop; _sunY1 = yBot;
 }
 function sunSweep(ox, oy, dynTop) {
-  const RW = L_RW, RH = L_RH, k = SUN_L[1] / SUN_L[0] / ASPECT;
+  const RW = L_RW, RH = L_RH, mir = SUN_L[0] < 0, k = Math.abs(SUN_L[1] / SUN_L[0]) / ASPECT, mx = mir ? W - ox - RW : ox;
   LSUN.fill(0);
   sunBox(ox, oy, dynTop);
-  const xs0 = _sunX0, x1 = _sunX1, yTop = _sunY0, yBot = _sunY1;
+  const xs0 = _sunM0, x1 = _sunM1, yTop = _sunY0, yBot = _sunY1;
   for (let j = 0; j < RH; j++) if (oy + j < yTop) LSUN.fill(1, j * RW, j * RW + RW);
   if (yTop >= yBot || x1 <= xs0) return;
   const bMin = yTop - k * (x1 + 1) - 2, bMax = yBot - k * xs0 + 2, NB = Math.ceil((bMax - bMin) * 2) + 4;
   if (rayBuf.length < NB) rayBuf = new Uint8Array(NB * 2);
   rayBuf.fill(0, 0, NB);
   const RB = rayBuf;
-  for (let x = xs0; x < x1; x++) {
-    const kx = k * x, inX = x >= ox;
+  for (let xm = xs0; xm < x1; xm++) {
+    const x = mir ? W - 1 - xm : xm, kx = k * xm, inX = xm >= mx, col = mir ? RW - 1 - (xm - mx) : xm - mx;   // col: the window column this sweep column is
     for (let y = yTop; y < yBot; y++) {
       const ci = y * W + x, solid = MAT_SOLID[cells[ci]] === 1, dy = dyn[ci];
       const v = RB[((y + .5 - kx - k * .5 - bMin) * 2) | 0];
-      if (inX && y >= oy && (dy ? v !== 1 : v === 0)) LSUN[(y - oy) * RW + x - ox] = 1;
+      if (inX && y >= oy && (dy ? v !== 1 : v === 0)) LSUN[(y - oy) * RW + col] = 1;
       if (solid || dy) {
         const q0 = ((y - kx - k - bMin) * 2) | 0, q1 = ((y + 1 - kx - bMin) * 2) | 0;
         if (solid) for (let q = q0; q <= q1; q++) RB[q] = 1;
@@ -368,6 +373,8 @@ function lampFor(L, ox, oy, skip) {
   if (_hCurN < _hCur.length) _hCur[_hCurN++] = h;
   let e = LAMPS.get(h);
   if (e && !(e.x === L.x && e.y === L.y && e.r === L.r && e.skip === skip && e.cs === cs && e.dx === dx && e.dy === dy && e.sh === sh && e.edge === EDGE_MAT)) { lampDrop(e); LAMPS.delete(h); e = undefined; }   // another lamp with the same hash
+  // a sprite that blocks lamp light stands in this lamp's reach: its cast depends on something that moves, so it is cast again (the kept cast, if any, waits for it to go)
+  if (BLK.n && L.shadow && L.x + L.r >= BLK.x0 && L.x - L.r <= BLK.x1 + 1 && (L.y + L.r) / ASPECT >= BLK.y0 && (L.y - L.r) / ASPECT <= BLK.y1 + 1) { if (e) e.seen = lampTick; return null; }
   if (!e) {
     if (!again) return null;   // not seen standing still yet: cast it, and look again next frame (a moving lamp never gets an entry)
     e = { x: L.x, y: L.y, r: L.r, skip, cs, dx, dy, sh, edge: EDGE_MAT, ox, oy, rw: L_RW, rh: L_RH, res: RES, crev: CREV, seen: lampTick, need: 0, ready: false, rev: 0, wrev: 0, cx0: 0, cx1: -1, cy0: 0, cy1: -1, n0: 0, i0: null, a0: null, h0: null, n1: 0, i1: null, a1: null, bytes: 0 };
@@ -484,6 +491,7 @@ function castLamp(L, ox, oy, cr, cg, cb, rec) {
         }
       }
       if (solid && L.shadow && t > skip) { if (!inWin || s === 1) break; depth = 0; entry = lampShade(kk, cx, cy, s); }
+      else if (BLK.n && L.shadow && t > skip && cx >= 0 && cy >= 0 && cx < W && cy < H && dyn[cy * W + cx] === 3) break;   // a sprite that blocks lamp light: the cell itself was lit above, nothing behind it is
     }
   }
 }
@@ -500,10 +508,10 @@ function lineClear(x0, y0, x1, y1, skip) {
 // does the sun reach this point? (false when there is no sun)
 function sunAt(x, y) {
   if (!SUN_ON) return false;
-  const reach = (y + 4 * ASPECT) / SUN_L[1];   // march toward the sun until above the world
+  const reach = (y + 4 * ASPECT) / SUN_L[1], right = SUN_L[0] < 0;   // march toward the sun until above the world
   for (let t = .6; t < reach; t += .6) {
     const cx = Math.floor(x - SUN_L[0] * t), cy = Math.floor((y - SUN_L[1] * t) / ASPECT);
-    if (cy < 0 || cx < 0) return true;   // rays that start left of the world or above it are clear, as in the sweep
+    if (cy < 0 || cx < 0 || (right && cx >= W)) return true;   // rays that start beside the world on the sun's side (left; right for a sun on the right) or above it are clear, as in the sweep
     if (solidAt(cx, cy)) return false;
   }
   return true;

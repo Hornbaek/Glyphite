@@ -24,7 +24,7 @@ The owner found ASCII too dark and chose pixel art, keeping every mechanic:
    offer `tools/pixel-snapper.patch` upstream (the forward difference and the lattice fit, with the benchmark); try
    Sprite Fusion's sister project (github.com/Hugo-Dz/spritefusion-sprite-normals) against ours. Pixel Art Lighter is in
    the PIXEL LAB (/lab/lighter/); its **light masks** (which pixels a light may reach, e.g. a window glowing at night) would
-   be a general engine feature: a per-sprite emissive/mask layer beside `normals`.
+   be a general engine feature: a per-sprite emissive/mask layer beside `normals` (~~done~~: the `emit` layer, E3, HISTORY 58; `tools/pixelsprite.py --emit-mask` makes one from a mask image).
 5. ~~Space Mouse in pixels~~: normal-mapped characters and props, sprites drawn small the pixel-art way. Next: art at the size
    the game shows it (Pip ~14–16 px), the sheet's moss and cobweb drawings as decor, material palettes.
 6. Later: Regolith from `lander_ref.png`, Fjordheim's sheets (their outline colour still carries the magenta tint of the
@@ -76,15 +76,13 @@ column on the lockers' right edge (a cut artefact the gallery will make visible)
 
 ## The engine plan (docs/ENGINE_PLAN.md, HISTORY 53-57): what is done, what is open
 
-**The up to date status and the suggested next steps are at the top of `docs/ENGINE_PLAN.md` ("STATUS"); a new session starts there.** The paragraph below is the short version as of engine 0.17.0 and misses the speed work (HISTORY 57) and the look branch (E1, E5 done, E3/E4 in progress, E6-E8 open).
+**The up to date status and the suggested next steps are at the top of `docs/ENGINE_PLAN.md` ("STATUS"); a new session starts there.** The paragraph below is the short version as of engine 0.17.0 and misses the speed work (HISTORY 57) and the look (engine 0.18.0, HISTORY 58: **E1 to E8 are all done**: the sun from either side, layers in front and behind, glowing sprites, lamp-following back-wall shadows, a screen palette and post effects, zoom, weather, wind, fog and the time of day).
 
 Done on `feature/a-foundations`: **A1-A8** (Windows build, one version, pause as a flag, author checks, errors shown, structures, fast bodies), **B1-B4** (seeded random,
 simulation clock, record and replay, the Node engine test bench), **C1-C10** (detail levels a game chooses, resampling a world, entities, animation, actions with gamepad and
 touch, camera rigs, HUD kit, messages, the shell, settings and saves), **D1, D2, D3-D10** (material flags, moving platforms, bodies, gravity, carve and fill, rays and projectiles,
 tile maps and triggers, path finding, timers and state machines), **F1, F3, F4** (sound as data, a music director, instruments off the main thread), **G2** (07 split).
-**D2** (liquids, HISTORY 56) is done too: `liquid` materials that flow level and keep their mass, swimming and floating, splashes, light that dims with depth, `reacts`, `flammable`, `conduct`, `hot`, and a pool in the Proving Ground. What D2 left open: pressure (a liquid only runs along its row: a U-tube does not level through the bend; the fix is a flood fill of the connected surface), waves and ripples on the surface, a veil of water drawn over a sprite standing in it, gas as a material (steam is only particles), reactions between a cell and a particle (fire particles only heat what they hit), sand sinking at gravity's pace rather than a cell every other step, and the falling-sand sandbox game the plan wanted as the proof (the pool and `engine-liquid.test.mjs` are the proof for now; rain and snow in E8 can now land as liquid cells and pile). Open, in the plan's order: **E1** the sun from either
-side, **E3** emissive sprite pixels, **E5** layers in front and far behind, **E4** per-light back-wall shadows, **E6** a screen palette and post effects, **E7** zoom, **E8**
-weather and time of day, **C11** the generated `api.json` and a lint of game code against it, **C12** starters per genre (the Proving Ground is the platformer one), **B5** golden
+**D2** (liquids, HISTORY 56) is done too: `liquid` materials that flow level and keep their mass, swimming and floating, splashes, light that dims with depth, `reacts`, `flammable`, `conduct`, `hot`, and a pool in the Proving Ground. What D2 left open: pressure (a liquid only runs along its row: a U-tube does not level through the bend; the fix is a flood fill of the connected surface), waves and ripples on the surface, a veil of water drawn over a sprite standing in it, gas as a material (steam is only particles), reactions between a cell and a particle (fire particles only heat what they hit), sand sinking at gravity's pace rather than a cell every other step, and the falling-sand sandbox game the plan wanted as the proof (the pool and `engine-liquid.test.mjs` are the proof for now; rain and snow in E8 can now land as liquid cells and pile). Open, in the plan's order (E1 to E8, the look, are done: HISTORY 58): **C11** the generated `api.json` and a lint of game code against it (done too: HISTORY 55), **C12** starters per genre (the Proving Ground is the platformer one), **B5** golden
 screenshots and budgets in CI, **F2** key remapping is in the shell (the colour-blind HUD set and hold-to-toggle are not), **G1** the roadmap as "open work only". The speed
 packages (P1-P6, E2) are on the branch `worktree-agent-ac4b8929a6f13b2d3` until merged. Ideas from the bank that the toolkit now makes small: ropes and a grapple (verlet
 ropes are not built), a boss as a breakable structure with mounts, time rewind from grid deltas, an echo enemy (replay of the player's inputs), ghost racers (the replay exists).
@@ -144,8 +142,7 @@ and pulse presets* (`flicker` on any light, `flickerAt`, `Sfx.buzz`), plus `draw
    frames built in would save the boilerplate.
 2. **Level and map import:** a tool that turns a PNG with a colour key into voxel materials, for
    hand-made levels.
-3. **Sun from any side:** `setSun` only lights from the left (the sweep walks columns left to right);
-   mirror the sweep for light from the right.
+3. ~~**Sun from any side**~~ (E1, HISTORY 58): `setSun(91..179)` is the sun on the right; the sweep mirrors.
 4. **Gravity as a vector:** `G` is downward only. Top-down games set it to zero, which works, but
    sideways gravity (or per-body gravity) is not possible yet.
 
@@ -174,7 +171,7 @@ Build at least one more small game on the engine to check that it is game-agnost
     its wall) itself; a `drawProps` helper with view culling would let any tile-map game place sprites from its legend.
   - **Moving platforms and lifts** (kinematic chunks that carry characters): a Character stands on a falling chunk but is
     not carried sideways by one.
-  - **Back-wall shadows per light**, instead of one fixed direction.
+  - ~~**Back-wall shadows per light**, instead of one fixed direction.~~ (E4: `setBackdrop({ lamps: true })`, HISTORY 58)
   - **A walking-game starter**, or a `--kit platformer` option for `pixelite.mjs new`, so the next platformer starts from
     Space Mouse's pieces (tile maps, the reach search) rather than the flying starter.
 - a falling-sand sandbox;
@@ -188,9 +185,8 @@ Build at least one more small game on the engine to check that it is game-agnost
     `' , ;` in the grass colour, and it had to be brightened 1.5x to show. A cell background colour (a tint behind the
     glyph) would let ground read as a surface without competing with the sprites.
   - **Touch** (done in 0.6.1: `Input.drag`, `'TapUp'`, `Input.pointer`): Fjordheim pans by dragging and places with two
-    taps. Still missing: pinch to zoom (needs zoom, below) and a long press for a second action.
-  - **Zoom**: the view's scale is fixed (a base unit is the same size on screen at every detail level). An RTS wants to
-    zoom out over the whole map; it would need a second, coarser scale for the view, not just for detail.
+    taps. ~~Pinch to zoom~~ (E7: `Pixelite.run({ zoom })`; Fjordheim does not ask for it yet) and a long press for a second action (`'TapHold'` exists).
+  - ~~**Zoom**~~ (E7, HISTORY 58): `setZoom` scales the cell in whole device pixels, with the wheel and a pinch; an RTS can zoom out over its map (a zoomed-out Fjordheim lights four times the cells at .5: measure it).
   - **Sprite contrast**: dark art (the Gemini buildings) turns into dim `#` blocks. Fjordheim lifts its palettes and picks
     the dense glyph by material (`games/fjordheim/tools/art.py`); a sprite option for both would serve every game.
   - **Pathfinding as an engine helper**: Fjordheim's A* over tiles (`findPath`, eight ways, no corner cutting) is general.
@@ -225,7 +221,7 @@ Each new game should need no engine edits. Every engine edit it forces goes on t
 
 ## Backlog and known issues (Regolith Lander)
 
-- **Stars in caves.** A 2D cross-section has no back wall, so caves show stars. Option: mask the sky
+- ~~**Stars in caves.**~~ (E5: `addBackdrop({ underground: [r, g, b] })` paints a dark wall under the skyline; Regolith does not use it yet.) A 2D cross-section has no back wall, so caves show stars. Option: mask the sky
   below the terrain skyline (`colTop`) except where the cave opens to the sky, or paint a dark
   "back wall".
 - **No chunk-to-chunk collision.** Falling pieces pass through each other, and boulders don't

@@ -5,6 +5,70 @@ const tone = c => 1 - Math.exp(-c * 1.7);
 const TONE_LUT = Float32Array.from({ length: 4097 }, (_, i) => tone(i / 512));
 const toneF = c => c <= 0 ? 0 : c >= 8 ? 1 : TONE_LUT[(c * 512) | 0];
 const SOLID = 127;   // the cell code of a plain pixel (full colour)
+
+// ---------- the screen look a game chooses: setPost({ vignette, bloom, palette, dither, scanlines }) (E6) ----------
+// Colours are continuous (banded per material, then tinted by lamps), so a frame holds thousands of them. A `palette` locks the world, the backdrops and the
+// sky to a few colours, so a game looks like one hand-made picture (and ties in with the art pipeline's master palette); the HUD keeps its own colours so text
+// stays readable. It works on the bytes the renderers are handed, so 2D and WebGL agree. Everything is off or as it always was until a game asks:
+//   vignette   0..1, how much the corners darken (default .42, the old fixed value)
+//   bloom      false switches the glow off for this game whatever the player chose (the player's own setting can still switch it off)
+//   palette    null, or 2..255 colours ('#rrggbb', '#rgb' or [r, g, b] in bytes): every world pixel becomes the nearest one. Put the background colour (setBackground) in it
+//   dither     0..1, an ordered (Bayer) dither before the palette picks, so a gradient becomes a pattern instead of bands; anchored to world cells, it does not swim
+//   scanlines  0..1, a thin dark line along the bottom of every cell row, fixed on the screen, over everything but the HUD
+const POST = { vignette: .42, bloom: true, palette: null, dither: 0, scanlines: 0, rev: 0 };
+let POST_PAL = null, POST_N = 0, POST_LUT = null;
+const POST_BAYER = Float32Array.from([0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5], v => (v + .5) / 16 - .5);
+function postColour(c) {
+  if (typeof c === 'string') {
+    const h = c.replace('#', ''), f = h.length === 3 ? [...h].map(x => x + x) : h.match(/../g);
+    if (!f || f.length !== 3 || f.some(x => !/^[0-9a-f]{2}$/i.test(x))) throw new Error(`setPost: palette colour '${c}' is not '#rrggbb'`);
+    return f.map(x => parseInt(x, 16));
+  }
+  if (Array.isArray(c) && c.length >= 3 && c.slice(0, 3).every(Number.isFinite)) return c.slice(0, 3).map(v => clamp(Math.round(v), 0, 255));
+  throw new Error('setPost: a palette colour is "#rrggbb" or [r, g, b] (0..255)');
+}
+function setPost(o = {}) {
+  devKeys('setPost', o, ['vignette', 'bloom', 'palette', 'dither', 'scanlines']);
+  const num = (k, lo, hi) => { if (k in o) { devFinite('setPost ' + k, +o[k]); POST[k] = clamp(Number.isFinite(+o[k]) ? +o[k] : 0, lo, hi); } };
+  num('vignette', 0, 1); num('dither', 0, 1); num('scanlines', 0, 1);
+  if ('bloom' in o) { POST.bloom = !!o.bloom; R.bloom = SETTINGS.bloom && POST.bloom; }
+  if ('palette' in o) {
+    if (o.palette === null || o.palette === undefined) { POST.palette = null; POST_PAL = null; POST_LUT = null; POST_N = 0; }
+    else {
+      if (!Array.isArray(o.palette) || o.palette.length < 2 || o.palette.length > 255) throw new Error('setPost: a palette is 2 to 255 colours');
+      const cols = o.palette.map(postColour); POST.palette = cols; POST_N = cols.length;
+      POST_PAL = new Uint8Array(POST_N * 3); cols.forEach((c, i) => POST_PAL.set(c, i * 3));
+      POST_LUT = new Uint8Array(1 << 18).fill(255);   // the palette index for every colour at 6 bits a channel, found the first time it is asked for
+    }
+  }
+  POST.rev++;   // the sky and the backdrops are cached, and keep their own copy of the look: rebuild them
+}
+const getPost = () => ({ vignette: POST.vignette, bloom: POST.bloom, palette: POST.palette && POST.palette.map(c => c.slice()), dither: POST.dither, scanlines: POST.scanlines });
+// the palette entry nearest to a colour (bytes): the distance is the "redmean" one, which follows the eye better than plain RGB
+function postIndex(r, g, b) {
+  const key = ((r >> 2) << 12) | ((g >> 2) << 6) | (b >> 2), had = POST_LUT[key];
+  if (had !== 255) return had;
+  const cr = (r & 252) + 2, cg = (g & 252) + 2, cb = (b & 252) + 2; let best = 0, bd = 1e9;
+  for (let i = 0; i < POST_N; i++) {
+    const pr = POST_PAL[i * 3], dr = cr - pr, dg = cg - POST_PAL[i * 3 + 1], db = cb - POST_PAL[i * 3 + 2], m = (cr + pr) / 512;
+    const d = (2 + m) * dr * dr + 4 * dg * dg + (3 - m) * db * db;
+    if (d < bd) { bd = d; best = i; }
+  }
+  return POST_LUT[key] = best;
+}
+// lock a finished pixel buffer (RW wide) to the palette; ox, oy: the world cell its top-left pixel shows, which the dither is anchored to
+function postLock(D, RW, n, ox, oy) {
+  const dith = POST.dither * 64;
+  for (let k = 0, q = 0; k < n; k++, q += 4) {
+    if (!D[q + 3]) continue;   // nothing here: the layer behind shows
+    let r = D[q], g = D[q + 1], b = D[q + 2];
+    if (dith) {
+      const o = POST_BAYER[(((k / RW | 0) + oy) & 3) * 4 + (((k % RW) + ox) & 3)] * dith;
+      r = clamp(Math.round(r + o), 0, 255); g = clamp(Math.round(g + o), 0, 255); b = clamp(Math.round(b + o), 0, 255);
+    }
+    const p = postIndex(r, g, b) * 3; D[q] = POST_PAL[p]; D[q + 1] = POST_PAL[p + 1]; D[q + 2] = POST_PAL[p + 2];
+  }
+}
 // Pixel-art shading: the light on a material is cut into its few flat shades (MAT_SHADES, or the colours of its palette), each
 // shown at its middle brightness, so even the darkest is not black. No dither: an evenly lit wall stays one flat colour.
 // `step` moves the shade up or down (a lit top edge one brighter, an underside one darker); `tex` is the cell's own texture,
@@ -46,17 +110,45 @@ function adaptEye(G, n, time) {
 }
 // cL: a shaded cell's brightness before it was cut into shades (which depend on the exposure, so the eye must not measure
 // them); -1 where something drew its own colour
-let cR, cG, cB, cL, vig;
+let cR, cG, cB, cL, vig, vigK = -1;
 // cells (dx, dy) toward the light from a back-wall cell, nearest first: a world cell there shades it
-const BK_OFF = new Int16Array(64);
+const BK_OFF = new Int16Array(64), BK_D = [0, 0];
 function backShadowOffsets() {
   const d = BACK.dir, l = Math.hypot(d[0], d[1]) || 1, reach = BACK.depth * RES;
   let n = 0, px = 0, py = 0;
+  BK_D[0] = d[0] / l; BK_D[1] = d[1] / l;
   for (let t = .7; t <= reach && n < 32; t += .7) {
     const dx = Math.round(d[0] / l * t), dy = Math.round(d[1] / l * t / ASPECT);
     if ((dx || dy) && (dx !== px || dy !== py)) { BK_OFF[2 * n] = dx; BK_OFF[2 * n + 1] = dy; n++; px = dx; py = dy; }
   }
+  if (BACK.lamps) backShadowTable();
   return n;
+}
+// setBackdrop({ lamps: true }): the drop shadow of the back wall falls away from the lamps that light each cell instead of one way for the whole screen. The cells toward a
+// light, nearest first, are looked up in a table of BK_DIRS directions (the same steps backShadowOffsets takes, rebuilt when the depth, RES or aspect change); the direction at a
+// cell is the lamps' (LDX, LDY: toward the lights, weighted by what each gives) blended with BACK.dir by how strongly the lamps light it, mag / (mag + .3), so the shadow turns
+// smoothly and a cell no lamp reaches keeps the fixed direction (the sun does not turn it: the back wall is a few cells behind the world, lit as if from the screen's upper left).
+const BK_DIRS = 32, BK_TAB = new Int16Array(BK_DIRS * 64), BK_CNT = new Uint8Array(BK_DIRS);
+let _bkKey = '';
+function backShadowTable() {
+  const key = `${BACK.depth},${RES},${ASPECT}`; if (key === _bkKey) return; _bkKey = key;
+  const reach = BACK.depth * RES;
+  for (let q = 0; q < BK_DIRS; q++) {
+    const a = q * 2 * Math.PI / BK_DIRS - Math.PI, ux = Math.cos(a), uy = Math.sin(a), o = q * 64;
+    let n = 0, px = 0, py = 0;
+    for (let t = .7; t <= reach && n < 32; t += .7) {
+      const dx = Math.round(ux * t), dy = Math.round(uy * t / ASPECT);
+      if ((dx || dy) && (dx !== px || dy !== py)) { BK_TAB[o + 2 * n] = dx; BK_TAB[o + 2 * n + 1] = dy; n++; px = dx; py = dy; }
+    }
+    BK_CNT[q] = n;
+  }
+}
+// the share of its light a back-wall cell keeps under the drop shadow of the world cells toward the lamps that light it (1 = none)
+function backShadowLamp(cx, cy, lx, ly, mag) {
+  const m = mag / (mag + .3), vx = -BK_D[0] * (1 - m) + lx / mag * m, vy = -BK_D[1] * (1 - m) + ly / mag * m;   // toward the light: the opposite of the way shadows fall
+  const q = (((Math.atan2(vy, vx) + Math.PI) * (BK_DIRS / (2 * Math.PI)) + .5) | 0) % BK_DIRS, n = BK_CNT[q], o = q * 64;
+  for (let s = 0; s < n; s++) if (MAT_SOLID[getC(cx + BK_TAB[o + 2 * s], cy + BK_TAB[o + 2 * s + 1])]) return 1 - BACK.shadow * (1 - s / n);
+  return 1;
 }
 const _fc = [0, 0, 0], _pc = [0, 0, 0];
 // direction → line glyph: - \ | /
@@ -98,6 +190,8 @@ function sceneTerrain(ox, oy, time, bkN, bp) {
     splatLight(cx, cy, _fc[0] * k, _fc[1] * k, _fc[2] * k, t === PT_SPARK ? 2 : 3);
     if (t !== PT_SPARK) { const q = j * RW + i; SH[q] = Math.min(1, SH[q] + .25 * life); if (j > 0) SH[q - RW] = Math.min(1, SH[q - RW] + .2 * life); }
   }
+  // glowing sprite pixels, as drawSprite recorded them last frame (10_sprite.js, EMIT)
+  for (let q = 0, E = EMIT.b; q < E.length; q += 6) splatLight(E[q], E[q + 1], E[q + 2], E[q + 3], E[q + 4], E[q + 5]);
   // per cell, so a hot or glowing area gives the same light at any detail and cell size (cells are ASPECT units tall)
   const hk = ASPECT / (2 * RES * RES), cmod = Math.max(3, Math.round(6 * RES * RES / ASPECT));
   for (let j = 0; j < RH; j++) {
@@ -128,7 +222,9 @@ function sceneTerrain(ox, oy, time, bkN, bp) {
       const bm = inW ? backCells[ci] : 0;
       if (bm) {   // the back wall: the light in the air in front of it, dimmer, with a drop shadow from the world cells
         let f = BACK.dim;
-        for (let s = 0; s < bkN; s++) if (MAT_SOLID[getC(cx - BK_OFF[2 * s], cy - BK_OFF[2 * s + 1])]) { f *= 1 - BACK.shadow * (1 - s / bkN); break; }
+        const lmag = BACK.lamps ? Math.hypot(LDX[k], LDY[k]) : 0;
+        if (lmag > 1e-3) f *= backShadowLamp(cx, cy, LDX[k], LDY[k], lmag);   // a lamp lights this cell: the shadow falls away from it
+        else for (let s = 0; s < bkN; s++) if (MAT_SOLID[getC(cx - BK_OFF[2 * s], cy - BK_OFF[2 * s + 1])]) { f *= 1 - BACK.shadow * (1 - s / bkN); break; }
         const alb = MAT_ALB[bm];
         // a mast-style back wall (girders) shows its joints one shade brighter
         const joint = MAT_STYLE[bm] === 2 && (getBack(cx, cy - 1) === bm || getBack(cx, cy + 1) === bm) && (getBack(cx - 1, cy) === bm || getBack(cx + 1, cy) === bm);
@@ -190,8 +286,11 @@ function renderScene(ox, oy, time, drawExtras) {
   const RW = R.RW, RH = R.RH, n = RW * RH, G = R.wG, Z = R.wZ, SH = R.wShim;
   if (!cR || cR.length !== n) {
     cR = new Float32Array(n); cG = new Float32Array(n); cB = new Float32Array(n); cL = new Float32Array(n); vig = new Float32Array(n);
-    STILL.tHave = false;
-    for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) { const u = i / RW * 2 - 1, v = j / RH * 2 - 1; vig[j * RW + i] = 1 - .42 * (u * u * .55 + v * v * .8); }
+    STILL.tHave = false; vigK = -1;
+  }
+  if (vigK !== POST.vignette) {   // the corners' darkening: set when the buffers are made and when a game changes it (setPost)
+    vigK = POST.vignette;
+    for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) { const u = i / RW * 2 - 1, v = j / RH * 2 - 1; vig[j * RW + i] = 1 - vigK * (u * u * .55 + v * v * .8); }
   }
   SH.fill(0);
   const bkN = backShadowOffsets();
@@ -253,10 +352,12 @@ function renderScene(ox, oy, time, drawExtras) {
     }
   }
 
+  if (EMIT.a.length || EMIT.b.length) emitSwap();   // what the sprites drawn this frame glow with is poured in next frame
   // 6) tone map + vignette → bytes (alpha: is anything in the cell; and the optional bloom bright-pass)
   const qt = performance.now();
   adaptEye(G, n, time);
   const D = R.wPix, BL = R.bloomPix, bloom = R.bloom, E = EYE.e;
+  fogPrep(E);   // the fog's colour for this frame (21_weather.js), for the world below and for the sky and the backdrops after it
   const bt = .62 - .1 * bp, bg = 460 * (1 + 1.2 * bp);   // the bloom bright-pass: on a drum hit its threshold drops and its gain rises
   for (let k = 0; k < n; k++) {
     const code = G[k], vv = vig[k] * INK[code], q = k * 4;
@@ -265,8 +366,10 @@ function renderScene(ox, oy, time, drawExtras) {
     D[q] = r * 255; D[q + 1] = g * 255; D[q + 2] = b * 255; D[q + 3] = code ? 255 : 0;
     if (bloom) { const on = code > 32; BL[q] = on ? Math.max(0, r - bt) * bg : 0; BL[q + 1] = on ? Math.max(0, g - bt) * bg : 0; BL[q + 2] = on ? Math.max(0, b - bt) * bg : 0; BL[q + 3] = 255; }
   }
+  if (FOG.on) fogLayer(D, RW, RH, FOG.d);
+  if (POST_PAL) postLock(D, RW, n, ox, oy);   // (the bloom's bright-pass above reads the unlocked colours: a glow is not a palette colour anyway)
   perfAdd('tone', performance.now() - qt);   // (a part of `scene`: the last pass over every cell, which P4 would move to the GPU)
-  renderSky(time);
+  renderSky(time); if (BACKDROPS.length) renderBackdrops(time);
 }
 
 // ---------- sky: stars and the game's sky bodies on their own layer ----------
@@ -287,7 +390,7 @@ function renderSky(time) {
   R.skyFX = sx - ix; R.skyFY = sy - iy;
   const air = Math.min(1, ATMOS), glare = LR && LR.length === RW * RH ? GAME.starGlare ?? 1 : 0, E = EYE.e;
   const busy = glare > 0 && (L_NLIGHTS > 0 || FX.flash > .03), step = air > 0 ? (time * 8) | 0 : busy ? (time * 5) | 0 : time | 0;
-  const ox = ix - 1, oy = iy - 1, key = `${ox},${oy},${RW},${RH},${step},${Math.round(E * 24)}`;
+  const ox = ix - 1, oy = iy - 1, key = `${ox},${oy},${RW},${RH},${step},${Math.round(E * 24)},${POST.rev},${SKYG.rev},${FOG.key}`;   // (the gradient and the fog: 21_weather.js)
   if (key === skyKey) return;
   skyKey = key; R.skyDirty = true;
   const SG = R.sG, D = R.sPix, paint = GAME.sky, starP = .0055 * ASPECT * (GAME.stars ?? 1) / (RES * RES);
@@ -295,7 +398,7 @@ function renderSky(time) {
   for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) {
     const k = j * RW + i, q = k * 4; let glyph = 0, r = 0, g = 0, b = 0;
     if (paint && (glyph = paint(i, j, _pc)) !== 0) { if (glyph < 0) glyph = 0; else { r = _pc[0]; g = _pc[1]; b = _pc[2]; } }
-    else if (hash2(ox + i, oy + j, 5) < starP) {   // stars: steady in a vacuum
+    else if (hash2(ox + i, oy + j, 5) < starP && (!SKYG.on || SKYG.stars > .06)) {   // stars: steady in a vacuum
       const bb = hash2(ox + i, oy + j, 6), tint = hash2(ox + i, oy + j, 8); glyph = bb > .93 ? 42 : bb > .7 ? 43 : 46;
       r = .45 + .4 * bb + tint * .1; g = .45 + .4 * bb; b = .5 + .4 * bb + (1 - tint) * .12;
       let f = 1;
@@ -306,8 +409,74 @@ function renderSky(time) {
       }
       r *= f; g *= f; b *= f;
       if (f < .5) glyph = 46;              // a faint star shrinks to a dot
-    }
+      if (SKYG.on) { skyGradAt(j, RH, _sg); r = Math.max(_sg[0], r * SKYG.stars); g = Math.max(_sg[1], g * SKYG.stars); b = Math.max(_sg[2], b * SKYG.stars); glyph = SOLID; }   // over the sky's colour a star is only as bright as it is, and as visible as the hour lets it be
+    } else if (SKYG.on) { skyGradAt(j, RH, _sg); glyph = SOLID; r = _sg[0]; g = _sg[1]; b = _sg[2]; }   // the sky's base colour (setSkyGradient)
     const vv = vig[k] * INK[glyph];
     SG[k] = glyph; D[q] = toneF(r * E) * vv * 255; D[q + 1] = toneF(g * E) * vv * 255; D[q + 2] = toneF(b * E) * vv * 255; D[q + 3] = glyph > 32 ? 255 : 0;
+  }
+  if (FOG.on) fogLayer(D, RW, RH, Math.min(1, FOG.d * 1.6));   // the sky is the farthest thing there is
+  if (POST_PAL) postLock(D, RW, RW * RH, ox, oy);
+}
+const _sg = [0, 0, 0];
+
+// ---------- backdrops: layers between the sky and the world ----------
+// Hills, a far city, a wall of mountains: each backdrop is a grid of cells of its own, scrolled by the camera times its `parallax` (the sky layer's own
+// sub-cell offset technique, so it glides instead of stepping a cell at a time, in both renderers), drawn behind every world cell that is empty and in front of
+// the sky, so the back wall, the terrain and everything the game draws cover it. The first one added is the farthest.
+//   addBackdrop({ parallax: .3 | [px, py], horizon: worldRow, begin(ox, oy, t) {}, paint(gx, dy, out, t) { return SOLID; }, animate: 4, key: (ox, oy) => v })
+//   parallax  how much of the camera's movement it follows: 0 holds still on the screen, 1 moves with the world (default .3)
+//   paint     asked for every cell when the layer is rebuilt: gx is the cell's column in the layer's own space (it scrolls by cam.x * px, so a hill that is a function
+//             of gx stays put), dy its row (see horizon). Return a cell code (0 = nothing, the sky shows; SOLID or a character's brightness) with out = [r, g, b]
+//             in light units, as GAME.sky does. The colours are not lit: the painter picks them (setTimeOfDay's colours are in SKY_AT / AMB_C).
+//   horizon   a world row (units): dy = 0 is the layer's row that stands where that world row does when the camera is centred on it, so hills painted below dy = 0
+//             sit on the ground of a level whose ground is at that row. Without it dy is the layer's own row.
+//   begin     once before each rebuild, with the layer's first column and row
+//   animate   a number of rebuilds a second even when the layer has not scrolled (drifting clouds); key(ox, oy): rebuild when what it returns changes
+//   underground: [r, g, b]  instead of paint: a dark wall below the skyline of the world (parallax 1), so a cave and everything under the ground shows no stars
+// A layer is rebuilt when it has scrolled a whole cell, when the exposure moves, on `animate`, or when `key` changes: keep paint cheap (it runs for about
+// 64 000 cells at 1280 x 800). worldInit clears the backdrops with everything else that belongs to a world; at most BACKDROP_MAX (3) at a time.
+const BACKDROPS = [], BACKDROP_MAX = 3;
+function addBackdrop(o = {}) {
+  devKeys('addBackdrop', o, ['parallax', 'horizon', 'begin', 'paint', 'animate', 'key', 'underground', 'grain']);
+  if (BACKDROPS.length >= BACKDROP_MAX) throw new Error(`addBackdrop: at most ${BACKDROP_MAX} backdrops at a time (removeBackdrop one first)`);
+  const par = Array.isArray(o.parallax) ? o.parallax : [o.parallax ?? .3, o.parallax ?? .3];
+  const L = { px: par[0], py: par[1], horizon: o.horizon, begin: o.begin || null, paint: o.paint || null, fps: o.animate || 0, key: o.key || null, fx: 0, fy: 0, dx: 0, dy: 0, sig: null, dirty: true, pix: null, cv: null, ctx: null, img: null };
+  if (o.underground) {
+    const c = o.underground, gr = o.grain ?? .3;
+    L.px = L.py = 1; L.horizon = undefined;
+    L.paint = (gx, gy, out) => { if (gx < 0 || gx >= W || !colTop || gy < colTop[gx]) return 0; const v = 1 + gr * (hash2(gx, gy, 77) - .5); out[0] = c[0] * v; out[1] = c[1] * v; out[2] = c[2] * v; return SOLID; };
+    L.key = (ox) => { let h = 0; if (colTop) for (let x = Math.max(0, ox), e = Math.min(W, ox + R.RW); x < e; x++) h = (Math.imul(h, 31) + colTop[x]) | 0; return h; };   // the skyline under the window
+  }
+  BACKDROPS.push(L); return L;
+}
+function removeBackdrop(L) { const i = BACKDROPS.indexOf(L); if (i >= 0) BACKDROPS.splice(i, 1); }
+function clearBackdrops() { BACKDROPS.length = 0; }
+// a layer's pixel buffer (and, for the 2D canvas, its own canvas) for this size and renderer
+function backdropAlloc(L) {
+  const RW = R.RW, RH = R.RH; L.pix = new Uint8ClampedArray(RW * RH * 4); L.sig = null; L.dirty = true;
+  if (R.mode === '2d') { L.cv = makeCanvas(RW, RH); L.ctx = L.cv.getContext('2d'); L.img = new ImageData(L.pix, RW, RH); } else L.cv = L.ctx = L.img = null;
+}
+function renderBackdrops(time) {
+  const RW = R.RW, RH = R.RH, key0 = `${RW},${RH},${R.mode}`;
+  if (R.bKey !== key0) { R.bKey = key0; for (const L of BACKDROPS) L.pix = null; }   // a new size or renderer: every layer's buffers again
+  for (const L of BACKDROPS) if (!L.pix) backdropAlloc(L);
+  const E = EYE.e;
+  for (const L of BACKDROPS) {
+    const sx = cam.x * L.px, sy = cam.y / ASPECT * L.py, ix = Math.floor(sx), iy = Math.floor(sy);
+    L.fx = sx - ix; L.fy = sy - iy;
+    const ox = ix - 1, oy = iy - 1, step = L.fps ? Math.floor(time * L.fps) : 0, sig = `${ox},${oy},${step},${Math.round(E * 24)},${POST.rev},${FOG.key},${L.key ? L.key(ox, oy) : ''}`;
+    if (sig === L.sig) continue;
+    L.sig = sig; L.dirty = true;
+    const base = L.horizon === undefined ? 0 : Math.round(R.rows / 2 + (L.horizon / ASPECT - R.rows / 2) * L.py), D = L.pix, paint = L.paint;
+    if (L.begin) L.begin(ox, oy, time);
+    for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) {
+      const k = j * RW + i, q = k * 4; let glyph = paint ? paint(ox + i, oy + j - base, _pc, time) : 0;
+      if (glyph > 0) {
+        const vv = vig[k] * INK[glyph];
+        D[q] = toneF(_pc[0] * E) * vv * 255; D[q + 1] = toneF(_pc[1] * E) * vv * 255; D[q + 2] = toneF(_pc[2] * E) * vv * 255; D[q + 3] = glyph > 32 ? 255 : 0;
+      } else D[q] = D[q + 1] = D[q + 2] = D[q + 3] = 0;
+    }
+    if (FOG.on) fogLayer(D, RW, RH, Math.min(1, FOG.d * (1 + 1.2 * (1 - L.px))));   // a layer that moves less is further away: more fog over it
+    if (POST_PAL) postLock(D, RW, RW * RH, ox, oy);
   }
 }

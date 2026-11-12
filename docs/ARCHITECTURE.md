@@ -251,7 +251,10 @@ Steps in `computeLighting(ox, oy, lights, dynTop)`:
    - Walking columns left to right, each solid cell marks the rays that cross it as blocked: 1 means
      terrain, 2 means only a dynamic body.
    - Dynamic cells (lander, boulders, chunks) stay lit behind each other but still cast shadows.
-   - `SUN_L` is the direction sunlight travels; `setSun(elevationDeg)` sets it (Regolith per site) and
+   - A sun on the right (`setSun(91..179)`, `SUN_L[0] < 0`) is the same sweep over the mirrored world: sweep column `xm` is world column
+     `W - 1 - xm`, the window starts at `W - ox - RW`, the rays start beyond the right edge, and the result is written to the window column
+     `RW - 1 - (xm - mx)`. Mirroring the world and the sun gives the mirrored light bit for bit (tests/node/engine-look.test.mjs); `sunAt` marches the other way.
+   - `SUN_L` is the direction sunlight travels; `setSun(angleDeg)` sets it (Regolith per site) and
      `setSun(null)` turns the sun off (caves). Colours: `SUN_C` (the sun: a base colour `SUN_BASE`, dimmed per channel
      by `exp(-AIR_TAU × ATMOS × (airmass(elevation) - 1))` when `setAtmosphere` > 0 and the colour is not pinned; the base
      can come from `kelvinColor`), `AMB_C = [.095, .115, .17]` (`setAmbient`).
@@ -304,6 +307,7 @@ There are three grids:
 | Grid | Contents | Scrolling |
 |---|---|---|
 | **Sky** (`R.sG`, `R.sPix`) | stars and the game's sky bodies (Regolith's Earth) | its own sub-cell offset `R.skyFX/FY`, drifting at `SKY_PAR = 0.05` of the camera |
+| **Backdrops** (`BACKDROPS`, up to 3; each `L.pix`) | hills, a far city, a dark wall below the skyline (`addBackdrop`, `engine/06_scene.js`) | one sub-cell offset each (`L.fx/fy`), drifting at their `parallax` of the camera; between the sky and the world |
 | **World** (`R.wG`, `R.wPix`, size `RW × RH` = screen + 1 margin cell each side) | terrain, particles, objects | the camera's sub-cell offset; `ox, oy = floor(cam) - 1` |
 | **HUD** (`R.hG`, `R.hC`) | text | fixed; coarser cells (`R.hcw`) so text is readable at any detail level |
 
@@ -327,14 +331,15 @@ many characters). No web font is loaded.
 **WebGL path.** One full-screen triangle. The fragment shader works per pixel:
 1. If a HUD cell is there, draw its character from the font texture (scaled by `uHS`) over the background.
 2. Otherwise sample the world grid at `pixel - uOff`, moved sideways by the heat shimmer (`uShim`, up to 0.6 of a cell). If
-   the cell is empty, sample the sky grid at `pixel - uSkyOff`; if that is empty too, the background colour.
+   the cell is empty, sample the backdrop layers, nearest first (one atlas texture `uBack`, the layers stacked, each with its own offset `uBackOff0..2`, `uBackN` of them), then the
+   sky grid at `pixel - uSkyOff`; if that is empty too, the background colour.
 3. Add optional bloom from a separate bright-pass texture.
 
-The sky texture is uploaded only when it changes. If the renderer string matches
+The sky texture is uploaded only when it changes, a backdrop's rows of the atlas when that layer was rebuilt. If the renderer string matches
 SwiftShader, llvmpipe and similar, WebGL is dropped for 2D unless `#gl` forces it.
 
-**2D path.** The sky and the world are each one canvas with a pixel per cell, drawn scaled up without smoothing over the
-background colour (the sky only when it changed); cells that shimmer are drawn once more, pushed sideways; then bloom, then the
+**2D path.** The sky, each backdrop and the world are each one canvas with a pixel per cell, drawn scaled up without smoothing over the
+background colour (the sky and a backdrop only when they changed), in that order; cells that shimmer are drawn once more, pushed sideways; then bloom, then the
 HUD: font characters from a tinted, pre-scaled copy of the font, and full blocks as plain rectangles.
 
 `presentFrame(fracX, fracY, t)` computes both pixel offsets plus screen shake and calls the active
@@ -358,16 +363,28 @@ path.
    Shiny glints are single white pixels.
 3. Particles, lit by the light buffers and z-tested by luminance against the terrain.
 4. Falling chunks (`drawChunks`), then game objects through the game's `draw` hook, which writes with
-   `putEmit` (fixed colour), `putLit` (albedo × light) or `drawSprite`.
+   `putEmit` (fixed colour), `putLit` (albedo × light) or `drawSprite`; then the **front pass** in the same way (front props and
+   entities, the state's and the game's `drawFront`), which covers all of it.
 5. Shock rings.
 6. Tone map `tone(c × E) = 1 - exp(-1.7·c·E)` and vignette into bytes, plus the bloom bright-pass. `E` is the exposure of
    the eye adaptation (`adaptEye`): the geometric mean luminance of the visible cells is measured *before* the tone map (so
    exposure cannot feed back into its own measurement) and `EYE.e` eases toward `key / mean` (to the power of the strength,
-   clamped), faster down than up. Then `renderSky(time)` rebuilds the sky layer when needed.
+   clamped), faster down than up. The vignette is `POST.vignette` (default .42). Then, when a game asked for them, the **fog** (`fogLayer`, 21_weather.js) mixes the finished bytes toward
+   its colour, which `fogPrep(E)` made from the scene's own light through the same tone curve, and the **palette lock** (`postLock`, `setPost`) snaps every drawn pixel to the nearest palette colour
+   (with an optional world-anchored Bayer dither); the bloom's bright-pass was taken before both. Then `renderSky(time)` rebuilds the sky layer and `renderBackdrops(time)` the backdrop layers when needed,
+   each through the same fog and palette lock. Scanlines are not in the buffers: both presenters draw them (a thin line at the bottom of each cell row, fixed on the screen), the shader and the 2D canvas alike.
 
 The sky has stars from a hash (density `GAME.stars`) and whatever the game paints through
-`GAME.skyBegin` / `GAME.sky`. Regolith paints the Earth: an ellipse, lit from the same sun, with
+`GAME.skyBegin` / `GAME.sky`; under both, `setSkyGradient` (and `setTimeOfDay` through it) gives it a base colour from the top of the screen to a chosen row, and the stars show on it as bright as the hour
+lets them (`SKYG.stars`). The layer's cache key carries `POST.rev`, `SKYG.rev` and the fog's colour; it does not carry the star density. Regolith paints the Earth: an ellipse, lit from the same sun, with
 continents and clouds from fbm noise, turning slowly; its night side hides the stars behind it.
+
+**Zoom** is a factor in `renderResize` (05_render.js): the cell is `cw1 * R.zoom` device pixels (`cw1`: what the detail level and the screen's width give), rounded to whole pixels and never below 2, and
+`R.cols` / `R.rows` follow, exactly as for a window resize, so every buffer the view owns is made again and nothing else has to know. `setZoom` (11_loop.js) keeps the point the game names where it was by
+moving the camera across the resize.
+
+**Weather** (`engine/21_weather.js`) steps with the world (`stepWeather` in `stepWorld`): the clock first, then an emitter that spawns rain and snow particles above the view; wind is a coupling in `stepParticles`;
+a particle type's `onHit` and `onLiquid` end a drop, which is how rain cools a cell, splashes, and piles up as cells (`deposit`) that the sand and liquid rules then take over.
 
 The sky layer is rebuilt when it has scrolled a whole cell, once a second, when the quantised exposure changes, and, when
 something needs it, about 5-8 times a second: stars twinkle (an atmosphere: a per-star sine) and are dimmed by *light
@@ -397,7 +414,15 @@ the world's pixels (Regolith's lander: `games/regolith/lander_art.js`):
    (`SUN_L`, when `LSUN`), the lamps (`LDX/LDY`) and ambient from above, and multiplies by `0.5 + 0.5·sprRelief`. The
    generator (`portal/assets/normalmap-core.mjs`) builds the same table; a unit test pins both and the relief rule.
 
-`markSpriteDyn` marks the covered cells for shadows; `spriteHull` gives collision points from the
+6. **Emission** (optional `emit` in the data, one base-36 digit a pixel): `sprCells` averages the digits of a cell's samples (9 = all of it glows) and hands it to the pixel
+   callback as `e`; `sprEmit` sends `e > 0` to `sprGlow`, which draws `lit × (1 - min(1, e)) + art × max(1, e) × min(1, e)` and adds the cell to a block of RES × RES in `_glow.bins`.
+   `drawSprite` ends with `emitFlush()` (one splat a block into `EMIT.a`); the end of `renderScene` calls `emitSwap()`, so the NEXT frame's `sceneTerrain` pours `EMIT.b` into the
+   light buffers (`splatLight`, with the particles' and heat's) and its terrain-cache key holds `EMIT.hash`: a still glowing sprite keeps the cache, a moving one redoes the terrain.
+   The cost is a splat per glowing block, nothing for a sprite without the layer (`sprEmit` takes one extra test).
+
+`markSpriteDyn` marks the covered cells for shadows (`dyn = 1`; with `blocksLamps`, `dyn = 3` and the cell joins `BLK`, the box of this frame's lamp blockers: `castLamp` stops a
+shadowed lamp's ray after lighting such a cell, `lampFor` casts a lamp whose reach touches the box again instead of serving the kept cast, and `stillKeys` hashes `dyn`'s values);
+`spriteHull` gives collision points from the
 silhouette. Cost for the lander: about 0.5 ms (RES 1) to 1.6 ms (RES 3) per frame in headless Chromium.
 
 A sprite whose bounding box is off screen is skipped. With `cache: true` (a still sprite: angle 0, no `shift`), steps 1–5

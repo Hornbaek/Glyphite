@@ -5,6 +5,7 @@
 //     touch: [[...], [...]],              on-screen buttons (see setupInput)
 //     keys: { detail, bloom, mute, pause } built-in keys; each defaults to true
 //     detail: { default: 2, narrow: 1.5 } starting detail level on wide / narrow screens
+//     zoom: { default, min, max, wheel, pinch } the view's zoom limits (.5 to 4), its first value, and whether the wheel / a pinch drive it (setZoom)
 //     particles: 9000,                    particle budget at RES 1 (scaled by RES)
 //     cameraTop: -80,                     how far above the world top the camera may go (base units)
 //     init(data)                          once, after the renderer is ready (data: hot-reload snapshot)
@@ -154,7 +155,7 @@ function updateCamera(dt, snap) {
 function update(dt) {
   const q = performance.now();
   frameNo++; stateT += dt;
-  stepActions(); stepCapture(); stepUi(); stepShell();
+  stepActions(); stepCapture(); stepUi(); stepShell(); stepZoom();
   if (stepRewind()) { updateCamera(dt); return; }   // held rewind: this step puts the world back instead of playing
   if (chunks.length) stepPlatforms(dt);
   if (GAME.update) GAME.update(dt);
@@ -169,7 +170,7 @@ function update(dt) {
 // the engine's world systems: falling chunks, particles, sand, heat and effects
 function stepWorld(dt) {
   if (chunks.length || rechecks.length) stepChunks(dt);
-  stepParticles(dt); simGranular();
+  stepWeather(dt); stepParticles(dt); simGranular();
   const cx = Math.floor(cam.x), cy = Math.floor(cam.y / ASPECT), m = Math.round(20 * RES);
   coolHeat(cx - m, cy - m, cx + R.cols + m, cy + R.rows + m);
   stepFX(dt);
@@ -203,7 +204,11 @@ function draw(t) {
   const ox = Math.floor(cam.x) - 1, oy = Math.floor(cam.y / ASPECT) - 1;
   const fx = cam.x - Math.floor(cam.x), fy = cam.y / ASPECT - Math.floor(cam.y / ASPECT);
   computeLighting(ox, oy, gatherLights(t), dynTop); perfLap('light');
-  renderScene(ox, oy, t, () => { if (PROPS.length) drawProps(); if (entities.length) drawEntities(t); if (STATES && STATES[state] && STATES[state].draw) STATES[state].draw(t); if (GAME.draw) GAME.draw(t); }); perfLap('scene');
+  renderScene(ox, oy, t, () => {
+    if (PROPS.length) drawProps(false); if (entities.length) drawEntities(t, false); if (STATES && STATES[state] && STATES[state].draw) STATES[state].draw(t); if (GAME.draw) GAME.draw(t);
+    // the front pass: what stands in front of everything above (a character walks behind grass and pillars)
+    if (PROPS.length) drawProps(true); if (entities.length) drawEntities(t, true); if (STATES && STATES[state] && STATES[state].drawFront) STATES[state].drawFront(t); if (GAME.drawFront) GAME.drawFront(t);
+  }); perfLap('scene');
   hudClear(); HUDBTNS.length = 0; ACTIVE_MENU = null;
   if (GAME.hud) GAME.hud(t); if (STATES && STATES[state] && STATES[state].hud) STATES[state].hud(t);
   drawFloatingTexts(); drawShell(t); drawFeed(); perfOverlay(); perfLap('hud');
@@ -220,7 +225,7 @@ function frame(now) {
   const paused = isPaused();
   acc += real * (paused ? 0 : FX.slow);
   // presses made while paused would all fire on the first step after resuming: drop them (while running, update() clears them)
-  if (paused) { stepActions(); stepCapture(); stepUi(); Input.pressed.clear(); Input.fireQueued = false; Input.drag[0] = Input.drag[1] = 0; Input.pinch = 0; }
+  if (paused) { stepActions(); stepCapture(); stepUi(); stepZoom(); Input.pressed.clear(); Input.fireQueued = false; Input.drag[0] = Input.drag[1] = 0; Input.pinch = 0; }
   let n = 0; while (acc >= DT && n < 3) { update(DT); acc -= DT; n++; }
   if (n === 3) acc = 0;
   clockT = frameNo * DT + acc;
@@ -253,6 +258,36 @@ function stepDetail(dir) {
   if (j !== i) setDetail(lv[j], true);
 }
 
+// ---------- zoom (E7) ----------
+// setZoom(z) scales the view: a cell is cw1 * z device pixels wide (cw1: the size at zoom 1, which detail and the screen's width set), rounded to whole device pixels so it
+// stays crisp, so z is met only as closely as that allows (getZoom() says what it came to). In is a bigger cell and fewer cells on the screen; out is a smaller cell
+// and more cells for the lighting to cover (the cost: at .5 about four times the cells of zoom 1). The world, the physics and the detail level are not touched: only
+// how many device pixels a cell takes, so the same buffers a window resize makes are made again. The point of the picture at `at` (fractions of the canvas, default the
+// centre) stays where it is; a game whose camera hook follows something keeps following it. Pixelite.run({ zoom: { default, min, max, wheel, pinch } }) sets the limits
+// (default .5 to 4) and lets the mouse wheel and a two finger pinch drive it.
+const zoomLimits = () => { const z = GAME.zoom || {}; return [z.min ?? .5, z.max ?? 4]; };
+const getZoom = () => R.cw / R.cw1;
+function setZoom(z, at = [.5, .5]) {
+  const [lo, hi] = zoomLimits(); z = clamp(Number.isFinite(+z) && +z > 0 ? +z : 1, lo, hi);
+  if (!R.cols || (z === 1 ? R.cw1 : zoomCw(R.cw1, z)) === R.cw) { R.zoom = z; return getZoom(); }   // no picture yet, or the same cell size: nothing to remake (the request is kept)
+  const wx = cam.x + at[0] * R.cols, wy = cam.y + at[1] * R.rows * ASPECT;
+  R.zoom = z; resizeNow();
+  cam.x = wx - at[0] * R.cols; cam.y = wy - at[1] * R.rows * ASPECT;
+  if (W) updateCamera(0, true);
+  return getZoom();
+}
+// one step in or out (dir > 0 in): a change of 15 percent of the cell, at least one device pixel, so every step shows
+function zoomStep(dir, at) {
+  const cw = Math.max(ZOOM_MIN_PX, R.cw + dir * Math.max(1, Math.round(R.cw * .15)));
+  return setZoom(cw / R.cw1, at);
+}
+// the wheel and the pinch, when the game asks for them: the wheel is counted in notches of 100 (a trackpad sends many small ones)
+function stepZoom() {
+  const zo = GAME.zoom; if (!zo) return;
+  if (Input.pinch && zo.pinch !== false) setZoom(R.zoom * Math.exp(Input.pinch * 3));   // (from the request, not the rounded cell: a small pinch adds up until it is a whole device pixel)
+  while (Math.abs(Input.wheel) >= 100 && zo.wheel !== false) { const up = Input.wheel < 0; Input.wheel += up ? 100 : -100; zoomStep(up ? 1 : -1, Input.wheelAt); }
+}
+
 // built-in keys first (each can be switched off with GAME.keys), then the game's own
 function engineKey(code) {
   const k = GAME.keys || {};
@@ -275,6 +310,7 @@ function boot(data) {
   const narrow = stage.getBoundingClientRect().width < 640, dd = GAME.detail || {};
   const lv = levelsOf(), pick0 = narrow ? (dd.narrow ?? 1.5) : (dd.default ?? 2), r0 = lv.includes(data.detail) ? data.detail : lv.includes(saved) ? saved : lv.includes(pick0) ? pick0 : lv.includes(2) ? 2 : lv[0];
   setResVars(r0); particlesAlloc(Math.round((GAME.particles || 9000) * r0));
+  if (GAME.zoom && GAME.zoom.default) { const [lo, hi] = zoomLimits(); R.zoom = clamp(GAME.zoom.default, lo, hi); }   // the view's first zoom
   resizeNow();
   const onResize = () => { resizeNow(); if (W) updateCamera(0, true); };
   if (window.ResizeObserver) new ResizeObserver(onResize).observe(stage); else window.addEventListener('resize', onResize);
@@ -299,8 +335,8 @@ function boot(data) {
 // ---------- the public object: run a game, and drive it from tests ----------
 const _engineUpdate = update;
 // every key Pixelite.run() reads (a misspelt hook would be ignored without a word)
-const HOOKS = ['id', 'touch', 'keys', 'detail', 'particles', 'cameraTop', 'cameraEase', 'init', 'regenerate', 'update', 'camera', 'markDyn', 'lights', 'draw', 'hud',
-  'afterFrame', 'shell', 'menu', 'restart', 'quit', 'floatText', 'saveVersion', 'migrate', 'onKey', 'onBlast', 'chunkStep', 'skyBegin', 'sky', 'stars', 'starGlare', 'onTune', 'start', 'snapshot', 'probe', 'levels', 'listener'];
+const HOOKS = ['id', 'touch', 'keys', 'detail', 'particles', 'cameraTop', 'cameraEase', 'init', 'regenerate', 'update', 'camera', 'markDyn', 'lights', 'draw', 'drawFront', 'hud',
+  'afterFrame', 'shell', 'menu', 'restart', 'quit', 'floatText', 'saveVersion', 'migrate', 'onKey', 'onBlast', 'chunkStep', 'skyBegin', 'sky', 'stars', 'starGlare', 'zoom', 'onTune', 'start', 'snapshot', 'probe', 'levels', 'listener'];
 const Pixelite = {
   version: typeof ENGINE_VERSION === 'string' ? ENGINE_VERSION : '0.0.0',
   get settings() { return SETTINGS; }, setSetting, save: saveGame, load: loadGame, saves: listSaves, erase: eraseSave,
@@ -361,7 +397,7 @@ const Pixelite = {
     unfreeze() { if (window.__pixeliteUpdate) { window.update = window.__pixeliteUpdate; window.__pixeliteUpdate = null; } },
     render(t = clockT) { draw(t); },
     probe() {
-      return { state, stateT: +stateT.toFixed(2), frame: frameNo, version: Pixelite.version, paused: isPaused(), errors: ERRORS.length, res: RES, renderer: R.mode, cols: R.cols, rows: R.rows,
+      return { state, stateT: +stateT.toFixed(2), frame: frameNo, version: Pixelite.version, paused: isPaused(), errors: ERRORS.length, res: RES, renderer: R.mode, cols: R.cols, rows: R.rows, zoom: +getZoom().toFixed(3), weather: WEATHER.kind, hour: TOD.on ? +TOD.h.toFixed(2) : null,
         world: [W, H], cam: [+cam.x.toFixed(1), +cam.y.toFixed(1)], particles: P.n, chunks: chunks.length, perfMs: +perfAvg.toFixed(1), perf: PERF.avg(),
         tune: { ...TUNE }, levels: levelsOf(), entities: entityCounts(), states: entityStates(), game: GAME.probe ? GAME.probe() : null };
     }

@@ -6,7 +6,7 @@ import { loadEngine } from './engine-harness.mjs';
 
 // materials: 1 rock, 2 water, 3 lava (hot, thick, heavy: lava + water makes stone and steam), 4 stone, 5 wood (burns), 6 metal (conducts heat)
 const hotWorld = () => {
-  const E = loadEngine(); E.run('setResVars(2)');
+  const E = loadEngine(); E.run('seedRandom(7); setResVars(2)');   // (seeded: fire spreads by chance, and a run on an unlucky seed fails about one time in twenty)
   E.run(`defineMaterial('rock', { tough: 5, anchor: true }); defineMaterial('water', { liquid: true, albedo: [.2, .5, .9], viscosity: .05, density: 1 });
     defineMaterial('lava', { liquid: true, albedo: [1, .4, .1], viscosity: .7, density: 2, hot: 1.2, conduct: .6 }); defineMaterial('stone', { tough: 2, anchor: true });
     defineMaterial('wood', { flammable: .03, ignite: .3, conduct: .4, burnsTo: 0 }); defineMaterial('metal', { conduct: 1, tough: 5, anchor: true });

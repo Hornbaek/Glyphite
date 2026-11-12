@@ -26,6 +26,11 @@ Three layers:
    (the lamp cache and the still-frame reuse off, on, and on with the engine's own audit), through a still stretch, the camera moving, the sun, the
    ambient light, a block built under a lamp, the back wall written by hand, a material changed, heat, a spark and a blast, and every frame's checksum
    (world and sky pixels, the light buffers, the world's hash, the exposure) must equal the one without caches; it also fails if the caches were never used.
+   `engine_look.py [2d|gl ...]` is the look packages in real pages, both renderers, on a bare world the script builds itself (the starter game with its hooks taken away; every check reads the engine's own pixel buffers
+   or a screenshot of the canvas, so a shader that disagrees with the 2D path shows up): the sun from either side (E1), the layers in front and behind (E5), glowing sprites and what they light (E3), the back wall's shadow
+   following a lamp (E4), the palette, dither, vignette, scanlines and bloom switch (E6), zoom (a pillar's width in device pixels at 1, 2, 3 and .5, still in the middle, the wheel) (E7), and the day (sky colours, stars,
+   the shadow swinging from one side to the other), fog, rain, wind, snow piling (E8). Every effect is also asked to give the old picture back, pixel for pixel, when it is switched off. The Node side is
+   `tests/node/engine-look.test.mjs` (the same packages with no browser: the sweep mirrored bit for bit, the palette's nearest colour, the dither's pattern, the zoom's pixel arithmetic, the emitter's rate and budget).
    `perf.py [games] [--caches off] [--json f] [--compare f]` prints the stage timers (`Pixelite.perf`) for every game, both renderers, RES 2 and 3 and two screen
    sizes, in a moving scene and an idle one (headless Chrome has no GPU: read `light`, `scene`, `step`, not `present`).
 
@@ -40,6 +45,8 @@ npm ci                             # wrangler (the only dependency, for the Work
 pip install playwright==1.56.0 pillow numpy
 python -m playwright install chromium   # not in Claude Code cloud sessions: install the Playwright version that matches the
                                         # preinstalled Chromium instead (see CLAUDE.md; 1.63.0 in November 2026)
+# on a machine that has Chrome and not Playwright's own browser: `python tools/with_chrome.py <script>`, with a Playwright as new as the Chrome
+# (Chrome 157 starts and exits at once under Playwright 1.56: `pip install playwright==1.63.0` there; CI keeps its own pin and its own Chromium)
 npm run build                      # must print SYNTAX_OK
 ```
 
