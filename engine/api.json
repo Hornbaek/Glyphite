@@ -1,0 +1,2190 @@
+{
+ "version": "0.16.0",
+ "names": {
+  "_camT": {
+   "kind": "value",
+   "params": null,
+   "part": "11_loop.js"
+  },
+  "_chRaster": {
+   "kind": "value",
+   "params": null,
+   "part": "09_structures.js"
+  },
+  "_engineUpdate": {
+   "kind": "value",
+   "params": null,
+   "part": "11_loop.js"
+  },
+  "_fc": {
+   "kind": "value",
+   "params": null,
+   "part": "06_scene.js"
+  },
+  "_hash": {
+   "kind": "value",
+   "params": null,
+   "part": "14_entities.js"
+  },
+  "_islStack": {
+   "kind": "value",
+   "params": null,
+   "part": "09_structures.js"
+  },
+  "_isoP": {
+   "kind": "value",
+   "params": null,
+   "part": "12_iso.js"
+  },
+  "_lights": {
+   "kind": "value",
+   "params": null,
+   "part": "11_loop.js"
+  },
+  "_n": {
+   "kind": "value",
+   "params": null,
+   "part": "02_particles.js"
+  },
+  "_rndState": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "_shd": {
+   "kind": "value",
+   "params": null,
+   "part": "06_scene.js"
+  },
+  "_sprL": {
+   "kind": "value",
+   "params": null,
+   "part": "10_sprite.js"
+  },
+  "_sprNoShift": {
+   "kind": "value",
+   "params": null,
+   "part": "10_sprite.js"
+  },
+  "_urlSeed": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "action": {
+   "kind": "function",
+   "params": 1,
+   "part": "16_actions.js"
+  },
+  "actionLabel": {
+   "kind": "function",
+   "params": 1,
+   "part": "16_actions.js"
+  },
+  "actionPressed": {
+   "kind": "function",
+   "params": 1,
+   "part": "16_actions.js"
+  },
+  "actionReleased": {
+   "kind": "function",
+   "params": 1,
+   "part": "16_actions.js"
+  },
+  "ACTIONS": {
+   "kind": "value",
+   "params": null,
+   "part": "16_actions.js"
+  },
+  "ACTIVE_MENU": {
+   "kind": "value",
+   "params": null,
+   "part": "17_ui.js"
+  },
+  "actorBox": {
+   "kind": "function",
+   "params": 1,
+   "part": "15_world.js"
+  },
+  "adaptEye": {
+   "kind": "function",
+   "params": 3,
+   "part": "06_scene.js"
+  },
+  "addGravityZone": {
+   "kind": "function",
+   "params": 1,
+   "part": "15_world.js"
+  },
+  "addHeat": {
+   "kind": "function",
+   "params": 3,
+   "part": "01_core.js"
+  },
+  "addLight": {
+   "kind": "function",
+   "params": 7,
+   "part": "02_particles.js"
+  },
+  "addMount": {
+   "kind": "function",
+   "params": 1,
+   "part": "09_structures.js"
+  },
+  "addPlatform": {
+   "kind": "function",
+   "params": 1,
+   "part": "09_structures.js"
+  },
+  "addPointLight": {
+   "kind": "function",
+   "params": 3,
+   "part": "04_light.js"
+  },
+  "addRing": {
+   "kind": "function",
+   "params": 5,
+   "part": "02_particles.js"
+  },
+  "addText": {
+   "kind": "function",
+   "params": 5,
+   "part": "02_particles.js"
+  },
+  "addTrigger": {
+   "kind": "function",
+   "params": 2,
+   "part": "15_world.js"
+  },
+  "after": {
+   "kind": "function",
+   "params": 2,
+   "part": "14_entities.js"
+  },
+  "AIR_TAU": {
+   "kind": "value",
+   "params": null,
+   "part": "04_light.js"
+  },
+  "airmass": {
+   "kind": "function",
+   "params": 1,
+   "part": "04_light.js"
+  },
+  "AMB_C": {
+   "kind": "value",
+   "params": null,
+   "part": "04_light.js"
+  },
+  "animFrame": {
+   "kind": "function",
+   "params": 3,
+   "part": "10_sprite.js"
+  },
+  "animFromAsset": {
+   "kind": "function",
+   "params": 2,
+   "part": "10_sprite.js"
+  },
+  "ANY_HAZ": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "applyMaterial": {
+   "kind": "function",
+   "params": 1,
+   "part": "01_core.js"
+  },
+  "applySettings": {
+   "kind": "function",
+   "params": 0,
+   "part": "16_actions.js"
+  },
+  "ASPECT": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "axis": {
+   "kind": "function",
+   "params": 2,
+   "part": "16_actions.js"
+  },
+  "b64buf": {
+   "kind": "function",
+   "params": 1,
+   "part": "08_chip.js"
+  },
+  "BACK": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "backShadowOffsets": {
+   "kind": "function",
+   "params": 0,
+   "part": "06_scene.js"
+  },
+  "Beat": {
+   "kind": "value",
+   "params": null,
+   "part": "08_chip.js"
+  },
+  "BEAT_K": {
+   "kind": "value",
+   "params": null,
+   "part": "08_chip.js"
+  },
+  "BG": {
+   "kind": "value",
+   "params": null,
+   "part": "05_render.js"
+  },
+  "bindAction": {
+   "kind": "function",
+   "params": 2,
+   "part": "16_actions.js"
+  },
+  "BK_OFF": {
+   "kind": "value",
+   "params": null,
+   "part": "06_scene.js"
+  },
+  "blastChunks": {
+   "kind": "function",
+   "params": 6,
+   "part": "09_structures.js"
+  },
+  "blastDir": {
+   "kind": "value",
+   "params": null,
+   "part": "09_structures.js"
+  },
+  "blastFrom": {
+   "kind": "function",
+   "params": 2,
+   "part": "09_structures.js"
+  },
+  "blastPush": {
+   "kind": "function",
+   "params": 5,
+   "part": "09_structures.js"
+  },
+  "blastStructures": {
+   "kind": "function",
+   "params": 4,
+   "part": "09_structures.js"
+  },
+  "Body": {
+   "kind": "class",
+   "params": null,
+   "part": "03_body.js"
+  },
+  "bodyRadius": {
+   "kind": "function",
+   "params": 1,
+   "part": "09_structures.js"
+  },
+  "bodyVsBody": {
+   "kind": "function",
+   "params": 4,
+   "part": "15_world.js"
+  },
+  "boot": {
+   "kind": "function",
+   "params": 1,
+   "part": "11_loop.js"
+  },
+  "bounce": {
+   "kind": "function",
+   "params": 6,
+   "part": "02_particles.js"
+  },
+  "breakOff": {
+   "kind": "function",
+   "params": 1,
+   "part": "09_structures.js"
+  },
+  "CALM": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "cam": {
+   "kind": "value",
+   "params": null,
+   "part": "05_render.js"
+  },
+  "cameraShake": {
+   "kind": "function",
+   "params": 1,
+   "part": "11_loop.js"
+  },
+  "CAMRIG": {
+   "kind": "value",
+   "params": null,
+   "part": "11_loop.js"
+  },
+  "captureKey": {
+   "kind": "function",
+   "params": 1,
+   "part": "17_ui.js"
+  },
+  "carve": {
+   "kind": "function",
+   "params": 4,
+   "part": "15_world.js"
+  },
+  "ch": {
+   "kind": "function",
+   "params": 1,
+   "part": "02_particles.js"
+  },
+  "CHAR_SCALED": {
+   "kind": "value",
+   "params": null,
+   "part": "14_entities.js"
+  },
+  "Character": {
+   "kind": "class",
+   "params": null,
+   "part": "03_body.js"
+  },
+  "charDefaults": {
+   "kind": "function",
+   "params": 0,
+   "part": "03_body.js"
+  },
+  "checkSupport": {
+   "kind": "function",
+   "params": 4,
+   "part": "09_structures.js"
+  },
+  "Chip": {
+   "kind": "value",
+   "params": null,
+   "part": "08_chip.js"
+  },
+  "CHIP_CPU": {
+   "kind": "value",
+   "params": null,
+   "part": "08_chip.js"
+  },
+  "CHIP_NOISE": {
+   "kind": "value",
+   "params": null,
+   "part": "08_chip.js"
+  },
+  "CHIP_TRI": {
+   "kind": "value",
+   "params": null,
+   "part": "08_chip.js"
+  },
+  "chipChunk": {
+   "kind": "function",
+   "params": 6,
+   "part": "09_structures.js"
+  },
+  "chipDrum": {
+   "kind": "function",
+   "params": 1,
+   "part": "08_chip.js"
+  },
+  "chipInstrument": {
+   "kind": "function",
+   "params": 1,
+   "part": "08_chip.js"
+  },
+  "chipLane": {
+   "kind": "function",
+   "params": 1,
+   "part": "08_chip.js"
+  },
+  "CHUNK_CONTACTS": {
+   "kind": "value",
+   "params": null,
+   "part": "15_world.js"
+  },
+  "chunkAt": {
+   "kind": "function",
+   "params": 2,
+   "part": "09_structures.js"
+  },
+  "chunkCellBox": {
+   "kind": "function",
+   "params": 1,
+   "part": "09_structures.js"
+  },
+  "chunkCellMat": {
+   "kind": "function",
+   "params": 3,
+   "part": "09_structures.js"
+  },
+  "chunkHull": {
+   "kind": "function",
+   "params": 1,
+   "part": "09_structures.js"
+  },
+  "chunkImpact": {
+   "kind": "function",
+   "params": 3,
+   "part": "09_structures.js"
+  },
+  "chunkMatAt": {
+   "kind": "function",
+   "params": 3,
+   "part": "09_structures.js"
+  },
+  "chunkOverlap": {
+   "kind": "function",
+   "params": 1,
+   "part": "09_structures.js"
+  },
+  "chunks": {
+   "kind": "value",
+   "params": null,
+   "part": "09_structures.js"
+  },
+  "chunkVsBody": {
+   "kind": "function",
+   "params": 3,
+   "part": "09_structures.js"
+  },
+  "clamp": {
+   "kind": "function",
+   "params": 3,
+   "part": "01_core.js"
+  },
+  "clearDyn": {
+   "kind": "function",
+   "params": 0,
+   "part": "01_core.js"
+  },
+  "clearEntities": {
+   "kind": "function",
+   "params": 0,
+   "part": "14_entities.js"
+  },
+  "clearGravityZones": {
+   "kind": "function",
+   "params": 0,
+   "part": "15_world.js"
+  },
+  "clearProps": {
+   "kind": "function",
+   "params": 0,
+   "part": "15_world.js"
+  },
+  "clearTimers": {
+   "kind": "function",
+   "params": 0,
+   "part": "14_entities.js"
+  },
+  "clockT": {
+   "kind": "value",
+   "params": null,
+   "part": "11_loop.js"
+  },
+  "computeLighting": {
+   "kind": "function",
+   "params": 4,
+   "part": "04_light.js"
+  },
+  "coolHeat": {
+   "kind": "function",
+   "params": 4,
+   "part": "01_core.js"
+  },
+  "cR": {
+   "kind": "value",
+   "params": null,
+   "part": "06_scene.js"
+  },
+  "crumbOf": {
+   "kind": "function",
+   "params": 1,
+   "part": "01_core.js"
+  },
+  "CS": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "defineAnim": {
+   "kind": "function",
+   "params": 2,
+   "part": "10_sprite.js"
+  },
+  "defineEntity": {
+   "kind": "function",
+   "params": 2,
+   "part": "14_entities.js"
+  },
+  "defineMaterial": {
+   "kind": "function",
+   "params": 2,
+   "part": "01_core.js"
+  },
+  "defineParticle": {
+   "kind": "function",
+   "params": 1,
+   "part": "02_particles.js"
+  },
+  "defineSound": {
+   "kind": "function",
+   "params": 2,
+   "part": "07_sound.js"
+  },
+  "defineSprite": {
+   "kind": "function",
+   "params": 2,
+   "part": "10_sprite.js"
+  },
+  "deposit": {
+   "kind": "function",
+   "params": 3,
+   "part": "02_particles.js"
+  },
+  "DETAIL_LEVELS": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "detailLabel": {
+   "kind": "function",
+   "params": 0,
+   "part": "11_loop.js"
+  },
+  "DEV": {
+   "kind": "value",
+   "params": null,
+   "part": "11_loop.js"
+  },
+  "devFinite": {
+   "kind": "function",
+   "params": null,
+   "part": "00_dev.js"
+  },
+  "devKeys": {
+   "kind": "function",
+   "params": 3,
+   "part": "00_dev.js"
+  },
+  "devNear": {
+   "kind": "function",
+   "params": 2,
+   "part": "00_dev.js"
+  },
+  "DRAG_PX": {
+   "kind": "value",
+   "params": null,
+   "part": "07_input.js"
+  },
+  "draw": {
+   "kind": "function",
+   "params": 1,
+   "part": "11_loop.js"
+  },
+  "drawAnim": {
+   "kind": "function",
+   "params": 5,
+   "part": "10_sprite.js"
+  },
+  "drawChunks": {
+   "kind": "function",
+   "params": 0,
+   "part": "09_structures.js"
+  },
+  "drawControlsMenu": {
+   "kind": "function",
+   "params": 0,
+   "part": "17_ui.js"
+  },
+  "drawEntities": {
+   "kind": "function",
+   "params": 1,
+   "part": "14_entities.js"
+  },
+  "drawFeed": {
+   "kind": "function",
+   "params": 0,
+   "part": "17_ui.js"
+  },
+  "drawFloatingTexts": {
+   "kind": "function",
+   "params": 0,
+   "part": "17_ui.js"
+  },
+  "drawPauseMenu": {
+   "kind": "function",
+   "params": 0,
+   "part": "17_ui.js"
+  },
+  "drawProps": {
+   "kind": "function",
+   "params": 0,
+   "part": "15_world.js"
+  },
+  "drawShell": {
+   "kind": "function",
+   "params": 1,
+   "part": "17_ui.js"
+  },
+  "drawSprite": {
+   "kind": "function",
+   "params": 5,
+   "part": "10_sprite.js"
+  },
+  "drawTitleScreen": {
+   "kind": "function",
+   "params": 1,
+   "part": "17_ui.js"
+  },
+  "DT": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "dynList": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "EASE": {
+   "kind": "value",
+   "params": null,
+   "part": "14_entities.js"
+  },
+  "EDGE_MAT": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "ejectaOf": {
+   "kind": "function",
+   "params": 1,
+   "part": "01_core.js"
+  },
+  "EMPTY": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "engineKey": {
+   "kind": "function",
+   "params": 1,
+   "part": "11_loop.js"
+  },
+  "entHashSize": {
+   "kind": "function",
+   "params": 0,
+   "part": "14_entities.js"
+  },
+  "entities": {
+   "kind": "value",
+   "params": null,
+   "part": "14_entities.js"
+  },
+  "ENTITY_KEYS": {
+   "kind": "value",
+   "params": null,
+   "part": "14_entities.js"
+  },
+  "entityBox": {
+   "kind": "function",
+   "params": 1,
+   "part": "14_entities.js"
+  },
+  "entityCounts": {
+   "kind": "function",
+   "params": 0,
+   "part": "14_entities.js"
+  },
+  "entityDrawOpts": {
+   "kind": "function",
+   "params": 1,
+   "part": "14_entities.js"
+  },
+  "entityLights": {
+   "kind": "function",
+   "params": 2,
+   "part": "14_entities.js"
+  },
+  "entityOnScreen": {
+   "kind": "function",
+   "params": 1,
+   "part": "14_entities.js"
+  },
+  "entitySprite": {
+   "kind": "function",
+   "params": 1,
+   "part": "14_entities.js"
+  },
+  "entityStates": {
+   "kind": "function",
+   "params": 0,
+   "part": "14_entities.js"
+  },
+  "eraseSave": {
+   "kind": "function",
+   "params": 1,
+   "part": "16_actions.js"
+  },
+  "ERRORS": {
+   "kind": "value",
+   "params": null,
+   "part": "11_loop.js"
+  },
+  "every": {
+   "kind": "function",
+   "params": 2,
+   "part": "14_entities.js"
+  },
+  "explode": {
+   "kind": "function",
+   "params": 5,
+   "part": "02_particles.js"
+  },
+  "EYE": {
+   "kind": "value",
+   "params": null,
+   "part": "06_scene.js"
+  },
+  "fbm1": {
+   "kind": "function",
+   "params": 3,
+   "part": "01_core.js"
+  },
+  "fbm2": {
+   "kind": "function",
+   "params": 4,
+   "part": "01_core.js"
+  },
+  "FEED": {
+   "kind": "value",
+   "params": null,
+   "part": "17_ui.js"
+  },
+  "fill": {
+   "kind": "function",
+   "params": 4,
+   "part": "15_world.js"
+  },
+  "findTilePath": {
+   "kind": "function",
+   "params": 7,
+   "part": "14_entities.js"
+  },
+  "fireProjectile": {
+   "kind": "function",
+   "params": 1,
+   "part": "15_world.js"
+  },
+  "FLAME_GLYPHS": {
+   "kind": "value",
+   "params": null,
+   "part": "06_scene.js"
+  },
+  "flameCol": {
+   "kind": "function",
+   "params": 2,
+   "part": "06_scene.js"
+  },
+  "flee": {
+   "kind": "function",
+   "params": 6,
+   "part": "14_entities.js"
+  },
+  "flickerAt": {
+   "kind": "function",
+   "params": 3,
+   "part": "04_light.js"
+  },
+  "fmtS": {
+   "kind": "function",
+   "params": 3,
+   "part": "05_render.js"
+  },
+  "FONT": {
+   "kind": "function",
+   "params": 1,
+   "part": "05_render.js"
+  },
+  "FONT_DATA": {
+   "kind": "value",
+   "params": null,
+   "part": "05_render.js"
+  },
+  "FONT_W": {
+   "kind": "value",
+   "params": null,
+   "part": "05_render.js"
+  },
+  "fontAtlas": {
+   "kind": "function",
+   "params": 1,
+   "part": "05_render.js"
+  },
+  "frame": {
+   "kind": "function",
+   "params": 1,
+   "part": "11_loop.js"
+  },
+  "freezeChunk": {
+   "kind": "function",
+   "params": 2,
+   "part": "09_structures.js"
+  },
+  "fsm": {
+   "kind": "function",
+   "params": 2,
+   "part": "14_entities.js"
+  },
+  "FX": {
+   "kind": "value",
+   "params": null,
+   "part": "02_particles.js"
+  },
+  "GAME": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "gatherLights": {
+   "kind": "function",
+   "params": 1,
+   "part": "11_loop.js"
+  },
+  "getBack": {
+   "kind": "function",
+   "params": 2,
+   "part": "01_core.js"
+  },
+  "getC": {
+   "kind": "function",
+   "params": 2,
+   "part": "01_core.js"
+  },
+  "GL_FS": {
+   "kind": "value",
+   "params": null,
+   "part": "05_render.js"
+  },
+  "GL_VS": {
+   "kind": "value",
+   "params": null,
+   "part": "05_render.js"
+  },
+  "glSetup": {
+   "kind": "function",
+   "params": 2,
+   "part": "05_render.js"
+  },
+  "glTex": {
+   "kind": "function",
+   "params": 5,
+   "part": "05_render.js"
+  },
+  "grainGlyph": {
+   "kind": "function",
+   "params": 1,
+   "part": "02_particles.js"
+  },
+  "gravityAt": {
+   "kind": "function",
+   "params": 2,
+   "part": "15_world.js"
+  },
+  "gravityZones": {
+   "kind": "value",
+   "params": null,
+   "part": "15_world.js"
+  },
+  "hash2": {
+   "kind": "function",
+   "params": 3,
+   "part": "01_core.js"
+  },
+  "hashBuild": {
+   "kind": "function",
+   "params": 0,
+   "part": "14_entities.js"
+  },
+  "HC": {
+   "kind": "value",
+   "params": null,
+   "part": "05_render.js"
+  },
+  "HEARD_NOW": {
+   "kind": "value",
+   "params": null,
+   "part": "07_sound.js"
+  },
+  "HOOKS": {
+   "kind": "value",
+   "params": null,
+   "part": "11_loop.js"
+  },
+  "HUD_ASPECT": {
+   "kind": "value",
+   "params": null,
+   "part": "10_sprite.js"
+  },
+  "hudBar": {
+   "kind": "function",
+   "params": 7,
+   "part": "17_ui.js"
+  },
+  "hudBox": {
+   "kind": "function",
+   "params": 6,
+   "part": "05_render.js"
+  },
+  "HUDBTNS": {
+   "kind": "value",
+   "params": null,
+   "part": "17_ui.js"
+  },
+  "hudButton": {
+   "kind": "function",
+   "params": 4,
+   "part": "17_ui.js"
+  },
+  "hudClear": {
+   "kind": "function",
+   "params": 0,
+   "part": "05_render.js"
+  },
+  "HUDCLICK": {
+   "kind": "value",
+   "params": null,
+   "part": "17_ui.js"
+  },
+  "hudFill": {
+   "kind": "function",
+   "params": 6,
+   "part": "05_render.js"
+  },
+  "hudFlow": {
+   "kind": "function",
+   "params": 2,
+   "part": "05_render.js"
+  },
+  "hudMenu": {
+   "kind": "function",
+   "params": 3,
+   "part": "17_ui.js"
+  },
+  "hudPanel": {
+   "kind": "function",
+   "params": 6,
+   "part": "17_ui.js"
+  },
+  "hudPointer": {
+   "kind": "function",
+   "params": 0,
+   "part": "17_ui.js"
+  },
+  "hudPut": {
+   "kind": "function",
+   "params": 6,
+   "part": "05_render.js"
+  },
+  "hudSprite": {
+   "kind": "function",
+   "params": 5,
+   "part": "10_sprite.js"
+  },
+  "hudText": {
+   "kind": "function",
+   "params": 4,
+   "part": "05_render.js"
+  },
+  "hudTitle": {
+   "kind": "function",
+   "params": 4,
+   "part": "17_ui.js"
+  },
+  "hudTitleWidth": {
+   "kind": "function",
+   "params": 1,
+   "part": "17_ui.js"
+  },
+  "hudWrap": {
+   "kind": "function",
+   "params": 2,
+   "part": "17_ui.js"
+  },
+  "INK": {
+   "kind": "function",
+   "params": 1,
+   "part": "05_render.js"
+  },
+  "Input": {
+   "kind": "value",
+   "params": null,
+   "part": "07_input.js"
+  },
+  "isLitBy": {
+   "kind": "function",
+   "params": 3,
+   "part": "04_light.js"
+  },
+  "ISO": {
+   "kind": "value",
+   "params": null,
+   "part": "12_iso.js"
+  },
+  "isoCells": {
+   "kind": "function",
+   "params": 3,
+   "part": "12_iso.js"
+  },
+  "isoDraw": {
+   "kind": "function",
+   "params": 1,
+   "part": "12_iso.js"
+  },
+  "isoGround": {
+   "kind": "function",
+   "params": 1,
+   "part": "12_iso.js"
+  },
+  "isoInit": {
+   "kind": "function",
+   "params": 3,
+   "part": "12_iso.js"
+  },
+  "isoOutline": {
+   "kind": "function",
+   "params": 5,
+   "part": "12_iso.js"
+  },
+  "isoPick": {
+   "kind": "function",
+   "params": 1,
+   "part": "12_iso.js"
+  },
+  "isoSetTile": {
+   "kind": "function",
+   "params": 3,
+   "part": "12_iso.js"
+  },
+  "isoToWorld": {
+   "kind": "function",
+   "params": 3,
+   "part": "12_iso.js"
+  },
+  "isPaused": {
+   "kind": "function",
+   "params": 0,
+   "part": "11_loop.js"
+  },
+  "jumpArc": {
+   "kind": "function",
+   "params": 4,
+   "part": "15_world.js"
+  },
+  "kelvinColor": {
+   "kind": "function",
+   "params": 2,
+   "part": "04_light.js"
+  },
+  "keyDown": {
+   "kind": "function",
+   "params": null,
+   "part": "07_input.js"
+  },
+  "killP": {
+   "kind": "function",
+   "params": 1,
+   "part": "02_particles.js"
+  },
+  "L_NLIGHTS": {
+   "kind": "value",
+   "params": null,
+   "part": "04_light.js"
+  },
+  "lastT": {
+   "kind": "value",
+   "params": null,
+   "part": "11_loop.js"
+  },
+  "LBOX": {
+   "kind": "value",
+   "params": null,
+   "part": "04_light.js"
+  },
+  "LDX": {
+   "kind": "value",
+   "params": null,
+   "part": "04_light.js"
+  },
+  "lerp": {
+   "kind": "function",
+   "params": 3,
+   "part": "01_core.js"
+  },
+  "levelsOf": {
+   "kind": "function",
+   "params": 0,
+   "part": "11_loop.js"
+  },
+  "lightAlloc": {
+   "kind": "function",
+   "params": 2,
+   "part": "04_light.js"
+  },
+  "lightAtCell": {
+   "kind": "function",
+   "params": 3,
+   "part": "06_scene.js"
+  },
+  "lineClear": {
+   "kind": "function",
+   "params": 5,
+   "part": "04_light.js"
+  },
+  "listSaves": {
+   "kind": "function",
+   "params": 0,
+   "part": "16_actions.js"
+  },
+  "LMX": {
+   "kind": "value",
+   "params": null,
+   "part": "04_light.js"
+  },
+  "loadActions": {
+   "kind": "function",
+   "params": 1,
+   "part": "16_actions.js"
+  },
+  "loadGame": {
+   "kind": "function",
+   "params": 1,
+   "part": "16_actions.js"
+  },
+  "loadSettings": {
+   "kind": "function",
+   "params": 0,
+   "part": "16_actions.js"
+  },
+  "loadTileMap": {
+   "kind": "function",
+   "params": 3,
+   "part": "15_world.js"
+  },
+  "loadTunables": {
+   "kind": "function",
+   "params": 1,
+   "part": "11_loop.js"
+  },
+  "LR": {
+   "kind": "value",
+   "params": null,
+   "part": "04_light.js"
+  },
+  "makeCanvas": {
+   "kind": "function",
+   "params": 2,
+   "part": "05_render.js"
+  },
+  "makeChunk": {
+   "kind": "function",
+   "params": 1,
+   "part": "09_structures.js"
+  },
+  "markChunksDyn": {
+   "kind": "function",
+   "params": 0,
+   "part": "09_structures.js"
+  },
+  "markDynCell": {
+   "kind": "function",
+   "params": 1,
+   "part": "01_core.js"
+  },
+  "markEntitiesDyn": {
+   "kind": "function",
+   "params": 0,
+   "part": "14_entities.js"
+  },
+  "markSpriteDyn": {
+   "kind": "function",
+   "params": 5,
+   "part": "10_sprite.js"
+  },
+  "MAT_BRITTLE": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "MAT_CLIMB": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "MAT_DEBRIS": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "MAT_DEFAULTS": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "MAT_FUSE": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "MAT_GRAN": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "MAT_NAME": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "MAT_SHINY": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "MATS": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "matU": {
+   "kind": "function",
+   "params": 2,
+   "part": "01_core.js"
+  },
+  "mounts": {
+   "kind": "value",
+   "params": null,
+   "part": "09_structures.js"
+  },
+  "mountsBorn": {
+   "kind": "function",
+   "params": 1,
+   "part": "09_structures.js"
+  },
+  "mountsFrozen": {
+   "kind": "function",
+   "params": 2,
+   "part": "09_structures.js"
+  },
+  "mountsGone": {
+   "kind": "function",
+   "params": 1,
+   "part": "09_structures.js"
+  },
+  "mountsImpact": {
+   "kind": "function",
+   "params": 4,
+   "part": "09_structures.js"
+  },
+  "mountsMoved": {
+   "kind": "function",
+   "params": 1,
+   "part": "09_structures.js"
+  },
+  "mouseAim": {
+   "kind": "function",
+   "params": 0,
+   "part": "07_input.js"
+  },
+  "msgBox": {
+   "kind": "function",
+   "params": 2,
+   "part": "05_render.js"
+  },
+  "mulberry32": {
+   "kind": "function",
+   "params": 1,
+   "part": "01_core.js"
+  },
+  "Music": {
+   "kind": "value",
+   "params": null,
+   "part": "07_sound.js"
+  },
+  "navInput": {
+   "kind": "function",
+   "params": 2,
+   "part": "15_world.js"
+  },
+  "navNearest": {
+   "kind": "function",
+   "params": 3,
+   "part": "15_world.js"
+  },
+  "navPath": {
+   "kind": "function",
+   "params": 3,
+   "part": "15_world.js"
+  },
+  "near": {
+   "kind": "function",
+   "params": 4,
+   "part": "14_entities.js"
+  },
+  "normalAt": {
+   "kind": "function",
+   "params": 3,
+   "part": "01_core.js"
+  },
+  "NOTE_NAMES": {
+   "kind": "value",
+   "params": null,
+   "part": "08_chip.js"
+  },
+  "noteName": {
+   "kind": "function",
+   "params": 1,
+   "part": "08_chip.js"
+  },
+  "occAt": {
+   "kind": "function",
+   "params": 2,
+   "part": "04_light.js"
+  },
+  "overlapping": {
+   "kind": "function",
+   "params": 2,
+   "part": "14_entities.js"
+  },
+  "P": {
+   "kind": "value",
+   "params": null,
+   "part": "02_particles.js"
+  },
+  "PAD_BUTTONS": {
+   "kind": "value",
+   "params": null,
+   "part": "16_actions.js"
+  },
+  "PADV": {
+   "kind": "value",
+   "params": null,
+   "part": "16_actions.js"
+  },
+  "parseMidi": {
+   "kind": "function",
+   "params": 1,
+   "part": "08_chip.js"
+  },
+  "particlesAlloc": {
+   "kind": "function",
+   "params": 1,
+   "part": "02_particles.js"
+  },
+  "PAUSED": {
+   "kind": "value",
+   "params": null,
+   "part": "11_loop.js"
+  },
+  "pick": {
+   "kind": "function",
+   "params": 1,
+   "part": "02_particles.js"
+  },
+  "Pixelite": {
+   "kind": "value",
+   "params": null,
+   "part": "11_loop.js"
+  },
+  "PMAX": {
+   "kind": "value",
+   "params": null,
+   "part": "02_particles.js"
+  },
+  "pollPads": {
+   "kind": "function",
+   "params": 0,
+   "part": "16_actions.js"
+  },
+  "present2D": {
+   "kind": "function",
+   "params": 5,
+   "part": "05_render.js"
+  },
+  "presentFrame": {
+   "kind": "function",
+   "params": 3,
+   "part": "05_render.js"
+  },
+  "presentGL": {
+   "kind": "function",
+   "params": 5,
+   "part": "05_render.js"
+  },
+  "PROPS": {
+   "kind": "value",
+   "params": null,
+   "part": "15_world.js"
+  },
+  "PT_GRAIN": {
+   "kind": "value",
+   "params": null,
+   "part": "02_particles.js"
+  },
+  "ptype": {
+   "kind": "function",
+   "params": 1,
+   "part": "02_particles.js"
+  },
+  "PTYPES": {
+   "kind": "value",
+   "params": null,
+   "part": "02_particles.js"
+  },
+  "putEmit": {
+   "kind": "function",
+   "params": 6,
+   "part": "06_scene.js"
+  },
+  "putLit": {
+   "kind": "function",
+   "params": 7,
+   "part": "06_scene.js"
+  },
+  "R": {
+   "kind": "value",
+   "params": null,
+   "part": "05_render.js"
+  },
+  "raycast": {
+   "kind": "function",
+   "params": 6,
+   "part": "15_world.js"
+  },
+  "reachSearch": {
+   "kind": "function",
+   "params": 1,
+   "part": "15_world.js"
+  },
+  "removePlatform": {
+   "kind": "function",
+   "params": 1,
+   "part": "09_structures.js"
+  },
+  "renderInit": {
+   "kind": "function",
+   "params": 1,
+   "part": "05_render.js"
+  },
+  "renderResize": {
+   "kind": "function",
+   "params": 2,
+   "part": "05_render.js"
+  },
+  "renderScene": {
+   "kind": "function",
+   "params": 4,
+   "part": "06_scene.js"
+  },
+  "renderSky": {
+   "kind": "function",
+   "params": 1,
+   "part": "06_scene.js"
+  },
+  "reportError": {
+   "kind": "function",
+   "params": 2,
+   "part": "11_loop.js"
+  },
+  "RES": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "rescaleWorld": {
+   "kind": "function",
+   "params": 1,
+   "part": "15_world.js"
+  },
+  "resetActions": {
+   "kind": "function",
+   "params": 0,
+   "part": "16_actions.js"
+  },
+  "resizeNow": {
+   "kind": "function",
+   "params": 0,
+   "part": "11_loop.js"
+  },
+  "rigCamera": {
+   "kind": "function",
+   "params": 3,
+   "part": "11_loop.js"
+  },
+  "rlePack": {
+   "kind": "function",
+   "params": 1,
+   "part": "16_actions.js"
+  },
+  "rleUnpack": {
+   "kind": "function",
+   "params": 2,
+   "part": "16_actions.js"
+  },
+  "rnd": {
+   "kind": "function",
+   "params": 0,
+   "part": "01_core.js"
+  },
+  "rr": {
+   "kind": "function",
+   "params": 2,
+   "part": "01_core.js"
+  },
+  "Sampler": {
+   "kind": "function",
+   "params": 1,
+   "part": "13_sampler.js"
+  },
+  "satBox": {
+   "kind": "function",
+   "params": 4,
+   "part": "04_light.js"
+  },
+  "saveGame": {
+   "kind": "function",
+   "params": 2,
+   "part": "16_actions.js"
+  },
+  "saveSettings": {
+   "kind": "function",
+   "params": 0,
+   "part": "16_actions.js"
+  },
+  "say": {
+   "kind": "function",
+   "params": 2,
+   "part": "17_ui.js"
+  },
+  "scaleCharOpts": {
+   "kind": "function",
+   "params": 1,
+   "part": "14_entities.js"
+  },
+  "scheduleRecheck": {
+   "kind": "function",
+   "params": 4,
+   "part": "09_structures.js"
+  },
+  "screenResult": {
+   "kind": "function",
+   "params": 1,
+   "part": "17_ui.js"
+  },
+  "seedRandom": {
+   "kind": "function",
+   "params": 1,
+   "part": "01_core.js"
+  },
+  "seek": {
+   "kind": "function",
+   "params": 6,
+   "part": "14_entities.js"
+  },
+  "setAmbient": {
+   "kind": "function",
+   "params": 1,
+   "part": "04_light.js"
+  },
+  "setAtmosphere": {
+   "kind": "function",
+   "params": 1,
+   "part": "04_light.js"
+  },
+  "setBack": {
+   "kind": "function",
+   "params": 3,
+   "part": "01_core.js"
+  },
+  "setBackdrop": {
+   "kind": "function",
+   "params": 1,
+   "part": "01_core.js"
+  },
+  "setBackground": {
+   "kind": "function",
+   "params": 3,
+   "part": "05_render.js"
+  },
+  "setBeatPulse": {
+   "kind": "function",
+   "params": 1,
+   "part": "08_chip.js"
+  },
+  "setC": {
+   "kind": "function",
+   "params": 3,
+   "part": "01_core.js"
+  },
+  "setCamera": {
+   "kind": "function",
+   "params": 1,
+   "part": "11_loop.js"
+  },
+  "setDetail": {
+   "kind": "function",
+   "params": 2,
+   "part": "11_loop.js"
+  },
+  "setEyeAdaptation": {
+   "kind": "function",
+   "params": 2,
+   "part": "06_scene.js"
+  },
+  "setGravity": {
+   "kind": "function",
+   "params": 2,
+   "part": "01_core.js"
+  },
+  "setMaterial": {
+   "kind": "function",
+   "params": 2,
+   "part": "01_core.js"
+  },
+  "setPaused": {
+   "kind": "function",
+   "params": 1,
+   "part": "11_loop.js"
+  },
+  "setResVars": {
+   "kind": "function",
+   "params": 1,
+   "part": "01_core.js"
+  },
+  "setSetting": {
+   "kind": "function",
+   "params": 2,
+   "part": "16_actions.js"
+  },
+  "setState": {
+   "kind": "function",
+   "params": 1,
+   "part": "11_loop.js"
+  },
+  "setSun": {
+   "kind": "function",
+   "params": 2,
+   "part": "04_light.js"
+  },
+  "SETTINGS": {
+   "kind": "value",
+   "params": null,
+   "part": "16_actions.js"
+  },
+  "settleIslands": {
+   "kind": "function",
+   "params": 1,
+   "part": "09_structures.js"
+  },
+  "setupInput": {
+   "kind": "function",
+   "params": 3,
+   "part": "07_input.js"
+  },
+  "Sfx": {
+   "kind": "value",
+   "params": null,
+   "part": "07_sound.js"
+  },
+  "SFX_MASTER": {
+   "kind": "value",
+   "params": null,
+   "part": "07_sound.js"
+  },
+  "SHADE_LIN": {
+   "kind": "value",
+   "params": null,
+   "part": "06_scene.js"
+  },
+  "shadeCell": {
+   "kind": "function",
+   "params": 10,
+   "part": "06_scene.js"
+  },
+  "SHELL_SCREEN": {
+   "kind": "value",
+   "params": null,
+   "part": "17_ui.js"
+  },
+  "shellOn": {
+   "kind": "function",
+   "params": 1,
+   "part": "17_ui.js"
+  },
+  "shimShift": {
+   "kind": "function",
+   "params": 4,
+   "part": "05_render.js"
+  },
+  "showTouch": {
+   "kind": "function",
+   "params": 0,
+   "part": "07_input.js"
+  },
+  "simGranular": {
+   "kind": "function",
+   "params": 0,
+   "part": "01_core.js"
+  },
+  "SKY_PAR": {
+   "kind": "value",
+   "params": null,
+   "part": "06_scene.js"
+  },
+  "skyKey": {
+   "kind": "value",
+   "params": null,
+   "part": "06_scene.js"
+  },
+  "slabs": {
+   "kind": "value",
+   "params": null,
+   "part": "09_structures.js"
+  },
+  "slopeGlyph": {
+   "kind": "function",
+   "params": 2,
+   "part": "06_scene.js"
+  },
+  "smooth": {
+   "kind": "function",
+   "params": 1,
+   "part": "01_core.js"
+  },
+  "SOLID": {
+   "kind": "value",
+   "params": null,
+   "part": "06_scene.js"
+  },
+  "solidAt": {
+   "kind": "function",
+   "params": 2,
+   "part": "04_light.js"
+  },
+  "solidU": {
+   "kind": "function",
+   "params": 2,
+   "part": "01_core.js"
+  },
+  "SOUND_KEYS": {
+   "kind": "value",
+   "params": null,
+   "part": "07_sound.js"
+  },
+  "SOUND_LAYER_KEYS": {
+   "kind": "value",
+   "params": null,
+   "part": "07_sound.js"
+  },
+  "soundOf": {
+   "kind": "function",
+   "params": 2,
+   "part": "07_sound.js"
+  },
+  "SOUNDS": {
+   "kind": "value",
+   "params": null,
+   "part": "07_sound.js"
+  },
+  "sourceLine": {
+   "kind": "function",
+   "params": 1,
+   "part": "11_loop.js"
+  },
+  "spawn": {
+   "kind": "function",
+   "params": 4,
+   "part": "14_entities.js"
+  },
+  "spawnGrain": {
+   "kind": "function",
+   "params": 5,
+   "part": "02_particles.js"
+  },
+  "spawnP": {
+   "kind": "function",
+   "params": 8,
+   "part": "02_particles.js"
+  },
+  "splatLight": {
+   "kind": "function",
+   "params": 6,
+   "part": "04_light.js"
+  },
+  "SPR_NORMALS": {
+   "kind": "function",
+   "params": 1,
+   "part": "10_sprite.js"
+  },
+  "SPR_S": {
+   "kind": "value",
+   "params": null,
+   "part": "10_sprite.js"
+  },
+  "sprCells": {
+   "kind": "function",
+   "params": 13,
+   "part": "10_sprite.js"
+  },
+  "sprEmit": {
+   "kind": "function",
+   "params": 10,
+   "part": "10_sprite.js"
+  },
+  "spriteBox": {
+   "kind": "function",
+   "params": 4,
+   "part": "10_sprite.js"
+  },
+  "spriteHull": {
+   "kind": "function",
+   "params": 3,
+   "part": "10_sprite.js"
+  },
+  "spritePalette": {
+   "kind": "function",
+   "params": 2,
+   "part": "10_sprite.js"
+  },
+  "spritePixel": {
+   "kind": "function",
+   "params": 4,
+   "part": "10_sprite.js"
+  },
+  "sprRelief": {
+   "kind": "function",
+   "params": 6,
+   "part": "10_sprite.js"
+  },
+  "sprTintEmit": {
+   "kind": "function",
+   "params": 1,
+   "part": "10_sprite.js"
+  },
+  "stampGen": {
+   "kind": "value",
+   "params": null,
+   "part": "04_light.js"
+  },
+  "startSlab": {
+   "kind": "function",
+   "params": 1,
+   "part": "09_structures.js"
+  },
+  "state": {
+   "kind": "value",
+   "params": null,
+   "part": "11_loop.js"
+  },
+  "STATES": {
+   "kind": "value",
+   "params": null,
+   "part": "14_entities.js"
+  },
+  "stepActions": {
+   "kind": "function",
+   "params": 0,
+   "part": "16_actions.js"
+  },
+  "stepCapture": {
+   "kind": "function",
+   "params": 0,
+   "part": "17_ui.js"
+  },
+  "stepChunkContacts": {
+   "kind": "function",
+   "params": 0,
+   "part": "15_world.js"
+  },
+  "stepChunks": {
+   "kind": "function",
+   "params": 1,
+   "part": "09_structures.js"
+  },
+  "stepDetail": {
+   "kind": "function",
+   "params": 1,
+   "part": "11_loop.js"
+  },
+  "stepEntities": {
+   "kind": "function",
+   "params": 1,
+   "part": "14_entities.js"
+  },
+  "stepFX": {
+   "kind": "function",
+   "params": 1,
+   "part": "02_particles.js"
+  },
+  "stepParticles": {
+   "kind": "function",
+   "params": 1,
+   "part": "02_particles.js"
+  },
+  "stepPlatforms": {
+   "kind": "function",
+   "params": 1,
+   "part": "09_structures.js"
+  },
+  "stepShell": {
+   "kind": "function",
+   "params": 0,
+   "part": "17_ui.js"
+  },
+  "stepSlabs": {
+   "kind": "function",
+   "params": 0,
+   "part": "09_structures.js"
+  },
+  "stepTimers": {
+   "kind": "function",
+   "params": 1,
+   "part": "14_entities.js"
+  },
+  "stepTriggers": {
+   "kind": "function",
+   "params": 0,
+   "part": "15_world.js"
+  },
+  "stepUi": {
+   "kind": "function",
+   "params": 0,
+   "part": "17_ui.js"
+  },
+  "stepWorld": {
+   "kind": "function",
+   "params": 1,
+   "part": "11_loop.js"
+  },
+  "storeKey": {
+   "kind": "function",
+   "params": 1,
+   "part": "11_loop.js"
+  },
+  "structuralCheck": {
+   "kind": "function",
+   "params": 3,
+   "part": "09_structures.js"
+  },
+  "STRUCTURES": {
+   "kind": "value",
+   "params": null,
+   "part": "09_structures.js"
+  },
+  "STYLE": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "SUN_C": {
+   "kind": "value",
+   "params": null,
+   "part": "04_light.js"
+  },
+  "SUN_EL": {
+   "kind": "value",
+   "params": null,
+   "part": "04_light.js"
+  },
+  "SUN_L": {
+   "kind": "function",
+   "params": 1,
+   "part": "04_light.js"
+  },
+  "SUN_ON": {
+   "kind": "value",
+   "params": null,
+   "part": "04_light.js"
+  },
+  "sunAt": {
+   "kind": "function",
+   "params": 2,
+   "part": "04_light.js"
+  },
+  "sunSweep": {
+   "kind": "function",
+   "params": 3,
+   "part": "04_light.js"
+  },
+  "sunTint": {
+   "kind": "function",
+   "params": 0,
+   "part": "04_light.js"
+  },
+  "texOf": {
+   "kind": "function",
+   "params": 1,
+   "part": "06_scene.js"
+  },
+  "TIMERS": {
+   "kind": "value",
+   "params": null,
+   "part": "14_entities.js"
+  },
+  "tintAtlas": {
+   "kind": "function",
+   "params": 3,
+   "part": "05_render.js"
+  },
+  "tintCache": {
+   "kind": "value",
+   "params": null,
+   "part": "05_render.js"
+  },
+  "tokenValue": {
+   "kind": "function",
+   "params": 1,
+   "part": "16_actions.js"
+  },
+  "tone": {
+   "kind": "function",
+   "params": 1,
+   "part": "06_scene.js"
+  },
+  "TONE_LUT": {
+   "kind": "value",
+   "params": null,
+   "part": "06_scene.js"
+  },
+  "toneF": {
+   "kind": "function",
+   "params": 1,
+   "part": "06_scene.js"
+  },
+  "TOUCH_LABELS": {
+   "kind": "value",
+   "params": null,
+   "part": "16_actions.js"
+  },
+  "touchFromActions": {
+   "kind": "function",
+   "params": 0,
+   "part": "16_actions.js"
+  },
+  "touchShown": {
+   "kind": "function",
+   "params": 0,
+   "part": "07_input.js"
+  },
+  "triggers": {
+   "kind": "value",
+   "params": null,
+   "part": "15_world.js"
+  },
+  "TUNE": {
+   "kind": "value",
+   "params": null,
+   "part": "11_loop.js"
+  },
+  "tween": {
+   "kind": "function",
+   "params": 5,
+   "part": "14_entities.js"
+  },
+  "unwatchActor": {
+   "kind": "function",
+   "params": 1,
+   "part": "15_world.js"
+  },
+  "update": {
+   "kind": "function",
+   "params": 1,
+   "part": "11_loop.js"
+  },
+  "updateCamera": {
+   "kind": "function",
+   "params": 2,
+   "part": "11_loop.js"
+  },
+  "updateSkyline": {
+   "kind": "function",
+   "params": 0,
+   "part": "04_light.js"
+  },
+  "useStates": {
+   "kind": "function",
+   "params": 1,
+   "part": "14_entities.js"
+  },
+  "vnoise1": {
+   "kind": "function",
+   "params": 2,
+   "part": "01_core.js"
+  },
+  "vnoise2": {
+   "kind": "function",
+   "params": 3,
+   "part": "01_core.js"
+  },
+  "W": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
+  "wakeAt": {
+   "kind": "function",
+   "params": 2,
+   "part": "01_core.js"
+  },
+  "wander": {
+   "kind": "function",
+   "params": 4,
+   "part": "14_entities.js"
+  },
+  "watchActor": {
+   "kind": "function",
+   "params": 2,
+   "part": "15_world.js"
+  },
+  "worldInit": {
+   "kind": "function",
+   "params": 2,
+   "part": "01_core.js"
+  },
+  "worldInitKeep": {
+   "kind": "function",
+   "params": 2,
+   "part": "15_world.js"
+  },
+  "worldLoad": {
+   "kind": "function",
+   "params": 1,
+   "part": "16_actions.js"
+  },
+  "worldMaterials": {
+   "kind": "function",
+   "params": 1,
+   "part": "01_core.js"
+  },
+  "worldSave": {
+   "kind": "function",
+   "params": 0,
+   "part": "16_actions.js"
+  },
+  "worldToHud": {
+   "kind": "function",
+   "params": 3,
+   "part": "05_render.js"
+  },
+  "worldToIso": {
+   "kind": "function",
+   "params": 3,
+   "part": "12_iso.js"
+  }
+ }
+}

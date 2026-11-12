@@ -24,6 +24,7 @@ import { createServer } from 'node:http';
 import vm from 'node:vm';
 import { assemble } from './assemble.mjs';
 import { checkAuthor } from './authorcheck.mjs';
+import { engineApi, checkCalls, gameDeclared } from './apicheck.mjs';
 import { loadAssets, validate as validateArt, artDir } from './art/lib.mjs';
 import { buildText as artPipelineText } from './art.mjs';
 
@@ -185,6 +186,8 @@ function build(only) {
   for (const g of games) {
     const m = g.manifest, out = join(DIST, 'games', m.id);
     checkNames(engine, g);
+    const api = engineApi().names, declared = gameDeclared(g.parts);
+    for (const p of g.parts) for (const w of checkCalls(`${g.path}/${p.name}`, p.code, api, declared)) console.warn('warning: ' + w);
     const ac = checkAuthor(g); for (const w of ac.warnings) console.warn('warning: ' + w); if (ac.errors.length) die(ac.errors.join('\n'));
     const page = assemble({ shell: engine.shellCode, engine, manifest: m, head: g.head, parts: g.parts });
     checkSyntax(page, `${g.path}`);

@@ -6,6 +6,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assemble } from '../../tools/assemble.mjs';
 import { checkAuthor, literalKeys } from '../../tools/authorcheck.mjs';
+import { engineApi, checkCalls, gameDeclared } from '../../tools/apicheck.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const rd = p => readFileSync(join(ROOT, p), 'utf8');
@@ -34,5 +35,7 @@ test('every game in the repository passes the author checks', () => {
     const parts = m.parts.map(name => ({ name, code: rd(`${dir}/${name}`) }));
     const r = checkAuthor({ path: dir, manifest: m, parts });
     assert.deepEqual(r.errors, [], dir); assert.deepEqual(r.warnings, [], dir + ': use rnd() instead of Math.random');
+    const api = engineApi().names, declared = gameDeclared(parts);
+    for (const p of parts) assert.deepEqual(checkCalls(`${dir}/${p.name}`, p.code, api, declared), [], `${dir}/${p.name}: a call the engine lint objects to`);
   }
 });

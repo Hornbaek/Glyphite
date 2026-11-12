@@ -715,6 +715,9 @@ presses made while paused are dropped, not saved up for the first step after res
 one line on the HUD for a player; `Pixelite.errors` lists them and `probe().errors` counts them. With `?dev` (or in the editor) the engine
 also warns, with the nearest valid name, about an unknown option to `defineMaterial`, `new Character` or `Pixelite.run`, and about a NaN in a
 body, a character, a particle or a light. The build refuses a game that repeats a key in its `Pixelite.run({...})` hooks or has an unknown
-`game.json` key (`tools/authorcheck.mjs`), and warns about `Math.random` in game code.
+`game.json` key (`tools/authorcheck.mjs`), and warns about `Math.random` in game code, about a call to an engine function with more arguments than it takes
+and about a call to an undefined name one or two letters from an engine function (`tools/apicheck.mjs`, which also writes `engine/api.json`, every top-level
+name of the engine with its kind and parameters: run `node tools/apicheck.mjs --write` after changing the engine; a unit test fails if it is stale or if a new
+name is neither in this file nor listed in `engine/internal.json`).
 
 `tests/smoke.py <id>` uses exactly this for any game. URL hash `#2d` / `#gl` forces a renderer.
