@@ -201,6 +201,11 @@
    "params": 2,
    "part": "10_sprite.js"
   },
+  "ANY_COND": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
   "ANY_HAZ": {
    "kind": "value",
    "params": null,
@@ -510,6 +515,11 @@
    "kind": "function",
    "params": 4,
    "part": "04_light.js"
+  },
+  "conductHeat": {
+   "kind": "function",
+   "params": 4,
+   "part": "20_reactions.js"
   },
   "coolHeat": {
    "kind": "function",
@@ -1311,6 +1321,11 @@
    "params": null,
    "part": "01_core.js"
   },
+  "MAT_RX": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
+  },
   "MAT_SHINY": {
    "kind": "value",
    "params": null,
@@ -1390,6 +1405,11 @@
    "kind": "function",
    "params": 3,
    "part": "15_world.js"
+  },
+  "nbIndex": {
+   "kind": "function",
+   "params": 3,
+   "part": "20_reactions.js"
   },
   "near": {
    "kind": "function",
@@ -1545,6 +1565,11 @@
    "kind": "function",
    "params": 1,
    "part": "15_world.js"
+  },
+  "reactCell": {
+   "kind": "function",
+   "params": 4,
+   "part": "20_reactions.js"
   },
   "removePlatform": {
    "kind": "function",

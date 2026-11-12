@@ -23,6 +23,7 @@
     "16_actions.js",
     "17_ui.js",
     "18_toys.js",
-    "19_liquid.js"
+    "19_liquid.js",
+    "20_reactions.js"
   ]
 }
