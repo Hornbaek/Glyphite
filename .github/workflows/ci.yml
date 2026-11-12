@@ -55,6 +55,10 @@ jobs:
           node games/proving/tests/check.mjs
           python3 games/proving/tests/mechanics.py
           python3 tests/engine_browser.py
+          python3 tests/engine_light.py
+          python3 tests/engine_audio.py
+          python3 tests/engine_sound.py
+          python3 tests/engine_cache.py
           python3 tests/lab.py
           python3 tests/studio.py
           python3 tests/art_gallery.py

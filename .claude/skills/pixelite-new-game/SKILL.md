@@ -46,6 +46,8 @@ Map it onto the engine before writing code:
 node tools/pixelite.mjs new <id> --title "Game Title"    # id: lower-case, digits, dashes
 node tools/pixelite.mjs new <id> --title "Game Title" --kit platformer   # a side-scrolling platformer: a copy of the Proving Ground (games/proving: tile-map level, hero, enemies, platforms, shell, saves; its NOTES.md says what each file holds)
 ```
+
+A game that does not use the chip music, the sampler or the isometric ground can leave them out of its page: `"engine": ["sampler"]` in game.json lists the optional parts it keeps (`chip`, `iso`, `sampler`; omit the key to keep all); `node tools/pixelite.mjs build --minify` shrinks the pages further.
 This copies the starter, sets the id and title, lists it on the site (`listed: true`, status `draft`).
 Edit `game.json`: `tagline` (one line), `description` (2–3 sentences for the game list), `controls`
 (`[key, action]` pairs), `parts` (load order: data before the code that reads it at load time), and
