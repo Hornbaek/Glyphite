@@ -181,11 +181,16 @@ class Character {
     cn.under = this.ground || 0; cn.left = this.solid(c0 - 1, mid); cn.right = this.solid(c1 + 1, mid); cn.above = this.solid(Math.floor(this.x), r0 - 1);
     cn.inside = getC(Math.floor(this.x), mid) || getBack(Math.floor(this.x), mid);
     let hz = 0, hm = 0;
-    const re = o.hazardReach, h0 = Math.floor(this.x - hw - re), h1 = Math.floor(this.x + hw + re), q0 = Math.floor((this.y - o.h - re) / ASPECT), q1 = Math.floor((this.y + re) / ASPECT);
-    for (let cy = q0; cy <= q1; cy++) for (let cx = h0; cx <= h1; cx++) {
-      const m = getC(cx, cy), inBox = cy >= r0 && cy <= r1 && cx >= c0 && cx <= c1;
-      if (MAT_HAZ[m] > hz) { hz = MAT_HAZ[m]; hm = m; }
-      if (inBox) { const b = getBack(cx, cy); if (MAT_HAZ[b] > hz) { hz = MAT_HAZ[b]; hm = b; } }
+    if (ANY_HAZ) {
+      const re = o.hazardReach, h0 = Math.max(0, Math.floor(this.x - hw - re)), h1 = Math.min(W - 1, Math.floor(this.x + hw + re)), q0 = Math.max(0, Math.floor((this.y - o.h - re) / ASPECT)), q1 = Math.min(H - 1, Math.floor((this.y + re) / ASPECT));
+      for (let cy = q0; cy <= q1; cy++) {
+        const row = cy * W, inRow = cy >= r0 && cy <= r1;
+        for (let cx = h0; cx <= h1; cx++) {
+          const m = cells[row + cx];
+          if (m && MAT_HAZ[m] > hz) { hz = MAT_HAZ[m]; hm = m; }
+          if (inRow && cx >= c0 && cx <= c1) { const b = backCells[row + cx]; if (b && MAT_HAZ[b] > hz) { hz = MAT_HAZ[b]; hm = b; } }
+        }
+      }
     }
     this.hazard = hz; this.hazardMat = hm;
     this.carry = this.onGround ? MAT_CONV[this.ground] * RES : 0;
@@ -261,7 +266,7 @@ class Character {
     // carried by the moving platform it stood on (stepPlatforms moved that by whole cells this step); squeezed if that leaves no room
     const pl = this.platform; this.platform = null;
     if (pl && pl.kin && chunks.includes(pl)) { this.x += pl.dx; this.y += pl.dy; }
-    if (this.blocked(this.x, this.y) && !this.unstick(8)) this.crushed = true;
+    if ((pl || this._cb.length) && this.blocked(this.x, this.y) && !this.unstick(8)) this.crushed = true;   // only a platform or a falling chunk can have moved into it
     // the jump button: a press is remembered for `buffer` seconds, the ground for `coyote` seconds after leaving it
     const press = !!inp.jump && !this.held; this.held = !!inp.jump;
     this.bufferT = press ? o.buffer : Math.max(0, this.bufferT - dt);
@@ -270,7 +275,7 @@ class Character {
     if (inp.down && wasGround && MAT_ONEWAY[this.ground]) { this.dropT = .25; this.coyoteT = 0; }
     // climbing: grab a ladder or vine with up (or down, in the air), let go off the top, or with jump
     const onLadder = o.climb > 0 && this.climbCell();
-    if (!this.climbing && onLadder && this.dropT <= 0 && (inp.up || (inp.down && !wasGround && !MAT_ONEWAY[this.ground]))) { this.climbing = true; this.vy = 0; this.rising = false; }
+    if (!this.climbing && onLadder && this.dropT <= 0 && (inp.up || (inp.down && !wasGround && !MAT_ONEWAY[this.ground]))) { this.climbing = true; this.vy = 0; this.rising = false; this.bufferT = 0; }   // grabbing a ladder uses up the press (up and jump may be the same key)
     if (this.climbing && !onLadder) this.climbing = false;
     if (this.climbing) {
       if (this.bufferT > 0) {   // jump off the ladder, away from it if a direction is held

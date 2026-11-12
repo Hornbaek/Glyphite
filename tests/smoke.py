@@ -39,7 +39,8 @@ async def run_one(p, gid, renderer, res_levels, steps, keys):
         probe = await page.evaluate(f'Pixelite.test.step({third})')
         out['play'] = {k: probe[k] for k in ('state', 'frame', 'particles', 'chunks')}
         out['game_probe'] = probe.get('game')
-        for r in res_levels:   # every detail level rebuilds the world; it must survive that
+        offered = set(title.get('levels') or [1, 1.5, 2, 2.5, 3])   # a game may offer only some detail levels
+        for r in [x for x in res_levels if x in offered]:   # every detail level rebuilds the world; it must survive that
             await page.evaluate(f'setDetail({r})')
             await page.evaluate('Pixelite.test.start(); Pixelite.test.step(30)')
         await page.evaluate('setDetail(2); Pixelite.test.start(); Pixelite.test.step(90)')

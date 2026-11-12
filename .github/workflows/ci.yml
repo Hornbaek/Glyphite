@@ -50,6 +50,9 @@ jobs:
         run: |
           python3 tests/editor_levels.py
           python3 games/spacemouse/tests/reach.py --res 1
+          node games/proving/tests/check.mjs
+          python3 games/proving/tests/mechanics.py
+          python3 tests/engine_browser.py
           python3 tests/lab.py
           python3 tests/studio.py
           python3 tests/art_gallery.py
