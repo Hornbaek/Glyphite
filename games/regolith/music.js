@@ -1,5 +1,5 @@
 // ===================== GAME · music director, MIDI loading, chip meters =====================
-const Music = {
+const RegolithMusic = {
   on: true, songs: null, custom: null, current: '', meters: false, midiIn: false, vol: -1,
   ready() {
     if (!Chip.ctx) return false;
@@ -67,8 +67,8 @@ function drawChipMeters(c0, r0, boxed) {
 function setupMusicInput() {
   const file = document.getElementById('midiFile');
   document.getElementById('loadBtn').addEventListener('click', e => { e.stopPropagation(); Sfx.init(); file.click(); });
-  file.addEventListener('change', () => { if (file.files[0]) Music.loadFile(file.files[0]); file.value = ''; });
-  document.getElementById('midiBtn').addEventListener('click', e => { e.stopPropagation(); Music.connect(); });
+  file.addEventListener('change', () => { if (file.files[0]) RegolithMusic.loadFile(file.files[0]); file.value = ''; });
+  document.getElementById('midiBtn').addEventListener('click', e => { e.stopPropagation(); RegolithMusic.connect(); });
   window.addEventListener('dragover', e => { e.preventDefault(); });
-  window.addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer && e.dataTransfer.files[0]; if (f) Music.loadFile(f); });
+  window.addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer && e.dataTransfer.files[0]; if (f) RegolithMusic.loadFile(f); });
 }

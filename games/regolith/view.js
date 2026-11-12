@@ -187,7 +187,7 @@ function drawHUD(t) {
     const hint = touch ? 'hold BURN - turn with < > - tap sky to fire' : HCOL > 110 ? 'W/UP burn   A D rotate   SPACE or click: rocket   L lights   G bloom   - + detail   P pause   M sound' : 'W burn  A D rotate  SPACE rocket  - + detail';
     hudText(Math.max(0, Math.floor((HCOL - hint.length) / 2)), R.hrows - (touch ? 9 : 2), hint, HC.dim);
   }
-  if (Music.meters && R.hrows > 24) drawChipMeters(R.hcols - 39, R.hrows - 12, true);
+  if (RegolithMusic.meters && R.hrows > 24) drawChipMeters(R.hcols - 39, R.hrows - 12, true);
   if (state === 'play') { const a = mouseAim(); if (a) hudPut(Math.floor(a[0] * HCOL), Math.floor(a[1] * R.hrows), 43, ...HC.amber); }
   if (state === 'paused') msgBox([['PAUSED', HC.amber], ['P or ESC to resume', HC.dim]]);
   if (state === 'landed' && stateT > .6) {

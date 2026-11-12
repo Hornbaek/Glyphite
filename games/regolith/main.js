@@ -30,8 +30,8 @@ function regolithUpdate(dt) {
 }
 
 function regolithKey(code) {
-  if (code === 'KeyN') Music.toggle();
-  else if (code === 'KeyV') { Music.meters = !Music.meters; say(Music.meters ? 'SOUND CHIP METERS ON' : 'SOUND CHIP METERS OFF'); }
+  if (code === 'KeyN') RegolithMusic.toggle();
+  else if (code === 'KeyV') { RegolithMusic.meters = !RegolithMusic.meters; say(RegolithMusic.meters ? 'SOUND CHIP METERS ON' : 'SOUND CHIP METERS OFF'); }
   else if (code === 'KeyL' && L) L.lights = !L.lights;
   else if (code === 'Enter' || code === 'NumpadEnter' || (code === 'KeyR' && state === 'crashed')) advance();
   else if (code === 'Space') { if (state === 'play') fireRocket(mouseAim()); else if (state !== 'paused') advance(); }
@@ -74,7 +74,7 @@ Pixelite.run({
   lights: regolithLights,
   draw: drawWorld,
   hud: drawHUD,
-  afterFrame() { Music.update(state); },
+  afterFrame() { RegolithMusic.update(state); },
   onKey: regolithKey,
   onBlast: onRegolithBlast,
   chunkStep(ch) {
