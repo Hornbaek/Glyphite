@@ -10,13 +10,13 @@ Read `CLAUDE.md`, then this file; the engine side is `engine/API.md` ("Character
 | File | What is in it |
 |---|---|
 | `game.json` | title, controls, **actions** (keys, gamepad, touch), tunables (gravity, run speed, jump height, coyote time, jump buffer, wall jump) |
-| `world.js` | the materials (every flag: `hazard`, `grip`, `conveyor`, `bouncy`, `climbable`, `oneWay`), the pixel art (hero frames, slime, coin, torch, flag), **the level as a text map** (`levelRows()`, `LEGEND`, `HINTS`) and the moving parts (`FERRY`, `LIFT`, `LOW_G`) |
+| `world.js` | the materials (every flag: `hazard`, `grip`, `conveyor`, `bouncy`, `climbable`, `oneWay`, and `liquid` for the water), the pixel art (hero frames, slime, coin, torch, flag), **the level as a text map** (`levelRows()`, `LEGEND`, `HINTS`) and the moving parts (`FERRY`, `LIFT`, `LOW_G`) |
 | `play.js` | the hero and slimes as entities with a `Character`, coins, flags (checkpoints), the goal, pebbles and bombs (projectiles), digging (`carve`), hurting and dying, saving, `newLevel()` (loadTileMap, platforms, gravity zone, camera rig) |
 | `main.js` | the HUD (hints from triggers), the shell, the sky, `provingCheck()`, `Pixelite.run` |
 | `tests/check.mjs` | **the level can be finished** (Node, no browser, about a minute): the engine's `reachSearch` plays the hero's controller; moving platforms are put in as bridges and stairs, the dirt wall as dug |
-| `tests/mechanics.py` | each station in a real page: walking, jump height, coin, ladder, catwalk, ice, belt, spring, spikes, ferry, lift, low gravity, stomp, pebble, bomb, dig, checkpoint + save, goal, reload, rebinding, gamepad, replay |
+| `tests/mechanics.py` | each station in a real page: walking, jump height, coin, ladder, catwalk, ice, belt, spring, spikes, ferry, lift, low gravity, stomp, pebble, bomb, dig, the pool (falling in, treading water, diving, every coin, the water's look and light, a way out), checkpoint + save, goal, reload, rebinding, gamepad, replay |
 
-## The stations (tile columns of the 112 x 24 map)
+## The stations (tile columns of the 132 x 24 map)
 
 | Cols | Station | Engine feature |
 |---|---|---|
@@ -25,7 +25,8 @@ Read `CLAUDE.md`, then this file; the engine side is `engine/API.md` ("Character
 | 54-70 | a spring and a spike pit | `bouncy`, `hazard`, hit feedback, respawn |
 | 71-91 | a ferry over spikes (or swing over the beam above it with the hook: E), a lift to a high ledge, checkpoint flags | `addPlatform` (carried by whole cells, slimes ride them too), `Grapple` |
 | 92-107 | a low-gravity room with a ledge only a floating jump reaches, slimes, a brick tower | `addGravityZone`, entities with `fsm`, `fireProjectile`, `explode` + structures falling |
-| 108-111 | a dirt wall to dig and the goal flag | `carve`, `loadTileMap` triggers, `screenResult` |
+| 108-127 | **a pool**: a basin four tiles deep with water three deep (its surface a tile below the ground), four coins on the bottom and floating in it, steps up the far side, a checkpoint | `liquid` (`WATER`), `Character` swimming (`swimming`, `submerged`, `splashed`), the light dimming with depth, `loadTileMap` entries with a material and an entity (`C`) |
+| 128-131 | a dirt wall to dig and the goal flag | `carve`, `loadTileMap` triggers, `screenResult` |
 
 Also on show: **rewind** (hold R: `Rewind`, the last 8 seconds, with the game's numbers kept through `Rewind.keep`), a **ghost** of your best run replayed beside you (`GhostRecorder`, `spawnGhost`, kept with `Pixelite.save`), the **camera rig** (dead zone, look-ahead, bounds), **actions** with gamepad (A jump, X pebble, B bomb, Y dig) and touch buttons made
 from them, the **shell** (title, pause menu, rebinding), **settings** and **saves** (the run continues at its checkpoint after a reload;
@@ -45,4 +46,7 @@ python3 tests/smoke.py proving
 
 - The level check cannot ride platforms: they are solid bridges and stairs there. Their timing is checked by `mechanics.py`.
 - Spring flights are tuned to the pit (8 tiles): change the pit, the spring or `bounceMin` together, then run `check.mjs`.
-- No liquids yet (the plan's D2): a pool with swimming would be the next station. No sound design beyond the engine's blips.
+- The pool: the reach search swims it (holding jump and a direction already swims to the steps; it never needs the hop out, which `mechanics.py` checks by hand). The steps up the far side keep that so:
+  make the exit a hop higher than the water and the search will no longer find it. The coins sit on a tile with water (`C` = water and a coin), or the sim would have to fill their tiles. The goal and the
+  dirt wall are 20 columns further right than before the pool (`mechanics.py`'s `tp(128, 18)` and `tp(131, 18)`).
+- No sound design beyond the engine's blips (a splash is a noise burst).
