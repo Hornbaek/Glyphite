@@ -26,18 +26,19 @@ SCENE = """([res, keys, mode]) => {
   const fnv = u8 => { let h = 2166136261 | 0; for (let i = 0; i < u8.length; i++) h = Math.imul(h ^ u8[i], 16777619); return h >>> 0; };
   const f32 = a => fnv(new Uint8Array(a.buffer, a.byteOffset, a.byteLength));
   const hashes = () => ({ world: fnv(R.wPix), sky: fnv(R.sPix), lr: f32(LR), lg: f32(LG), lb: f32(LB), ldx: f32(LDX), ldy: f32(LDY), cells: Pixelite.test.hash(), eye: EYE.e });
+  const draw1 = t => { clockT = t; Pixelite.test.render(t); };   // (a game may draw its animations from clockT: the frame loop's, which is wall time; so set it too)
   const frames = [], base = [], terr = [], lampHits = [];
   const rec = tag => { const h = hashes(); h.tag = tag; frames.push(h); base.push(Pixelite.cache.baseHit); terr.push(Pixelite.cache.terrainHit); lampHits.push(Pixelite.cache.hit); };
   const C = Pixelite.cache; C.lamps = C.still = mode !== 'off'; C.audit = mode === 'audit'; C.bad = 0;
   Pixelite.seed(7); EYE.e = 1; EYE.t = -1; Beat.v = 0; Beat.t = -1; Beat.last = 0; setDetail(res); EYE.e = 1; EYE.t = -1;
   Pixelite.test.start(); Pixelite.test.step(90, keys); Pixelite.test.freeze();
-  for (let i = 0; i < 5; i++) { Pixelite.test.step(3, keys); for (let k = 0; k < 3; k++) { Pixelite.test.render(6 + i * .1); rec('move' + i + '.' + k); } }
+  for (let i = 0; i < 5; i++) { Pixelite.test.step(3, keys); for (let k = 0; k < 3; k++) { draw1(6 + i * .1); rec('move' + i + '.' + k); } }
   Pixelite.test.step(200);   // let it settle: sparks, dust and the sand's grains die away
-  for (let i = 0; i < 14; i++) { Pixelite.test.render(5 + i * .05); rec('clock' + i); }
+  for (let i = 0; i < 14; i++) { draw1(5 + i * .05); rec('clock' + i); }
   // a solid cell with air above it, in view (else the camera goes to one near the middle of the world), to change things at
   const find = (x0, x1, y0, y1) => { for (let cy = y0; cy < y1; cy++) for (let cx = x0; cx < x1; cx++) if (cells[cy * W + cx] !== EMPTY && cells[(cy - 1) * W + cx] === EMPTY) return [cx, cy]; return null; };
   let at = find(Math.max(4, L_OX + 10), Math.min(W - 4, L_OX + R.RW - 40), Math.max(9, L_OY + 6), Math.min(H - 2, L_OY + R.RH - 30));
-  if (!at) { at = find(W >> 1, (W >> 1) + 30, 9, H - 2); if (at) { cam.x = clamp(at[0] - R.cols / 2, 0, Math.max(0, W - R.cols)); cam.y = at[1] - R.rows / 2; for (let k = 0; k < 4; k++) Pixelite.test.render(7); } }
+  if (!at) { at = find(W >> 1, (W >> 1) + 30, 9, H - 2); if (at) { cam.x = clamp(at[0] - R.cols / 2, 0, Math.max(0, W - R.cols)); cam.y = at[1] - R.rows / 2; for (let k = 0; k < 4; k++) draw1(7); } }
   const sx = at ? at[0] : -1, sy = at ? at[1] : -1;
   const mid = sx >= 0 ? cells[sy * W + sx] : 1, bm = Math.max(1, Math.min(MATS.length - 1, mid));
   const perturb = [
@@ -52,11 +53,11 @@ SCENE = """([res, keys, mode]) => {
   ];
   for (const [name, fn, undo] of perturb) {
     if (sx < 0 && !['sun', 'ambient', 'back', 'material', 'spark'].includes(name)) continue;   // (an isometric game has no solid cells to build on or heat)
-    for (let k = 0; k < 5; k++) { Pixelite.test.render(7); rec(name + '.warm' + k); }
+    for (let k = 0; k < 5; k++) { draw1(7); rec(name + '.warm' + k); }
     fn();
-    for (let k = 0; k < 5; k++) { Pixelite.test.render(7); rec(name + '.' + k); }
-    if (undo) { undo(); for (let k = 0; k < 4; k++) { Pixelite.test.render(7); rec(name + '.undone' + k); } }
-    if (name === 'blast') for (let i = 0; i < 8; i++) { Pixelite.test.step(2); Pixelite.test.render(7); rec('blast.step' + i); Pixelite.test.render(7); rec('blast.step' + i + 'b'); }
+    for (let k = 0; k < 5; k++) { draw1(7); rec(name + '.' + k); }
+    if (undo) { undo(); for (let k = 0; k < 4; k++) { draw1(7); rec(name + '.undone' + k); } }
+    if (name === 'blast') for (let i = 0; i < 8; i++) { Pixelite.test.step(2); draw1(7); rec('blast.step' + i); draw1(7); rec('blast.step' + i + 'b'); }
   }
   return { frames, base, terr, lampHits, bad: C.bad };
 }"""
