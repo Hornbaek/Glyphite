@@ -59,6 +59,7 @@ Pixelite.run({
   shell: true,            // the engine's title screen, pause menu and controls screen (see The standard shell)
   menu: [{ label: 'HELP', onSelect() {} }], restart() {}, quit() {},   // the pause menu's extra entries, RESTART and QUIT TO TITLE
   detail: { levels: [2] },// offer only these detail levels (default: all five); no keys or button for one
+  zoom: { default: 1, min: .5, max: 4, wheel: true, pinch: true },   // the view's zoom (see Camera): its first value and limits, and the mouse wheel and a pinch drive it
   cameraEase: 3.2,        // how fast the camera catches up (per second); setCamera() has its own
   floatText: false,       // do not draw addText() labels (default: the engine draws them)
   saveVersion: 1, migrate(oldVersion, data) {},   // Pixelite.save / load (see Settings and saves)
@@ -616,6 +617,20 @@ menu (CONTROLS); `bindAction(name, token)`, `resetActions()`.
 share of the view [w, h] it moves in before the camera follows (it is on the camera's real position, so a long fall does not leave it trailing); `rooms` jumps
 screen by screen (w, h in units; default the view); `bounds` the most the camera may show. `GAME.camera()` still overrides. `setCamera(null)` removes the rig.
 `cameraShake(n)` adds trauma to `FX.shake`.
+
+**Zoom.** The view's scale used to be fixed: a cell is the same size on the screen whatever happens. `setZoom(z, at?)` makes a cell `z` times as wide: 2 shows a quarter
+of the cells, twice as big, .5 shows four times as many, half the size. It changes only how many device pixels a cell takes (the physics, the detail level and the world are
+not touched), in whole device pixels so it stays crisp: the zoom you get is the nearest the pixels allow, and `getZoom()` says what it came to (it is 1 when the game never
+zooms). The camera keeps what is at `at` (fractions of the canvas, default the middle) where it was, so zooming in on the mouse is `setZoom(2, [Input.mouseX, Input.mouseY])`;
+a camera hook or rig that follows something keeps following it. `zoomStep(dir, at?)` is one step of about 15 percent in (`dir > 0`) or out, never less than one device pixel.
+```js
+Pixelite.run({ zoom: { default: 1, min: .5, max: 3 }, /* ... */ });   // the mouse wheel zooms on the pointer and a two finger pinch zooms (wheel: false, pinch: false: not)
+setZoom(2);  getZoom();  zoomStep(-1);  setZoom(1)                  // or from the game's own code: a map key, a boss that fills the screen
+```
+The limits default to .5 and 4, and a game with a `zoom` hook object is the only one the wheel and the pinch reach (the page still scrolls over the canvas for the others).
+The cost is in the cells: zooming out lights and draws more of them (about four times at .5 on the same screen), the smallest cell being 2 device pixels. `R.cols` and
+`R.rows` (the HUD and your own culling should use them, as they do for a window resize) change with it; `Input.wheel` and `Input.wheelAt` carry the wheel for a game that
+wants it itself. `probe().zoom` reports it. The HUD is a grid of its own and does not zoom.
 
 ## HUD kit, messages and the standard shell
 

@@ -276,6 +276,7 @@
  "stepTimers",
  "stepTriggers",
  "stepUi",
+ "stepZoom",
  "STILL",
  "stillAlloc",
  "stillCompare",
@@ -309,5 +310,8 @@
  "unwatchActor",
  "vnoise2",
  "wakeAt",
- "worldInitKeep"
+ "worldInitKeep",
+ "ZOOM_MIN_PX",
+ "zoomCw",
+ "zoomLimits"
 ]

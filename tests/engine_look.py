@@ -350,6 +350,63 @@ def e6_post(p, mode):
     b.close()
 
 
+def e7_zoom(p, mode):
+    b, pg, errs = boot(p, mode)
+    pg.evaluate('LT.bare(1200, 420)')   # a world bigger than the zoomed-out view, so the camera has room to move
+    cols = pg.evaluate('R.cols')
+    pg.evaluate(f'LT.cam(600 - {cols} / 2)')
+    g = pg.evaluate('H - 40')
+    bx = int(pg.evaluate('cam.x') + cols // 2 - 6)   # a 12 cell wide pillar of rock in the middle of the screen
+    at = '[.5, 1]'   # zoom around the middle of the bottom edge, where the pillar stands
+    pg.evaluate(f"""(() => {{ setSun(null); setAmbient([.7, .72, .8]); LT.block({bx}, {g} - 20, {bx} + 12, {g}); LT.frame(3); }})()""")
+    py = g - 10   # a cell row through the pillar
+
+    def width():
+        """the pillar as drawn: the run of bright pixels across the middle of its rows, and where its middle is (device pixels)"""
+        img = shot(pg)
+        y = int(pg.evaluate(f'LT.at({bx}, {py})')[1])
+        row = np.array([lum(c) for c in img[y]])
+        cx = img.shape[1] // 2
+        if row[cx] < 30:
+            return 0, None
+        lo = hi = cx
+        while lo > 0 and row[lo - 1] >= 30: lo -= 1
+        while hi < len(row) - 1 and row[hi + 1] >= 30: hi += 1
+        return hi - lo + 1, (lo + hi) / 2
+
+    cw1 = pg.evaluate('R.cw1')
+    w1, c1 = width()
+    check(f'E7 {mode}: at zoom 1 the 12 cell pillar is 12 cells wide ({w1} px for a {cw1} px cell)', abs(w1 - 12 * cw1) <= 1, (w1, cw1))
+    check(f'E7 {mode}: and getZoom is 1', pg.evaluate('getZoom()') == 1)
+    for z in (2, 3, .5):
+        pg.evaluate(f'setZoom({z}, {at}); LT.frame(3)')
+        cw, cols_now = pg.evaluate('[R.cw, R.cols]')
+        w, c = width()
+        canvas_w = pg.evaluate('R.canvas.width')
+        check(f'E7 {mode}: zoom {z}: the cell is {cw} px (asked {cw1 * z:.1f}) and the pillar {w} px wide ({12 * cw} expected)', abs(cw - cw1 * z) <= .51 and abs(w - 12 * cw) <= 1, (cw, w))
+        check(f'E7 {mode}: zoom {z}: it stays in the middle of the screen (middle {c} of {canvas_w})', c is not None and abs(c - canvas_w / 2) <= 1.5 * cw, (c, canvas_w))
+        check(f'E7 {mode}: zoom {z}: the view holds {cols_now} cells across (zoom 1 held {cols})', abs(cols_now * cw - canvas_w) <= cw and (cols_now < cols if z > 1 else cols_now > cols), (cols_now, cols))
+    pg.evaluate(f'setZoom(1, {at}); LT.frame(3)')
+    w, c = width()
+    check(f'E7 {mode}: back at 1 it is as it was ({w} px, middle {c} against {c1})', abs(w - w1) <= 1 and abs(c - c1) <= 1, (w, w1, c, c1))
+    # the wheel: only for a game with a zoom; the page's event reaches Input.wheel and one notch is one step
+    pg.mouse.move(500, 350)
+    pg.mouse.wheel(0, -100); pg.wait_for_timeout(100)
+    check(f'E7 {mode}: a game with no zoom ignores the wheel', pg.evaluate('Input.wheel') == 0)
+    pg.evaluate('GAME.zoom = { wheel: true }')
+    pg.mouse.wheel(0, -100); pg.wait_for_timeout(100)
+    got = pg.evaluate('Input.wheel')
+    check(f'E7 {mode}: with one the wheel is counted ({got})', got == -100, got)
+    pg.evaluate('stepZoom(); LT.frame(2)')
+    check(f'E7 {mode}: a notch up zooms in by a step ({pg.evaluate("R.cw")} px from {cw1})', pg.evaluate('R.cw') > cw1 and pg.evaluate('Input.wheel') == 0)
+    for z in (.5, 4):
+        pg.evaluate(f'setZoom({z}); LT.frame(3)')
+        img = shot(pg)
+        check(f'E7 {mode}: zoom {z} draws a picture of the full canvas ({img.shape[1]} x {img.shape[0]})', img.mean() > 3 and img.shape[1] == pg.evaluate('R.canvas.width'))
+    check(f'E7 {mode}: no page errors', not errs, errs[:2])
+    b.close()
+
+
 def run(mode):
     print(f'--- {mode}')
     with sync_playwright() as p:
@@ -358,6 +415,7 @@ def run(mode):
         e3_glow(p, mode)
         e4_back_shadows(p, mode)
         e6_post(p, mode)
+        e7_zoom(p, mode)
 
 
 if __name__ == '__main__':

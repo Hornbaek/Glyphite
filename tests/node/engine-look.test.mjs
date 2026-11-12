@@ -297,6 +297,67 @@ test('E6 vignette: 0 leaves the corners as bright as the middle, the default dar
   E.run('setPost({ vignette: 1 }); frame(() => {})'); assert.ok(avgLum(row(E, 22, 34)) < edge, 'a stronger value darkens it more');
 });
 
+// ---------- E7: zoom ----------
+// no canvas here: resizeNow is a stand-in that makes the numbers a real resize does (a 800 x 480 px screen, cells of R.cw device pixels)
+const zoomEnv = (E, game = '') => {
+  E.run(`worldInit(400, 240); GAME.zoom = ${game || 'null'}; R.cw1 = 8; R.cw = 8; R.zoom = 1; R.cols = 100; R.rows = 60; cam.x = 50; cam.y = 30;
+    resizeNow = () => { R.cw = R.zoom === 1 ? R.cw1 : zoomCw(R.cw1, R.zoom); R.chh = R.cw * ASPECT; R.cols = Math.floor(800 / R.cw); R.rows = Math.floor(480 / R.chh); };`);
+};
+
+test('E7 the cell size: whole device pixels, scaled from the size at zoom 1, never below 2, and zoom 1 is exactly what it was', () => {
+  const E = loadEngine();
+  assert.deepEqual([[8, 1], [8, 2], [8, .5], [5, 1.5], [4, .25], [8, .1], [12, 3]].map(([c, z]) => E.run(`zoomCw(${c}, ${z})`)), [8, 16, 4, 8, 2, 2, 36]);
+  assert.equal(E.run('getZoom()'), 1, 'before any picture it is 1');
+});
+
+test('E7 setZoom: clamped to the game\'s limits (default .5 to 4), met as closely as whole pixels allow, and getZoom says what it came to', () => {
+  const E = loadEngine(); zoomEnv(E);
+  assert.equal(E.run('setZoom(2)'), 2); assert.equal(E.run('[R.cw, R.cols, R.rows]').join(), '16,50,30');
+  assert.equal(E.run('setZoom(100)'), 4, 'the default top is 4'); assert.equal(E.run('R.zoom'), 4);
+  assert.equal(E.run('setZoom(.01)'), .5, 'and the bottom .5'); assert.equal(E.run('R.cw'), 4);
+  assert.equal(E.run('setZoom(NaN)'), 1, 'a number that is not one means no zoom'); assert.equal(E.run('R.cw'), 8);
+  assert.equal(E.run('setZoom(1.3)'), 10 / 8, 'cell 8 x 1.3 = 10.4: ten pixels, which is a zoom of 1.25'); assert.equal(E.run('R.zoom'), 1.3, 'what was asked is kept for the next resize');
+  E.run('GAME.zoom = { min: 1, max: 1.5 }'); assert.equal(E.run('setZoom(3)'), 1.5); assert.equal(E.run('setZoom(.2)'), 1, 'the game\'s limits');
+});
+
+test('E7 setZoom keeps the point you name where it was, and a request that changes no pixel remakes nothing', () => {
+  const E = loadEngine(); zoomEnv(E);
+  // the middle of the screen is world cell 50 + 50 = 100, row (30 + 30 * ASPECT)
+  const mid = [E.run('cam.x + R.cols / 2'), E.run('cam.y + R.rows * ASPECT / 2')];
+  E.run('setZoom(2)');
+  assert.ok(Math.abs(E.run('cam.x + R.cols / 2') - mid[0]) < 1e-9 && Math.abs(E.run('cam.y + R.rows * ASPECT / 2') - mid[1]) < 1e-9, 'the middle stays the middle');
+  E.run('setZoom(1)'); assert.deepEqual([E.run('cam.x'), E.run('cam.y')], [50, 30], 'and back out it is where it began');
+  E.run('setZoom(2, [0, 0])'); assert.deepEqual([E.run('cam.x'), E.run('cam.y')], [50, 30], 'the top left corner named: it does not move');
+  E.run('setZoom(1, [0, 0])'); E.run('setZoom(2, [1, 1])');
+  assert.ok(Math.abs(E.run('cam.x + R.cols') - 150) < 1e-9, 'the bottom right corner named: it does not move');
+  E.run('setZoom(1, [0, 0])'); E.run('globalThis.n = 0; resizeNow = () => { n++; }'); E.run('setZoom(1.01)');
+  assert.equal(E.run('n'), 0, '1.01 of an 8 pixel cell is still 8 pixels: no new buffers'); assert.equal(E.run('R.zoom'), 1.01);
+});
+
+test('E7 zoomStep: about 15 percent a step, never less than a device pixel, inside the limits', () => {
+  const E = loadEngine(); zoomEnv(E);
+  const cw = (d) => (E.run(`zoomStep(${d})`), E.run('R.cw'));
+  assert.deepEqual([cw(1), cw(1), cw(1)], [9, 10, 12], 'in: a pixel while 15 percent of the cell rounds to one, then two (15 percent of 10 is 1.5)');
+  assert.deepEqual([cw(-1), cw(-1)], [10, 8], 'and out the same way'); E.run('setZoom(1)');
+  for (let i = 0; i < 30; i++) E.run('zoomStep(1)'); assert.equal(E.run('R.cw'), 32, 'stops at the top (4 x 8)');
+  for (let i = 0; i < 60; i++) E.run('zoomStep(-1)'); assert.equal(E.run('R.cw'), 4, 'and at the bottom (.5 x 8)');
+  E.run('R.cw1 = 4; setZoom(1)'); for (let i = 0; i < 20; i++) E.run('zoomStep(-1)'); assert.ok(E.run('R.cw') >= 2, 'never below two device pixels');
+});
+
+test('E7 the wheel and the pinch: only for a game with a zoom, in notches of 100, at the pointer', () => {
+  const E = loadEngine(); zoomEnv(E);
+  E.run('Input.wheel = -250; Input.wheelAt = [.25, .5]; stepZoom()'); assert.equal(E.run('R.cw'), 8, 'a game with no zoom object ignores the wheel');
+  zoomEnv(E, '{ default: 1 }');
+  E.run('Input.wheel = -250; Input.wheelAt = [.25, .5]; const x0 = cam.x + R.cols * .25; stepZoom(); globalThis.x1 = cam.x + R.cols * .25; globalThis.x0 = x0');
+  assert.equal(E.run('R.cw'), 10, 'two notches up: 8 -> 9 -> 10'); assert.equal(E.run('Input.wheel'), -50, 'the rest waits for the next notch');
+  assert.ok(Math.abs(E.run('x1 - x0')) < 1e-9, 'and the point under the pointer stayed');
+  E.run('Input.wheel = 100; stepZoom()'); assert.equal(E.run('R.cw'), 8, 'a notch the other way zooms out');
+  E.run('Input.wheel = 0; setZoom(1); Input.pinch = .1; stepZoom(); Input.pinch = 0'); assert.ok(E.run('R.cw') > 8, 'fingers apart zoom in');
+  E.run('setZoom(1); Input.pinch = -.1; stepZoom(); Input.pinch = 0'); assert.ok(E.run('R.cw') < 8, 'and together zoom out');
+  E.run('setZoom(1)'); for (let i = 0; i < 4; i++) E.run('Input.pinch = .01; stepZoom()'); assert.ok(E.run('R.zoom') > 1.1, 'tiny pinches add up even before they are a whole pixel');
+  zoomEnv(E, '{ wheel: false, pinch: false }'); E.run('Input.wheel = -300; Input.pinch = .3; stepZoom(); Input.pinch = 0; Input.wheel = 0'); assert.equal(E.run('R.cw'), 8, 'wheel: false and pinch: false keep them off');
+});
+
 test('E6 bloom: a game can switch the glow off, the player still can, and neither undoes the other', () => {
   const E = loadEngine();
   E.run("setSetting('bloom', true)"); assert.equal(E.run('R.bloom'), true);

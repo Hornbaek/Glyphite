@@ -1071,6 +1071,11 @@
    "params": 0,
    "part": "06_scene.js"
   },
+  "getZoom": {
+   "kind": "function",
+   "params": 0,
+   "part": "11_loop.js"
+  },
   "GhostRecorder": {
    "kind": "class",
    "params": null,
@@ -2141,6 +2146,11 @@
    "params": 3,
    "part": "07_input.js"
   },
+  "setZoom": {
+   "kind": "function",
+   "params": 2,
+   "part": "11_loop.js"
+  },
   "Sfx": {
    "kind": "value",
    "params": null,
@@ -2451,6 +2461,11 @@
    "params": 1,
    "part": "11_loop.js"
   },
+  "stepZoom": {
+   "kind": "function",
+   "params": 0,
+   "part": "11_loop.js"
+  },
   "STILL": {
    "kind": "value",
    "params": null,
@@ -2735,6 +2750,26 @@
    "kind": "function",
    "params": 3,
    "part": "12_iso.js"
+  },
+  "ZOOM_MIN_PX": {
+   "kind": "value",
+   "params": null,
+   "part": "05_render.js"
+  },
+  "zoomCw": {
+   "kind": "function",
+   "params": 2,
+   "part": "05_render.js"
+  },
+  "zoomLimits": {
+   "kind": "function",
+   "params": 0,
+   "part": "11_loop.js"
+  },
+  "zoomStep": {
+   "kind": "function",
+   "params": 2,
+   "part": "11_loop.js"
   }
  }
 }

@@ -8,7 +8,7 @@
 // fainter than a '#'. WebGL draws everything in one full-screen pass; a 2D-canvas path covers browsers without WebGL.
 const R = {
   canvas: null, mode: '2d', gl: null, glU: null, glT: null, ctx: null, dpr: 1,
-  cw: 8, chh: 16, cols: 0, rows: 0, RW: 0, RH: 0,
+  cw: 8, chh: 16, cols: 0, rows: 0, RW: 0, RH: 0, zoom: 1, cw1: 8,
   wG: null, wZ: null, wShim: null, wPix: null, shimPix: null, bloomPix: null, bloom: false,
   sG: null, sPix: null, skyFX: 0, skyFY: 0, skyDirty: true,
   hcw: 12, hchh: 24, hs: 2, hcols: 0, hrows: 0, hG: null, hC: null, hPix: null,
@@ -171,11 +171,14 @@ function glTex(name, w, h, fmt, data) {
   else gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w, h, fmt, gl.UNSIGNED_BYTE, data);
 }
 
+const ZOOM_MIN_PX = 2;   // the smallest cell a zoomed-out view draws, in device pixels
+const zoomCw = (cw1, z) => Math.max(ZOOM_MIN_PX, Math.round(cw1 * z));   // the cell size, device pixels, at zoom z when it is cw1 at zoom 1
 function renderResize(cssW, cssH) {
   const gl = R.mode === 'gl', dpr = Math.min(gl ? 3 : 2, window.devicePixelRatio || 1), base = cssW < 640 ? 56 : 150;
-  // world cell shrinks with detail; never below 4 device px, where a finer grid costs more than it shows
-  const cw = Math.max(4, Math.round(cssW / (base * RES) * dpr)), cwCss = cw / dpr;
-  R.dpr = dpr; R.cw = cw; R.chh = cw * ASPECT;
+  // world cell shrinks with detail; never below 4 device px, where a finer grid costs more than it shows. The zoom (setZoom, engine/11_loop.js) scales that size in whole
+  // device pixels, so it stays crisp: in is a bigger cell (fewer cells on the screen), out a smaller one (more cells to light, down to ZOOM_MIN_PX)
+  const cw1 = Math.max(4, Math.round(cssW / (base * RES) * dpr)), cw = R.zoom === 1 ? cw1 : zoomCw(cw1, R.zoom), cwCss = cw / dpr;
+  R.dpr = dpr; R.cw1 = cw1; R.cw = cw; R.chh = cw * ASPECT;
   R.cols = Math.max(40, Math.floor(cssW / cwCss)); R.rows = Math.max(24, Math.floor(cssH / (cwCss * ASPECT)));
   const c = R.canvas;
   c.width = R.cols * cw; c.height = R.rows * R.chh;
