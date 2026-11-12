@@ -20,11 +20,16 @@ const Sampler = (() => {
   // Each block keeps a shift and one of four predictors; the encoder picks the pair with the least error, the decoder
   // adds 4-bit steps to the prediction. What comes back carries the console's quantisation hiss and grit.
   const BRR_F = [[0, 0], [15 / 16, 0], [61 / 32, -15 / 16], [115 / 64, -13 / 16]];
+  // Making a sample takes up to 100 ms, so the builders (this encoder, the instrument recipes and the drum kit below) are generators:
+  // they `yield` every millisecond or so of work. Called plainly they run to the end at once (brrEncode, instrument(), brr()); between
+  // frames prepare() runs them a slice at a time, so a game's first song does not stall its title screen.
+  const drain = g => { let r = g.next(); while (!r.done) r = g.next(); return r.value; };
   // samples (-1..1) → BRR bytes: per block a header (shift << 4 | predictor << 2) and eight bytes of two 4-bit steps
-  function brrEncode(x) {
+  function* brrSteps(x) {
     const nb = Math.ceil(x.length / 16), bytes = new Uint8Array(nb * 9), blk = new Float32Array(16), best = new Float32Array(16), nib = new Int8Array(16), bestNib = new Int8Array(16);
     let p1 = 0, p2 = 0;
     for (let bi = 0, b = 0; bi < nb; bi++, b += 16) {
+      if ((bi & 127) === 127) yield;
       let bestErr = Infinity, bestHead = 0;
       // (on the console the first block may not predict, which caps it near half volume; decoded once here, it may)
       for (let f = 0; f < 4; f++) {
@@ -49,6 +54,7 @@ const Sampler = (() => {
     }
     return bytes;
   }
+  const brrEncode = x => drain(brrSteps(x));
   // BRR bytes → samples, read through the DSP's 4-point Gaussian kernel: a gentle low-pass (round the loop, from loopAt on, to
   // loopEnd (0: the end), for a sample that loops). xfade samples before loopEnd are first blended with the samples before
   // loopAt, so the loop's end flows into its start (a crossfaded loop: the sound under the seam is the same on both sides)
@@ -74,6 +80,7 @@ const Sampler = (() => {
     return g;
   }
   const brr = (x, loop = false) => brrDecode(brrEncode(x), loop ? 0 : -1);
+  function* brrG(x, loop = false) { return brrDecode(yield* brrSteps(x), loop ? 0 : -1); }
   const toB64 = bytes => { let s = ''; for (let i = 0; i < bytes.length; i += 8192) s += String.fromCharCode(...bytes.subarray(i, i + 8192)); return btoa(s); };
   const fromB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
   const peakTo = (a, p = .9) => { let m = 0; for (const v of a) m = Math.max(m, Math.abs(v)); if (m) for (let i = 0; i < a.length; i++) a[i] *= p / m; return a; };
@@ -83,15 +90,17 @@ const Sampler = (() => {
   // per loop: ±1 is ±10 cents) for a chorus that loops seamlessly, at three roots so no note is pitched more than an
   // octave (and its harmonics stay under the sample's Nyquist).
   const LOOP_S = .64;
-  function waveZone(rate, root, amp, det, noise) {
+  function* waveZone(rate, root, amp, det, noise) {
     const T = 4096, cyc = new Float32Array(T), r = rng(root * 7 + 3), f0 = hz(root), hmax = Math.min(96, Math.floor(rate * .45 / (f0 * 2)));
     for (let h = 1; h <= hmax; h++) {
+      if ((h & 3) === 0) yield;
       const a = amp(h, h * f0); if (!a) continue;
       const ph = r() * TAU;
       for (let k = 0; k < T; k++) cyc[k] += a * Math.sin(TAU * h * k / T + ph);
     }
     const N = 16 * Math.round(rate * LOOP_S / 16), P = Math.max(1, Math.round(f0 * N / rate)), out = new Float32Array(N);
     for (const d of det) {
+      yield;
       const off = r() * T, inc = (P + d) * T / N;
       for (let i = 0; i < N; i++) { const p = (off + i * inc) % T, k = p | 0, fr = p - k; out[i] += cyc[k] + (cyc[(k + 1) % T] - cyc[k]) * fr; }
     }
@@ -99,42 +108,45 @@ const Sampler = (() => {
       let lp = 0, hp = 0;
       for (let i = 0; i < N; i++) { const w = r() * 2 - 1; lp += (w - lp) * .35; hp = lp - hp * .2; out[i] += hp * noise * det.length; }
     }
-    return { root: toMidi(P * rate / N), data: brr(peakTo(out), true), loop: true, rate };
+    yield;
+    return { root: toMidi(P * rate / N), data: yield* brrG(peakTo(out), true), loop: true, rate };
   }
   // plucked strings (Karplus-Strong): a burst of noise in a delay line that averages itself down; one-shot
-  function ksZone(rate, root, { bright = .6, damp = .998, secs = 2.4, drive = 0, body = 0 }) {
+  function* ksZone(rate, root, { bright = .6, damp = .998, secs = 2.4, drive = 0, body = 0 }) {
     const L = Math.max(2, Math.round(rate / hz(root))), ring = new Float32Array(L), r = rng(root * 13 + 1), N = Math.round(rate * secs), out = new Float32Array(N);
     let lp = 0;
     for (let i = 0; i < L; i++) { lp += (r() * 2 - 1 - lp) * (.1 + bright * .9); ring[i] = lp; }
     let p = 0;
     for (let i = 0; i < N; i++) {
+      if ((i & 8191) === 8191) yield;
       const a = ring[p], b = ring[(p + 1) % L];
       out[i] = a; ring[p] = damp * (a + b) * .5; p = (p + 1) % L;
     }
-    if (body) for (let i = 0; i < N; i++) out[i] += body * Math.sin(TAU * hz(root) * i / rate) * Math.exp(-i / rate / .6);
-    if (drive) for (let i = 0; i < N; i++) out[i] = Math.tanh(out[i] * drive * 8);
-    return { root: toMidi(rate / (L + .5)), data: brr(peakTo(out)), loop: false, rate };
+    if (body) for (let i = 0; i < N; i++) { if ((i & 8191) === 8191) yield; out[i] += body * Math.sin(TAU * hz(root) * i / rate) * Math.exp(-i / rate / .6); }
+    if (drive) for (let i = 0; i < N; i++) { if ((i & 8191) === 8191) yield; out[i] = Math.tanh(out[i] * drive * 8); }
+    return { root: toMidi(rate / (L + .5)), data: yield* brrG(peakTo(out)), loop: false, rate };
   }
   // two-operator FM, decaying (electric piano, bells); one-shot
-  function fmZone(rate, root, { ratio, index, idecay, decay, secs = 2.6 }) {
+  function* fmZone(rate, root, { ratio, index, idecay, decay, secs = 2.6 }) {
     const f = hz(root), N = Math.round(rate * secs), out = new Float32Array(N);
-    for (let i = 0; i < N; i++) { const t = i / rate; out[i] = Math.sin(TAU * f * t + index * Math.exp(-t / idecay) * Math.sin(TAU * ratio * f * t)) * Math.exp(-t / decay); }
-    return { root, data: brr(peakTo(out)), loop: false, rate };
+    for (let i = 0; i < N; i++) { if ((i & 8191) === 8191) yield; const t = i / rate; out[i] = Math.sin(TAU * f * t + index * Math.exp(-t / idecay) * Math.sin(TAU * ratio * f * t)) * Math.exp(-t / decay); }
+    return { root, data: yield* brrG(peakTo(out)), loop: false, rate };
   }
-  function partialsZone(rate, root, parts, secs) {   // struck bars: a few decaying sine partials
+  function* partialsZone(rate, root, parts, secs) {   // struck bars: a few decaying sine partials
     const f = hz(root), N = Math.round(rate * secs), out = new Float32Array(N);
-    for (const [m, a, d] of parts) if (f * m < rate * .45) for (let i = 0; i < N; i++) out[i] += a * Math.sin(TAU * f * m * i / rate) * Math.exp(-i / rate / d);
-    return { root, data: brr(peakTo(out)), loop: false, rate };
+    for (const [m, a, d] of parts) if (f * m < rate * .45) for (let i = 0; i < N; i++) { if ((i & 8191) === 8191) yield; out[i] += a * Math.sin(TAU * f * m * i / rate) * Math.exp(-i / rate / d); }
+    return { root, data: yield* brrG(peakTo(out)), loop: false, rate };
   }
 
   // ---------- the drum kit (General MIDI note numbers) ----------
-  function drum(rate, kind) {
+  function* drum(rate, kind) {
     const r = rng(kind.length * 31 + 7), secs = { kick: .5, snare: .4, clap: .4, hat: .12, open: .5, tom: .5, crash: 1.8, ride: 1.2, rim: .06, shaker: .14 }[kind];
     const N = Math.round(rate * secs), out = new Float32Array(N);
     let ph = 0, lp = 0, hp = 0, prev = 0;
     const noise = () => r() * 2 - 1;
     const metal = t => { let s = 0; for (const f of [205, 304, 369, 523, 540, 800]) s += Math.sign(Math.sin(TAU * f * t * 1.9)); return s / 6; };
     for (let i = 0; i < N; i++) {
+      if ((i & 8191) === 8191) yield;
       const t = i / rate; let v = 0;
       if (kind === 'kick') { ph += TAU * (44 + 110 * Math.exp(-t / .035)) / rate; v = Math.sin(ph) * Math.exp(-t / .3) + (t < .004 ? noise() * .5 : 0); }
       else if (kind === 'tom') { ph += TAU * (98 + 70 * Math.exp(-t / .05)) / rate; v = Math.sin(ph) * Math.exp(-t / .28) + noise() * .08 * Math.exp(-t / .03); }
@@ -145,7 +157,7 @@ const Sampler = (() => {
       else if (kind === 'rim') v = Math.sin(TAU * 1700 * t) * Math.exp(-t / .012) + noise() * .2 * Math.exp(-t / .004);
       out[i] = v;
     }
-    return { data: brr(peakTo(out, kind === 'kick' || kind === 'snare' ? .95 : .8)), rate };
+    return { data: yield* brrG(peakTo(out, kind === 'kick' || kind === 'snare' ? .95 : .8)), rate };
   }
   // note → [sound, pitch (playback rate), choke group]; the names label the studio's drum rows
   const KIT = {
@@ -216,41 +228,100 @@ const Sampler = (() => {
     return { root: sm.root, loop: loop >= 0, loopStart: Math.max(0, loop) / sm.rate, loopEnd: le, buffer, sm, level: Math.min(4, .25 / Math.sqrt(e / n || 1)) };
   }
   // the same zone with its loop start moved (a loop lane); made once per step, then kept
+  const loopKey = (z, step) => `zv:${sampleKey(z.sm, loopAtStep(z.sm, step))}`;
   function loopZone(z, step) {
-    const ls = loopAtStep(z.sm, step), key = `zv:${sampleKey(z.sm, ls)}`;
+    const ls = loopAtStep(z.sm, step), key = loopKey(z, step);
     if (!made.has(key)) made.set(key, sampleZone(z.sm, ls));
     return { ...made.get(key), gain: z.gain, lo: z.lo, hi: z.hi };
   }
+  // An instrument is made in steps (and put in `made` when it is done); instrument() below finishes one at once.
+  const jobs = new Map();   // key → the steps of an instrument being made, so whoever needs it first carries on from where it got to
+  function* instrumentSteps(key, id, rate, song) {
+    try {
+      const sm = sampleOf(id, song), mu = multiOf(id, song);
+      if (sm) {
+        yield;
+        const z = sampleZone(sm);
+        made.set(key, { zones: [z], level: z.level, env: SAMPLE_ENV, vib: [0, 5, .3], gain: z.level });
+        return;
+      }
+      if (mu) {   // each zone as loud as the others; the notes pick the zone (lo..hi, in notes)
+        const zones = [];
+        for (const q of mu.zones) { yield; const z = sampleZone(song.samples[q.sample]); zones.push({ ...z, gain: z.level, lo: q.lo, hi: q.hi }); }
+        made.set(key, { zones, level: 1, env: SAMPLE_ENV, vib: [0, 5, .3], gain: 1 });
+        return;
+      }
+      const def = DEFS[id] || DEFS.piano, buf = z => { const b = new AudioBuffer({ length: z.data.length, sampleRate: z.rate, numberOfChannels: 1 }); b.copyToChannel(z.data, 0); return b; };
+      let inst;
+      if (id === 'kit') {
+        const sounds = {};
+        for (const [n, [kind, pitch, choke]] of Object.entries(KIT)) { if (!sounds[kind]) sounds[kind] = buf(yield* drum(rate, kind)); }
+        inst = { kit: Object.fromEntries(Object.entries(KIT).map(([n, [kind, pitch, choke]]) => [n, { buffer: sounds[kind], pitch, choke }])) };
+        inst.level = 1;
+      } else {
+        const zs = [];
+        for (const root of ZONES) zs.push(yield* def[2](rate, root));
+        const mid = zs[1].data, n = Math.min(mid.length, Math.round(zs[1].rate * .3));
+        let e = 0; for (let i = 0; i < n; i++) e += mid[i] * mid[i];
+        inst = { zones: zs.map(z => ({ root: z.root, loop: z.loop, loopStart: 0, buffer: buf(z) })), level: Math.min(4, .25 / Math.sqrt(e / n || 1)) };   // as loud as each other
+      }
+      inst.env = def[3]; inst.vib = def[4] || [0, 5, .3]; inst.gain = (def[5] || 1) * inst.level;
+      made.set(key, inst);
+    } finally { jobs.delete(key); }
+  }
+  const jobOf = (key, id, rate, song) => { let g = jobs.get(key); if (!g) jobs.set(key, g = instrumentSteps(key, id, rate, song)); return g; };
   function instrument(id, rate, song) {
     const key = keyOf(id, rate, song);
-    if (made.has(key)) return made.get(key);
-    const sm = sampleOf(id, song), mu = multiOf(id, song);
-    if (sm) {
-      const z = sampleZone(sm), inst = { zones: [z], level: z.level, env: SAMPLE_ENV, vib: [0, 5, .3], gain: z.level };
-      made.set(key, inst);
-      return inst;
+    if (!made.has(key)) drain(jobOf(key, id, rate, song));
+    return made.get(key);
+  }
+
+  // ---------- making instruments between frames ----------
+  // a list of instruments stands for a song that uses them (prepare, ready): ids, or { instrument, rate } for a grit other than 32 kHz
+  const asSong = x => Array.isArray(x) ? check({ format: 'pixelite-song', tracks: x.map(i => typeof i === 'string' ? { instrument: i } : { instrument: i.instrument, sound: { rate: i.rate } }) }) : x;
+  // What a song still needs made: its instruments, then (once they exist) the loop starts its loop lanes can pick. An empty list
+  // means the song can start without a stall.
+  function missing(song) {
+    const todo = [];
+    for (const tr of song.tracks) {
+      const key = keyOf(tr.instrument, tr.sound.rate, song);
+      if (!made.has(key)) { if (!todo.some(t => t.key === key)) todo.push({ key, steps: () => jobOf(key, tr.instrument, tr.sound.rate, song) }); continue; }
+      const ll = laneOf(tr, 'loop');
+      if (!ll.length) continue;
+      const vs = ll.map(p => p[1]), lo = loopStep(Math.min(...vs)), hi = loopStep(Math.max(...vs));
+      for (const z of made.get(key).zones || []) if (z.sm && z.sm.loop >= 0) for (let st = lo; st <= hi; st++) {
+        const k = loopKey(z, st); if (!made.has(k) && !todo.some(t => t.key === k)) todo.push({ key: k, steps: function* () { loopZone(z, st); } });
+      }
     }
-    if (mu) {   // each zone as loud as the others; the notes pick the zone (lo..hi, in notes)
-      const zones = mu.zones.map(q => { const z = sampleZone(song.samples[q.sample]); return { ...z, gain: z.level, lo: q.lo, hi: q.hi }; });
-      const inst = { zones, level: 1, env: SAMPLE_ENV, vib: [0, 5, .3], gain: 1 };
-      made.set(key, inst);
-      return inst;
-    }
-    const def = DEFS[id] || DEFS.piano, buf = z => { const b = new AudioBuffer({ length: z.data.length, sampleRate: z.rate, numberOfChannels: 1 }); b.copyToChannel(z.data, 0); return b; };
-    let inst;
-    if (id === 'kit') {
-      const sounds = {};
-      for (const [n, [kind, pitch, choke]] of Object.entries(KIT)) { sounds[kind] ??= buf(drum(rate, kind)); }
-      inst = { kit: Object.fromEntries(Object.entries(KIT).map(([n, [kind, pitch, choke]]) => [n, { buffer: sounds[kind], pitch, choke }])) };
-      inst.level = 1;
-    } else {
-      const zs = ZONES.map(root => def[2](rate, root)), mid = zs[1].data, n = Math.min(mid.length, Math.round(zs[1].rate * .3));
-      let e = 0; for (let i = 0; i < n; i++) e += mid[i] * mid[i];
-      inst = { zones: zs.map(z => ({ root: z.root, loop: z.loop, loopStart: 0, buffer: buf(z) })), level: Math.min(4, .25 / Math.sqrt(e / n || 1)) };   // as loud as each other
-    }
-    inst.env = def[3]; inst.vib = def[4] || [0, 5, .3]; inst.gain = (def[5] || 1) * inst.level;
-    made.set(key, inst);
-    return inst;
+    return todo;
+  }
+  // One queue for the whole page, worked a slice at a time between frames (in the browser's idle time where it has some), so the page
+  // never stalls for longer than a slice, and the song needed first can be put at the front.
+  // sliceMs: how long a slice may work; later: what runs the next slice (a test can put queueMicrotask here); the rest is what has been
+  // done so far, in ms: for tests and tuning
+  const build = { sliceMs: 4, later: null, slices: 0, longest: 0, work: 0 };
+  const queue = [], waiting = new Map();   // the tasks to do, and the promise of each by key
+  let working = false;
+  const later = f => build.later ? build.later(f) : typeof requestIdleCallback === 'function' ? requestIdleCallback(f, { timeout: 60 }) : setTimeout(f, 0);
+  function enqueue(task, first) {
+    let w = waiting.get(task.key);
+    if (!w) {
+      w = { task, gen: null };
+      w.promise = new Promise((res, rej) => { w.res = res; w.rej = rej; });
+      waiting.set(task.key, w); queue.push(w);
+    } else if (first) { const i = queue.indexOf(w); if (i > 0) { queue.splice(i, 1); queue.unshift(w); } }
+    if (!working) { working = true; later(slice); }
+    return w.promise;
+  }
+  function slice(deadline) {
+    const t0 = performance.now(), ms = deadline && !deadline.didTimeout ? cl(deadline.timeRemaining() - 1, 2, 8) : build.sliceMs;
+    do {
+      const w = queue[0]; if (!w) break;
+      try { w.gen ??= w.task.steps(); if (w.gen.next().done) { queue.shift(); waiting.delete(w.task.key); w.res(); } }
+      catch (e) { queue.shift(); waiting.delete(w.task.key); w.rej(e); }
+    } while (queue.length && performance.now() - t0 < ms);
+    const d = performance.now() - t0; build.slices++; build.work += d; if (d > build.longest) build.longest = d;
+    if (queue.length) later(slice); else working = false;
   }
 
   // ---------- songs ----------
@@ -450,6 +521,12 @@ const Sampler = (() => {
     S.mute.connect(M.sum); S.mute.connect(S.echo); S.mute.connect(S.rev); S.echo.connect(M.echoIn); S.rev.connect(M.revIn);
     return S;
   }
+  // let go of a mixer that is done (a deck faded out or finished): stop what runs on its own, and cut it off from the output
+  function disposeMix(M) {
+    const off = n => { try { n.disconnect(); } catch (e) { } };
+    for (const S of M.strips) { try { S.lfo.stop(); S.pitch.stop(); } catch (e) { } off(S.mute); off(S.in); }
+    off(M.vol); off(M.click); off(M.echoVol); off(M.revVol);
+  }
   const set = (p, v, now, smooth) => { if (smooth) p.setTargetAtTime(v, now, .02); else p.value = v; };
   function applyMaster(M, song, smooth = true) {
     const m = song.master, now = M.ctx.currentTime, snes = song.snes;
@@ -509,6 +586,25 @@ const Sampler = (() => {
     const s = tr.sound, E = inst.env;
     return { a: Math.max(.001, s.attack ?? E.a), d: Math.max(.001, s.decay ?? E.d), s: cl(s.sustain ?? E.s, 0, 1), sd: Math.max(0, s.fall ?? E.sd), r: Math.max(.005, s.release ?? E.r) };
   }
+  // the zone of an instrument that plays note n: a multisample's zone whose notes hold it (the nearest one, when none does), else the
+  // sample whose root is nearest
+  function zoneFor(inst, n) {
+    let z = inst.zones[0];
+    if (z.lo !== undefined) {
+      let best = Infinity;
+      for (const q of inst.zones) { const d = n < q.lo ? q.lo - n : n > q.hi ? n - q.hi : 0; if (d < best) { best = d; z = q; } }
+    } else for (const q of inst.zones) if (Math.abs(q.root - n) < Math.abs(z.root - n) - .01) z = q;
+    return z;
+  }
+  // the envelope: attack ramp, decay toward the sustain level, then (fall) toward silence while held; `off` is when the note is let go
+  function scheduleEnv(p, E, peak, t, off) {
+    p.setValueAtTime(0, t);
+    if (off < E.a) p.linearRampToValueAtTime(envAt(E, peak, off, Infinity), t + off);
+    else {
+      p.linearRampToValueAtTime(peak, t + E.a); p.setTargetAtTime(peak * E.s, t + E.a, Math.max(E.d / 3, 1e-4));
+      if (E.sd > 0 && off > E.a + E.d) p.setTargetAtTime(0, t + E.a + E.d, E.sd);
+    }
+  }
   const MAX_VOICES = 48;
   // start a note at time t on track ti; dur in seconds, or null for a live note (let go later with releaseVoice)
   // loopPos: where along its sample a loop lane puts the loop start for this note (0..1), or null
@@ -521,11 +617,7 @@ const Sampler = (() => {
       buffer = k.buffer; rateMul = k.pitch; choke = k.choke;
     } else {
       const n = note + 12 * tr.sound.octave + tr.sound.fine / 100;
-      let z = inst.zones[0];
-      if (z.lo !== undefined) {   // a multisample: the zone whose notes the note falls in (the nearest one, when none does)
-        let best = Infinity;
-        for (const q of inst.zones) { const d = n < q.lo ? q.lo - n : n > q.hi ? n - q.hi : 0; if (d < best) { best = d; z = q; } }
-      } else for (const q of inst.zones) if (Math.abs(q.root - n) < Math.abs(z.root - n) - .01) z = q;
+      let z = zoneFor(inst, n);
       if (loopPos != null && z.sm && z.sm.loop >= 0) z = loopZone(z, loopStep(loopPos));
       buffer = z.buffer; rateMul = Math.pow(2, (n - z.root) / 12); loop = z.loop; loopStart = z.loopStart; loopEnd = z.loopEnd || buffer.duration; zgain = z.gain || 1;
     }
@@ -556,14 +648,9 @@ const Sampler = (() => {
     if (loop) { src.loop = true; src.loopStart = loopStart; src.loopEnd = loopEnd; }
     src.connect(gn); gn.connect(S.in);
     if (!kit && laneOf(tr, 'pitch').length) { S.pitch.connect(src.detune); src.onended = () => { try { S.pitch.disconnect(src.detune); } catch (e) { } }; }
-    // the envelope: attack ramp, decay toward the sustain level, then (fall) toward silence while held; drums ignore note-offs
+    // drums ignore note-offs
     const p = gn.gain, off = kit || dur == null ? Infinity : Math.max(.005, dur);
-    p.setValueAtTime(0, t);
-    if (off < E.a) p.linearRampToValueAtTime(envAt(E, peak, off, Infinity), t + off);
-    else {
-      p.linearRampToValueAtTime(peak, t + E.a); p.setTargetAtTime(peak * E.s, t + E.a, Math.max(E.d / 3, 1e-4));
-      if (E.sd > 0 && off > E.a + E.d) p.setTargetAtTime(0, t + E.a + E.d, E.sd);
-    }
+    scheduleEnv(p, E, peak, t, off);
     let lfo = null;
     const vib = tr.sound.vibrato ?? inst.vib;
     if (!kit && vib && vib[0] > 0) {
@@ -634,44 +721,55 @@ const Sampler = (() => {
 
   // ---------- the live engine (one audio context: a game's, or the studio's) ----------
   const LEAD = .12;
-  const E = {
+  const makeEngine = () => ({
     PPQ, INSTRUMENTS, KIT: Object.fromEntries(Object.entries(KIT).map(([n, k]) => [n, k[3]])), RATES, FIRS: Object.keys(FIR),
-    ctx: null, out: null, mix: null, song: null, playing: false, metronome: false, pending: null, timer: 0, gain: null, vol: 1,
+    ctx: null, dest: null, out: null, mix: null, song: null, playing: false, metronome: false, pending: null, want: null, timer: 0, gain: null, vol: 1, ghosts: [], own: false, build,
     check, newSong, newTrack, songEnd, envAt, secAt, tickAt, bpmAt, laneAt, laneRamp, filterHz, brr, brrEncode, brrDecode, toB64, fromB64, sampleLen, loopStep, loopAtStep, forced: null,
     // an instrument's own envelope and vibrato (what a track's sound settings left at null mean)
     defaults: id => id.startsWith('sample:') || id.startsWith('multi:') ?{ env: { ...SAMPLE_ENV }, vib: [0, 5, .3] } : { env: { ...(DEFS[id] || DEFS.piano)[3] }, vib: [...((DEFS[id] || DEFS.piano)[4] || [0, 5, .3])] },
-    // make a song's instruments now, one at a time between frames (making one takes ~0.1 s), so its first notes don't stall;
-    // play() makes any that are missing on the spot
-    async prepare(song) {
-      const frame = () => new Promise(r => setTimeout(r, 0));
-      for (const tr of song.tracks) {
-        if (!made.has(keyOf(tr.instrument, tr.sound.rate, song))) { instrument(tr.instrument, tr.sound.rate, song); await frame(); }
-        const ll = laneOf(tr, 'loop');
-        if (ll.length) {   // a loop lane: the loop starts it can pick, so a note does not make one while it is being heard
-          const vs = ll.map(p => p[1]), lo = loopStep(Math.min(...vs)), hi = loopStep(Math.max(...vs));
-          for (const z of instrument(tr.instrument, tr.sound.rate, song).zones || []) if (z.sm && z.sm.loop >= 0) for (let s = lo; s <= hi; s++) { loopZone(z, s); await frame(); }
-        }
-      }
+    // make a song's instruments (or a list of instrument ids) in the idle time between frames, a few milliseconds at a time (build.sliceMs),
+    // so the page never stalls; resolves when they are all there. first: ahead of whatever else is waiting. play() makes any that are
+    // missing on the spot (a stall of ~0.1 s each), unless it is given wait: true
+    async prepare(song, { first = false } = {}) {
+      song = asSong(song);
+      for (let todo = missing(song); todo.length; todo = missing(song)) await Promise.all((first ? todo.slice().reverse() : todo).map(t => enqueue(t, first)));
     },
+    // true when a song (or a list of instrument ids) can play without making anything first
+    ready(song) { return missing(asSong(song)).length === 0; },
     init(ctx, dest) {
       if (this.ctx || !ctx) return;
-      this.ctx = ctx; this.gain = ctx.createGain(); this.gain.gain.value = this.vol; this.gain.connect(dest || ctx.destination);
+      this.ctx = ctx; this.dest = dest || ctx.destination;
+      this.out = ctx.createGain(); this.out.connect(this.dest);   // duck() works on this one; the song's own gain (setVolume) feeds it
+      this.gain = ctx.createGain(); this.gain.gain.value = this.vol; this.gain.connect(this.out);
       if (this.pending) { const [s, o] = this.pending; this.pending = null; this.play(s, o); }
     },
-    // make `song` the current one (its mixer follows it); call sync() after changing its settings
-    use(song) {
+    // make `song` the current one (its mixer follows it); call sync() after changing its settings. layers: { track name: 0..1 } (or a function
+    // of the song that gives it) sets those tracks' levels from the start (what track() does later)
+    use(song, layers = null) {
       if (!this.ctx) return;
+      if (typeof layers === 'function') layers = layers(song);
       if (!this.mix) { this.mix = makeMix(this.ctx, this.gain); this.mix.hits = []; }
-      if (this.song !== song) { for (const S of this.mix.strips) S.layer = 1; this.song = song; }
-      syncMix(this.mix, song, false);
+      const M = this.mix;
+      while (M.strips.length < song.tracks.length) M.strips.push(makeStrip(M));
+      if (this.song !== song) { for (const S of M.strips) S.layer = 1; this.song = song; }
+      if (layers) song.tracks.forEach((t, i) => { if (layers[t.name] !== undefined) M.strips[i].layer = cl(+layers[t.name] || 0, 0, 1); });
+      syncMix(M, song, false);
     },
     sync() { if (this.mix && this.song) syncMix(this.mix, this.song); },
-    // play from tick `from` (may be negative: a count-in); loops the song's loop region, or the whole song, unless loop: false
-    play(song, { from = 0, loop = true, fadeIn = 0, onEnd = null } = {}) {
+    // play from tick `from` (may be negative: a count-in); loops the song's loop region, or the whole song, unless loop: false.
+    // crossfade: seconds the song playing now fades out over while this one (give it a fadeIn too) fades in; wait: if its instruments are not
+    // all made, make them between frames and start when they are (the song playing now goes on until then) instead of stalling the page
+    play(song, { from = 0, loop = true, fadeIn = 0, onEnd = null, crossfade = 0, wait = false, layers = null } = {}) {
       if (this.forced && song !== this.forced) return;   // a page previewing a song in this game has the say
-      if (!this.ctx) { this.pending = [song, { from, loop, fadeIn, onEnd }]; return; }
-      this.halt();
-      this.use(song);
+      if (!this.ctx) { this.pending = [song, { from, loop, fadeIn, onEnd, crossfade, wait, layers }]; return; }
+      this.want = null;
+      if (wait && !this.ready(song)) {
+        const want = this.want = { song };
+        this.prepare(song, { first: true }).then(() => { if (this.want === want) this.play(song, { from, loop, fadeIn, onEnd, crossfade, layers }); }, e => console.warn('Sampler.play:', e));
+        return;
+      }
+      if (crossfade > 0 && this.playing) this.fadeOut(crossfade); else this.halt();
+      this.use(song, layers);
       for (const tr of song.tracks) instrument(tr.instrument, tr.sound.rate, song);
       const now = this.ctx.currentTime + .05, g = this.gain.gain;
       g.cancelScheduledValues(now); g.setValueAtTime(fadeIn ? 0 : this.vol, now); if (fadeIn) g.linearRampToValueAtTime(this.vol, now + fadeIn);
@@ -684,9 +782,11 @@ const Sampler = (() => {
     force(song) {
       this.forced = song ? check(song) : null;
       if (typeof Chip !== 'undefined' && Chip.playing) Chip.stop(.2);
-      if (this.forced) { this.pending = null; this.play(this.forced, { fadeIn: .3 }); } else this.stop(.3);
+      if (this.forced) { this.pending = null; this.play(this.forced, { fadeIn: .3 }); }
+      else { this.stop(.3); if (typeof Music !== 'undefined') Music.resume(); }   // the game's own music (the director's) comes back
     },
     stop(fade = .15) {
+      this.want = null;
       if (!this.playing) return;
       this.playing = false; clearInterval(this.timer);
       const now = this.ctx.currentTime;
@@ -698,6 +798,61 @@ const Sampler = (() => {
       this.P = null;
     },
     halt() { if (this.playing) this.stop(.02); },
+    // The song that plays goes on in a deck of its own, fading out over `fade` seconds, and this deck is free to start another: a crossfade.
+    // The old deck lets go of its mixer when it is silent.
+    fadeOut(fade) {
+      const c = this.ctx, now = c.currentTime, g = makeEngine();
+      Object.assign(g, { ctx: c, dest: this.dest, out: this.out, gain: this.gain, mix: this.mix, song: this.song, P: this.P, playing: true, vol: this.vol });
+      g.timer = setInterval(() => g.pump(), 25);
+      const p = g.gain.gain; p.cancelScheduledValues(now); p.setValueAtTime(p.value, now); p.linearRampToValueAtTime(0, now + Math.max(.02, fade));
+      this.ghosts.push(g);
+      setTimeout(() => { g.dispose(); this.ghosts = this.ghosts.filter(x => x !== g); }, fade * 1000 + 400);
+      while (this.ghosts.length > 2) this.ghosts.shift().dispose();
+      clearInterval(this.timer);
+      this.gain = c.createGain(); this.gain.gain.value = this.vol; this.gain.connect(this.out);
+      this.mix = null; this.P = null; this.song = null; this.playing = false;
+    },
+    // done with this deck (a stinger's, or a song that has faded out): stop it and let go of its mixer
+    dispose() {
+      this.want = null;
+      if (this.playing) this.stop(.02);
+      clearInterval(this.timer); this.timer = 0; this.P = null; this.playing = false; this.song = null;
+      const M = this.mix; this.mix = null;
+      if (M) disposeMix(M);
+      try { if (this.gain) this.gain.disconnect(); if (this.own && this.out) this.out.disconnect(); } catch (e) { }
+    },
+    // another player on the same output, for something that plays over the music (a stinger): its own song, mixer and volume
+    // (dispose() it when it is done). null before the audio has started.
+    deck() { if (!this.ctx) return null; const d = makeEngine(); d.init(this.ctx, this.dest); d.own = true; return d; },
+    // this whole deck quieter (level 0..1, 1 = as it is) over `fade` seconds, apart from setVolume: music under a stinger
+    duck(level = 1, { fade = .2 } = {}) { if (this.out) this.out.gain.setTargetAtTime(cl(+level || 0, 0, 1), this.ctx.currentTime, Math.max(.01, fade / 3)); },
+    // One note of a built-in instrument on its own (no song, no mixer): a game's sound effect (Sfx.play). dur: seconds it is held, pitch:
+    // a frequency multiplier, pan -1..1, delay: seconds from now, release: seconds (default: the instrument's own). It goes to `dest`
+    // (default: this deck's output). prepare([id]) first, or the first call makes the instrument on the spot. Returns the voice
+    // ({ end, ... }) or null. Instruments of a song's own samples are not available here.
+    note(id, n, { vel = 100, dur = .4, rate = 32000, pitch = 1, gain = 1, pan = 0, delay = 0, release = null, dest = null } = {}) {
+      const c = this.ctx; if (!c || !DEFS[id]) return null;
+      const inst = instrument(id, RATES.includes(rate) ? rate : 32000, null), kit = !!inst.kit, t = c.currentTime + .005 + Math.max(0, delay);
+      let buffer, rateMul, loop = false, loopStart = 0, loopEnd = 0, zgain = 1;
+      if (kit) { const k = inst.kit[n]; if (!k) return null; buffer = k.buffer; rateMul = k.pitch; }
+      else { const z = zoneFor(inst, n); buffer = z.buffer; rateMul = Math.pow(2, (n - z.root) / 12); loop = z.loop; loopStart = z.loopStart; loopEnd = z.loopEnd || buffer.duration; zgain = z.gain || 1; }
+      const E = kit ? { a: .001, d: .001, s: 1, sd: 0, r: .05 } : release == null ? inst.env : { ...inst.env, r: Math.max(.005, release) };
+      const peak = Math.pow(cl(vel, 1, 127) / 127, 1.5) * inst.gain * zgain * 1.2 * gain, off = kit ? Infinity : Math.max(.005, dur);
+      const src = c.createBufferSource(), gn = c.createGain();
+      src.buffer = buffer; src.playbackRate.value = rateMul * pitch;
+      if (loop) { src.loop = true; src.loopStart = loopStart; src.loopEnd = loopEnd; }
+      src.connect(gn);
+      let tail = gn;
+      if (pan && c.createStereoPanner) { const sp = c.createStereoPanner(); sp.pan.value = cl(pan, -1, 1); gn.connect(sp); tail = sp; }
+      tail.connect(dest || this.out);
+      scheduleEnv(gn.gain, E, peak, t, off);
+      const v = { src, gn, lfo: null, E, peak, t0: t, off, ti: -1, choke: 0, kit, end: Infinity, relAt: undefined };
+      src.start(t);
+      if (kit) { v.end = t + buffer.duration / (rateMul * pitch); src.stop(v.end + .01); }
+      else { gn.gain.setTargetAtTime(0, t + off, Math.max(E.r / 4, 1e-3)); v.relAt = t + off; v.end = v.relAt + E.r * 1.6 + .02; src.stop(v.end); }
+      v.cut = at => { cut(v, Math.max(at ?? 0, c.currentTime)); };
+      return v;
+    },
     pump() {
       const P = this.P, song = this.song; if (!P || !song) return;
       const end = songEnd(song), lp = song.loop, target = this.ctx.currentTime + LEAD, at = k => secAt(song, k);
@@ -767,6 +922,6 @@ const Sampler = (() => {
       }
       return ctx.startRendering();
     }
-  };
-  return E;
+  });
+  return makeEngine();
 })();
