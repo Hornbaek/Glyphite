@@ -17,6 +17,7 @@ const STEEL = defineMaterial('steel', { albedo: [.55, .6, .68], tough: 5, brittl
 const LADDER = defineMaterial('ladder', { albedo: [.62, .46, .26], tough: 5, climbable: true, style: 'mast' });
 const LOWG = defineMaterial('low-gravity glow', { albedo: [.22, .3, .55], tough: 5, style: 'flat' });
 const WATER = defineMaterial('water', { albedo: [.22, .5, .9], liquid: true, viscosity: .05, density: 1, shades: 4 });   // a liquid: the hero swims in it
+const SNOW = defineMaterial('snow', { albedo: [.94, .96, 1], granular: true, tough: .1, grains: '.:' });   // what the weather tunable's snow piles up as
 worldMaterials({ edge: ROCK, rubble: RUBBLE });
 
 // ---------- pixel art: small enough to type, drawn at 0.5 base units per pixel ----------
@@ -40,7 +41,9 @@ const SLIME = defineAnim([
   ['..........', '..000000..', '.01222210.', '0131113110', '0111111110', '.00000000.']
 ].map(rows => defineSprite({ w: 10, h: 6, pal: SLIME_PAL, rows }, { k: .5, ox: 5, oy: 6 })), { fps: 4 });
 const COIN_SPR = defineSprite({ w: 5, h: 5, pal: [[110, 70, 10, 0], [250, 200, 50, 1], [255, 240, 150, 1]], rows: ['.000.', '01120', '01120', '01110', '.000.'] }, { k: .5, ox: 2.5, oy: 5 });
-const TORCH_SPR = defineSprite({ w: 3, h: 7, pal: [[255, 150, 40, 1], [255, 230, 120, 1], [90, 60, 40, 1]], rows: ['.1.', '101', '.0.', '.2.', '.2.', '.2.', '.2.'] }, { k: .5, ox: 1.5, oy: 7 });
+// the flame's pixels glow (the emit layer, E3): they are their own colour at any hour and give a little light of their own, on top of the torch's lamp
+const TORCH_SPR = defineSprite({ w: 3, h: 7, pal: [[255, 150, 40, 1], [255, 230, 120, 1], [90, 60, 40, 1]], rows: ['.1.', '101', '.0.', '.2.', '.2.', '.2.', '.2.'],
+  emit: ['.9.', '999', '.9.', '...', '...', '...', '...'] }, { k: .5, ox: 1.5, oy: 7, glow: 4, glowGain: .3 });
 const FLAG_PAL = [[40, 40, 50, 0], [90, 90, 100, 1], [230, 70, 60, 1]];   // the cloth is swapped for green with drawSprite's palette option
 const FLAG_SPR = defineSprite({ w: 7, h: 12, pal: FLAG_PAL, rows: ['0000000', '0222200', '0222220', '0222200', '0222000', '0100000', '0100000', '0100000', '0100000', '0100000', '0100000', '0110000'] }, { k: .5, ox: 3.5, oy: 12 });
 const FLAG_ON = [[40, 40, 50], [90, 90, 100], [70, 220, 110]];

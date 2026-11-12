@@ -387,6 +387,9 @@ test('E8 the time of day: options stay, sky and ambient can be left to the game,
   E.run('setSkyGradient(null); setTimeOfDay(12, { sky: false })'); assert.equal(E.run('SKYG.on'), false, 'sky: false leaves the sky alone');
   E.run('setTimeOfDay(12, { sky: true, rate: 2 })'); E.run('stepWeather(.5)'); assert.equal(E.run('TOD.h'), 13, 'rate: 2 hours a second: half a second is an hour');
   E.run('setTimeOfDay(12, { rate: 0 })'); E.run('stepWeather(5)'); assert.equal(E.run('TOD.h'), 12, 'rate 0 stops it');
+  E.run('setTimeOfDay(12, { rate: 1 }); setSun(33); setAmbient([.2, .2, .2])'); assert.equal(E.run('setTimeOfDay(null)'), null);
+  assert.deepEqual(JSON.parse(JSON.stringify(E.run('[SKYG.on, TOD.on, TOD.rate, SUN_EL]'))), [false, false, 0, 33], 'null: the clock stops and the sky goes, and the sun and ambient are left to the game');
+  E.run('stepWeather(5)'); assert.equal(E.run('SUN_EL'), 33, 'and nothing moves them any more');
 });
 
 test('E8 a game that never calls any of it is untouched: no sky, no fog, no wind, no weather, and no particle types made', () => {

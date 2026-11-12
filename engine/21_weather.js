@@ -151,6 +151,7 @@ function todShape(h) {
   return { u, up, alt, sunI: smooth01(alt / .16), far: smooth01(alt / .5), d: smooth01(alt / .35), tw: Math.max(0, 1 - Math.abs(h - TOD.rise) / 1.5, 1 - Math.abs(h - TOD.set) / 1.5) };
 }
 function setTimeOfDay(hour, o) {
+  if (hour === null) { TOD.on = false; TOD.rate = 0; setSkyGradient(null); return null; }   // off: the clock stops and the sky's gradient goes; the sun and the ambient light stay as they were
   if (o) {
     devKeys('setTimeOfDay', o, ['sunrise', 'sunset', 'rate', 'sky', 'ambient', 'sun', 'horizon']);
     if (o.sunrise !== undefined) TOD.rise = +o.sunrise; if (o.sunset !== undefined) TOD.set = +o.sunset; if (o.horizon !== undefined) TOD.horizon = +o.horizon;

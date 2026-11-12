@@ -155,7 +155,9 @@ async def main():
         lit = await page.evaluate("""(() => {
           const px = (cx, cy) => { const k = (cy - L_OY) * R.RW + (cx - L_OX) , q = k * 4; return [R.wPix[q], R.wPix[q + 1], R.wPix[q + 2]]; };
           const lum = c => .3 * c[0] + .59 * c[1] + .11 * c[2], at = (cx, cy) => lightAtCell(cx, cy, [0, 0, 0]);
-          const col = 118 * 8 + 4, top = px(col, 19 * 8), below = px(col, 19 * 8 + 3), deep = px(col, 21 * 8 + 4);
+          // the top row is the first water cell of the column: the surface is not always on row 19 * 8 (it sloshes for a moment after the hero has been thrashing about in it)
+          const col = 118 * 8 + 4; let y0 = 17 * 8; while (y0 < 22 * 8 && !MAT_LIQ[getC(col, y0)]) y0++;
+          const top = px(col, y0), below = px(col, y0 + 3), deep = px(col, 21 * 8 + 4);
           return { top, below, deep, ltop: at(col, 19 * 8 + 2), ldeep: at(col, 21 * 8 + 4), topRowBrighter: lum(top) > lum(below) };
         })()""")
         check(lit['top'][2] > lit['top'][0] and lit['deep'][2] > lit['deep'][0], f"the water is drawn blue ({lit['top']}, {lit['deep']})")

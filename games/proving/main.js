@@ -51,10 +51,14 @@ Pixelite.run({
     [{ label: '[B]', aria: 'Bomb', hold: 'bomb' }, { label: '[D]', aria: 'Dig', hold: 'dig' }, { label: '[JUMP]', aria: 'Jump', hold: 'jump' }]],
   detail: { levels: [2], default: 2 },
   stars: 0,
-  // a daytime sky: a gradient and slow clouds, on the engine's sky layer
+  zoom: { min: .5, max: 3 },   // the mouse wheel and a pinch zoom the view (E7)
+  drawFront: lookFront,        // the grass the hero walks behind (look.js)
+  // a daytime sky: a gradient and slow clouds, on the engine's sky layer. With the day and night tunable on, the engine paints the gradient and the stars (setTimeOfDay)
+  // and this paints the clouds only, as bright as the hour
   skyBegin(ox, oy, t) { SKY_AT[0] = ox; SKY_AT[1] = oy; SKY_AT[2] = t; },
   sky(i, j, out) {
     const u = j / R.RH, cl = vnoise2((SKY_AT[0] + i) * .012 + SKY_AT[2] * .15, (SKY_AT[1] + j) * .035, 4) > .66 + .2 * u ? .45 : 0;
+    if (TUNE.daylight) { if (!cl) return 0; const d = .2 + .8 * daylightNow(); out[0] = .85 * d; out[1] = .88 * d; out[2] = 1.05 * d; return SOLID; }
     out[0] = .3 + .45 * u + cl; out[1] = .55 + .35 * u + cl; out[2] = 1.3 + cl * .3; return SOLID;
   },
   init() { setGravity(TUNE.gravity); newLevel(false); setState('title'); },
@@ -73,6 +77,7 @@ Pixelite.run({
   },
   onTune(key, v) {
     if (key === 'gravity') setGravity(v);
+    else if (LOOK_KEYS.has(key)) applyLook();
     else if (HERO_E) { const o = HERO_E.char.o; if (key === 'runSpeed') o.run = v * RES; else if (key === 'jumpHeight') o.jump = v * RES; else if (key === 'coyote') o.coyote = v; else if (key === 'buffer') o.buffer = v; else if (key === 'wallJump') { o.wallJump = v ? [18 * RES, 9 * RES] : null; o.wallSlide = v ? 8 * RES : 0; } }
   },
   probe: () => ({ stats: { ...STATS }, hint: !!HINT, hero: HERO_E && { x: +HERO_E.x.toFixed(1), y: +HERO_E.y.toFixed(1), vx: +HERO_E.char.vx.toFixed(1), vy: +HERO_E.char.vy.toFixed(1), ground: HERO_E.char.onGround, climbing: HERO_E.char.climbing,
