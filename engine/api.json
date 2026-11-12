@@ -166,6 +166,11 @@
    "params": 3,
    "part": "06_scene.js"
   },
+  "addBackdrop": {
+   "kind": "function",
+   "params": 1,
+   "part": "06_scene.js"
+  },
   "addGravityZone": {
    "kind": "function",
    "params": 1,
@@ -290,6 +295,16 @@
    "kind": "value",
    "params": null,
    "part": "01_core.js"
+  },
+  "backdropAlloc": {
+   "kind": "function",
+   "params": 1,
+   "part": "06_scene.js"
+  },
+  "BACKDROPS": {
+   "kind": "value",
+   "params": null,
+   "part": "06_scene.js"
   },
   "backShadowOffsets": {
    "kind": "function",
@@ -546,6 +561,11 @@
    "params": 3,
    "part": "01_core.js"
   },
+  "clearBackdrops": {
+   "kind": "function",
+   "params": 0,
+   "part": "06_scene.js"
+  },
   "clearDyn": {
    "kind": "function",
    "params": 0,
@@ -713,7 +733,7 @@
   },
   "drawEntities": {
    "kind": "function",
-   "params": 1,
+   "params": 2,
    "part": "14_entities.js"
   },
   "drawFeed": {
@@ -738,7 +758,7 @@
   },
   "drawProps": {
    "kind": "function",
-   "params": 0,
+   "params": 1,
    "part": "15_world.js"
   },
   "drawShell": {
@@ -1771,10 +1791,20 @@
    "params": 4,
    "part": "20_reactions.js"
   },
+  "removeBackdrop": {
+   "kind": "function",
+   "params": 1,
+   "part": "06_scene.js"
+  },
   "removePlatform": {
    "kind": "function",
    "params": 1,
    "part": "09_structures.js"
+  },
+  "renderBackdrops": {
+   "kind": "function",
+   "params": 1,
+   "part": "06_scene.js"
   },
   "renderInit": {
    "kind": "function",

@@ -159,7 +159,7 @@ function worldInit(w, h) {
   // a new world starts clean: no flying particles, effects, falling chunks or mounted objects
   P.n = 0; FX.rings.length = 0; FX.lights.length = 0; FX.texts.length = 0;
   chunks = []; rechecks = []; mounts.length = 0; slabs.length = 0;
-  entities.length = 0; PROPS.length = 0; triggers.length = 0; gravityZones.length = 0; TIMERS.length = 0; TWEENS.length = 0; _hashAt = -1;   // a new world starts empty of everything that lived in the old one
+  entities.length = 0; PROPS.length = 0; triggers.length = 0; gravityZones.length = 0; TIMERS.length = 0; TWEENS.length = 0; BACKDROPS.length = 0; _hashAt = -1;   // a new world starts empty of everything that lived in the old one
 }
 function getC(x, y) { if (x < 0 || x >= W) return EDGE_MAT; if (y < 0) return EMPTY; if (y >= H) return EDGE_MAT; return cells[y * W + x]; }
 function wakeAt(x, y) {

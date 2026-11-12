@@ -47,6 +47,7 @@ Pixelite.run({
   markDyn() {},           // mark moving bodies as shadow casters; return the top row they cover (or 1e9)
   lights(t, out) {},      // push this frame's lights (see Lighting)
   draw(t) {},             // draw game objects into the world grid (putEmit, putLit, drawSprite)
+  drawFront(t) {},        // the front pass: drawn after everything above, so the hero walks behind it (see Layers in front and far behind)
   hud(t) {},              // draw the HUD (hudText, msgBox...)
   afterFrame(t) {},       // after presenting (music, DOM)
   onKey(code) {},         // one-shot key presses (KeyboardEvent.code) the built-in keys did not take
@@ -73,7 +74,8 @@ Pixelite.run({
 chunks, particles, sand, heat, effects) → camera.
 
 **One frame** (`draw(t)`): skyline → dynamic marks (chunks, then `GAME.markDyn`) → lighting (`GAME.lights` + entities' lights +
-effect lights) → scene (terrain, particles, chunks, then props, entities, the state's `draw`, `GAME.draw`, then shock rings) →
+effect lights) → scene (terrain, particles, chunks, then props, entities, the state's `draw`, `GAME.draw`, the front pass (front props and entities, the state's and
+`GAME.drawFront`), then shock rings) →
 HUD (`GAME.hud`, the state's `hud`, floating texts, the shell, the message feed) → present → `GAME.afterFrame`.
 
 **State**: the globals `state` (string) and `stateT` (seconds in it). `setState('play')` switches and resets `stateT`.
@@ -512,6 +514,31 @@ the light of nearby lamps and flashes, read from the frame's light buffer minus 
 sky cell and returns a cell code (0 = nothing, -1 = dark body that hides stars, `SOLID` or a character's brightness, see
 Cell codes) with `out = [r, g, b]`. Stars are single pixels.
 See `earthBegin` / `earthCell` in `games/regolith/view.js`.
+
+## Layers in front and far behind
+
+**The front pass.** Everything a game draws lands over the terrain, in this order: props, entities, the state's `draw`, `GAME.draw`. The **front pass** comes after
+all of it, so a character walks behind what is drawn there: front props (a tile map legend entry `{ prop: GRASS, front: true }`), entities defined with `front: true`
+(`defineEntity('pillar', { front: true, sprite })`), the state's `drawFront(t)` and `GAME.drawFront(t)`. They write cells and sprites the same way (`putEmit`,
+`putLit`, `drawSprite`); in the front pass they cover the game's own objects, particles and the terrain, never the HUD.
+
+**Backdrops** are layers between the sky and the world: hills, a far city, mountains. Each has a grid of its own scrolled by the camera times its `parallax`, with the
+sky layer's sub-cell offset (so it glides instead of stepping a cell at a time, in both renderers), and shows behind every world cell that is empty: the back wall,
+the terrain and everything drawn cover it, and the sky shows through where it paints nothing. The first one added is the farthest; at most three.
+```js
+addBackdrop({ parallax: .35, horizon: 24 * 8 * RES,                  // 0 holds still on the screen, 1 moves with the world; horizon: a world row (see below)
+  paint(gx, dy, out, t) { const top = -14 * RES - 6 * RES * vnoise1(gx * .03, 5); if (dy < top) return 0; out[0] = .1; out[1] = .25; out[2] = .35; return SOLID; } });
+addBackdrop({ underground: [.02, .02, .05] });                      // a dark wall below the skyline: a cave and the ground show no stars
+```
+`paint(gx, dy, out, t)` is asked for every cell when the layer is rebuilt: `gx` is the column in the layer's own space (it scrolls by `cam.x × parallax`, so a hill that
+is a function of `gx` stays put), `dy` the row; it returns a cell code (0 = nothing, `SOLID`, or a character's brightness) with `out = [r, g, b]` in light units, as
+`GAME.sky` does. Backdrop colours are the painter's own (not lit), baked with the exposure and the vignette like the sky. `horizon` (a world row in units, scaled by RES) makes
+`dy = 0` the layer's row that stands where that world row does when the camera is centred on it: hills painted below `dy = 0` sit on the ground of a level whose ground is
+at that row, whatever the parallax; without it `dy` is the layer's own row. `parallax` may be `[x, y]`. `begin(ox, oy, t)` runs before each rebuild; `animate: 4` rebuilds that
+many times a second even when the layer has not scrolled (drifting clouds); `key: (ox, oy) => value` rebuilds when the value changes (a layer that follows the time of day).
+A layer is rebuilt when it has scrolled a whole cell, so keep `paint` cheap (it runs for about 64 000 cells at 1280 × 800: 1 to 3 ms). `removeBackdrop(layer)`, `clearBackdrops()`;
+`worldInit` clears them like everything else that belongs to a world (the detail rescale keeps them). `underground: [r, g, b]` (with `grain`) is a built-in painter at
+parallax 1 for the cells under the world's skyline (`colTop`): the answer to stars showing in a cave.
 
 ## HUD
 

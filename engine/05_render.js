@@ -64,10 +64,12 @@ precision highp float;
 #else
 precision mediump float;
 #endif
-uniform sampler2D uFont, uWorld, uShim, uHud, uBloom, uSky;
-uniform vec2 uCanvas, uCell, uHCell, uWorldN, uHudN, uOff, uSkyOff, uFontN;
+uniform sampler2D uFont, uWorld, uShim, uHud, uBloom, uSky, uBack;
+uniform vec2 uCanvas, uCell, uHCell, uWorldN, uHudN, uOff, uSkyOff, uFontN, uBackOff0, uBackOff1, uBackOff2;
 uniform vec3 uBg;
-uniform float uBloomOn, uHS;
+uniform float uBloomOn, uHS, uBackN;
+// a backdrop layer (engine/06_scene.js): layer q of the atlas, its own sub-cell scroll
+vec4 back(vec2 p, vec2 off, float q) { return texture2D(uBack, (floor((p - off) / uCell) + vec2(0.5, 0.5 + q * uWorldN.y)) / vec2(uWorldN.x, uWorldN.y * uBackN)); }
 void main() {
   vec2 px = vec2(gl_FragCoord.x, uCanvas.y - gl_FragCoord.y);
   vec2 hc = floor(px / uHCell);
@@ -90,8 +92,12 @@ void main() {
   vec2 wc = floor((wp - vec2(sh, 0.0)) / uCell);
   vec4 w = texture2D(uWorld, (wc + 0.5) / uWorldN);
   vec3 col = w.rgb;
-  if (w.a < 0.5) {                    // nothing in the world here: look through to the sky layer
-    vec4 s = texture2D(uSky, (floor((px - uSkyOff) / uCell) + 0.5) / uWorldN);
+  if (w.a < 0.5) {                    // nothing in the world here: look through the backdrops (nearest first) to the sky layer
+    vec4 s = vec4(0.0);
+    if (uBackN > 2.5) s = back(px, uBackOff2, 2.0);
+    if (s.a < 0.5 && uBackN > 1.5) s = back(px, uBackOff1, 1.0);
+    if (s.a < 0.5 && uBackN > 0.5) s = back(px, uBackOff0, 0.0);
+    if (s.a < 0.5) s = texture2D(uSky, (floor((px - uSkyOff) / uCell) + 0.5) / uWorldN);
     col = s.a > 0.5 ? s.rgb : uBg;
   }
   if (uBloomOn > 0.5) {
@@ -134,9 +140,9 @@ function glSetup(canvas, forced) {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     const U = {};
-    for (const n of ['uFont', 'uWorld', 'uShim', 'uHud', 'uBloom', 'uSky', 'uCanvas', 'uCell', 'uHCell', 'uWorldN', 'uHudN', 'uOff', 'uSkyOff', 'uFontN', 'uBg', 'uBloomOn', 'uHS']) U[n] = gl.getUniformLocation(prog, n);
+    for (const n of ['uFont', 'uWorld', 'uShim', 'uHud', 'uBloom', 'uSky', 'uBack', 'uCanvas', 'uCell', 'uHCell', 'uWorldN', 'uHudN', 'uOff', 'uSkyOff', 'uFontN', 'uBg', 'uBloomOn', 'uHS', 'uBackN', 'uBackOff0', 'uBackOff1', 'uBackOff2']) U[n] = gl.getUniformLocation(prog, n);
     const T = {};
-    ['uFont', 'uWorld', 'uShim', 'uHud', 'uBloom', 'uSky'].forEach((name, unit) => {
+    ['uFont', 'uWorld', 'uShim', 'uHud', 'uBloom', 'uSky', 'uBack'].forEach((name, unit) => {
       const t = gl.createTexture(), f = name === 'uBloom' ? gl.LINEAR : gl.NEAREST;
       gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, f); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, f);
@@ -151,6 +157,8 @@ function glSetup(canvas, forced) {
     gl.activeTexture(gl.TEXTURE0 + T.uFont.unit); gl.bindTexture(gl.TEXTURE_2D, T.uFont.tex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, font);
     gl.uniform2f(U.uFontN, font.width, font.height);
+    gl.activeTexture(gl.TEXTURE0 + T.uBack.unit); gl.bindTexture(gl.TEXTURE_2D, T.uBack.tex);   // the backdrops' atlas starts as one empty pixel (a complete texture, though nothing samples it until a layer exists)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4)); T.uBack.w = T.uBack.h = 1; T.uBack.fmt = gl.RGBA;
     canvas.addEventListener('webglcontextlost', e => e.preventDefault());
     return true;
   } catch (e) { console.warn('WebGL renderer unavailable; using 2D canvas.', e); return false; }
@@ -278,6 +286,7 @@ function presentFrame(fracX, fracY, time) {
   const sx = s ? (vnoise1(time * 23, 3) * 2 - 1) * s : 0, sy = s ? (vnoise1(time * 23, 9) * 2 - 1) * s : 0;
   const dx = Math.round(-(1 + fracX) * R.cw + sx), dy = Math.round(-(1 + fracY) * R.chh + sy);
   const sdx = Math.round(-(1 + R.skyFX) * R.cw + sx), sdy = Math.round(-(1 + R.skyFY) * R.chh + sy);
+  for (const L of BACKDROPS) { L.dx = Math.round(-(1 + L.fx) * R.cw + sx); L.dy = Math.round(-(1 + L.fy) * R.chh + sy); }   // each backdrop's own offset, as the sky's
   if (R.mode === 'gl') presentGL(dx, dy, sdx, sdy, time); else present2D(dx, dy, sdx, sdy, time);
   if (PERF.sync) perfFlush();
 }
@@ -288,6 +297,18 @@ function presentGL(dx, dy, sdx, sdy, time) {
   gl.viewport(0, 0, R.canvas.width, R.canvas.height);
   glTex('uWorld', RW, RH, gl.RGBA, R.wPix);
   if (R.skyDirty || R.glT.uSky.w !== RW || R.glT.uSky.h !== RH) { glTex('uSky', RW, RH, gl.RGBA, R.sPix); R.skyDirty = false; }
+  const nb = BACKDROPS.length;
+  if (nb) {   // the backdrops are stacked into one texture, one layer after another; a layer is uploaded when it was rebuilt
+    const B = R.glT.uBack;
+    if (B.w !== RW || B.h !== nb * RH) { glTex('uBack', RW, nb * RH, gl.RGBA, null); for (const L of BACKDROPS) L.dirty = true; }
+    BACKDROPS.forEach((L, q) => {
+      if (!L.dirty || !L.pix) return;   // (a layer added after this frame's scene pass has nothing to show yet)
+      gl.activeTexture(gl.TEXTURE0 + B.unit); gl.bindTexture(gl.TEXTURE_2D, B.tex);
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, q * RH, RW, RH, gl.RGBA, gl.UNSIGNED_BYTE, L.pix); L.dirty = false;
+    });
+    for (let q = 0; q < 3; q++) { const L = BACKDROPS[q]; gl.uniform2f(U['uBackOff' + q], L ? L.dx : 0, L ? L.dy : 0); }
+  }
+  gl.uniform1f(U.uBackN, nb);
   const SH = R.wShim, SP = R.shimPix;
   for (let j = 0, k = 0; j < RH; j++) for (let i = 0; i < RW; i++, k++) SP[k] = SH[k] > .05 ? clamp(128 + Math.round(shimShift(k, i, j, time) * 8), 0, 255) : 128;
   glTex('uShim', RW, RH, gl.LUMINANCE, SP);
@@ -310,6 +331,7 @@ function present2D(dx, dy, sdx, sdy, time) {
   ctx.fillStyle = `rgb(${BG[0]},${BG[1]},${BG[2]})`; ctx.fillRect(0, 0, R.canvas.width, R.canvas.height);
   if (R.skyDirty) { R.sCtx.putImageData(R.sImg, 0, 0); R.skyDirty = false; }
   ctx.drawImage(R.sCv, sdx, sdy, RW * cw, RH * chh);
+  for (const L of BACKDROPS) { if (!L.cv) continue; if (L.dirty) { L.ctx.putImageData(L.img, 0, 0); L.dirty = false; } ctx.drawImage(L.cv, L.dx, L.dy, RW * cw, RH * chh); }   // the backdrops, farthest first, over the sky and under the world
   R.wCtx.putImageData(R.wImg, 0, 0);
   ctx.drawImage(R.wCv, dx, dy, RW * cw, RH * chh);
   const SH = R.wShim;   // heat haze: shimmering cells drawn again, pushed sideways

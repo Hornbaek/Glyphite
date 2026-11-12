@@ -307,6 +307,7 @@ There are three grids:
 | Grid | Contents | Scrolling |
 |---|---|---|
 | **Sky** (`R.sG`, `R.sPix`) | stars and the game's sky bodies (Regolith's Earth) | its own sub-cell offset `R.skyFX/FY`, drifting at `SKY_PAR = 0.05` of the camera |
+| **Backdrops** (`BACKDROPS`, up to 3; each `L.pix`) | hills, a far city, a dark wall below the skyline (`addBackdrop`, `engine/06_scene.js`) | one sub-cell offset each (`L.fx/fy`), drifting at their `parallax` of the camera; between the sky and the world |
 | **World** (`R.wG`, `R.wPix`, size `RW × RH` = screen + 1 margin cell each side) | terrain, particles, objects | the camera's sub-cell offset; `ox, oy = floor(cam) - 1` |
 | **HUD** (`R.hG`, `R.hC`) | text | fixed; coarser cells (`R.hcw`) so text is readable at any detail level |
 
@@ -330,14 +331,15 @@ many characters). No web font is loaded.
 **WebGL path.** One full-screen triangle. The fragment shader works per pixel:
 1. If a HUD cell is there, draw its character from the font texture (scaled by `uHS`) over the background.
 2. Otherwise sample the world grid at `pixel - uOff`, moved sideways by the heat shimmer (`uShim`, up to 0.6 of a cell). If
-   the cell is empty, sample the sky grid at `pixel - uSkyOff`; if that is empty too, the background colour.
+   the cell is empty, sample the backdrop layers, nearest first (one atlas texture `uBack`, the layers stacked, each with its own offset `uBackOff0..2`, `uBackN` of them), then the
+   sky grid at `pixel - uSkyOff`; if that is empty too, the background colour.
 3. Add optional bloom from a separate bright-pass texture.
 
-The sky texture is uploaded only when it changes. If the renderer string matches
+The sky texture is uploaded only when it changes, a backdrop's rows of the atlas when that layer was rebuilt. If the renderer string matches
 SwiftShader, llvmpipe and similar, WebGL is dropped for 2D unless `#gl` forces it.
 
-**2D path.** The sky and the world are each one canvas with a pixel per cell, drawn scaled up without smoothing over the
-background colour (the sky only when it changed); cells that shimmer are drawn once more, pushed sideways; then bloom, then the
+**2D path.** The sky, each backdrop and the world are each one canvas with a pixel per cell, drawn scaled up without smoothing over the
+background colour (the sky and a backdrop only when they changed), in that order; cells that shimmer are drawn once more, pushed sideways; then bloom, then the
 HUD: font characters from a tinted, pre-scaled copy of the font, and full blocks as plain rectangles.
 
 `presentFrame(fracX, fracY, t)` computes both pixel offsets plus screen shake and calls the active
@@ -361,7 +363,8 @@ path.
    Shiny glints are single white pixels.
 3. Particles, lit by the light buffers and z-tested by luminance against the terrain.
 4. Falling chunks (`drawChunks`), then game objects through the game's `draw` hook, which writes with
-   `putEmit` (fixed colour), `putLit` (albedo × light) or `drawSprite`.
+   `putEmit` (fixed colour), `putLit` (albedo × light) or `drawSprite`; then the **front pass** in the same way (front props and
+   entities, the state's and the game's `drawFront`), which covers all of it.
 5. Shock rings.
 6. Tone map `tone(c × E) = 1 - exp(-1.7·c·E)` and vignette into bytes, plus the bloom bright-pass. `E` is the exposure of
    the eye adaptation (`adaptEye`): the geometric mean luminance of the visible cells is measured *before* the tone map (so
