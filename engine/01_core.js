@@ -10,10 +10,10 @@ const ASPECT = 1;              // cell height in units: cells are square (the AS
 // Everything physical (sizes, speeds, radii) is authored in base units and
 // multiplied by RES, so a finer grid adds detail instead of zooming out.
 const DETAIL_LEVELS = [1, 1.5, 2, 2.5, 3];
-let RES = 2, UNIT_M = .25, G = 6.48, GRAVITY = 1.62;
-// G is gravity in world units/s^2 (downward); GRAVITY is the same in m/s^2, set by the game
-function setResVars(r) { RES = r; UNIT_M = .5 / r; G = GRAVITY / UNIT_M; }
-function setGravity(mps2) { GRAVITY = mps2; G = GRAVITY / UNIT_M; }
+let RES = 2, UNIT_M = .25, G = 6.48, GRAVITY = 1.62, GX = 0, GRAVITY_X = 0;
+// G is gravity in world units/s^2 (downward); GRAVITY is the same in m/s^2, set by the game. GX pulls sideways (bodies and particles only)
+function setResVars(r) { RES = r; UNIT_M = .5 / r; G = GRAVITY / UNIT_M; GX = GRAVITY_X / UNIT_M; }
+function setGravity(mps2, sideways = 0) { GRAVITY = mps2; GRAVITY_X = sideways; G = GRAVITY / UNIT_M; GX = GRAVITY_X / UNIT_M; }
 setResVars(2);
 const DT = 1 / 60;
 let GAME = {};   // the running game's hooks (set by Pixelite.run)
@@ -53,6 +53,7 @@ const MAT_SHINY = new Float32Array(MAT_MAX), MAT_FRIC = new Float32Array(MAT_MAX
 const MAT_BRITTLE = new Uint8Array(MAT_MAX), MAT_ANCHOR = new Uint8Array(MAT_MAX), MAT_STYLE = new Uint8Array(MAT_MAX), MAT_SHADES = new Uint8Array(MAT_MAX);
 const MAT_DEBRIS = new Uint8Array(MAT_MAX), MAT_SUBL = new Float32Array(MAT_MAX), MAT_VAPOR = new Uint8Array(MAT_MAX);
 const MAT_FUSE = new Uint8Array(MAT_MAX), MAT_FUSEP = new Float32Array(MAT_MAX), MAT_EJECT = new Uint8Array(MAT_MAX), MAT_ONEWAY = new Uint8Array(MAT_MAX);
+const MAT_CLIMB = new Uint8Array(MAT_MAX), MAT_HAZ = new Float32Array(MAT_MAX), MAT_GRIP = new Float32Array(MAT_MAX).fill(1), MAT_CONV = new Float32Array(MAT_MAX), MAT_BOUNCY = new Float32Array(MAT_MAX);
 const STYLE = { terrain: 0, deck: 1, mast: 2, crystal: 3, flat: 4 };
 const MAT_DEFAULTS = {
   albedo: [.6, .6, .6],     // surface colour under white light
@@ -68,8 +69,16 @@ const MAT_DEFAULTS = {
   anchor: false,            // never falls: supports any structure touching it
   oneWay: false,            // characters land on it from above, jump up through it and drop down through it (Character);
                             // to everything else (sand, particles, light, chunks) it is solid
+  climbable: false,         // a Character can climb it (ladders, vines, ropes): it is not solid to a Character, and inside it up and down climb.
+                            // Works in the world grid and in the back wall (a ladder painted on the wall behind a room)
+  hazard: 0,                // damage per second to a Character touching it or inside it (spikes, lava, a live cable): Character.hazard
+  grip: 1,                  // 0..1, how well a Character's feet hold on it (ice .08): scales its acceleration and braking
+  conveyor: 0,              // base units/s along the surface (negative = left): carries a Character, a Body and sand standing on it
+  bouncy: 0,                // > 0: a Character landing on it is thrown back up at that share of its impact speed (at least Character's
+                            // `bounceMin`); a Body bounces on it with that restitution (springs, rubber pads, trampolines)
   style: 'terrain',         // 'terrain' | 'deck' | 'mast' | 'crystal' | 'flat' (see renderScene)
-  grainGlyphs: ".,'`:",     // its flying grains: one picked per grain, as bright as the character is dense (see INK)
+  grainGlyphs: ".,'`:",     // its flying grains: one picked per grain, as bright as the character is dense (see INK); `grains` is the same
+  grains: null,
   debris: false,            // its grains fly as heavier, bouncier debris
   sublimate: 0,             // chance per exhaust hit to turn into vapour
   vaporize: false,          // blasts turn it into vapour instead of grains
@@ -91,13 +100,14 @@ function setMaterial(id, opts) { applyMaterial({ ...MATS[id], ...opts, id }); }
 function applyMaterial(m) {
   const id = m.id;
   if (!(m.style in STYLE)) throw new Error(`material ${m.name}: unknown style ${m.style}`);
-  MATS[id] = m; MAT_NAME[id] = m.name; MAT_ALB[id] = m.albedo; MAT_GRAINS[id] = m.grainGlyphs;
+  MATS[id] = m; MAT_NAME[id] = m.name; MAT_ALB[id] = m.albedo; MAT_GRAINS[id] = m.grains || m.grainGlyphs;
   MAT_GLOWS[id] = m.glow; MAT_PULSE[id] = m.pulse || [.2, .9, .75]; MAT_BEATGLOW[id] = m.beatGlow;
   MAT_SHADES[id] = clamp(m.shades | 0, 2, 16);
   // a palette's bytes in light units, so that after tone mapping the material shows exactly those colours
   MAT_PAL[id] = m.palette ? m.palette.map(c => c.map(v => -Math.log(1 - Math.min(.97, v / 255)) / 1.7)) : null;
   MAT_GRAN[id] = m.granular ? 1 : 0; MAT_CREEP[id] = m.creep ? 1 : 0; MAT_TOUGH[id] = m.tough; MAT_SHINY[id] = m.shiny;
   MAT_FRIC[id] = m.friction; MAT_DENS[id] = m.density; MAT_BRITTLE[id] = m.brittle ? 1 : 0; MAT_ANCHOR[id] = m.anchor ? 1 : 0; MAT_ONEWAY[id] = m.oneWay ? 1 : 0;
+  MAT_CLIMB[id] = m.climbable ? 1 : 0; MAT_HAZ[id] = m.hazard || 0; MAT_GRIP[id] = m.grip ?? 1; MAT_CONV[id] = m.conveyor || 0; MAT_BOUNCY[id] = m.bouncy || 0;
   MAT_STYLE[id] = STYLE[m.style]; MAT_DEBRIS[id] = m.debris ? 1 : 0; MAT_SUBL[id] = m.sublimate; MAT_VAPOR[id] = m.vaporize ? 1 : 0;
   MAT_FUSE[id] = m.fuseTo; MAT_FUSEP[id] = m.fuseChance; MAT_EJECT[id] = m.ejecta || (m.granular ? id : 0);
 }
@@ -124,6 +134,7 @@ function worldInit(w, h) {
   // a new world starts clean: no flying particles, effects, falling chunks or mounted objects
   P.n = 0; FX.rings.length = 0; FX.lights.length = 0; FX.texts.length = 0;
   chunks = []; rechecks = []; mounts.length = 0; slabs.length = 0;
+  entities.length = 0; PROPS.length = 0; triggers.length = 0; gravityZones.length = 0; TIMERS.length = 0; TWEENS.length = 0; _hashAt = -1;   // a new world starts empty of everything that lived in the old one
 }
 function getC(x, y) { if (x < 0 || x >= W) return EDGE_MAT; if (y < 0) return EMPTY; if (y >= H) return EDGE_MAT; return cells[y * W + x]; }
 function wakeAt(x, y) {
@@ -185,6 +196,12 @@ function simGranular() {
           cells[row + x] = EMPTY; wakeAt(x, y);
           if (!spawnGrain(x + .5, (y + .5) * ASPECT, rr(-.3, .3) * RES, 0, m)) { cells[row + W + x] = m; wakeAt(x, y + 1); }
           continue;
+        }
+        const cv = MAT_CONV[cells[row + W + x]];   // resting on a conveyor: carried along, a row of sand at a time
+        if (cv) {
+          const nx = x + (cv > 0 ? 1 : -1);
+          if (nx >= 0 && nx < W && cells[row + nx] === EMPTY && rnd() < Math.min(.6, Math.abs(cv) * RES / 30)) { cells[row + x] = EMPTY; cells[row + nx] = m; wakeAt(x, y); wakeAt(nx, y); }
+          awake[ci] = 1; continue;
         }
         const d = ((x + y + frameNo) & 2) ? 1 : -1;
         for (let s = 0; s < 2; s++) {

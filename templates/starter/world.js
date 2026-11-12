@@ -1,11 +1,11 @@
 // ===================== GAME · materials and the cave =====================
 // Materials are the game's own: the engine only knows their properties (engine/API.md, "Materials").
-const DIRT = defineMaterial('dirt', { albedo: [.55, .42, .32], ramp: ' .,:;=+*#%', granular: true, creep: true, tough: .15, friction: .8 });
-const STONE = defineMaterial('stone', { albedo: [.46, .48, .52], ramp: " .':oO8&%#", tough: .5, shiny: .04 });
-const RUBBLE = defineMaterial('rubble', { albedo: [.5, .47, .44], ramp: ' .,o%&', granular: true, tough: .2, grainGlyphs: 'o%&', debris: true });
-const BEDROCK = defineMaterial('bedrock', { albedo: [.26, .27, .31], ramp: ' .:;#XWM', tough: 99, anchor: true, density: 1.3 });
+const DIRT = defineMaterial('dirt', { albedo: [.55, .42, .32], granular: true, creep: true, tough: .15, friction: .8 });
+const STONE = defineMaterial('stone', { albedo: [.46, .48, .52], tough: .5, shiny: .04 });
+const RUBBLE = defineMaterial('rubble', { albedo: [.5, .47, .44], granular: true, tough: .2, grainGlyphs: 'o%&', debris: true });
+const BEDROCK = defineMaterial('bedrock', { albedo: [.26, .27, .31], tough: 99, anchor: true, density: 1.3 });
 const GEM = defineMaterial('gem', {
-  albedo: [1, .35, .85], ramp: ' .+*', tough: .3, shiny: .7, style: 'crystal', glow: [.18, .03, .14, 5], pulse: [.9, .2, .7],
+  albedo: [1, .35, .85], tough: .3, shiny: .7, style: 'crystal', glow: [.18, .03, .14, 5], pulse: [.9, .2, .7],
   // blasting a gem vein throws out shards (PT_SHARD in drone.js) instead of rubble
   blast(x, y, vx, vy, how) { if (how === 'blast' || rnd() < .5) spawnP(PT_SHARD, x, y, vx * .4, vy * .4 - 5 * RES, 30, 42, GEM); }
 });

@@ -80,7 +80,7 @@ function stepParticles(dt) {
     }
     else if (t === PT_GAS || t === PT_FIRE) { const k = 1 - 1.6 * dt; VX[i] *= k; VY[i] *= k; }
     else if (t === PT_SMOKE || t === PT_VAPOR) { const k = 1 - 1.1 * dt; VX[i] *= k; VY[i] = VY[i] * k - (t === PT_VAPOR ? 1.2 : .4) * S * dt; }
-    else VY[i] += G * dt;
+    else { VY[i] += G * dt; if (GX) VX[i] += GX * dt; }
     // integrate with sub-steps so nothing tunnels through a cell
     const sp = Math.abs(VX[i]) + Math.abs(VY[i]);
     const n = Math.min(10, 1 + ((sp * dt / .7) | 0));

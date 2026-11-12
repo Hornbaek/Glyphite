@@ -91,3 +91,56 @@ test('pause is a flag any state can use, and the built-in key toggles it', () =>
   E.run("state = 'play'; Pixelite.pause(true)"); assert.equal(E.run('state'), 'paused', 'old games keep their paused state');
   E.run('Pixelite.pause(false)'); assert.equal(E.run('state'), 'play');
 });
+
+const hero = (E, x = 20, extra = '') => E.run(`globalThis.hero = new Character(${x} * RES, H - 4 * RES, { w: 4 * RES, h: 6 * RES, run: 28 * RES, jump: 14 * RES${extra} }); for (let i = 0; i < 10; i++) hero.step(DT, {})`);
+
+test('material flags: hazards, ice, conveyors, springs and ladders act on a Character', () => {
+  const E = loadEngine(); E.run('setResVars(2)');
+  E.run(`defineMaterial('rock', { tough: 5, anchor: true }); defineMaterial('spikes', { hazard: 30 }); defineMaterial('ice', { grip: .05 }); defineMaterial('belt', { conveyor: 20 });
+    defineMaterial('spring', { bouncy: .8 }); defineMaterial('ladder', { climbable: true });
+    worldMaterials({ edge: 1 }); worldInit(420, 120);
+    for (let y = H - 4 * RES; y < H; y++) for (let x = 0; x < W; x++) setC(x, y, 1);
+    const F = H - 4 * RES;
+    for (let x = 60 * RES; x < 90 * RES; x++) setC(x, F, 2);                       // spikes on the floor: 1 row, hazard
+    for (let x = 100 * RES; x < 130 * RES; x++) for (let y = F; y < F + 1; y++) setC(x, y, 3);   // ice
+    for (let x = 140 * RES; x < 170 * RES; x++) setC(x, F, 4);                     // conveyor
+    for (let x = 180 * RES; x < 190 * RES; x++) setC(x, F, 5);                     // spring`);
+  // hazard: standing on spikes reads it
+  hero(E, 70); E.run('hero.y = H - 4 * RES - 1; for (let i = 0; i < 5; i++) hero.step(DT, {})');
+  assert.ok(E.run('hero.hazard') >= 30 && E.run('hero.hazardMat') === 2, `hazard ${E.run('hero.hazard')}`);
+  hero(E, 20); assert.equal(E.run('hero.hazard'), 0, 'none on plain rock');
+  // ice: braking takes far longer than on rock
+  const slide = x => { hero(E, x); E.run('for (let i = 0; i < 60; i++) hero.step(DT, { x: 1 })'); const x1 = E.run('hero.x'); E.run('for (let i = 0; i < 30; i++) hero.step(DT, {})'); return E.run('hero.x') - x1; };
+  const rock = slide(20), ice = slide(105);
+  assert.ok(ice > rock * 4, `slid ${ice.toFixed(1)} on ice, ${rock.toFixed(1)} on rock`);
+  // conveyor carries a standing character
+  E.run('hero.x = 150 * RES; hero.y = H - 4 * RES - 1; for (let i = 0; i < 5; i++) hero.step(DT, {})'); const c0 = E.run('hero.x');
+  E.run('for (let i = 0; i < 60; i++) hero.step(DT, {})');
+  assert.ok(E.run('hero.x') - c0 > 10 * 2 * .6, `carried ${(E.run('hero.x') - c0).toFixed(1)} units in a second`);
+  // spring: falling onto it throws the character back up
+  E.run('hero.x = 185 * RES; hero.y = H - 4 * RES - 12 * RES; hero.vy = 0'); let top = E.run('hero.y');
+  const bounced = E.run('(() => { let b = 0, up = 0; for (let i = 0; i < 200; i++) { hero.step(DT, {}); if (hero.bounced) b++; if (b && hero.vy < up) up = hero.vy; } return [b, up]; })()');
+  assert.ok(bounced[0] >= 1 && bounced[1] < -20 * 2, `bounced ${bounced}`);
+  // ladder in the back wall: grab with up, climb, let go with jump
+  E.run('for (let y = H - 4 * RES - 30 * RES; y < H - 4 * RES; y++) setBack(70 * RES, y, 6)'); hero(E, 70);
+  E.run('hero.x = 70 * RES + .5; hero.y = H - 4 * RES; for (let i = 0; i < 5; i++) hero.step(DT, {})');
+  const y0 = E.run('hero.y'); E.run('for (let i = 0; i < 60; i++) hero.step(DT, { up: true })');
+  assert.ok(E.run('hero.climbing') && E.run('hero.y') < y0 - 10, 'climbs up a ladder painted on the back wall');
+  E.run('for (let i = 0; i < 30; i++) hero.step(DT, { jump: i < 3 })'); assert.equal(E.run('hero.climbing'), false, 'jump lets go');
+});
+
+test('a moving platform carries a Character, by whole cells; a blast turns it into a falling chunk', () => {
+  const E = loadEngine(); E.run('setResVars(1)'); world(E, 200, 100, 4);
+  E.run(`globalThis.lift = addPlatform({ x: 40, y: H - 4 - 2, cols: 20, rows: 2, mat: 3, path: [[40, H - 4 - 2], [100, H - 4 - 2]], speed: 20, mode: 'pingpong', wait: .2 });
+    globalThis.hero = new Character(50, H - 4 - 2, { w: 4, h: 6, run: 28, jump: 14 }); for (let i = 0; i < 10; i++) { stepPlatforms(DT); hero.step(DT, {}); }`);
+  assert.ok(E.run('hero.onGround && hero.platform === lift'), 'stands on the platform');
+  const x0 = E.run('hero.x'); E.run('for (let i = 0; i < 90; i++) { stepPlatforms(DT); hero.step(DT, {}); }');
+  assert.ok(E.run('hero.x') - x0 > 20, `carried ${(E.run('hero.x') - x0).toFixed(1)} cells in 1.5 s`);
+  assert.equal(E.run('hero.y'), E.run('H - 4 - 2'), 'feet stay on the platform top (a row boundary)');
+  // squeezed against a wall: crushed
+  E.run('for (let x = 120; x < 124; x++) for (let y = H - 4 - 30; y < H - 4; y++) setC(x, y, 1)');
+  E.run('lift.go(1); hero.x = 119.5; for (let i = 0; i < 400 && !hero.crushed; i++) { stepPlatforms(DT); hero.step(DT, { x: 1 }); }');
+  // a blast shakes it loose
+  E.run('blastPush(lift, lift.body.x, lift.body.y, 6, 2)');
+  assert.equal(E.run('lift.kin'), false, 'a blast makes it an ordinary chunk');
+});

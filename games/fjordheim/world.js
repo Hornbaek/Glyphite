@@ -13,16 +13,16 @@ const linC = (c, k = 1) => c.map(v => -Math.log(1 - Math.min(.93, v / 255)) / 1.
 const mixC = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
 const GRASS_SUMMER = linC(FJ_GROUND.grass, 1.45), GRASS_AUTUMN = linC(mixC(FJ_GROUND.grass, [170, 140, 70], .45), 1.45);
 const GROUND_MAT = {
-  [G_WATER]: defineMaterial('fjord', { albedo: linC(FJ_GROUND.water, 1.6), ramp: '.-~~=', style: 'flat' }),
-  [G_SAND]: defineMaterial('beach', { albedo: linC(FJ_GROUND.sand, 1.1), ramp: ".,:;'", style: 'flat' }),
-  [G_GRASS]: defineMaterial('grass', { albedo: GRASS_SUMMER, ramp: ".,'\";:", style: 'flat' }),
-  [G_MEADOW]: defineMaterial('meadow', { albedo: linC(mixC(FJ_GROUND.meadow, [150, 160, 70], .25), 1.45), ramp: ".,'\"*;", style: 'flat' }),
-  [G_SOIL]: defineMaterial('soil', { albedo: linC(FJ_GROUND.soil, 1.5), ramp: '.,-=~', style: 'flat' }),
-  [G_ROCKY]: defineMaterial('scree', { albedo: linC([128, 130, 122], 1.2), ramp: '.,:;o', style: 'flat' }),
+  [G_WATER]: defineMaterial('fjord', { albedo: linC(FJ_GROUND.water, 1.6), style: 'flat' }),
+  [G_SAND]: defineMaterial('beach', { albedo: linC(FJ_GROUND.sand, 1.1), style: 'flat' }),
+  [G_GRASS]: defineMaterial('grass', { albedo: GRASS_SUMMER, style: 'flat' }),
+  [G_MEADOW]: defineMaterial('meadow', { albedo: linC(mixC(FJ_GROUND.meadow, [150, 160, 70], .25), 1.45), style: 'flat' }),
+  [G_SOIL]: defineMaterial('soil', { albedo: linC(FJ_GROUND.soil, 1.5), style: 'flat' }),
+  [G_ROCKY]: defineMaterial('scree', { albedo: linC([128, 130, 122], 1.2), style: 'flat' }),
 };
 // the hills round the map, and the fjord's far shore: quiet, so the eye stays on the valley
-const FELL_MAT = defineMaterial('fell', { albedo: linC([112, 118, 104], 1.1), ramp: " .,'", style: 'flat' });
-const SNOW_MAT = defineMaterial('snow', { albedo: linC(FJ_GROUND.snow, .9), ramp: '.:-=*', style: 'flat' });
+const FELL_MAT = defineMaterial('fell', { albedo: linC([112, 118, 104], 1.1), style: 'flat' });
+const SNOW_MAT = defineMaterial('snow', { albedo: linC(FJ_GROUND.snow, .9), style: 'flat' });
 
 // the tile grid. thing: 0 nothing, T_TREE, T_STUMP, T_SAPLING, T_ROCK, T_BUSH, T_FIELD, T_BUILDING; ref: index into its list
 const T_TREE = 1, T_STUMP = 2, T_SAPLING = 3, T_ROCK = 4, T_BUSH = 5, T_FIELD = 6, T_BUILDING = 7;
@@ -102,27 +102,7 @@ const walkable = (i, j) => {
   return ground[k] !== G_WATER && t !== T_TREE && t !== T_ROCK && t !== T_BUILDING;
 };
 const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
-function findPath(si, sj, goal) {   // goal(i, j) → true at an end tile; returns tiles from the start (excluded) to the end
-  const open = [[si, sj, 0, 0]], from = new Int32Array(N * N).fill(-1), cost = new Float32Array(N * N).fill(1e9);
-  cost[tidx(si, sj)] = 0; from[tidx(si, sj)] = tidx(si, sj);
-  while (open.length) {
-    let bi = 0; for (let q = 1; q < open.length; q++) if (open[q][3] < open[bi][3]) bi = q;
-    const [i, j, c] = open.splice(bi, 1)[0];
-    if (c > cost[tidx(i, j)]) continue;
-    if (goal(i, j)) {
-      const out = []; let k = tidx(i, j);
-      while (from[k] !== k) { out.push([k % N, (k / N) | 0]); k = from[k]; }
-      return out.reverse();
-    }
-    for (const [di, dj] of DIRS) {
-      const ni = i + di, nj = j + dj;
-      if (!walkable(ni, nj) || (di && dj && (!walkable(i + di, j) || !walkable(i, j + dj)))) continue;
-      const nc = c + (di && dj ? 1.414 : 1), k = tidx(ni, nj);
-      if (nc < cost[k]) { cost[k] = nc; from[k] = tidx(i, j); open.push([ni, nj, nc, nc]); }
-    }
-    if (open.length > 4000) break;
-  }
-  return null;
-}
+// goal(i, j) → true at an end tile; returns tiles from the start (excluded) to the end (the engine's A*: eight ways, no corner cutting)
+const findPath = (si, sj, goal) => findTilePath(N, N, walkable, si, sj, goal, { max: 4000 });
 // a walkable tile next to a footprint (a × b from (i, j)), the nearest to (fi, fj)
 const besideFoot = (i, j, a, b) => (ti, tj) => ti >= i - 1 && tj >= j - 1 && ti <= i + a && tj <= j + b && !(ti >= i && tj >= j && ti < i + a && tj < j + b);

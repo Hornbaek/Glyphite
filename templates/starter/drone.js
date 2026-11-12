@@ -16,13 +16,12 @@ const SPRITE_DRONE = {
   ]
 };
 const DRONE_SPRITE = defineSprite(SPRITE_DRONE, { k: .5, ox: 8, oy: 4 });   // 0.5 base units per pixel: 8 x 4 m
-let D = null, bolts = [], score = 0;
+let D = null, score = 0;
 
 function spawnDrone() {
   const S = RES, hull = spriteHull(DRONE_SPRITE, 2).map(p => ({ ...p, x: p.x * S, y: p.y * S }));
   const b = new Body(CAVE.spawn.x, CAVE.spawn.y, 1, 6 * S * S, hull);
   D = { body: b, alive: true, throttle: 0, gems: 0, cool: 0, reason: '' };
-  bolts = [];
 }
 
 function controlDrone(dt) {
@@ -46,23 +45,16 @@ function aimDir(aim) {   // toward the cursor or tap, else straight ahead
   if (aim) { const dx = cam.x + aim[0] * R.cols - b.x, dy = cam.y + aim[1] * R.rows * ASPECT - b.y, l = Math.hypot(dx, dy) || 1; return [dx / l, dy / l]; }
   return b.dirWorld(Math.cos(b.a) >= 0 ? 1 : -1, 0, [0, 0]);
 }
+// a bolt is an engine projectile (engine/API.md, Entities and projectiles): it flies by rays, so it cannot tunnel through thin rock, and
+// explodes where it hits
 function fireBolt(aim) {
   if (!D || !D.alive || D.cool > 0) return;
   const S = RES, b = D.body, [dx, dy] = aimDir(aim);
-  bolts.push({ x: b.x + dx * 6 * S, y: b.y + dy * 6 * S, vx: b.vx + dx * 60 * S, vy: b.vy + dy * 60 * S, t: 0 });
+  fireProjectile({ x: b.x + dx * 6 * S, y: b.y + dy * 6 * S, vx: b.vx + dx * 60 * S, vy: b.vy + dy * 60 * S, gravity: 0, life: 2, color: [150, 215, 255], light: { r: 16, c: [.6, .85, 1], I: 1 },
+    onStep: o => { if (rnd() < .6) spawnP(PT_SPARK, o.x, o.y, rr(-3, 3) * S, rr(-3, 3) * S, rr(.1, .3), pick("'."), 0); },
+    onHit: o => { blastFrom(o.vx, o.vy); explode(o.x, o.y, TUNE.blastRadius * S, 1); } });
   D.cool = .35; Sfx.launch();
   addLight(b.x + dx * 6 * S, b.y + dy * 6 * S, 18 * S, [.6, .85, 1], 1.2, .12);
-}
-function stepBolts(dt) {
-  const S = RES;
-  for (let i = bolts.length - 1; i >= 0; i--) {
-    const o = bolts[i]; o.t += dt;
-    const n = Math.max(1, Math.ceil(Math.hypot(o.vx, o.vy) * dt / .5));
-    let hit = o.t > 2;
-    for (let s = 0; s < n && !hit; s++) { o.x += o.vx * dt / n; o.y += o.vy * dt / n; hit = solidU(o.x, o.y) || !!chunkAt(o.x, o.y); }
-    if (rnd() < .6) spawnP(PT_SPARK, o.x, o.y, rr(-3, 3) * S, rr(-3, 3) * S, rr(.1, .3), pick("'."), 0);
-    if (hit) { bolts.splice(i, 1); blastFrom(o.vx, o.vy); explode(o.x, o.y, TUNE.blastRadius * S, 1); }
-  }
 }
 
 // gem shards: bounce around glowing, then home in on the drone and count when they reach it
