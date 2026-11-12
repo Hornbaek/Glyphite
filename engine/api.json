@@ -36,6 +36,11 @@
    "params": null,
    "part": "06_scene.js"
   },
+  "_glow": {
+   "kind": "value",
+   "params": null,
+   "part": "10_sprite.js"
+  },
   "_hash": {
    "kind": "value",
    "params": null,
@@ -365,6 +370,11 @@
    "kind": "function",
    "params": 4,
    "part": "09_structures.js"
+  },
+  "BLK": {
+   "kind": "value",
+   "params": null,
+   "part": "01_core.js"
   },
   "Body": {
    "kind": "class",
@@ -805,6 +815,21 @@
    "kind": "function",
    "params": 2,
    "part": "04_light.js"
+  },
+  "EMIT": {
+   "kind": "value",
+   "params": null,
+   "part": "10_sprite.js"
+  },
+  "emitFlush": {
+   "kind": "function",
+   "params": 0,
+   "part": "10_sprite.js"
+  },
+  "emitSwap": {
+   "kind": "function",
+   "params": 0,
+   "part": "10_sprite.js"
   },
   "EMPTY": {
    "kind": "value",
@@ -1431,6 +1456,11 @@
    "params": 1,
    "part": "09_structures.js"
   },
+  "markBlocker": {
+   "kind": "function",
+   "params": 2,
+   "part": "01_core.js"
+  },
   "markChunksDyn": {
    "kind": "function",
    "params": 0,
@@ -1438,7 +1468,7 @@
   },
   "markDynCell": {
    "kind": "function",
-   "params": 1,
+   "params": 2,
    "part": "01_core.js"
   },
   "markEntitiesDyn": {
@@ -2223,7 +2253,12 @@
   },
   "sprEmit": {
    "kind": "function",
-   "params": 10,
+   "params": 11,
+   "part": "10_sprite.js"
+  },
+  "sprGlow": {
+   "kind": "function",
+   "params": 11,
    "part": "10_sprite.js"
   },
   "spriteBox": {

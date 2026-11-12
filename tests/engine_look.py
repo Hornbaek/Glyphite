@@ -206,11 +206,58 @@ def e5_front_and_backdrops(p, mode):
     b.close()
 
 
+def e3_glow(p, mode):
+    b, pg, errs = boot(p, mode)
+    pg.evaluate('LT.bare()')
+    g = pg.evaluate('H - 40')
+    # a dark scene with a glowing window sprite standing on the ground: its pixels are its own colour, and it lights the ground beside it
+    pg.evaluate(f"""(() => {{
+      setSun(null); setAmbient([.03, .03, .04]);
+      const rows = ['111111', '100001', '100001', '100001', '100001', '111111'], emit = ['......', '.9999.', '.9999.', '.9999.', '.9999.', '......'];
+      window.LT.win = defineSprite({{ w: 6, h: 6, pal: [[255, 215, 110, 1], [60, 40, 30, 1]], rows, emit }}, {{ k: 1 / RES, glow: 8, glowGain: .6 }});
+      window.LT.plain = defineSprite({{ w: 6, h: 6, pal: [[255, 215, 110, 1], [60, 40, 30, 1]], rows }}, {{ k: 1 / RES }});
+      window.LT.on = 1; GAME.draw = () => drawSprite(LT.win, 160, {g} - 4, 0, {{ foot: 0, emit: LT.on }});
+      LT.frame(4); }})()""")
+    def ground(cx):
+        return lum(px(shot(pg), pg, cx, g))
+    img = shot(pg)
+    near, far = lum(px(img, pg, 168, g)), lum(px(img, pg, 250, g))
+    check(f'E3 {mode}: a glowing sprite lights the ground beside it (near {near:.0f}, far {far:.0f})', near > far * 1.5 and near > far + 25, (near, far))
+    core = px(img, pg, 160, g - 6)
+    check(f'E3 {mode}: its glowing pixels are bright, in its own colour', lum(core) > 120 and core[0] > core[2] * 1.3, core)
+    pg.evaluate('LT.on = 0; LT.frame(4)')
+    img = shot(pg)
+    near0, far0 = lum(px(img, pg, 168, g)), lum(px(img, pg, 250, g))
+    core0 = px(img, pg, 160, g - 6)
+    check(f'E3 {mode}: emit: 0 switches the lamp off: no light on the ground ({near0:.0f}, {far0:.0f}) and a dimmer pixel', abs(near0 - far0) < 12 and lum(core0) < lum(core), (near0, far0, core0))
+    pg.evaluate("GAME.draw = () => drawSprite(LT.plain, 160, " + str(g) + " - 4, 0, { foot: 0 }); LT.frame(4)")
+    img = shot(pg)
+    check(f'E3 {mode}: the same sprite without an emit layer gives no light', abs(lum(px(img, pg, 168, g)) - lum(px(img, pg, 250, g))) < 12)
+    # a sprite that blocks lamp light between a lamp and a wall
+    pg.evaluate(f"""(() => {{
+      GAME.draw = null; LT.block(200, {g} - 50, 206, {g});
+      window.LT.blocker = defineSprite({{ w: 4, h: 8, pal: [[90, 90, 100, 1]], rows: Array(8).fill('0000') }}, {{ k: 1 / RES }});
+      window.LT.blocks = true;
+      GAME.lights = (t, out) => out.push({{ x: 150, y: {g} - 15, r: 80, c: [1, 1, 1], I: 1.6, shadow: true }});
+      GAME.markDyn = () => markSpriteDyn(LT.blocker, 175, {g} - 15, 0, LT.blocks ? {{ blocksLamps: true }} : {{}});
+      GAME.draw = () => drawSprite(LT.blocker, 175, {g} - 15, 0);
+      LT.frame(4); }})()""")
+    shadowed = lum(px(shot(pg), pg, 200, g - 15))
+    pg.evaluate('LT.blocks = false; LT.frame(4)')
+    lit = lum(px(shot(pg), pg, 200, g - 15))
+    pg.evaluate('LT.blocks = true; LT.frame(4)')
+    again = lum(px(shot(pg), pg, 200, g - 15))
+    check(f'E3 {mode}: a sprite that blocks lamps shades the wall behind it ({shadowed:.0f} against {lit:.0f} when it does not)', lit > shadowed * 1.5 and lit > shadowed + 20 and abs(again - shadowed) < 6, (shadowed, lit, again))
+    check(f'E3 {mode}: no page errors (glow)', not errs, errs[:2])
+    b.close()
+
+
 def run(mode):
     print(f'--- {mode}')
     with sync_playwright() as p:
         e1_sun_sides(p, mode)
         e5_front_and_backdrops(p, mode)
+        e3_glow(p, mode)
 
 
 if __name__ == '__main__':

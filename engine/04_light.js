@@ -139,8 +139,8 @@ function stillKeys(ox, oy, dynTop) {
   const k = _kbNow; let i = 0;
   k[i++] = ox; k[i++] = oy; k[i++] = L_RW; k[i++] = L_RH; k[i++] = RES; k[i++] = SUN_ON ? 1 : 0; k[i++] = SUN_L[0]; k[i++] = SUN_L[1];
   k[i++] = SUN_C[0]; k[i++] = SUN_C[1]; k[i++] = SUN_C[2]; k[i++] = AMB_C[0]; k[i++] = AMB_C[1]; k[i++] = AMB_C[2]; k[i++] = EDGE_MAT; k[i++] = ASPECT;
-  let h = 0, d = 0;   // the bodies that cast sun shadows: where the sweep stops, and a hash of the cells they cover
-  if (SUN_ON) { d = dynTop; h = dynList.length | 0; for (let q = 0; q < dynList.length; q++) h = Math.imul(h ^ dynList[q], 16777619); }
+  let h = 0, d = 0;   // the bodies that cast sun shadows: where the sweep stops, and a hash of the cells they cover (with lamp blockers about, of what each one blocks too)
+  if (SUN_ON || BLK.n) { if (SUN_ON) d = dynTop; h = dynList.length | 0; for (let q = 0; q < dynList.length; q++) h = Math.imul(h ^ (BLK.n ? dynList[q] * 4 + dyn[dynList[q]] : dynList[q]), 16777619); }
   k[i++] = d; k[i++] = h; k[i++] = LMX; k[i++] = LMY;
   while (i < KB_N) k[i++] = 0;
 }
@@ -174,6 +174,7 @@ function terrainKeys(lights, ox, oy) {
   }
   k[i++] = FX.flash * (CALM ? .3 : 1); k[i++] = FX.flashCol[0]; k[i++] = FX.flashCol[1]; k[i++] = FX.flashCol[2];
   k[i++] = BACK.dim; k[i++] = BACK.shadow; k[i++] = BACK.dir[0]; k[i++] = BACK.dir[1]; k[i++] = BACK.depth; k[i++] = EYE.e; k[i++] = backSig(ox, oy);
+  k[i++] = EMIT.hash; k[i++] = BACK.lamps ? 1 : 0;   // the light glowing sprite pixels pour in (10_sprite.js), and whether the back wall's shadow follows the lamps
   _tkN = i;
 }
 function sameMats(m) {
@@ -372,6 +373,8 @@ function lampFor(L, ox, oy, skip) {
   if (_hCurN < _hCur.length) _hCur[_hCurN++] = h;
   let e = LAMPS.get(h);
   if (e && !(e.x === L.x && e.y === L.y && e.r === L.r && e.skip === skip && e.cs === cs && e.dx === dx && e.dy === dy && e.sh === sh && e.edge === EDGE_MAT)) { lampDrop(e); LAMPS.delete(h); e = undefined; }   // another lamp with the same hash
+  // a sprite that blocks lamp light stands in this lamp's reach: its cast depends on something that moves, so it is cast again (the kept cast, if any, waits for it to go)
+  if (BLK.n && L.shadow && L.x + L.r >= BLK.x0 && L.x - L.r <= BLK.x1 + 1 && (L.y + L.r) / ASPECT >= BLK.y0 && (L.y - L.r) / ASPECT <= BLK.y1 + 1) { if (e) e.seen = lampTick; return null; }
   if (!e) {
     if (!again) return null;   // not seen standing still yet: cast it, and look again next frame (a moving lamp never gets an entry)
     e = { x: L.x, y: L.y, r: L.r, skip, cs, dx, dy, sh, edge: EDGE_MAT, ox, oy, rw: L_RW, rh: L_RH, res: RES, crev: CREV, seen: lampTick, need: 0, ready: false, rev: 0, wrev: 0, cx0: 0, cx1: -1, cy0: 0, cy1: -1, n0: 0, i0: null, a0: null, h0: null, n1: 0, i1: null, a1: null, bytes: 0 };
@@ -488,6 +491,7 @@ function castLamp(L, ox, oy, cr, cg, cb, rec) {
         }
       }
       if (solid && L.shadow && t > skip) { if (!inWin || s === 1) break; depth = 0; entry = lampShade(kk, cx, cy, s); }
+      else if (BLK.n && L.shadow && t > skip && cx >= 0 && cy >= 0 && cx < W && cy < H && dyn[cy * W + cx] === 3) break;   // a sprite that blocks lamp light: the cell itself was lit above, nothing behind it is
     }
   }
 }

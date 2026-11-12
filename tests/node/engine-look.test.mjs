@@ -120,3 +120,100 @@ test('E5 backdrops: at most three, worldInit clears them, the detail rescale kee
   assert.equal(paint(-3, 30)[0], 0, 'beside the world: nothing');
   E.run('worldInit(60, 40)'); assert.equal(E.run('BACKDROPS.length'), 0, 'a new world clears them');
 });
+
+// ---------- a frame with no browser: the engine's own buffers (what the renderers are handed) ----------
+// A 100 x 60 window on a 160 x 90 world with a rock floor (its top row is 76), no sun and no ambient light, so only what a test adds is lit.
+const frameEnv = (E, extra = '') => {
+  E.run(`seedRandom(7); setResVars(2); defineMaterial('rock', { tough: 5, anchor: true, albedo: [.5, .5, .5] }); worldMaterials({ edge: 1, rubble: 1 }); worldInit(160, 90);
+    R.RW = 100; R.RH = 60; R.cols = 98; R.rows = 58; R.cw = 4; R.chh = 4;
+    { const n = 6000; R.wG = new Uint8Array(n); R.wZ = new Float32Array(n); R.wShim = new Float32Array(n); R.wPix = new Uint8ClampedArray(n * 4); R.bloomPix = new Uint8ClampedArray(n * 4); R.sG = new Uint8Array(n); R.sPix = new Uint8ClampedArray(n * 4); }
+    lightAlloc(100, 60); for (let y = H - 14; y < H; y++) for (let x = 0; x < W; x++) cells[y * W + x] = 1; updateSkyline();
+    setSun(null); setAmbient([0, 0, 0]); setEyeAdaptation(0); cam.x = 20; cam.y = 20; CACHE.still = true; CACHE.lamps = true;
+    globalThis.frame = (draw, mark, lights = []) => { syncSkyline(); clearDyn(); if (mark) mark(); const ox = Math.floor(cam.x) - 1, oy = Math.floor(cam.y) - 1; computeLighting(ox, oy, lights, 1e9); renderScene(ox, oy, 0, draw); };
+    globalThis.pixel = (cx, cy) => { const k = ((cy - L_OY) * R.RW + (cx - L_OX)) * 4; return [R.wPix[k], R.wPix[k + 1], R.wPix[k + 2], R.wPix[k + 3]]; };
+    globalThis.lightAt = (cx, cy) => { const k = (cy - L_OY) * R.RW + (cx - L_OX); return [LR[k], LG[k], LB[k]]; };
+    ${extra}`);
+};
+const frameHash = `(() => { let h = 2166136261 | 0; for (const a of [R.wPix, LR, LG, LB]) { const u = new Uint8Array(a.buffer, a.byteOffset, a.byteLength); for (let i = 0; i < u.length; i++) h = Math.imul(h ^ u[i], 16777619); } return h >>> 0; })()`;
+const lum = c => .3 * c[0] + .59 * c[1] + .11 * c[2];
+
+// ---------- E3: sprites that glow and cast light ----------
+const GLOW = `globalThis.spr = defineSprite({ w: 6, h: 4, pal: [[200, 60, 40, 1], [60, 90, 200, 1]], rows: ['000000', '001100', '001100', '000000'], emit: ['......', '..99..', '......', '......'] }, { k: 1 / RES, glow: 4, glowGain: .2 });
+  globalThis.plain = defineSprite({ w: 6, h: 4, pal: [[200, 60, 40, 1], [60, 90, 200, 1]], rows: ['000000', '001100', '001100', '000000'] }, { k: 1 / RES });`;
+
+test('E3 the emit layer: a glowing pixel is its own colour, brighter than the same colour lit, and a sprite without one is as it was', () => {
+  const E = loadEngine(); frameEnv(E, GLOW);
+  E.run('globalThis.at = [60, 50]; globalThis.d = (o = {}) => () => drawSprite(spr, at[0], at[1], 0, o)');
+  assert.ok(E.run('spr.emit'), 'defineSprite read the layer'); assert.equal(E.run('plain.emit'), null, 'a sprite without one has none');
+  // cells: x 57..62, rows 48..51; the glowing pixels are the two at (59, 49) and (60, 49). (An empty frame or two between draws lets last frame's glow light go.)
+  const clear = () => E.run('frame(() => {}); frame(() => {})');
+  E.run('frame(() => drawSprite(plain, at[0], at[1], 0))'); const flat = E.run('pixel(59, 49)'), flatEdge = E.run('pixel(57, 48)');
+  clear(); E.run('frame(d())'); const glow = E.run('pixel(59, 49)'), edge = E.run('pixel(57, 48)');
+  assert.ok(lum(glow) > lum(flat) * 1.08, `the glowing pixel is brighter than the same pixel lit (${glow} against ${flat})`);
+  assert.deepEqual([...edge], [...flatEdge], 'a pixel with no emission in the same sprite is as the plain sprite draws it');
+  clear(); E.run('frame(d({ emit: 0 }))'); assert.deepEqual([...E.run('pixel(59, 49)')], [...flat], 'emit: 0 is the lamp switched off: an ordinary lit pixel');
+  clear(); const hot = (E.run('frame(d({ emit: 3 }))'), E.run('pixel(59, 49)'));
+  assert.ok(lum(hot) > lum(glow), 'emit: 3 glows brighter than the art');
+  // a sprite whose emit layer is empty is a plain sprite
+  assert.equal(E.run("defineSprite({ w: 2, h: 1, pal: [[9, 9, 9, 1]], rows: ['00'], emit: ['..'] }, {}).emit"), null);
+});
+
+test('E3 a glowing sprite lights its surroundings from the next frame on, in its own colour, and stops when it stops', () => {
+  const E = loadEngine(); frameEnv(E, GLOW);
+  E.run('globalThis.at = [60, 50]; globalThis.d = () => drawSprite(spr, at[0], at[1], 0)');
+  E.run('frame(d)'); const first = E.run('lightAt(60, 43)');
+  E.run('frame(d)'); const second = E.run('lightAt(60, 43)'), far = E.run('lightAt(100, 43)');
+  assert.deepEqual([...first], [0, 0, 0], 'the first frame has no light yet: it is poured in one frame behind');
+  assert.ok(second[2] > .004 && second[2] > second[0] * 2, `the second frame is lit, in the colour of the glowing pixels (blue: ${second})`);
+  assert.deepEqual([...far], [0, 0, 0], 'beyond the radius it is dark');
+  E.run('frame(() => {})'); E.run('frame(() => {})');
+  assert.deepEqual([...E.run('lightAt(60, 43)')], [0, 0, 0], 'a frame without the sprite, and its light is gone one frame later');
+  // the same physical sprite (k: .5 units a pixel) gives the same light at RES 1 and 3: it is per base cell of glow, not per cell
+  const a = loadEngine(), b = loadEngine();
+  for (const [E2, res] of [[a, 1], [b, 3]]) { frameEnv(E2, GLOW); E2.run(`setResVars(${res}); lightAlloc(100, 60); globalThis.spr = defineSprite({ w: 6, h: 4, pal: [[200, 60, 40, 1]], rows: ['000000', '000000', '000000', '000000'], emit: ['999999', '999999', '999999', '999999'] }, { k: .5, glow: 4, glowGain: .2 }); globalThis.at = [60, 50]; frame(() => drawSprite(spr, at[0], at[1], 0)); frame(() => drawSprite(spr, at[0], at[1], 0))`); }
+  const la = a.run('lightAt(60, 50 - 3 * RES)')[0], lb = b.run('lightAt(60, 50 - 3 * RES)')[0];
+  assert.ok(la > .05 && Math.abs(la - lb) / la < .35, `a glow is about as strong at RES 1 and 3 (${la.toFixed(3)} and ${lb.toFixed(3)})`);
+});
+
+test('E3 the still-frame terrain cache follows a glowing sprite: frames equal with the caches on and off, and a still sprite lets the cache work', () => {
+  const run = on => {
+    const E = loadEngine(); frameEnv(E, GLOW); E.run(`CACHE.still = ${on}; CACHE.lamps = ${on}; globalThis.at = [60, 50]; globalThis.d = () => drawSprite(spr, at[0], at[1], 0); globalThis.out = [];`);
+    const hits = [];
+    const go = (n, draw = 'd') => { for (let i = 0; i < n; i++) { E.run(`frame(${draw}); out.push(${frameHash})`); hits.push(E.run('CACHE.terrainHit')); } };
+    go(3, '() => {}');                      // nothing: the cache settles
+    go(6);                                   // the sprite stands still: its light comes in, then stays
+    E.run('at = [64, 50]'); go(3);           // it moves
+    E.run('at = [64, 50]'); go(4);           // and stands again
+    go(4, '() => {}');                      // and goes away
+    return { out: [...E.run('out')], hits };
+  };
+  const on = run(true), off = run(false);
+  assert.deepEqual(on.out, off.out, 'every frame equal');
+  assert.ok(on.hits.filter(Boolean).length >= 3, `the terrain was reused (${on.hits})`);
+});
+
+test('E3 a sprite that blocks lamp light casts a shadow from a lamp, and the lamp cache steps around it, bit for bit', () => {
+  const lamp = '[{ x: 50, y: 60, r: 40, c: [1, 1, 1], I: 1.5, shadow: true }]';
+  const setup = `${GLOW} globalThis.blocker = defineSprite({ w: 4, h: 8, pal: [[90, 90, 90, 1]], rows: ['0000', '0000', '0000', '0000', '0000', '0000', '0000', '0000'] }, { k: 1 / RES });
+    for (let y = 40; y < H - 14; y++) for (let x = 80; x < 85; x++) cells[y * W + x] = 1; updateSkyline(); globalThis.bx = 65; globalThis.blocks = true; globalThis.here = false;
+    globalThis.mark = () => { if (here) markSpriteDyn(blocker, bx, 60, 0, blocks ? { blocksLamps: true } : {}); };`;
+  const run = on => {
+    const E = loadEngine(); frameEnv(E, setup); E.run(`CACHE.still = ${on}; CACHE.lamps = ${on}; globalThis.out = [];`);
+    const seen = [];
+    const go = (n, here = false) => { for (let i = 0; i < n; i++) { E.run(`here = ${here}; frame(() => {}, mark, ${lamp}); out.push(${frameHash})`); seen.push([E.run('lightAt(80, 60)')[0], E.run('CACHE.hit')]); } };
+    go(5);                         // the lamp stands still and is cached
+    go(3, true);                   // a blocker stands between the lamp and the wall
+    E.run('bx = 70'); go(3, true); // it moves
+    E.run('blocks = false'); go(2, true);   // it is the sort that does not block lamps
+    go(3);                         // and goes
+    return { out: [...E.run('out')], seen };
+  };
+  const on = run(true), off = run(false), s = on.seen;
+  assert.deepEqual(on.out, off.out, 'every frame equal with the cache on and off');
+  assert.ok(s[0][0] > .05, `the wall is lit without it (${s[0][0]})`);
+  assert.ok(Math.max(...s.slice(0, 5).map(x => x[1])) >= 1, 'the lamp was cached before the blocker came');
+  assert.ok(s[5][0] < s[0][0] * .2 && s[8][0] < s[0][0] * .2, `behind the blocker the wall is in shadow (${s[5][0]}, ${s[8][0]})`);
+  assert.equal(Math.max(...s.slice(5, 11).map(x => x[1])), 0, 'a lamp the blocker stands in is cast again, not served from the cache');
+  assert.ok(Math.abs(s[11][0] - s[0][0]) < 1e-6 && Math.abs(s[12][0] - s[0][0]) < 1e-6, 'a sprite that does not block lamps leaves the light as it was');
+  assert.ok(Math.abs(s[13][0] - s[0][0]) < 1e-6, 'and when it is gone the wall is lit again, the same');
+});
