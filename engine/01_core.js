@@ -193,7 +193,7 @@ function simGranular() {
       for (let k = 0; k < x1 - x0; k++) {
         const x = flip ? x0 + k : x1 - 1 - k, m = cells[row + x], fall = MAT_FALL[m];
         if (!fall) continue;
-        if (fall === 2) { flowLiquid(x, y, m, ci); continue; }   // a liquid falls cell by cell and spreads level (engine/18_liquid.js)
+        if (fall === 2) { flowLiquid(x, y, m, ci); continue; }   // a liquid falls cell by cell and spreads level (engine/19_liquid.js)
         const below = cells[row + W + x];
         if (below === EMPTY) {                            // unsupported → ballistic grain
           cells[row + x] = EMPTY; wakeAt(x, y);

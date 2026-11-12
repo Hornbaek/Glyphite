@@ -122,7 +122,7 @@ function computeLighting(ox, oy, lights, dynTop) {
     }
     LR[k] = r; LG[k] = g; LB[k] = b;
   }
-  if (ANY_LIQ) dimLiquidLight(ox, oy);   // sun and ambient die with the depth of liquid they cross (engine/18_liquid.js); lamps below keep theirs
+  if (ANY_LIQ) dimLiquidLight(ox, oy);   // sun and ambient die with the depth of liquid they cross (engine/19_liquid.js); lamps below keep theirs
   // 4) point & cone lights, shadowed by voxels
   LDX.fill(0); LDY.fill(0);
   for (const L of lights) addPointLight(L, ox, oy);
