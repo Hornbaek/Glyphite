@@ -81,59 +81,10 @@ function putLit(cx, cy, code, ar, ag, ab, floor = .1) {
 }
 const lightAtCell = (cx, cy, out) => { const i = cx - L_OX, j = cy - L_OY; if (i < 0 || j < 0 || i >= R.RW || j >= R.RH) { out[0] = out[1] = out[2] = 0; return out; } const k = j * R.RW + i; out[0] = LR[k]; out[1] = LG[k]; out[2] = LB[k]; return out; };
 
-// One terrain cell of the window (i, j) into the scene buffers. The state it needs is in the _t* variables, set by sceneTerrain.
-// (cells are read straight from the arrays inside the world: getC with its four bounds tests for every cell, and again for the
-// back wall's shadow search, was the bulk of this loop; occAt reads the occupancy the lighting built, which is getC !== EMPTY)
-let _tOx = 0, _tOy = 0, _tTime = 0, _tBkN = 0, _tBp = 0, _tRW = 0, _tRec = false, _tAnim = null, _tAnimN = 0;
-function terrainCell(i, j) {
-  const RW = _tRW, G = R.wG, Z = R.wZ, ox = _tOx, oy = _tOy, time = _tTime, bkN = _tBkN, bp = _tBp;
-  const k = j * RW + i, cx = ox + i, cy = oy + j, inW = cx >= 0 && cx < W && cy >= 0 && cy < H, ci = inW ? cy * W + cx : -1;
-  let m = inW ? cells[ci] : getC(cx, cy);
-  const lr = LR[k], lg = LG[k], lb = LB[k];
-  let glyph = 0, r = 0, g = 0, b = 0, raw = -1;
-  if (m === EMPTY) {
-    Z[k] = 0;   // particles and rings always draw over the back wall
-    const bm = inW ? backCells[ci] : 0;
-    if (bm) {   // the back wall: the light in the air in front of it, dimmer, with a drop shadow from the world cells
-      let f = BACK.dim;
-      for (let s = 0; s < bkN; s++) if (occAt(cx - BK_OFF[2 * s], cy - BK_OFF[2 * s + 1])) { f *= 1 - BACK.shadow * (1 - s / bkN); break; }
-      const alb = MAT_ALB[bm];
-      // a mast-style back wall (girders) shows its joints one shade brighter
-      const joint = MAT_STYLE[bm] === 2 && (getBack(cx, cy - 1) === bm || getBack(cx, cy + 1) === bm) && (getBack(cx - 1, cy) === bm || getBack(cx + 1, cy) === bm);
-      raw = (.3 * alb[0] * lr + .59 * alb[1] * lg + .11 * alb[2] * lb) * f;
-      shadeCell(bm, alb[0] * lr * f, alb[1] * lg * f, alb[2] * lb * f, lr, lg, lb, texOf(vari[ci]), joint ? 1 : 0, _shd);
-      r = _shd[0]; g = _shd[1]; b = _shd[2]; glyph = SOLID;
-    }
-  } else {
-    if (MAT_STYLE[m] === 2 && LSURF[k] === 1) {   // buried mast footings look like the ground they're in
-      const a = getC(cx - 1, cy), c = getC(cx + 1, cy), d = getC(cx, cy + 1), ok = q => q !== EMPTY && MAT_STYLE[q] !== 2;
-      m = ok(a) ? a : ok(c) ? c : ok(d) ? d : m;
-    }
-    const alb = MAT_ALB[m], v = inW ? vari[ci] : 77, h = inW ? heat[ci] : 0, s = LSURF[k], st = MAT_STYLE[m];
-    if (_tRec && (st === 3 || (MAT_SHINY[m] > 0 && s === 2))) _tAnim[_tAnimN++] = k;   // these look different from one moment to the next
-    if (s === 1) { const fl = .1 + .13 * LAOD[k]; r = alb[0] * Math.max(lr, fl); g = alb[1] * Math.max(lg, fl); b = alb[2] * Math.max(lb, fl * 1.25); }
-    else { r = alb[0] * lr; g = alb[1] * lg; b = alb[2] * lb; }
-    if (h > .02) { r += h * 1.35; g += h * h * .6; b += h * h * h * .3; }
-    if (bp > 0 && MAT_BEATGLOW[m]) { const q = MAT_BEATGLOW[m] * bp * .9; r += alb[0] * q; g += alb[1] * q; b += alb[2] * q; }   // flashes in its own colour on the beat
-    // the shade step: deck tops and lit surfaces facing up get a bright edge, undersides a dark one; girder joints and
-    // twinkling crystal facets one brighter
-    let step = 0;
-    if (st === 2) step = (getC(cx, cy - 1) === m || getC(cx, cy + 1) === m) && (getC(cx - 1, cy) === m || getC(cx + 1, cy) === m) ? 1 : 0;
-    else if (st === 3) { const p = .6 + .4 * Math.sin(time * 3 + v), pc = MAT_PULSE[m]; step = ((time * 2 + v * .1) | 0) & 1; r += pc[0] * p; g += pc[1] * p; b += pc[2] * p; }
-    else if (s === 2 && st !== 4) step = LNY[k] < -.5 ? (lr + lg + lb > .3 ? 1 : 0) : LNY[k] > .55 ? -1 : 0;
-    raw = .3 * r + .59 * g + .11 * b;   // also the occlusion key particles test against: free of the exposure, like theirs
-    shadeCell(m, r, g, b, lr, lg, lb, texOf(v), step, _shd);
-    r = _shd[0]; g = _shd[1]; b = _shd[2]; glyph = SOLID;
-    if (MAT_SHINY[m] > 0 && s === 2 && (LSUN[k] || raw > .85) && hash2(cx, cy, (time * 2.5) | 0) < MAT_SHINY[m] * .07) r = g = b = 1.7;
-    Z[k] = raw;
-  }
-  G[k] = glyph; cR[k] = r; cG[k] = g; cB[k] = b; cL[k] = raw;
-}
-
-// Steps 1 and 2 of a frame: emissive things pour light into the buffers, then every terrain cell is shaded. Nothing in it depends on
-// what the frame draws on top, so a still frame can keep its outcome (the still-frame snapshot, below) and skip it.
+// Steps 1 and 2 of a frame: emissive things pour light into the buffers, then every terrain cell is shaded. Nothing in it depends on what the frame draws on
+// top, so a still frame can keep its outcome (the still-frame snapshot, below) and skip it. Returns how many of the cells follow the clock (crystals, glints).
 function sceneTerrain(ox, oy, time, bkN, bp) {
-  const RW = R.RW, RH = R.RH, SH = R.wShim;
+  const RW = R.RW, RH = R.RH, G = R.wG, Z = R.wZ, SH = R.wShim;
   // 1) emissive particles and hot rock pour light into the buffers
   for (let p = 0; p < P.n; p++) {
     const t = P.t[p], ct = t >= PT_CUSTOM ? PTYPES[t - PT_CUSTOM] : null;
@@ -163,32 +114,70 @@ function sceneTerrain(ox, oy, time, bkN, bp) {
   }
 
   // 2) terrain (empty cells stay code 0: transparent, so the sky layer shows through them)
-  _tOx = ox; _tOy = oy; _tTime = time; _tBkN = bkN; _tBp = bp; _tRW = RW; _tRec = true; _tAnimN = 0;
-  for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) terrainCell(i, j);
-  _tRec = false;
+  // (cells are read straight from the arrays inside the world: getC with its four bounds tests for every cell, and again for the
+  // back wall's shadow search, was the bulk of this loop; occAt reads the occupancy the lighting built, which is getC !== EMPTY)
+  let anim = 0;
+  for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) {
+    const k = j * RW + i, cx = ox + i, cy = oy + j, inW = cx >= 0 && cx < W && cy >= 0 && cy < H, ci = inW ? cy * W + cx : -1;
+    let m = inW ? cells[ci] : getC(cx, cy);
+    const lr = LR[k], lg = LG[k], lb = LB[k];
+    let glyph = 0, r = 0, g = 0, b = 0, raw = -1;
+    if (m === EMPTY) {
+      Z[k] = 0;   // particles and rings always draw over the back wall
+      const bm = inW ? backCells[ci] : 0;
+      if (bm) {   // the back wall: the light in the air in front of it, dimmer, with a drop shadow from the world cells
+        let f = BACK.dim;
+        for (let s = 0; s < bkN; s++) if (occAt(cx - BK_OFF[2 * s], cy - BK_OFF[2 * s + 1])) { f *= 1 - BACK.shadow * (1 - s / bkN); break; }
+        const alb = MAT_ALB[bm];
+        // a mast-style back wall (girders) shows its joints one shade brighter
+        const joint = MAT_STYLE[bm] === 2 && (getBack(cx, cy - 1) === bm || getBack(cx, cy + 1) === bm) && (getBack(cx - 1, cy) === bm || getBack(cx + 1, cy) === bm);
+        raw = (.3 * alb[0] * lr + .59 * alb[1] * lg + .11 * alb[2] * lb) * f;
+        shadeCell(bm, alb[0] * lr * f, alb[1] * lg * f, alb[2] * lb * f, lr, lg, lb, texOf(vari[ci]), joint ? 1 : 0, _shd);
+        r = _shd[0]; g = _shd[1]; b = _shd[2]; glyph = SOLID;
+      }
+    } else {
+      if (MAT_STYLE[m] === 2 && LSURF[k] === 1) {   // buried mast footings look like the ground they're in
+        const a = getC(cx - 1, cy), c = getC(cx + 1, cy), d = getC(cx, cy + 1), ok = q => q !== EMPTY && MAT_STYLE[q] !== 2;
+        m = ok(a) ? a : ok(c) ? c : ok(d) ? d : m;
+      }
+      const alb = MAT_ALB[m], v = inW ? vari[ci] : 77, h = inW ? heat[ci] : 0, s = LSURF[k], st = MAT_STYLE[m];
+      if (st === 3 || (MAT_SHINY[m] > 0 && s === 2)) anim++;   // crystals and glints look different from one moment to the next
+      if (s === 1) { const fl = .1 + .13 * LAOD[k]; r = alb[0] * Math.max(lr, fl); g = alb[1] * Math.max(lg, fl); b = alb[2] * Math.max(lb, fl * 1.25); }
+      else { r = alb[0] * lr; g = alb[1] * lg; b = alb[2] * lb; }
+      if (h > .02) { r += h * 1.35; g += h * h * .6; b += h * h * h * .3; }
+      if (bp > 0 && MAT_BEATGLOW[m]) { const q = MAT_BEATGLOW[m] * bp * .9; r += alb[0] * q; g += alb[1] * q; b += alb[2] * q; }   // flashes in its own colour on the beat
+      // the shade step: deck tops and lit surfaces facing up get a bright edge, undersides a dark one; girder joints and
+      // twinkling crystal facets one brighter
+      let step = 0;
+      if (st === 2) step = (getC(cx, cy - 1) === m || getC(cx, cy + 1) === m) && (getC(cx - 1, cy) === m || getC(cx + 1, cy) === m) ? 1 : 0;
+      else if (st === 3) { const p = .6 + .4 * Math.sin(time * 3 + v), pc = MAT_PULSE[m]; step = ((time * 2 + v * .1) | 0) & 1; r += pc[0] * p; g += pc[1] * p; b += pc[2] * p; }
+      else if (s === 2 && st !== 4) step = LNY[k] < -.5 ? (lr + lg + lb > .3 ? 1 : 0) : LNY[k] > .55 ? -1 : 0;
+      raw = .3 * r + .59 * g + .11 * b;   // also the occlusion key particles test against: free of the exposure, like theirs
+      shadeCell(m, r, g, b, lr, lg, lb, texOf(v), step, _shd);
+      r = _shd[0]; g = _shd[1]; b = _shd[2]; glyph = SOLID;
+      if (MAT_SHINY[m] > 0 && s === 2 && (LSUN[k] || raw > .85) && hash2(cx, cy, (time * 2.5) | 0) < MAT_SHINY[m] * .07) r = g = b = 1.7;
+      Z[k] = raw;
+    }
+    G[k] = glyph; cR[k] = r; cG[k] = g; cB[k] = b; cL[k] = raw;
+  }
+  return anim;
 }
 
 // ---------- the still-frame snapshot (04_light.js, stillPlan): the terrain pass's outcome, kept ----------
-// What steps 1 and 2 leave behind: the scene buffers (glyph, depth, colour, brightness) and the light buffers after the glow of hot and
-// glowing things. A still frame copies them back and shades again only the cells that follow the clock (crystals, glints).
-const T = { n: 0, G: null, Z: null, R: null, Gc: null, B: null, L: null, LR: null, LG: null, LB: null, anim: null, animN: 0 };
+// What steps 1 and 2 leave behind: the scene buffers (glyph, depth, colour, brightness) and the light buffers after the glow of hot and glowing things. A
+// still frame copies them back. Not kept while the window holds crystals or glints: they follow the clock, so the pass has to be made again.
+const T = { n: 0, G: null, Z: null, R: null, Gc: null, B: null, L: null, LR: null, LG: null, LB: null };
 function stillSave() {
   const n = R.RW * R.RH;
-  if (T.n !== n) { T.n = n; T.G = new Uint8Array(n); T.anim = new Int32Array(n); for (const k of ['Z', 'R', 'Gc', 'B', 'L', 'LR', 'LG', 'LB']) T[k] = new Float32Array(n); }
+  if (T.n !== n) { T.n = n; T.G = new Uint8Array(n); for (const k of ['Z', 'R', 'Gc', 'B', 'L', 'LR', 'LG', 'LB']) T[k] = new Float32Array(n); }
   T.G.set(R.wG); T.Z.set(R.wZ); T.R.set(cR); T.Gc.set(cG); T.B.set(cB); T.L.set(cL); T.LR.set(LR); T.LG.set(LG); T.LB.set(LB);
-  T.anim.set(_tAnim.subarray(0, _tAnimN)); T.animN = _tAnimN; stillSavedTerrain();
+  stillSavedTerrain();
 }
-function stillRestore(ox, oy, time, bkN, bp) {
-  R.wG.set(T.G); R.wZ.set(T.Z); cR.set(T.R); cG.set(T.Gc); cB.set(T.B); cL.set(T.L); LR.set(T.LR); LG.set(T.LG); LB.set(T.LB);
-  _tOx = ox; _tOy = oy; _tTime = time; _tBkN = bkN; _tBp = bp; _tRW = R.RW; _tRec = false;
-  for (let q = 0; q < T.animN; q++) { const k = T.anim[q]; terrainCell(k % _tRW, (k / _tRW) | 0); }
-}
-// audit: the snapshot must equal what the full pass just made, except for the cells that follow the clock
+function stillRestore() { R.wG.set(T.G); R.wZ.set(T.Z); cR.set(T.R); cG.set(T.Gc); cB.set(T.B); cL.set(T.L); LR.set(T.LR); LG.set(T.LG); LB.set(T.LB); }
+// audit: the snapshot must equal what the full pass just made
 function stillCompare() {
-  const n = T.n; if (n !== R.RW * R.RH) return;
-  const skip = new Uint8Array(n); for (let q = 0; q < T.animN; q++) skip[T.anim[q]] = 1;
-  for (let k = 0; k < n; k++) {
-    if (skip[k]) continue;
+  if (T.n !== R.RW * R.RH) return;
+  for (let k = 0; k < T.n; k++) {
     if (T.G[k] !== R.wG[k] || T.Z[k] !== R.wZ[k] || T.R[k] !== cR[k] || T.Gc[k] !== cG[k] || T.B[k] !== cB[k] || T.L[k] !== cL[k] || T.LR[k] !== LR[k] || T.LG[k] !== LG[k] || T.LB[k] !== LB[k]) {
       CACHE.bad++; STILL.tHave = false; console.warn('the still-frame terrain was stale (cell ' + k + '): something it depends on changed without the engine hearing of it (engine/API.md, Performance)'); return;
     }
@@ -199,18 +188,18 @@ function renderScene(ox, oy, time, drawExtras) {
   const RW = R.RW, RH = R.RH, n = RW * RH, G = R.wG, Z = R.wZ, SH = R.wShim;
   if (!cR || cR.length !== n) {
     cR = new Float32Array(n); cG = new Float32Array(n); cB = new Float32Array(n); cL = new Float32Array(n); vig = new Float32Array(n);
-    _tAnim = new Int32Array(n); STILL.tHave = false;
+    STILL.tHave = false;
     for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) { const u = i / RW * 2 - 1, v = j / RH * 2 - 1; vig[j * RW + i] = 1 - .42 * (u * u * .55 + v * v * .8); }
   }
   SH.fill(0);
   const bkN = backShadowOffsets();
   Beat.step(time);
   const bp = Beat.pulse();   // 0..1: how hard the music is hitting right now (0 when the pulse is off)
-  if (STILL.terrain && !CACHE.audit) stillRestore(ox, oy, time, bkN, bp);
+  if (STILL.terrain && !CACHE.audit) stillRestore();
   else {
-    sceneTerrain(ox, oy, time, bkN, bp);
+    const anim = sceneTerrain(ox, oy, time, bkN, bp);
     if (STILL.terrain) stillCompare();   // (audit: the snapshot must equal what was just made)
-    if (STILL.snapTerrain) stillSave();
+    if (STILL.snapTerrain && !anim) stillSave();
   }
 
   // 3) particles, lit by the same buffers

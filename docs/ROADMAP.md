@@ -189,9 +189,14 @@ Each new game should need no engine edits. Every engine edit it forces goes on t
 
 - **Deterministic simulation:** a seeded RNG in the engine (`Pixelite.rand`) for replays and
   reliable tests.
-- **Performance:**
-  - Profile lighting at RES 3 on large screens.
-  - Consider moving the light computation to a worker or to WebGL.
+- **Performance** (the engine plan's P and E2 packages, HISTORY 54, engine 0.15.2):
+  - ~~Profile lighting at RES 3 on large screens~~: `Pixelite.perf` (stage timers, F3), `tests/perf.py` (every game, both renderers, RES 2 and 3, two screen sizes).
+  - ~~Cheaper inner loops (P3)~~, ~~lamps cached while nothing changes (E2)~~, ~~still frames reuse the sun, ambient and terrain shading (P2)~~ (exact: `tests/engine_cache.py`),
+    ~~smaller pages: optional engine parts and `build --minify` (P6)~~.
+  - **Open:** keep a lamp's cast across a camera move (the plan's "shift and fill the edge": needs a cast defined beyond the window, which the surface buffers do not cover); reuse
+    of still frames that have fire, sparks or hot rock in the window (today the base still comes from the copy, the terrain is redone); `build:cloudflare` does not minify yet (the
+    owner's call: `node tools/pixelite.mjs build --minify`, tested, about a fifth smaller). @@P4ROAD@@
+  - Consider moving the light computation to a worker or to WebGL (P5: only with numbers that call for it; the caches come first).
   - ~~Cache sprite rasterisation when nothing changed~~: `drawSprite` `cache` (engine 0.6.0) for still sprites.
 - **Tests:** turn the most useful scripts in `games/regolith/tests/` into a regression suite with
   pass/fail thresholds (landing tolerances, floating islands, clearance, sky smoothness, sprite timing)

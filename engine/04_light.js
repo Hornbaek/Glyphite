@@ -112,8 +112,8 @@ function fillOcc(ox, oy) {
 //     are the same (position, radius, colour, intensity, cone: a flickering lamp breaks it, the base still holds), the back wall, the exposure,
 //     the materials and the backdrop's settings are the same, no emissive particle is in the window, nothing in it is hot and the music does not
 //     pulse the scene (setBeatPulse).
-// What moves on top (particles, falling chunks, sprites, rings, the HUD) is drawn every frame as before, and crystals and glints, which follow
-// the clock, are shaded again each frame. Exact, like the lamp cache: the same numbers come back, so a frame is bit for bit what it was
+// What moves on top (particles, falling chunks, sprites, rings, the HUD) is drawn every frame as before. The terrain is not kept while the window
+// holds crystals or glints, which follow the clock (the base still is). Exact, like the lamp cache: the same numbers come back, so a frame is bit for bit what it was
 // without it (tests/engine_cache.py compares them). A snapshot is taken once a frame's keys equal the last frame's, so a moving camera costs
 // the comparison of a few numbers. CACHE.still = false turns it off; baseHit and terrainHit say what the last frame did; with CACHE.audit
 // the work is done anyway and compared with the snapshot (CACHE.bad counts mismatches).

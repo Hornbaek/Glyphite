@@ -285,8 +285,10 @@ for bit):
   right. The lamps and the flash are added on top as always. The *terrain* (steps 1-2 of `renderScene`) also depends on the lamps' parameters, the back wall
   (a checksum of the window's `backCells`, since games write it directly), `EYE.e`, the backdrop's settings and the materials (`MATS[i]` is a new object
   whenever `setMaterial` changes one), and needs the window free of emissive particles and of heat above .02, and `BEAT_K` zero. Then
-  `stillRestore` copies the scene buffers and the light buffers (after the glow of hot things) back, and shades again only the cells that follow the clock (crystals,
-  glints: `_tAnim`). Snapshots are taken only once a frame's keys equal the last frame's, so a moving camera pays for a few comparisons.
+  `stillRestore` copies the scene buffers and the light buffers (after the glow of hot things) back. Crystals and glints follow the clock, so a window that holds any
+  (`sceneTerrain` counts them) is not kept (the base still is). Snapshots are taken only once a frame's keys equal the last frame's, so a moving camera pays for a few
+  comparisons. (A first version shaded those cells again each frame, in one shared loop with a list mode; the extra per-cell work cost a tenth of the scene in every
+  game, so the pass stayed one plain loop.)
 
 Measured and written down in HISTORY section 54.
 

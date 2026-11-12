@@ -555,7 +555,8 @@ with them off, on, and on with the engine re-doing and comparing everything), so
   and ambient colours, the moving bodies that cast shadows and the world under the window and the sun's sweep are the same. The shaded terrain and the
   light buffers come back too while, on top of that, the lamps are the same, the back wall, the exposure, the materials and the backdrop are the
   same, nothing in the window is hot or emissive (fire, gas, sparks, particles with a `light` hook) and `setBeatPulse` is off. Particles, falling
-  chunks, sprites, rings and the HUD are drawn every frame as before; crystals and glints, which follow the clock, are shaded again each frame.
+  chunks, sprites, rings and the HUD are drawn every frame as before. The shaded terrain is not kept while the window holds crystals (`style: 'crystal'`) or
+  `shiny` surfaces, which follow the clock: only the base is.
 
 `Pixelite.cache` has the switches and counters: `lamps` and `still` (set `false` to turn one off), `hit` / `miss` / `rec` (lamps of the last frame:
 served from the cache, cast, cast and recorded), `baseHit` / `terrainHit` (0 or 1: what the last frame reused), `audit` (true: do everything, compare with
