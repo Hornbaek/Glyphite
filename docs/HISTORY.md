@@ -1033,6 +1033,19 @@ a design of its own), MIDI files, and the rest. MIDI files first: import and exp
   fails a test each time. `tests/studio.py`: the export, the same file opened as the same song, "cancel" keeping the work, a Regolith file
   opened and played, a text file refused.
 
+## 52. The remake's story: Star Whiskers, The Holy Cow (Claude Code, 2026-11-12)
+
+> "I'm thinking about redoing the space mouse game completely. I have the story here, it's in Swedish, but I like it! Write it in
+> English and come with some feedback on the story and suggestions to the plot and story line." … "Use this as cover"
+
+- **`games/spacemouse/story/`**: the owner's two Swedish documents untouched in `sv/`, the story translated in full in `STORY.md`
+  (five acts, seventeen chapters and an epilogue, with the concept's gameplay notes and open questions), and `FEEDBACK.md`: what
+  works, nine suggestions (a flaw for the mouse, why the cat needs a junk ship, one rule for milk, one clue per world, a low point
+  where the cat is captured, a cow with character, the robot reset to a farm job, the farm on the cow's planet, planting the cat's
+  friends), the cover against the story, names, and Act I as the first playable.
+- **The cover** (`ref/cover_star_whiskers.png`) is kept as reference art; `tools/art.py` lists a picture nothing is cut from
+  (its `use`), so `ref.json` stays generated.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

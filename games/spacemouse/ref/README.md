@@ -130,3 +130,12 @@ the sheet.
 | ![hatch half open](frames/hatch_half_open.png) | hatch half open | 291, 613, 494, 816 | not used yet: a door that opens needs a switch or a key |
 | ![ladder](frames/ladder.png) | ladder | 853, 613, 929, 824 | not used yet: needs climbing |
 | ![lift](frames/lift.png) | lift | 990, 606, 1206, 822 | not used yet: needs moving platforms |
+
+## The cover for the remake: Star Whiskers, The Holy Cow
+
+`cover_star_whiskers.png`, 1536 x 1024, from the owner (AI image)
+
+![cover_star_whiskers.png](cover_star_whiskers.png)
+
+Used for: Cover art and mood reference for the remake (story/STORY.md): the mouse, the inventor cat, the Holy Cow, the great robot cat's fortress and its controlled cats.
+

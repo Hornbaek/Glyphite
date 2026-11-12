@@ -1501,6 +1501,17 @@
      "used": false
     }
    ]
+  },
+  {
+   "file": "cover_star_whiskers.png",
+   "title": "The cover for the remake: Star Whiskers, The Holy Cow",
+   "source": "the owner (AI image)",
+   "size": [
+    1536,
+    1024
+   ],
+   "frames": [],
+   "use": "Cover art and mood reference for the remake (story/STORY.md): the mouse, the inventor cat, the Holy Cow, the great robot cat's fortress and its controlled cats"
   }
  ]
 }
