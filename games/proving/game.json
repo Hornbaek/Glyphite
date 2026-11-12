@@ -2,7 +2,7 @@
   "id": "proving",
   "title": "Proving Ground",
   "tagline": "A test level: one station for every platformer feature of the engine",
-  "description": "Walk, jump (coyote time, jump buffer, variable height), climb ladders, drop through catwalks, slide on ice, ride conveyor belts and moving platforms, bounce on springs, avoid spikes, float in a low-gravity room, stomp or shoot patrolling slimes, dig through dirt, and blast a brick tower down. Every station is a feature of the Pixelite engine, and the level is checked with the engine's reach search.",
+  "description": "Walk, jump (coyote time, jump buffer, variable height), climb ladders, drop through catwalks, slide on ice, ride conveyor belts and moving platforms, bounce on springs, avoid spikes, float in a low-gravity room, swim and dive in a pool for coins, stomp or shoot patrolling slimes, dig through dirt, and blast a brick tower down. Every station is a feature of the Pixelite engine, and the level is checked with the engine's reach search.",
   "order": 90,
   "listed": false,
   "status": "draft",
@@ -10,7 +10,7 @@
   "controls": [
     ["A D / Left Right", "run"],
     ["Space / W / Up", "jump (hold for height)"],
-    ["Up / Down", "climb a ladder, drop through a catwalk"],
+    ["Up / Down", "climb a ladder, drop through a catwalk, swim up or dive"],
     ["J / X / tap", "throw a pebble"],
     ["K / C", "throw a bomb (it blasts rock and bricks)"],
     ["L / Z", "dig dirt in front of you"],
