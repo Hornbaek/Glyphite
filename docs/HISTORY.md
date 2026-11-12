@@ -1120,6 +1120,41 @@ Packages F1, F3 and F4 of the plan; engine 0.15.1.
 - **Tests.** `tests/node/audio-mock.mjs` (a recording Web Audio for the Node bench), `sampler.test.mjs`, `sound.test.mjs`, `music.test.mjs`, and
   `tests/engine_sound.py` against the real Web Audio in both renderers.
 
+## 55. The engine plan: the platformer toolkit and the Proving Ground (Claude Code, 2026-11-12)
+
+> "Work through all the tiers and also work on all the improvements from the plan. I want them all :) Create a level that showcases the updates, like a test level."
+
+Packages C1, C3-C10, D1, D3-D10 of `docs/ENGINE_PLAN.md` and the platformer picks from the idea bank, on engine 0.16.0 (new parts 14 to 17), and a test
+level that uses them all.
+
+- **Materials** (D1): `climbable` (also in the back wall: a ladder painted behind a room), `hazard`, `grip`, `conveyor` (carries a `Character`, a `Body`
+  and sand), `bouncy` (a `Character` is thrown up, a `Body` bounces). `Character` takes `up`, climbs, rides conveyors, slides on ice, bounces, and reports
+  `contacts`, `hazard`, `carry`, `bounced`, `crushed`, `platform`. `ramp:` (ignored for ages) is gone from the games, `grains` is the new name of `grainGlyphs`.
+- **Moving platforms** (D3, `addPlatform`): chunks on a path, moved by whole cells, carrying a character standing on them (and slimes), crushing against walls;
+  a blast turns one into a falling chunk. **Gravity** (D5): `setGravity(mps2, sideways)`, `addGravityZone`, per-body `gs`; a jump's launch uses the world's
+  gravity, so it goes higher in a low-g zone (Space Mouse's low-gravity rooms are zones now). **Digging** (D6): `carve`, `fill`. **Bodies** (D4): `bodyVsBody`,
+  opt-in chunk-against-chunk contacts (`CHUNK_CONTACTS`).
+- **Entities** (C3, `engine/14_entities.js`): `defineEntity` / `spawn` / `near` / `overlapping`, a `Character` per entity, sleeping off screen, probe
+  counts; timers, tweens, `fsm`, `useStates` (D10); `seek` / `flee` / `wander`, `findTilePath` (Fjordheim's A* moved here, D9). **World tools** (`engine/15_world.js`):
+  `raycast`, projectiles that move by rays (the starter's bolts are `fireProjectile` now, D7), triggers, `loadTileMap` (tile maps with props, spawns, entities,
+  merged triggers, D8), `reachSearch` / `navPath` / `jumpArc` (Space Mouse's level search made general: the engine can prove a level finishable), `rescaleWorld`
+  (C2: a game without `regenerate` is resampled when the detail changes).
+- **Look and feel**: sprite `tint`, `flash`, `palette` and animations (`defineAnim`, `drawAnim`, `animFromAsset`, C4); camera rigs (C6: look-ahead, dead zone, rooms,
+  bounds); `cameraShake`.
+- **Input and shell** (`engine/16_actions.js`, `17_ui.js`): **actions** from `game.json` over keys, gamepad (analog sticks) and touch, buttons made from them, multi-touch
+  pinch and long press (C5); settings and saves (C10: `Pixelite.settings`, `save` / `load`, `worldSave` / `worldLoad`); the HUD kit, a message feed and floating texts drawn
+  by the engine (C7, C8; the four games' own loops are deleted); the standard shell: title, pause menu, key rebinding (C9). C1: `detail: { levels: [2] }` offers one
+  detail level.
+- **The Proving Ground** (`games/proving/`, unlisted): a 112 x 24 tile level, left to right: walking, a catwalk and a ladder, ice, belts, a spring over spikes, a ferry
+  and a lift, a low-gravity room, slimes, a brick tower, a dirt wall, the goal. `tests/check.mjs` proves it finishable with the engine's reach search (Node, about a minute);
+  `tests/mechanics.py` runs every station in a page (27 checks, including gamepad, rebinding, the save across a reload and a replay that gives the same world).
+- **Found on the way**: grains landing on a pile could vanish (A, part 1); a slime on the lift rides it up and hurts the hero (the test kills the slimes first).
+- **Not done** (and why): the plan's D2 (liquids, reactions, heat conduction) and E1-E8 (sun from either side, emissive sprites, layers and backdrops, palette lock,
+  zoom, weather) were not started; C11 (the generated api.json and the lint), C12 (starters per genre: the Proving Ground is the platformer one, by hand), B5 (golden
+  screenshots), A5's `game.json` key list is by hand. The performance packages are in their own branch (see ROADMAP).
+- **Verified**: build, 175 unit tests, the smoke test of seven games in both renderers, `tests/engine_browser.py`, Space Mouse reach and mechanics, Fjordheim's playthrough,
+  the Proving Ground's check and mechanics (three runs).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

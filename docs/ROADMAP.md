@@ -74,6 +74,19 @@ From the owner's brainstorm: generate art through an image API, snap it to the g
 Later: the animation asset exists (HISTORY 49); next is a game using one (Pip's own frames) (the legs are solved by drawing characters at twice the size: HISTORY 50), moving Space Mouse's other art (Pip, cat-bots, objects) into the pipeline, the stray one-pixel
 column on the lockers' right edge (a cut artefact the gallery will make visible).
 
+## The engine plan (docs/ENGINE_PLAN.md, HISTORY 53-55): what is done, what is open
+
+Done on `feature/a-foundations`: **A1-A8** (Windows build, one version, pause as a flag, author checks, errors shown, structures, fast bodies), **B1-B4** (seeded random,
+simulation clock, record and replay, the Node engine test bench), **C1-C10** (detail levels a game chooses, resampling a world, entities, animation, actions with gamepad and
+touch, camera rigs, HUD kit, messages, the shell, settings and saves), **D1, D3-D10** (material flags, moving platforms, bodies, gravity, carve and fill, rays and projectiles,
+tile maps and triggers, path finding, timers and state machines), **F1, F3, F4** (sound as data, a music director, instruments off the main thread), **G2** (07 split).
+Open, in the plan's order: **D2** liquids (a pool, swimming, water + lava, flammables, heat conduction: the next station for the Proving Ground), **E1** the sun from either
+side, **E3** emissive sprite pixels, **E5** layers in front and far behind, **E4** per-light back-wall shadows, **E6** a screen palette and post effects, **E7** zoom, **E8**
+weather and time of day, **C11** the generated `api.json` and a lint of game code against it, **C12** starters per genre (the Proving Ground is the platformer one), **B5** golden
+screenshots and budgets in CI, **F2** key remapping is in the shell (the colour-blind HUD set and hold-to-toggle are not), **G1** the roadmap as "open work only". The speed
+packages (P1-P6, E2) are on the branch `worktree-agent-ac4b8929a6f13b2d3` until merged. Ideas from the bank that the toolkit now makes small: ropes and a grapple (verlet
+ropes are not built), a boss as a breakable structure with mounts, time rewind from grid deltas, an echo enemy (replay of the player's inputs), ghost racers (the replay exists).
+
 ## Principles to keep
 
 - One pixel per cell, one colour per pixel; pixel art keeps one art pixel per world pixel where it can.
