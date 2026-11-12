@@ -37,6 +37,10 @@ Map it onto the engine before writing code:
   web editor").
 - **Effects** → `explode`, built-in particles, `defineParticle` for pickups and the like, lights.
 - **Gravity / sun** → `setGravity` (0 for top-down), `setSun(null)` for caves or indoors, `setAmbient`.
+- **The look** (engine/API.md, "Layers in front and far behind", "The screen look", "Weather, wind, fog and the time of day", "Camera"): hills and far scenery are `addBackdrop`, grass the hero
+  walks behind is the front pass (`drawFront`), a window or flame that glows is a sprite `emit` layer, a day and night cycle is `setTimeOfDay(hour, { rate })` (put lamps on `1 - getTimeOfDay().daylight`),
+  rain and snow are `setWeather` (`pile` for drifts), `setWind`, `setFog`, one palette and a CRT or Game Boy look is `setPost`, and a strategy game's zoom is `zoom` in `Pixelite.run`. All off until
+  asked for; `games/proving/look.js` shows every one, behind tunables.
 - **Anything the engine lacks** → add it to the engine as a *general* feature (with API.md and ROADMAP
   updates) only if another game could use it; otherwise keep it in the game.
 

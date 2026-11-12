@@ -16,7 +16,7 @@ edits to a Claude session as a prompt plus a patch. **The repository is the sour
 ```
 engine/                 the engine (shared by every game)
   engine.json           part order + version          API.md   the public API: read it before writing game code
-  shell.html            page template                 01_core … 12_iso.js   the parts (banner says what each does)
+  shell.html            page template                 01_core … 21_weather.js   the parts (banner says what each does; 21 is the time of day, weather, wind and fog)
 games/notfound/         the 404 game: unlisted, served by the Worker for any missing page (worker/index.js)
 games/showcase/         the live engine demo on the public landing page: unlisted, public
 games/<id>/             one folder per game: game.json (manifest), head.html (optional page HTML), *.js parts,
@@ -173,6 +173,13 @@ Apply the diff with `git apply` (if it no longer applies, carry the intent over 
   banner comments (`// ===== ENGINE · … =====` / `GAME · …`). Don't add dead code; delete what you replace.
 - Keep docs current: `docs/HISTORY.md` (what was done, per request), `LESSONS.md` (pitfalls), `ROADMAP.md`
   (follow-ups), `engine/API.md` (any API change), the game's `NOTES.md`.
+
+## What the engine's look offers
+
+Beyond lights and sprites (all in `engine/API.md`, all off until a game asks, so a game that never calls them renders as before): backdrops and a front pass (`addBackdrop`, `drawFront`), glowing sprite pixels (`emit`),
+lamp-following back-wall shadows (`setBackdrop({ lamps: true })`), the sun from either side (`setSun` 91..179), a screen palette, dither, vignette and scanlines (`setPost`), zoom (`setZoom`, `Pixelite.run({ zoom })`),
+and the time of day, sky gradient, rain, snow, wind and fog (`setTimeOfDay`, `setSkyGradient`, `setWeather`, `setWind`, `setFog`). `games/proving/look.js` uses every one behind tunables. A change that alters how a frame
+looks must keep every game bit for bit the same when it is off (`tests/engine_cache.py`, `tests/engine_look.py`) and be looked at, not only measured.
 
 ## Verify before saying it's done
 
