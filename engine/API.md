@@ -329,7 +329,10 @@ Custom types:
 ```js
 const PT_SHARD = defineParticle({
   gravity: 1, drag: 0, bounce: .5, friction: .6,
+  wind: 0,                                                                       // how fast the wind (setWind) pulls it, a share a second; 0: it does not
   update(i, dt) { /* steer, collect: P.age[i] = P.life[i] */ },
+  onHit(i, cx, cy, m, hitX, hitY) { return true; },                              // it ran into solid cell (cx, cy): true ends it there, false bounces as usual
+  onLiquid(i, m, h) { return true; },                                            // it is about to enter a liquid cell: true ends it there (default: it goes on, slowed)
   light(i, cx, cy, life) { splatLight(cx, cy, .3, .05, .25, 4); },              // optional glow
   look(i, k, life, time, out) { out[0] = 1.3; out[1] = .3; out[2] = 1; return SOLID; }   // colour + cell code
 });
@@ -576,6 +579,29 @@ getPost()                                                                       
 The palette is applied after the exposure and the light, so a game that uses `setEyeAdaptation` or lamps still reads as light and dark, only in few colours. The glow
 (bloom) is added by the renderer over the locked colours and is not a palette colour, so a game that wants a strict palette switches it off. `setPost` is not undone by
 `worldInit` (it is the game's look, like `setBackdrop`).
+
+## Weather, wind, fog and the time of day
+
+A small kit on the existing parts (`engine/21_weather.js`). Each piece is off until a game asks for it, and a game that never calls any of it renders and plays bit for bit as
+before (no particle types are even made until `setWeather` is called). They run on the simulation's steps, so pause, slow motion and replays hold.
+```js
+setTimeOfDay(14.5);                                  // the clock drives the sun, the ambient light, the sky and the stars
+setTimeOfDay(6, { rate: 0.25, sunrise: 6, sunset: 20 });   // and the engine can run it: a quarter of an hour a second
+setWeather('snow', { amount: .6, pile: SNOW });      // an emitter above the view; some of what lands becomes cells of SNOW
+setWind(14, .5);                                     // blows right at 14 units a second, swelling and dropping
+setFog({ colour: [.85, .9, 1], density: .35, ground: .6 });   // a ground mist over the world, thicker over the hills and the sky
+```
+| Call | |
+|---|---|
+| `setTimeOfDay(hour, opts?)` → `{ hour, daylight, sunAngle }` | `hour` 0..24, wraps (12 is noon). The sun rises on the left at `sunrise` (default 6) and sets on the right at `sunset` (18), climbing and falling by a sine, so its shadows swing across the world (the angle is kept between 8 and 172 degrees: a shadow from the last degrees is a stripe across the world). Its colour goes from a thin red at the horizon to white by a third of the way up and its strength follows its height; it is off (`setSun(null)`) at night. The ambient light goes from night blue to day, with a warm band an hour or so either side of sunrise and sunset, and the sky and the stars follow (below). Options stay set until changed: `sunrise`, `sunset`, `rate` (hours a second the engine runs the clock by itself, 0 stops it), `sun` (the day sun's strength, default 1), `horizon` (the sky gradient's `at`: where on the screen the sky reaches its horizon colour, default 1), `sky: false` and `ambient: false` (leave those to the game). It calls `setSun` with a pinned colour, so an atmosphere does not redden it a second time. |
+| `getTimeOfDay()` | `{ hour, on, sunrise, sunset, rate, daylight }`; `daylight` is 0..1, how much of the day's light there is: a game's own "is it night" test (turn the lamps on below .3). |
+| `setSkyGradient({ top, horizon, stars, at })` | The sky layer's base colour, `top` at the top of the screen to `horizon` at the share `at` of its height (default 1, the bottom; a side view whose ground fills the bottom third wants about .7, so the sky just above the ground is the horizon colour and a sunset's warm band is not hidden behind it), in light units, under the stars and under what `GAME.sky` paints. `stars` 0..1 is how visible the stars are (below .06 they are not drawn). `setSkyGradient(null)` gives back the plain sky. Used by `setTimeOfDay`; a game may use it alone for a dusk level or a purple planet. |
+| `setWeather(kind, { amount, pile, pileChance })` | `'rain'` or `'snow'`, or `null` to stop (what is in the air finishes falling). An emitter above the view, scaled to its width, that never takes more than three quarters of the particle budget. `amount` 0..1 is how heavy (default .5). Rain falls fast, takes heat out of what it hits (fire and hot rock cool), splashes, and ends in a liquid with a few droplets back; snow drifts and sways, and cools a little. `pile: material` turns a share of what lands (`pileChance`: default .03 for snow, .01 for rain) into cells of that material: a granular snow material piles into drifts and slides down slopes, a liquid one makes puddles that flow (see Liquids). Piles are mass the weather adds, so keep the chance small and melt them if the game should (a hot cell, `reacts`). |
+| `setWind(speed, gust = 0)` | `speed` in base units a second (scaled by RES like every speed; positive blows right), `gust` 0..1 how much it swells and drops (about every few seconds). A particle is pulled toward the wind at its type's `wind` coupling (a share a second): smoke and vapour .9, dust 1.5, rain 4, snow 2.5, a type a game defines with `wind: k`; everything else (grains, debris, sparks, fire) is not moved. Rain and snow are launched slanted so they still land across the view. `windNow()` is its speed this moment, for a game's own flags and sails. 0 is no wind, and then nothing runs. |
+| `setFog({ colour, density, ground })` | A veil of one colour over the finished picture. `density` 0..1 is how much of it covers the world (0 or `null` switches it off); the backdrops are further away and get more of it, the farthest most, and the sky more still. `ground` 0..1 thickens it toward the bottom of the screen and thins it toward the top (a ground mist). `colour` is in light units and is lit by the scene (the ambient light and the sun's height), so a fog is pale by day and dark at night. It is applied before a palette lock (`setPost`). |
+
+`setTimeOfDay` with a `rate` is all a day and night cycle takes; put the lamps' intensity on `1 - getTimeOfDay().daylight`. The sky (and the fog and the backdrops) are cached
+layers: they are made again only when a colour has moved by about a sixty-fourth, so a slow day does not cost a pass a frame. `probe()` reports `weather` and `hour`.
 
 ## HUD
 

@@ -78,6 +78,7 @@ function particleInLiquid(i, t, m, h) {
     if (MAT_LIQ[P.m[i]] || MAT_DENS[P.m[i]] < MAT_DENS[m]) { deposit(P.x[i], P.y[i], P.m[i]); return true; }   // a droplet rejoins its liquid; a grain lighter than the liquid floats on it
     if (!MAT_LIQ[getC(Math.floor(P.x[i]), Math.floor(P.y[i] / ASPECT))]) splash(P.x[i], P.y[i], Math.hypot(P.vx[i], P.vy[i]), m);
   } else if (t === PT_FIRE || t === PT_SPARK || t === PT_DUST || t === PT_GAS) return true;
+  else if (t >= PT_CUSTOM && PTYPES[t - PT_CUSTOM].onLiquid && PTYPES[t - PT_CUSTOM].onLiquid(i, m, h)) return true;   // a game's own type may end here (rain does)
   const k = Math.max(0, 1 - 6 * h); P.vx[i] *= k; P.vy[i] *= k;
   return false;
 }

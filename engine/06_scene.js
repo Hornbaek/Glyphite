@@ -357,6 +357,7 @@ function renderScene(ox, oy, time, drawExtras) {
   const qt = performance.now();
   adaptEye(G, n, time);
   const D = R.wPix, BL = R.bloomPix, bloom = R.bloom, E = EYE.e;
+  fogPrep(E);   // the fog's colour for this frame (21_weather.js), for the world below and for the sky and the backdrops after it
   const bt = .62 - .1 * bp, bg = 460 * (1 + 1.2 * bp);   // the bloom bright-pass: on a drum hit its threshold drops and its gain rises
   for (let k = 0; k < n; k++) {
     const code = G[k], vv = vig[k] * INK[code], q = k * 4;
@@ -365,6 +366,7 @@ function renderScene(ox, oy, time, drawExtras) {
     D[q] = r * 255; D[q + 1] = g * 255; D[q + 2] = b * 255; D[q + 3] = code ? 255 : 0;
     if (bloom) { const on = code > 32; BL[q] = on ? Math.max(0, r - bt) * bg : 0; BL[q + 1] = on ? Math.max(0, g - bt) * bg : 0; BL[q + 2] = on ? Math.max(0, b - bt) * bg : 0; BL[q + 3] = 255; }
   }
+  if (FOG.on) fogLayer(D, RW, RH, FOG.d);
   if (POST_PAL) postLock(D, RW, n, ox, oy);   // (the bloom's bright-pass above reads the unlocked colours: a glow is not a palette colour anyway)
   perfAdd('tone', performance.now() - qt);   // (a part of `scene`: the last pass over every cell, which P4 would move to the GPU)
   renderSky(time); if (BACKDROPS.length) renderBackdrops(time);
@@ -388,7 +390,7 @@ function renderSky(time) {
   R.skyFX = sx - ix; R.skyFY = sy - iy;
   const air = Math.min(1, ATMOS), glare = LR && LR.length === RW * RH ? GAME.starGlare ?? 1 : 0, E = EYE.e;
   const busy = glare > 0 && (L_NLIGHTS > 0 || FX.flash > .03), step = air > 0 ? (time * 8) | 0 : busy ? (time * 5) | 0 : time | 0;
-  const ox = ix - 1, oy = iy - 1, key = `${ox},${oy},${RW},${RH},${step},${Math.round(E * 24)},${POST.rev}`;
+  const ox = ix - 1, oy = iy - 1, key = `${ox},${oy},${RW},${RH},${step},${Math.round(E * 24)},${POST.rev},${SKYG.rev},${FOG.key}`;   // (the gradient and the fog: 21_weather.js)
   if (key === skyKey) return;
   skyKey = key; R.skyDirty = true;
   const SG = R.sG, D = R.sPix, paint = GAME.sky, starP = .0055 * ASPECT * (GAME.stars ?? 1) / (RES * RES);
@@ -396,7 +398,7 @@ function renderSky(time) {
   for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) {
     const k = j * RW + i, q = k * 4; let glyph = 0, r = 0, g = 0, b = 0;
     if (paint && (glyph = paint(i, j, _pc)) !== 0) { if (glyph < 0) glyph = 0; else { r = _pc[0]; g = _pc[1]; b = _pc[2]; } }
-    else if (hash2(ox + i, oy + j, 5) < starP) {   // stars: steady in a vacuum
+    else if (hash2(ox + i, oy + j, 5) < starP && (!SKYG.on || SKYG.stars > .06)) {   // stars: steady in a vacuum
       const bb = hash2(ox + i, oy + j, 6), tint = hash2(ox + i, oy + j, 8); glyph = bb > .93 ? 42 : bb > .7 ? 43 : 46;
       r = .45 + .4 * bb + tint * .1; g = .45 + .4 * bb; b = .5 + .4 * bb + (1 - tint) * .12;
       let f = 1;
@@ -407,12 +409,15 @@ function renderSky(time) {
       }
       r *= f; g *= f; b *= f;
       if (f < .5) glyph = 46;              // a faint star shrinks to a dot
-    }
+      if (SKYG.on) { skyGradAt(j, RH, _sg); r = Math.max(_sg[0], r * SKYG.stars); g = Math.max(_sg[1], g * SKYG.stars); b = Math.max(_sg[2], b * SKYG.stars); glyph = SOLID; }   // over the sky's colour a star is only as bright as it is, and as visible as the hour lets it be
+    } else if (SKYG.on) { skyGradAt(j, RH, _sg); glyph = SOLID; r = _sg[0]; g = _sg[1]; b = _sg[2]; }   // the sky's base colour (setSkyGradient)
     const vv = vig[k] * INK[glyph];
     SG[k] = glyph; D[q] = toneF(r * E) * vv * 255; D[q + 1] = toneF(g * E) * vv * 255; D[q + 2] = toneF(b * E) * vv * 255; D[q + 3] = glyph > 32 ? 255 : 0;
   }
+  if (FOG.on) fogLayer(D, RW, RH, Math.min(1, FOG.d * 1.6));   // the sky is the farthest thing there is
   if (POST_PAL) postLock(D, RW, RW * RH, ox, oy);
 }
+const _sg = [0, 0, 0];
 
 // ---------- backdrops: layers between the sky and the world ----------
 // Hills, a far city, a wall of mountains: each backdrop is a grid of cells of its own, scrolled by the camera times its `parallax` (the sky layer's own
@@ -459,7 +464,7 @@ function renderBackdrops(time) {
   for (const L of BACKDROPS) {
     const sx = cam.x * L.px, sy = cam.y / ASPECT * L.py, ix = Math.floor(sx), iy = Math.floor(sy);
     L.fx = sx - ix; L.fy = sy - iy;
-    const ox = ix - 1, oy = iy - 1, step = L.fps ? Math.floor(time * L.fps) : 0, sig = `${ox},${oy},${step},${Math.round(E * 24)},${POST.rev},${L.key ? L.key(ox, oy) : ''}`;
+    const ox = ix - 1, oy = iy - 1, step = L.fps ? Math.floor(time * L.fps) : 0, sig = `${ox},${oy},${step},${Math.round(E * 24)},${POST.rev},${FOG.key},${L.key ? L.key(ox, oy) : ''}`;
     if (sig === L.sig) continue;
     L.sig = sig; L.dirty = true;
     const base = L.horizon === undefined ? 0 : Math.round(R.rows / 2 + (L.horizon / ASPECT - R.rows / 2) * L.py), D = L.pix, paint = L.paint;
@@ -471,6 +476,7 @@ function renderBackdrops(time) {
         D[q] = toneF(_pc[0] * E) * vv * 255; D[q + 1] = toneF(_pc[1] * E) * vv * 255; D[q + 2] = toneF(_pc[2] * E) * vv * 255; D[q + 3] = glyph > 32 ? 255 : 0;
       } else D[q] = D[q + 1] = D[q + 2] = D[q + 3] = 0;
     }
+    if (FOG.on) fogLayer(D, RW, RH, Math.min(1, FOG.d * (1 + 1.2 * (1 - L.px))));   // a layer that moves less is further away: more fog over it
     if (POST_PAL) postLock(D, RW, RW * RH, ox, oy);
   }
 }

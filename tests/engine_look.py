@@ -407,6 +407,78 @@ def e7_zoom(p, mode):
     b.close()
 
 
+def e8_weather(p, mode):
+    b, pg, errs = boot(p, mode)
+    pg.evaluate('LT.bare(900, 300)')
+    g = pg.evaluate('H - 40')
+    cols = pg.evaluate('R.cols')
+    pg.evaluate(f'LT.cam(450 - {cols} / 2)')
+    px_x = 450   # a rock pillar in the middle of the screen, 30 cells tall, to read the sun's side from its shadow
+    # a back wall behind the pillar (as E1 does): its brightness is the sunlight in the air in front of it, which is where a shadow can be read
+    pg.evaluate(f"""(() => {{ GAME.stars = 40; skyKey = ''; LT.block({px_x - 3}, {g} - 30, {px_x + 3}, {g});
+      for (let y = {g} - 50; y < {g}; y++) for (let x = 0; x < W; x++) if (cells[y * W + x] === 0) backCells[y * W + x] = LT.rock;
+      setTimeOfDay(12, {{ horizon: .78 }}); LT.frame(3); }})()""")
+    W_, H_ = pg.evaluate('[R.canvas.width, R.canvas.height]')
+    sky = lambda img: img[10:int(H_ * .30), 100:W_ - 100]   # the sky, above the back wall (the back wall starts 50 rows over the ground)
+    def air_lum(img, cx0, cx1):
+        return np.mean([lum(px(img, pg, x, g - 8)) for x in range(cx0, cx1)])
+    shots = {}
+    for h in (12, 6.2, 17.8, 0, 9, 15):
+        pg.evaluate(f'setTimeOfDay({h}); LT.frame(4)')
+        shots[h] = shot(pg)
+    noon, dawn, dusk, night = (sky(shots[h]).reshape(-1, 3).mean(axis=0) for h in (12, 6.2, 17.8, 0))
+    check(f'E8 {mode}: noon sky is blue and bright (rgb {noon.round().astype(int).tolist()})', noon[2] > noon[0] * 1.2 and lum(noon) > 90, noon)
+    check(f'E8 {mode}: midnight is dark (rgb {night.round().astype(int).tolist()}), much darker than noon', lum(night) < 30 and lum(night) < lum(noon) * .3, night)
+    lowsky = lambda img: img[int(H_ * .36):int(H_ * .46), 100:W_ - 100].reshape(-1, 3).mean(axis=0)   # the sky just over the back wall, nearest the horizon
+    ld, lu = lowsky(shots[17.8]), lowsky(shots[12])
+    check(f'E8 {mode}: at sunset the sky near the horizon is orange (rgb {ld.round().astype(int).tolist()}), at noon it is not ({lu.round().astype(int).tolist()})', ld[0] > ld[2] * 1.5 and lu[0] < lu[2], (ld, lu))
+    # the stars: at night some pixels are brighter than the sky's colour in their own row, at noon none are
+    def star_pixels(img):
+        s = sky(img)[::2, ::2]; l = np.array([[lum(c) for c in row] for row in s]); return int((l > np.median(l, axis=1, keepdims=True) + 25).sum())
+    sn, sd = star_pixels(shots[0]), star_pixels(shots[12])
+    check(f'E8 {mode}: stars show at night ({sn} bright pixels) and not at noon ({sd})', sn > 5 and sd == 0, (sn, sd))
+    # the sun's side: at 9 the shadow of the pillar falls to its right, at 15 to its left
+    am = (air_lum(shots[9], px_x - 14, px_x - 7), air_lum(shots[9], px_x + 7, px_x + 14))
+    pm = (air_lum(shots[15], px_x - 14, px_x - 7), air_lum(shots[15], px_x + 7, px_x + 14))
+    check(f'E8 {mode}: at 9 the pillar shades the air to its right ({am[1]:.0f} against {am[0]:.0f}), at 15 to its left ({pm[0]:.0f} against {pm[1]:.0f})', am[1] < am[0] * .75 and pm[0] < pm[1] * .75, (am, pm))
+    check(f'E8 {mode}: no page errors (time of day)', not errs, errs[:2])
+    # fog
+    pg.evaluate('setTimeOfDay(12); LT.frame(4)'); clear = shot(pg)
+    pg.evaluate("setFog({ colour: [.9, .9, .9], density: .5 }); LT.frame(4)"); half = shot(pg)
+    fb = pg.evaluate('[...FOG.bytes]')
+    gx, gy = pg.evaluate(f'LT.at({px_x + 20}, {g} + 5)')
+    c0, c1 = clear[int(gy), int(gx)], half[int(gy), int(gx)]
+    want = [(a + (f - a) * .5) for a, f in zip(c0, fb)]
+    check(f'E8 {mode}: fog at .5 puts the ground halfway to its colour ({c0.tolist()} -> {c1.tolist()}, fog {fb})', all(abs(a - w) <= 3 for a, w in zip(c1, want)), (c0, c1, fb))
+    pg.evaluate("setFog({ colour: [.9, .9, .9], density: 1 }); LT.frame(4)"); full = shot(pg)
+    region = full[int(H_ * .85):int(H_ * .95), 100:W_ - 100].reshape(-1, 3)
+    check(f'E8 {mode}: at density 1 the ground is one colour, the fog\'s ({len({tuple(c) for c in region})} colours)', len({tuple(c) for c in region}) == 1 and list(region[0]) == fb, (region[0], fb))
+    pg.evaluate('setFog(null); LT.frame(4)')
+    check(f'E8 {mode}: fog off gives the picture back, pixel for pixel', (shot(pg) == clear).all())
+    check(f'E8 {mode}: no page errors (fog)', not errs, errs[:2])
+    # rain: the drops are in the picture, slant with the wind, and are gone when it stops
+    pg.evaluate('setTimeOfDay(12); LT.frame(3)'); dry = shot(pg)
+    pg.evaluate("setWeather('rain', { amount: 1 }); Pixelite.test.step(80); LT.frame(2)"); wet = shot(pg)
+    changed = int((np.abs(wet.astype(int) - dry.astype(int)).sum(axis=2) > 30)[:int(H_ * .8)].sum())
+    check(f'E8 {mode}: rain is drawn ({changed} pixels differ from the dry picture)', changed > 150, changed)
+    check(f'E8 {mode}: probe reports it', pg.evaluate('Pixelite.test.probe().weather') == 'rain')
+    pg.evaluate('setWind(40); Pixelite.test.step(80)')
+    vx = pg.evaluate('(() => { let s = 0; for (let i = 0; i < P.n; i++) s += P.vx[i]; return s / Math.max(1, P.n); })()')
+    check(f'E8 {mode}: in a wind the rain slants (mean sideways speed {vx:.1f})', vx > 20, vx)
+    pg.evaluate("setWind(0); setWeather(null); Pixelite.test.step(240)")
+    left = pg.evaluate('P.n')
+    check(f'E8 {mode}: when it stops the sky clears ({left} particles left)', left == 0, left)
+    pg.evaluate('LT.frame(3)')
+    check(f'E8 {mode}: and the picture is dry again, pixel for pixel', (shot(pg) == dry).all())
+    # snow that piles
+    pg.evaluate("""(() => { defineMaterial('lt-snow', { albedo: [.95, .96, 1], granular: true }); window.SNOWM = MATS.findIndex(m => m && m.name === 'lt-snow');
+      setWeather('snow', { amount: 1, pile: SNOWM, pileChance: .5 }); Pixelite.test.step(400); })()""")
+    piled = pg.evaluate('(() => { let n = 0; for (let i = 0; i < cells.length; i++) if (cells[i] === SNOWM) n++; return n; })()')
+    check(f'E8 {mode}: snow piles up as cells ({piled})', piled > 30, piled)
+    check(f'E8 {mode}: no page errors', not errs, errs[:2])
+    b.close()
+
+
 def run(mode):
     print(f'--- {mode}')
     with sync_playwright() as p:
@@ -416,6 +488,7 @@ def run(mode):
         e4_back_shadows(p, mode)
         e6_post(p, mode)
         e7_zoom(p, mode)
+        e8_weather(p, mode)
 
 
 if __name__ == '__main__':

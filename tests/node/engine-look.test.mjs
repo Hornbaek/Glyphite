@@ -358,6 +358,154 @@ test('E7 the wheel and the pinch: only for a game with a zoom, in notches of 100
   zoomEnv(E, '{ wheel: false, pinch: false }'); E.run('Input.wheel = -300; Input.pinch = .3; stepZoom(); Input.pinch = 0; Input.wheel = 0'); assert.equal(E.run('R.cw'), 8, 'wheel: false and pinch: false keep them off');
 });
 
+// ---------- E8: weather and time of day ----------
+const sun = E => JSON.parse(JSON.stringify(E.run('({ on: SUN_ON, el: SUN_EL, c: [...SUN_C], amb: [...AMB_C] })')));
+const skyHash = `(() => { let h = 2166136261 | 0; const u = new Uint8Array(R.sPix.buffer, R.sPix.byteOffset, R.sPix.byteLength); for (let i = 0; i < u.length; i++) h = Math.imul(h ^ u[i], 16777619); return h >>> 0; })()`;
+
+test('E8 the time of day: the sun climbs from the left and sets on the right, red at the horizon and white overhead, and is off at night', () => {
+  const E = loadEngine();
+  const at = h => { E.run(`setTimeOfDay(${h})`); return sun(E); };
+  const noon = at(12), dawn = at(6.6), dusk = at(17.4), night = at(0);
+  assert.equal(noon.on, true); assert.equal(noon.el, 89, 'noon: straight up, taken as 89');
+  assert.ok(noon.c[0] < 1.2 && noon.c[2] > .9 && noon.c[0] > noon.c[2] * .95, `noon is a white sun (${noon.c.map(v => v.toFixed(2))})`);
+  assert.ok(dawn.el < 30 && dusk.el > 150, `it rises on the left (${dawn.el.toFixed(0)}) and sets on the right (${dusk.el.toFixed(0)})`);
+  assert.ok(dawn.c[0] > dawn.c[2] * 2.5, `low in the sky it is red (${dawn.c.map(v => v.toFixed(2))})`);
+  assert.ok(Math.abs(at(9).el + at(15).el - 180) < 1e-9, 'the morning and the afternoon are mirrors');
+  assert.ok(lum(at(6.1).c) < lum(noon.c) * .75, 'and weaker, near the horizon (by what the eye sees: a red sun has more red than a white one has of any colour)'); at(12);
+  assert.equal(night.on, false, 'at night the sun is off');
+  assert.ok(noon.amb[2] > night.amb[2] * 3, `the ambient light goes from night blue to day (${noon.amb.map(v => v.toFixed(2))}, ${night.amb.map(v => v.toFixed(2))})`);
+  assert.ok(dawn.amb[0] / dawn.amb[2] > noon.amb[0] / noon.amb[2], 'warm around sunrise');
+  E.run('setTimeOfDay(36)'); assert.equal(E.run('TOD.h'), 12, 'it wraps'); E.run('setTimeOfDay(-6)'); assert.equal(E.run('TOD.h'), 18);
+  assert.equal(E.run('setTimeOfDay(12).daylight'), 1); assert.equal(E.run('getTimeOfDay().daylight'), 1); E.run('setTimeOfDay(2)'); assert.equal(E.run('getTimeOfDay().daylight'), 0);
+});
+
+test('E8 the time of day: options stay, sky and ambient can be left to the game, and the engine runs a clock by itself', () => {
+  const E = loadEngine();
+  E.run('setTimeOfDay(5.5, { sunrise: 5, sunset: 21 })'); assert.ok(E.run('SUN_ON'), 'a long day: the sun is already up at 5:30'); E.run('setTimeOfDay(20.9)'); assert.ok(E.run('SUN_ON'));
+  assert.equal(E.run('setTimeOfDay(22).sunAngle'), null);
+  E.run('setAmbient([.7, .7, .7]); setTimeOfDay(12, { ambient: false })'); assert.deepEqual([...E.run('AMB_C')].map(v => +v.toFixed(2)), [.7, .7, .7], 'ambient: false leaves the ambient light alone');
+  E.run('setSkyGradient(null); setTimeOfDay(12, { sky: false })'); assert.equal(E.run('SKYG.on'), false, 'sky: false leaves the sky alone');
+  E.run('setTimeOfDay(12, { sky: true, rate: 2 })'); E.run('stepWeather(.5)'); assert.equal(E.run('TOD.h'), 13, 'rate: 2 hours a second: half a second is an hour');
+  E.run('setTimeOfDay(12, { rate: 0 })'); E.run('stepWeather(5)'); assert.equal(E.run('TOD.h'), 12, 'rate 0 stops it');
+});
+
+test('E8 a game that never calls any of it is untouched: no sky, no fog, no wind, no weather, and no particle types made', () => {
+  const E = loadEngine();
+  assert.deepEqual(JSON.parse(JSON.stringify(E.run('[SKYG.on, FOG.on, WIND.speed, WEATHER.kind, TOD.on, WEATHER.pt, PTYPES.length]'))), [false, false, 0, null, false, null, 0]);
+  E.run('setWeather("rain")'); assert.equal(E.run('PTYPES.length'), 2, 'rain and snow are made the first time a game asks');
+  E.run('setWeather(null)'); assert.equal(E.run('WEATHER.kind'), null); assert.throws(() => E.run('setWeather("hail")'), /not a kind of weather/);
+});
+
+test('E8 the sky gradient: the sky layer is its colours, stars show on it as bright as the hour lets them, and clearing it gives the old sky back', () => {
+  const E = loadEngine(); frameEnv(E); E.run('GAME.stars = 40');
+  E.run('frame(() => {})'); const before = E.run(skyHash), nStars0 = E.run('(() => { let n = 0; for (let k = 0; k < R.RW * R.RH; k++) if (R.sPix[k * 4 + 3]) n++; return n; })()');
+  assert.ok(nStars0 > 0 && nStars0 < 800, `the plain sky has only stars (${nStars0} of ${100 * 60} pixels)`);
+  E.run('setSkyGradient({ top: [.1, .2, .5], horizon: [.7, .8, 1], stars: 0 }); frame(() => {})');
+  const px = (x, y) => [...E.run(`[R.sPix[${(y * 100 + x) * 4}], R.sPix[${(y * 100 + x) * 4 + 1}], R.sPix[${(y * 100 + x) * 4 + 2}], R.sPix[${(y * 100 + x) * 4 + 3}]]`)];
+  assert.equal(px(50, 30)[3], 255, 'every sky cell is drawn now'); assert.ok(lum(px(50, 55)) > lum(px(50, 3)) * 1.5, 'lighter toward the horizon (the bottom of the screen)');
+  assert.ok(px(50, 3)[2] > px(50, 3)[0] * 1.5, 'blue at the top');
+  const plainGrad = E.run(skyHash);
+  E.run('setSkyGradient({ top: [.1, .2, .5], horizon: [.7, .8, 1], stars: 1 }); frame(() => {})');
+  assert.notEqual(E.run(skyHash), plainGrad, 'with stars on, stars show on it (and the cache heard of the change)');
+  E.run('setSkyGradient({ top: [.9, .2, .1], horizon: [1, .5, .2], stars: 0 }); frame(() => {})'); assert.ok(px(50, 30)[0] > px(50, 30)[2], 'a new colour is drawn at once');
+  E.run('setSkyGradient(null); frame(() => {})'); assert.equal(E.run(skyHash), before, 'cleared: the old sky, bit for bit');
+  assert.throws(() => E.run('setSkyGradient({ top: [1, 2] })'), /\[r, g, b\]/);
+});
+
+test('E8 fog: the world and the sky move toward its colour, more of it over the sky, lit by the scene, and off gives the old frame back bit for bit', () => {
+  const E = lit6(loadEngine());
+  E.run('frame(() => {})'); const old = E.run(frameHash), skyOld = E.run(skyHash), mid = lum(E.run('pixel(60, 77)')), skyPx = () => lum(E.run('[R.sPix[(5 * 100 + 50) * 4], R.sPix[(5 * 100 + 50) * 4 + 1], R.sPix[(5 * 100 + 50) * 4 + 2]]'));
+  E.run('setFog({ colour: [.9, .9, .9], density: .5 }); frame(() => {})');
+  const fogged = lum(E.run('pixel(60, 77)')), b = E.run('[...FOG.bytes]'), fogLum = lum(b);
+  assert.ok(Math.abs(fogged - (mid + (fogLum - mid) * .5)) < 2, `a density of .5 puts the world halfway to the fog's colour (${mid.toFixed(0)} -> ${fogged.toFixed(0)}, fog ${fogLum.toFixed(0)})`);
+  E.run('setFog({ colour: [.9, .9, .9], density: 1 }); frame(() => {})'); assert.deepEqual([...E.run('pixel(60, 77)')].slice(0, 3), [...b].map(v => v), 'density 1 is the fog\'s colour, exactly');
+  E.run('setFog(null); frame(() => {})'); assert.equal(E.run(frameHash), old, 'no fog: the old frame');
+  assert.equal(E.run(skyHash), skyOld, 'and the old sky');
+  // the ground bias: thicker at the bottom of the screen than the top
+  E.run('setFog({ density: .5, ground: 1 }); frame(() => {})'); const top = E.run('(() => { const D = R.wPix; return [D[(3 * 100 + 10) * 4 + 3], D[(40 * 100 + 10) * 4 + 3]]; })()');
+  const lo = E.run('FOG.ground'); assert.equal(lo, 1);
+  // lit by the scene: the same fog in a dark scene is darker
+  E.run('setFog({ colour: [.9, .9, .9], density: .5, ground: 0 }); setAmbient([.7, .7, .75]); frame(() => {})'); const day = lum(E.run('[...FOG.bytes]'));
+  E.run('setAmbient([.05, .05, .08]); frame(() => {})'); const night = lum(E.run('[...FOG.bytes]'));
+  assert.ok(night < day * .5, `at night the fog is dark (${night.toFixed(0)} against ${day.toFixed(0)})`);
+  // the sky is further away than the world: at the same density more of the fog covers it (the plain sky has no cells to tint, so give it a colour)
+  E.run('setFog(null); setSkyGradient({ top: [.1, .2, .5], horizon: [.2, .3, .6], stars: 0 }); setAmbient([.7, .7, .75]); frame(() => {})'); const skyBase = skyPx(), worldBase = lum(E.run('pixel(60, 77)'));
+  E.run('setFog({ colour: [.9, .9, .9], density: .4 }); frame(() => {})');
+  const fl = lum(E.run('[...FOG.bytes]')), left = (v, base) => Math.abs(v - fl) / Math.abs(base - fl);   // the share of the colour's distance from the fog that is left
+  assert.ok(left(skyPx(), skyBase) < left(lum(E.run('pixel(60, 77)')), worldBase) - .1, `more fog over the sky than over the world at one density (${left(skyPx(), skyBase).toFixed(2)} of the sky is left against ${left(lum(E.run('pixel(60, 77)')), worldBase).toFixed(2)} of the world)`);
+  assert.throws(() => E.run('setFog({ density: .5, colour: [1] })'), /\[r, g, b\]/);
+});
+
+test('E8 wind: pulls smoke, vapour, dust and types with a coupling toward its speed, leaves the rest, and no wind changes nothing, bit for bit', () => {
+  const run = wind => {
+    const E = loadEngine(); frameEnv(E);
+    E.run(`defineParticle({ wind: 3 }); defineParticle({});   // two game types, one coupled
+      globalThis.ids = [PT_SMOKE, PT_VAPOR, PT_DUST, PT_GRAIN, PT_CUSTOM, PT_CUSTOM + 1].map(t => spawnP(t, 60, 40, 0, 0, 20, 46, 1));
+      ${wind ? `setWind(${wind});` : ''}`);
+    for (let i = 0; i < 40; i++) E.run('stepParticles(DT)');
+    return JSON.parse(JSON.stringify(E.run('ids.map(i => P.vx[i])')));
+  };
+  const none = run(0), blown = run(30);
+  assert.ok(blown[0] > 10 && blown[1] > 10 && blown[2] > 10, `smoke, vapour and dust are blown (${blown.slice(0, 3).map(v => v.toFixed(1))})`);
+  assert.ok(blown[4] > 10, 'a type with wind: 3 is'); assert.equal(blown[5], none[5], 'a type with no coupling is not'); assert.equal(blown[3], none[3], 'nor is a grain');
+  assert.deepEqual(run(0), none, 'no wind: the same run again');
+  assert.ok(blown[0] < 30 * 2, 'it never goes much past the wind (a pull toward its speed, not a push)');
+  const E = loadEngine(); E.run('setWind(10, 1)'); const seen = []; for (const t of [0, 1.3, 2.9, 4.1, 6.7]) { E.run(`clockT = ${t}`); seen.push(E.run('windNow()')); }
+  assert.ok(Math.max(...seen) - Math.min(...seen) > 4 && seen.every(v => v >= 0 && v <= 2 * 10 * E.run('RES') + 1e-9), `gusts swell and drop the wind (${seen.map(v => v.toFixed(1))})`);
+  E.run('setWind(10, 0); clockT = 3'); assert.equal(E.run('windNow()'), 10 * E.run('RES'), 'no gust: steady');
+});
+
+test('E8 rain and snow: an emitter above the view that never starves the game, cools what it hits, and ends in a liquid', () => {
+  const E = loadEngine(); frameEnv(E);
+  E.run('setWeather("rain", { amount: .5 })'); const t0 = E.run('P.n'); E.run('for (let i = 0; i < 30; i++) stepWeather(DT)');   // half a second at 60 steps a second
+  const n = E.run('P.n'), want = 2.4 * 98 * .5 * 30 * E.run('DT'); assert.equal(t0, 0);
+  assert.ok(Math.abs(n - want) <= 2, `about ${want.toFixed(0)} drops a half second at .5 (${n})`);
+  assert.ok(E.run('(() => { let up = 0; for (let i = 0; i < P.n; i++) if (P.y[i] < cam.y) up++; return up; })()') > n * .9, 'they start above the view');
+  E.run('seedRandom(1); for (let i = 0; i < 200; i++) { stepWeather(DT); stepParticles(DT); }');
+  const steady = E.run('P.n'); E.run('for (let i = 0; i < 100; i++) { stepWeather(DT); stepParticles(DT); }'); const later = E.run('P.n');
+  assert.ok(later < steady * 1.4 && later > steady * .6, `drops end on the ground: the count is steady (${steady}, ${later})`);
+  E.run('setWeather("rain", { amount: 1 }); PMAX = P.n + 40; for (let i = 0; i < 60; i++) stepWeather(DT)'); assert.ok(E.run('P.n') <= E.run('PMAX') * .75 + 1, 'the emitter stops at three quarters of the budget');
+  E.run('PMAX = 9000');
+  // it cools what it hits
+  const F = loadEngine(); frameEnv(F); F.run('seedRandom(3); for (let x = 20; x < 120; x++) heat[(H - 14) * W + x] = 1; setWeather("rain", { amount: 1 }); for (let i = 0; i < 240; i++) { stepWeather(DT); stepParticles(DT); }');
+  assert.ok(F.run('(() => { let s = 0, n = 0; for (let x = 20; x < 120; x++) { s += heat[(H - 14) * W + x]; n++; } return s / n; })()') < .8, 'hot ground is cooled by rain');
+  // it stops when asked
+  E.run('setWeather(null); P.n = 0; for (let i = 0; i < 60; i++) stepWeather(DT)'); assert.equal(E.run('P.n'), 0);
+  // the same seed makes the same rain
+  const sig = () => { const G2 = loadEngine(); frameEnv(G2); G2.run('seedRandom(11); setWeather("snow", { amount: .8 }); setWind(6, .5); for (let i = 0; i < 120; i++) { stepWeather(DT); stepParticles(DT); }'); return JSON.stringify([G2.run('P.n'), Array.from(G2.run('P.x.slice(0, 20)')).map(v => +v.toFixed(3))]); };
+  assert.equal(sig(), sig(), 'one seed, one storm');
+});
+
+test('E8 rain slants with the wind and still lands in the view', () => {
+  const E = loadEngine(); frameEnv(E); E.run('seedRandom(5); setWind(40); setWeather("rain", { amount: 1 }); for (let i = 0; i < 90; i++) { stepWeather(DT); stepParticles(DT); }');
+  const mean = E.run('(() => { let s = 0, n = 0; for (let i = 0; i < P.n; i++) { s += P.vx[i]; n++; } return n ? s / n : 0; })()');
+  assert.ok(mean > 20, `drops are blown to the right (${mean.toFixed(1)} units a second)`);
+  const xs = E.run('Array.from(P.x.slice(0, P.n))'), inView = xs.filter(x => x > E.run('cam.x') && x < E.run('cam.x') + E.run('R.cols')).length;
+  assert.ok(inView > xs.length * .6, `and they fall over the view, not to one side of it (${inView} of ${xs.length}: the rest are still coming in from upwind)`);
+});
+
+test('E8 snow that piles: a share of the drops become cells of the material, which sand rules then settle; without a pile material nothing is added', () => {
+  const run = pile => {
+    const E = loadEngine(); frameEnv(E);
+    E.run(`defineMaterial('snow', { albedo: [.95, .96, 1], granular: true }); globalThis.SN = MATS.findIndex(m => m && m.name === 'snow'); seedRandom(2);
+      setWeather('snow', { amount: 1, ${pile ? 'pile: SN, pileChance: 1' : ''} }); for (let i = 0; i < 900; i++) { stepWeather(DT); stepParticles(DT); simGranular(); }`);
+    return E.run('(() => { let n = 0; for (let i = 0; i < cells.length; i++) if (cells[i] === SN) n++; return n; })()');
+  };
+  const none = run(false), some = run(true);
+  assert.equal(none, 0, 'no pile material: no cells'); assert.ok(some > 50, `with one the snow settles on the ground (${some} cells)`);
+});
+
+test('E8 rain into a liquid ends there and splashes back as a few drops that do not splash again', () => {
+  const E = loadEngine(); frameEnv(E);
+  E.run(`defineMaterial('lt-water', { albedo: [.2, .4, .8], liquid: true }); globalThis.WT = MATS.findIndex(m => m && m.name === 'lt-water');
+    for (let y = H - 20; y < H - 14; y++) for (let x = 20; x < 120; x++) cells[y * W + x] = WT; seedRandom(4); setWeather('rain', { amount: 1 });
+    globalThis.maxSplash = 0; for (let i = 0; i < 300; i++) { stepWeather(DT); stepParticles(DT); let s = 0; for (let j = 0; j < P.n; j++) if (P.rest[j]) s++; maxSplash = Math.max(maxSplash, s); }`);
+  const n = E.run('P.n'), inWater = E.run('(() => { let k = 0; for (let i = 0; i < P.n; i++) { const c = getC(Math.floor(P.x[i]), Math.floor(P.y[i] / ASPECT)); if (MAT_LIQ[c]) k++; } return k; })()');
+  assert.equal(inWater, 0, `no drop is left in the water (${n} in the air)`);
+  assert.ok(E.run('maxSplash') >= 3, `drops that land in it throw up splash droplets (at most ${E.run('maxSplash')} at once)`);
+  assert.ok(E.run('(() => { let r = 0; for (let j = 0; j < P.n; j++) if (!P.rest[j]) r++; return r; })()') > E.run('maxSplash'), 'and most of what is in the air is still rain');
+});
+
 test('E6 bloom: a game can switch the glow off, the player still can, and neither undoes the other', () => {
   const E = loadEngine();
   E.run("setSetting('bloom', true)"); assert.equal(E.run('R.bloom'), true);

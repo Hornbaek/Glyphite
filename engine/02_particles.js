@@ -29,9 +29,12 @@ function grainGlyph(m) { return pick(MAT_GRAINS[m] || '.'); }
 function spawnGrain(x, y, vx, vy, m) { return spawnP(MAT_DEBRIS[m] ? PT_DEBRIS : PT_GRAIN, x, y, vx, vy, 14, grainGlyph(m), m) >= 0; }
 
 // ---------- game-defined particle types ----------
-// defineParticle({ gravity, drag, bounce, friction, update(i, dt), light(i, cx, cy, life), look(i, k, life, time, out) })
+// defineParticle({ gravity, drag, bounce, friction, wind, update(i, dt), onHit(i, cx, cy, m, hitX, hitY), onLiquid(i, m, h), light(i, cx, cy, life), look(i, k, life, time, out) })
 //   gravity  multiplier on G (default 1)        drag      fraction of speed lost per second (default 0)
 //   bounce   restitution on contact (.45)       friction  tangential keep factor on contact (.55)
+//   wind     how fast it is pulled toward the wind's speed, a share a second (default 0: the wind does not move it; setWind)
+//   onHit    it ran into solid cell (cx, cy) of material m: return true to end it there (rain does), false to bounce as usual
+//   onLiquid it is about to enter a liquid cell of material m: return true to end it there (default: it goes on, slowed)
 //   update   called every step before moving (steer, collect, age...)
 //   light    emissive: call splatLight(cx, cy, r, g, b, rad) to glow (optional)
 //   look     fill out = [r, g, b] in light units and return a glyph code; k indexes the light buffers
@@ -67,7 +70,7 @@ function addText(x, y, text, c, life = 1.6) { FX.texts.push({ x, y, text, c, lif
 const _n = [0, 0];
 
 function stepParticles(dt) {
-  const X = P.x, Y = P.y, VX = P.vx, VY = P.vy, T = P.t, S = RES;
+  const X = P.x, Y = P.y, VX = P.vx, VY = P.vy, T = P.t, S = RES, wx = WIND.speed ? windNow() : 0;   // wind (21_weather.js): 0 = none, and nothing below runs
   for (let i = 0; i < P.n; i++) {
     P.age[i] += dt;
     if (P.age[i] >= P.life[i]) {
@@ -85,6 +88,7 @@ function stepParticles(dt) {
     else if (t === PT_GAS || t === PT_FIRE) { const k = 1 - 1.6 * dt; VX[i] *= k; VY[i] *= k; }
     else if (t === PT_SMOKE || t === PT_VAPOR) { const k = 1 - 1.1 * dt; VX[i] *= k; VY[i] = VY[i] * k - (t === PT_VAPOR ? 1.2 : .4) * S * dt; }
     else { VY[i] += G * dt; if (GX) VX[i] += GX * dt; }
+    if (wx) { const kw = ct ? ct.wind : WIND_K[t]; if (kw) VX[i] += (wx - VX[i]) * Math.min(1, kw * dt); }   // pulled toward the wind's speed
     // integrate with sub-steps so nothing tunnels through a cell
     const sp = Math.abs(VX[i]) + Math.abs(VY[i]);
     const n = Math.min(10, 1 + ((sp * dt / .7) | 0));
@@ -127,7 +131,7 @@ function stepParticles(dt) {
       } else if (t === PT_DUST || t === PT_SMOKE || t === PT_VAPOR) {
         if (t === PT_DUST) { dead = true; break; }
         VX[i] *= .3; VY[i] *= -.2;
-      } else if (ct) bounce(i, hitX, hitY, bothOrDiag, ct.bounce, ct.friction);
+      } else if (ct) { if (ct.onHit && ct.onHit(i, cx, cy, m, hitX, hitY)) { dead = true; break; } bounce(i, hitX, hitY, bothOrDiag, ct.bounce, ct.friction); }
       else {   // spark, wreck
         const e = t === PT_SPARK ? .55 : .28;
         bounce(i, hitX, hitY, bothOrDiag, e, t === PT_SPARK ? .8 : .55);

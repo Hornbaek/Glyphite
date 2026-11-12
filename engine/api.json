@@ -101,6 +101,11 @@
    "params": null,
    "part": "01_core.js"
   },
+  "_sg": {
+   "kind": "value",
+   "params": null,
+   "part": "06_scene.js"
+  },
   "_shd": {
    "kind": "value",
    "params": null,
@@ -626,6 +631,11 @@
    "params": null,
    "part": "11_loop.js"
   },
+  "colour3": {
+   "kind": "function",
+   "params": 2,
+   "part": "21_weather.js"
+  },
   "computeLighting": {
    "kind": "function",
    "params": 4,
@@ -851,6 +861,11 @@
    "params": 0,
    "part": "10_sprite.js"
   },
+  "emitWeather": {
+   "kind": "function",
+   "params": 1,
+   "part": "21_weather.js"
+  },
   "EMPTY": {
    "kind": "value",
    "params": null,
@@ -1006,6 +1021,21 @@
    "params": 3,
    "part": "05_render.js"
   },
+  "FOG": {
+   "kind": "value",
+   "params": null,
+   "part": "21_weather.js"
+  },
+  "fogLayer": {
+   "kind": "function",
+   "params": 4,
+   "part": "21_weather.js"
+  },
+  "fogPrep": {
+   "kind": "function",
+   "params": 1,
+   "part": "21_weather.js"
+  },
   "FONT": {
    "kind": "function",
    "params": 1,
@@ -1070,6 +1100,11 @@
    "kind": "function",
    "params": 0,
    "part": "06_scene.js"
+  },
+  "getTimeOfDay": {
+   "kind": "function",
+   "params": 0,
+   "part": "21_weather.js"
   },
   "getZoom": {
    "kind": "function",
@@ -1410,6 +1445,11 @@
    "kind": "function",
    "params": 3,
    "part": "01_core.js"
+  },
+  "lerp3": {
+   "kind": "function",
+   "params": 3,
+   "part": "21_weather.js"
   },
   "levelsOf": {
    "kind": "function",
@@ -2091,6 +2131,11 @@
    "params": 2,
    "part": "06_scene.js"
   },
+  "setFog": {
+   "kind": "function",
+   "params": 1,
+   "part": "21_weather.js"
+  },
   "setGravity": {
    "kind": "function",
    "params": 2,
@@ -2121,6 +2166,11 @@
    "params": 2,
    "part": "16_actions.js"
   },
+  "setSkyGradient": {
+   "kind": "function",
+   "params": 1,
+   "part": "21_weather.js"
+  },
   "setState": {
    "kind": "function",
    "params": 1,
@@ -2130,6 +2180,11 @@
    "kind": "function",
    "params": 2,
    "part": "04_light.js"
+  },
+  "setTimeOfDay": {
+   "kind": "function",
+   "params": 2,
+   "part": "21_weather.js"
   },
   "SETTINGS": {
    "kind": "value",
@@ -2145,6 +2200,16 @@
    "kind": "function",
    "params": 3,
    "part": "07_input.js"
+  },
+  "setWeather": {
+   "kind": "function",
+   "params": 2,
+   "part": "21_weather.js"
+  },
+  "setWind": {
+   "kind": "function",
+   "params": 2,
+   "part": "21_weather.js"
   },
   "setZoom": {
    "kind": "function",
@@ -2201,6 +2266,16 @@
    "params": null,
    "part": "06_scene.js"
   },
+  "SKYG": {
+   "kind": "value",
+   "params": null,
+   "part": "21_weather.js"
+  },
+  "skyGradAt": {
+   "kind": "function",
+   "params": 3,
+   "part": "21_weather.js"
+  },
   "skyKey": {
    "kind": "value",
    "params": null,
@@ -2225,6 +2300,11 @@
    "kind": "function",
    "params": 1,
    "part": "01_core.js"
+  },
+  "smooth01": {
+   "kind": "function",
+   "params": 1,
+   "part": "21_weather.js"
   },
   "SNAP": {
    "kind": "value",
@@ -2456,6 +2536,11 @@
    "params": 0,
    "part": "17_ui.js"
   },
+  "stepWeather": {
+   "kind": "function",
+   "params": 1,
+   "part": "21_weather.js"
+  },
   "stepWorld": {
    "kind": "function",
    "params": 1,
@@ -2606,6 +2691,16 @@
    "params": null,
    "part": "05_render.js"
   },
+  "TOD": {
+   "kind": "value",
+   "params": null,
+   "part": "21_weather.js"
+  },
+  "todShape": {
+   "kind": "function",
+   "params": 1,
+   "part": "21_weather.js"
+  },
   "tokenValue": {
    "kind": "function",
    "params": 1,
@@ -2710,6 +2805,31 @@
    "kind": "function",
    "params": 2,
    "part": "15_world.js"
+  },
+  "WEATHER": {
+   "kind": "value",
+   "params": null,
+   "part": "21_weather.js"
+  },
+  "WEATHER_KINDS": {
+   "kind": "value",
+   "params": null,
+   "part": "21_weather.js"
+  },
+  "weatherTypes": {
+   "kind": "function",
+   "params": 0,
+   "part": "21_weather.js"
+  },
+  "WIND": {
+   "kind": "value",
+   "params": null,
+   "part": "21_weather.js"
+  },
+  "windNow": {
+   "kind": "function",
+   "params": 0,
+   "part": "21_weather.js"
   },
   "worldChanged": {
    "kind": "function",

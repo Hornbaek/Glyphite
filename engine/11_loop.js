@@ -170,7 +170,7 @@ function update(dt) {
 // the engine's world systems: falling chunks, particles, sand, heat and effects
 function stepWorld(dt) {
   if (chunks.length || rechecks.length) stepChunks(dt);
-  stepParticles(dt); simGranular();
+  stepWeather(dt); stepParticles(dt); simGranular();
   const cx = Math.floor(cam.x), cy = Math.floor(cam.y / ASPECT), m = Math.round(20 * RES);
   coolHeat(cx - m, cy - m, cx + R.cols + m, cy + R.rows + m);
   stepFX(dt);
@@ -397,7 +397,7 @@ const Pixelite = {
     unfreeze() { if (window.__pixeliteUpdate) { window.update = window.__pixeliteUpdate; window.__pixeliteUpdate = null; } },
     render(t = clockT) { draw(t); },
     probe() {
-      return { state, stateT: +stateT.toFixed(2), frame: frameNo, version: Pixelite.version, paused: isPaused(), errors: ERRORS.length, res: RES, renderer: R.mode, cols: R.cols, rows: R.rows, zoom: +getZoom().toFixed(3),
+      return { state, stateT: +stateT.toFixed(2), frame: frameNo, version: Pixelite.version, paused: isPaused(), errors: ERRORS.length, res: RES, renderer: R.mode, cols: R.cols, rows: R.rows, zoom: +getZoom().toFixed(3), weather: WEATHER.kind, hour: TOD.on ? +TOD.h.toFixed(2) : null,
         world: [W, H], cam: [+cam.x.toFixed(1), +cam.y.toFixed(1)], particles: P.n, chunks: chunks.length, perfMs: +perfAvg.toFixed(1), perf: PERF.avg(),
         tune: { ...TUNE }, levels: levelsOf(), entities: entityCounts(), states: entityStates(), game: GAME.probe ? GAME.probe() : null };
     }
