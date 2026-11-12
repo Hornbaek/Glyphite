@@ -166,19 +166,19 @@ function sceneTerrain(ox, oy, time, bkN, bp) {
 // ---------- the still-frame snapshot (04_light.js, stillPlan): the terrain pass's outcome, kept ----------
 // What steps 1 and 2 leave behind: the scene buffers (glyph, depth, colour, brightness) and the light buffers after the glow of hot and glowing things. A
 // still frame copies them back. Not kept while the window holds crystals or glints: they follow the clock, so the pass has to be made again.
-const T = { n: 0, G: null, Z: null, R: null, Gc: null, B: null, L: null, LR: null, LG: null, LB: null };
+const SNAP = { n: 0, G: null, Z: null, R: null, Gc: null, B: null, L: null, LR: null, LG: null, LB: null };
 function stillSave() {
   const n = R.RW * R.RH;
-  if (T.n !== n) { T.n = n; T.G = new Uint8Array(n); for (const k of ['Z', 'R', 'Gc', 'B', 'L', 'LR', 'LG', 'LB']) T[k] = new Float32Array(n); }
-  T.G.set(R.wG); T.Z.set(R.wZ); T.R.set(cR); T.Gc.set(cG); T.B.set(cB); T.L.set(cL); T.LR.set(LR); T.LG.set(LG); T.LB.set(LB);
+  if (SNAP.n !== n) { SNAP.n = n; SNAP.G = new Uint8Array(n); for (const k of ['Z', 'R', 'Gc', 'B', 'L', 'LR', 'LG', 'LB']) SNAP[k] = new Float32Array(n); }
+  SNAP.G.set(R.wG); SNAP.Z.set(R.wZ); SNAP.R.set(cR); SNAP.Gc.set(cG); SNAP.B.set(cB); SNAP.L.set(cL); SNAP.LR.set(LR); SNAP.LG.set(LG); SNAP.LB.set(LB);
   stillSavedTerrain();
 }
-function stillRestore() { R.wG.set(T.G); R.wZ.set(T.Z); cR.set(T.R); cG.set(T.Gc); cB.set(T.B); cL.set(T.L); LR.set(T.LR); LG.set(T.LG); LB.set(T.LB); }
+function stillRestore() { R.wG.set(SNAP.G); R.wZ.set(SNAP.Z); cR.set(SNAP.R); cG.set(SNAP.Gc); cB.set(SNAP.B); cL.set(SNAP.L); LR.set(SNAP.LR); LG.set(SNAP.LG); LB.set(SNAP.LB); }
 // audit: the snapshot must equal what the full pass just made
 function stillCompare() {
-  if (T.n !== R.RW * R.RH) return;
-  for (let k = 0; k < T.n; k++) {
-    if (T.G[k] !== R.wG[k] || T.Z[k] !== R.wZ[k] || T.R[k] !== cR[k] || T.Gc[k] !== cG[k] || T.B[k] !== cB[k] || T.L[k] !== cL[k] || T.LR[k] !== LR[k] || T.LG[k] !== LG[k] || T.LB[k] !== LB[k]) {
+  if (SNAP.n !== R.RW * R.RH) return;
+  for (let k = 0; k < SNAP.n; k++) {
+    if (SNAP.G[k] !== R.wG[k] || SNAP.Z[k] !== R.wZ[k] || SNAP.R[k] !== cR[k] || SNAP.Gc[k] !== cG[k] || SNAP.B[k] !== cB[k] || SNAP.L[k] !== cL[k] || SNAP.LR[k] !== LR[k] || SNAP.LG[k] !== LG[k] || SNAP.LB[k] !== LB[k]) {
       CACHE.bad++; STILL.tHave = false; console.warn('the still-frame terrain was stale (cell ' + k + '): something it depends on changed without the engine hearing of it (engine/API.md, Performance)'); return;
     }
   }
