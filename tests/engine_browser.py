@@ -80,9 +80,9 @@ async def main():
         # draw time is the simulation clock: two renders of a frozen frame are identical
         b, page, errs = await open_page(p, '?seed=5')
         await page.evaluate('Pixelite.test.start(); Pixelite.test.step(40); Pixelite.test.freeze()')
-        a = await page.evaluate("(() => { FEED.length = 0; Pixelite.test.render(); const c = document.getElementById('screen'); return c.toDataURL ? c.toDataURL().length : 0 })()")
+        a = await page.evaluate("(() => { FEED.length = 0; Pixelite.test.render(2.5); const c = document.getElementById('screen'); return c.toDataURL ? c.toDataURL().length : 0 })()")
         await page.wait_for_timeout(300)
-        c2 = await page.evaluate("(() => { FEED.length = 0; Pixelite.test.render(); const c = document.getElementById('screen'); return c.toDataURL ? c.toDataURL().length : 0 })()")
+        c2 = await page.evaluate("(() => { FEED.length = 0; Pixelite.test.render(2.5); const c = document.getElementById('screen'); return c.toDataURL ? c.toDataURL().length : 0 })()")
         check(a == c2, 'a frozen frame renders the same later (the draw clock is the simulation clock)')
         await b.close()
     print('FAILED: ' + '; '.join(fails) if fails else 'PASS: engine in the browser')
