@@ -11,21 +11,21 @@
     ["A D / Left Right", "run"],
     ["Space / W / Up", "jump (hold for height)"],
     ["Up / Down", "climb a ladder, drop through a catwalk"],
-    ["J / X", "throw a pebble"],
+    ["J / X / tap", "throw a pebble"],
     ["K / C", "throw a bomb (it blasts rock and bricks)"],
     ["L / Z", "dig dirt in front of you"],
     ["P / Esc", "pause, settings, rebind keys"],
     ["Gamepad", "stick or d-pad, A jump, X pebble, B bomb, Y dig"]
   ],
   "actions": {
-    "left": ["ArrowLeft", "KeyA", "pad:left"],
-    "right": ["ArrowRight", "KeyD", "pad:right"],
-    "up": ["ArrowUp", "KeyW", "pad:up"],
-    "down": ["ArrowDown", "KeyS", "pad:down"],
-    "jump": ["Space", "ArrowUp", "KeyW", "pad:a"],
-    "fire": ["KeyJ", "KeyX", "pad:x"],
-    "bomb": ["KeyK", "KeyC", "pad:b"],
-    "dig": ["KeyL", "KeyZ", "pad:y"]
+    "left": ["ArrowLeft", "KeyA", "pad:left", "touch:left"],
+    "right": ["ArrowRight", "KeyD", "pad:right", "touch:right"],
+    "up": ["ArrowUp", "KeyW", "pad:up", "touch:jump"],
+    "down": ["ArrowDown", "KeyS", "pad:down", "touch:down"],
+    "jump": ["Space", "ArrowUp", "KeyW", "pad:a", "touch:jump"],
+    "fire": ["KeyJ", "KeyX", "pad:x", "touch:fire"],
+    "bomb": ["KeyK", "KeyC", "pad:b", "touch:bomb"],
+    "dig": ["KeyL", "KeyZ", "pad:y", "touch:dig"]
   },
   "tunables": {
     "gravity": { "label": "Gravity", "unit": "m/s²", "value": 9.8, "min": 2, "max": 25, "step": 0.1, "live": true, "help": "How hard everything falls. The low-gravity room halves it." },

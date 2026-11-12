@@ -58,7 +58,7 @@ function heroUpdate(e, dt) {
   if (c.jumped) { Sfx.tone(520, .07, .07, 'square'); }
   if (c.landed > 14 * S) { puff(e.x, e.y, Math.min(8, c.landed / S / 8)); Sfx.thud(c.landed / S * .12); }
   if (c.bounced) { Sfx.tone(300, .25, .1, 'triangle'); puff(e.x, e.y, 6); }
-  if (actionPressed('fire') && COOL.fire <= 0) throwPebble(e);
+  if ((actionPressed('fire') || Input.pressed.has('Tap')) && COOL.fire <= 0) throwPebble(e);   // a tap on the screen throws one too
   if (actionPressed('bomb') && COOL.bomb <= 0 && STATS.bombs > 0) throwBomb(e);
   if (actionPressed('dig') && COOL.dig <= 0) dig(e);
   e.tag = e.invuln > 1 ? 'hurt' : c.climbing ? 'climb' : !c.onGround ? 'jump' : Math.abs(c.vx) > 3 * S ? 'run' : 'idle';

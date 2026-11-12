@@ -29,7 +29,7 @@ function touchFromActions() {
   if (!A.left || !A.right) return null;
   for (const n of ['left', 'right', 'up', 'down', 'jump', 'fire']) if (A[n] && !A[n].tokens.includes('touch:' + n)) A[n].tokens.push('touch:' + n);
   const l = [mk('left'), mk('right')]; if (A.down) l.push(mk('down'));
-  const r = []; if (A.fire) r.push(mk('fire')); if (A.jump) r.push(mk('jump'));
+  const r = []; if (A.fire) r.push(mk('fire')); if (A.jump) r.push(mk('jump'));   // other actions (bomb, dig...) need a `touch` of the game's own: a phone has room for about six
   return r.length ? [l, r] : [l];
 }
 function pollPads() {

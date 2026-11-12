@@ -2,12 +2,13 @@
 function gameHud(t) {
   if (state === 'title') { const b = Pixelite.load('best'); if (b) hudText(2, 1, `BEST ${b.time.toFixed(1)} S   ${b.coins} COINS`, HC.gold); return; }
   const S = RES;
+  const narrow = R.hcols < 72;   // a phone: the numbers go on two rows
   hudText(1, 0, `COINS ${STATS.coins}/${STATS.total}`, HC.gold);
-  hudBar(18, 0, 6, STATS.hp, 3, HC.red, 'HP');
-  hudText(32, 0, `BOMBS ${STATS.bombs}`, HC.txt);
-  hudText(R.hcols - 24, 0, `DEATHS ${STATS.deaths}  ${STATS.time.toFixed(1)} S`, HC.dim);
+  hudBar(17, 0, 6, STATS.hp, 3, HC.red, 'HP');
+  hudText(narrow ? 1 : 30, narrow ? 1 : 0, `BOMBS ${STATS.bombs}`, HC.txt);
+  hudText(narrow ? 12 : R.hcols - 24, narrow ? 1 : 0, `DEATHS ${STATS.deaths}  ${STATS.time.toFixed(1)} S`, HC.dim);
   if (HINT && state === 'play') {
-    const lines = hudWrap(typeof HINT === 'function' ? HINT() : HINT, Math.min(56, R.hcols - 8)), w = Math.max(...lines.map(l => l.length)) + 4, c0 = Math.floor((R.hcols - w) / 2), r0 = R.hrows - lines.length - 4;
+    const lines = hudWrap(typeof HINT === 'function' ? HINT() : HINT, Math.min(56, R.hcols - 8)), w = Math.max(...lines.map(l => l.length)) + 4, c0 = Math.floor((R.hcols - w) / 2), r0 = R.hrows - lines.length - 4 - (touchShown() ? 7 : 0);
     hudBox(c0, r0, w, lines.length + 2, HC.dim, true); lines.forEach((l, i) => hudText(c0 + 2, r0 + 1 + i, l, HC.txt));
   }
   if (state === 'won') screenResult({ title: 'PROVING GROUND CLEARED', lines: [`${STATS.coins} OF ${STATS.total} COINS`, `${STATS.deaths} DEATHS`, `${STATS.time.toFixed(1)} SECONDS`], prompt: Input.pointer === 'touch' ? 'TAP FOR A NEW RUN' : 'ENTER FOR A NEW RUN' });
@@ -44,6 +45,9 @@ function provingCheck() {
 Pixelite.run({
   id: 'proving',
   shell: true,
+  // a phone has room for six buttons: climbing up a ladder is the jump button held at it, a tap on the screen throws a pebble
+  touch: [[{ label: '[<]', aria: 'Left', hold: 'left' }, { label: '[>]', aria: 'Right', hold: 'right' }, { label: '[v]', aria: 'Down', hold: 'down' }],
+    [{ label: '[B]', aria: 'Bomb', hold: 'bomb' }, { label: '[D]', aria: 'Dig', hold: 'dig' }, { label: '[JUMP]', aria: 'Jump', hold: 'jump' }]],
   detail: { levels: [2], default: 2 },
   stars: 0,
   // a daytime sky: a gradient and slow clouds, on the engine's sky layer

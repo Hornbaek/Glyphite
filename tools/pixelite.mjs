@@ -163,6 +163,7 @@ function writeWelcome(engine, listing, changes) {
   write(join(DIST, 'welcome/site.json'), JSON.stringify({ engine: engine.version, games, ideas, changes: changes.sections.length }) + '\n');
 }
 
+const PAGE_BUDGET_KB = 900;   // a game page is one file with everything in it (the biggest today is about 530 KB)
 function build(only) {
   const engine = loadEngine();
   const games = gameDirs().map(loadGame).filter(g => !only.length || only.includes(g.manifest.id));
@@ -191,6 +192,7 @@ function build(only) {
     const ac = checkAuthor(g); for (const w of ac.warnings) console.warn('warning: ' + w); if (ac.errors.length) die(ac.errors.join('\n'));
     const page = assemble({ shell: engine.shellCode, engine, manifest: m, head: g.head, parts: g.parts });
     checkSyntax(page, `${g.path}`);
+    if (page.length > PAGE_BUDGET_KB * 1024) die(`${g.path}: the page is ${Math.round(page.length / 1024)} KB, over the ${PAGE_BUDGET_KB} KB budget (one page per game: trim what the game carries, or raise PAGE_BUDGET_KB on purpose)`);
     write(join(out, 'index.html'), page);
     write(join(out, 'game.json'), JSON.stringify(m, null, 2) + '\n');
     let thumb = null;
