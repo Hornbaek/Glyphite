@@ -1276,6 +1276,22 @@ Engine 0.17.0, two new parts: `engine/19_liquid.js` and `engine/20_reactions.js`
 - **Not done.** Pressure in liquids, waves, gas as a material (D2's list). Wind on structures and bodies (it moves particles only). A palette made from a game's `art/` master palette automatically. Weather that dims the sun
   (an overcast), thunder and lightning, rain that wets materials. Key-driven zoom (the wheel and a pinch only). Real-GPU timings of the post effects and of zoomed-out views (`tests/perf.py` on a phone).
 
+## 59. The remake's story: Star Whiskers, The Holy Cow (Claude Code, 2026-11-12)
+
+> "I'm thinking about redoing the space mouse game completely. I have the story here, it's in Swedish, but I like it! Write it in
+> English and come with some feedback on the story and suggestions to the plot and story line." … "Use this as cover"
+
+- **`games/spacemouse/story/`**: the owner's two Swedish documents untouched in `sv/`, the story translated in full in `STORY.md`
+  (five acts, seventeen chapters and an epilogue, with the concept's gameplay notes and open questions), and `FEEDBACK.md`: what
+  works, nine suggestions (a flaw for the mouse, why the cat needs a junk ship, one rule for milk, one clue per world, a low point
+  where the cat is captured, a cow with character, the robot reset to a farm job, the farm on the cow's planet, planting the cat's
+  friends), the cover against the story, names, and Act I as the first playable.
+- **Version 2** (`STORY_V2.md`), after the owner agreed to every suggestion and named the cast (Pip, Tinka, MEGA-MJAU,
+  Stellamoo; Tinka became Miss Clou, a she, and Pip a he, the same day): the story rewritten with all of them in, and what changed listed at its end. `COVER_PROMPT.md` updates the cover
+  (space suits, real cats in mind-control helmets); `CHAPTER_COVERS.md` has a style block and one prompt per chapter.
+- **The cover** (`ref/cover_star_whiskers.png`) is kept as reference art; `tools/art.py` lists a picture nothing is cut from
+  (its `use`), so `ref.json` stays generated.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

@@ -29,6 +29,7 @@ FRAMES_DIR = GAME / 'ref/frames'
 SHEETS = {   # name: (file, background colour)
     'a': ('art_sheet.png', (9, 11, 15)), 'act': ('mouse_actions_sheet.jpg', (12, 15, 20)),
     'cat': ('catbot_sheet.png', (6, 8, 14)), 'obj': ('objects_sheet.jpg', (12, 15, 20)),
+    'cover': ('cover_star_whiskers.png', (0, 0, 0)),
 }
 SHEET_FILES = {k: f for k, (f, _) in SHEETS.items()}
 SHEETS = {k: (np.array(Image.open(GAME / 'ref' / f).convert('RGB')).astype(int), np.array(bg)) for k, (f, bg) in SHEETS.items()}
@@ -37,6 +38,11 @@ SHEET_INFO = {   # for ref.json: what each sheet is and where it came from
     'act': ("More of Pip's moves: wall slide, falling, landing, eating, zapped, victory", 'Gemini'),
     'cat': ('The cat-bot: patrol walk, alert, chase run, shorted out', 'ChatGPT'),
     'obj': ('Objects: checkpoint, the great cheese, lamps, alarm beacon, hatches, ladder, lift', 'Gemini'),
+    'cover': ('The cover for the remake: Star Whiskers, The Holy Cow', 'the owner (AI image)'),
+}
+SHEET_USE = {   # for a picture nothing is cut from: what it is for
+    'cover': 'Cover art and mood reference for the remake (story/STORY.md): the mouse, the inventor cat, the Holy Cow, '
+             "the great robot cat's fortress and its controlled cats",
 }
 
 FRAMES = ['idle', 'walk', 'run', 'jump', 'lookup', 'lookdown']   # the first sheet's mouse row, left to right
@@ -342,7 +348,8 @@ def write_reference():
     sheets = []
     for k, frames in REF.items():
         h, w, _ = SHEETS[k][0].shape; title, source = SHEET_INFO[k]
-        sheets.append({'file': SHEET_FILES[k], 'title': title, 'source': source, 'size': [w, h], 'frames': frames})
+        sheets.append({'file': SHEET_FILES[k], 'title': title, 'source': source, 'size': [w, h], 'frames': frames,
+                       **({'use': SHEET_USE[k]} if k in SHEET_USE else {})})
     ref = {'title': 'Space Mouse', 'made_by': 'games/spacemouse/tools/art.py', 'sheets': sheets}
     (GAME / 'ref/ref.json').write_text(json.dumps(ref, indent=1) + '\n')
     md = ['# Space Mouse: reference art', '',
@@ -351,7 +358,9 @@ def write_reference():
           'the sheet.', '']
     for sh in sheets:
         md += [f"## {sh['title']}", '', f"`{sh['file']}`, {sh['size'][0]} x {sh['size'][1]}, from {sh['source']}", '',
-               f"![{sh['file']}]({sh['file']})", '', '| drawing | name | box | used for |', '|---|---|---|---|']
+               f"![{sh['file']}]({sh['file']})", '']
+        if sh.get('use'): md += [f"Used for: {sh['use']}.", '']
+        if sh['frames']: md += ['| drawing | name | box | used for |', '|---|---|---|---|']
         md += [f"| ![{f['name']}]({f['file']}) | {f['name']} | {', '.join(map(str, f['box']))} | {f['use']} |" for f in sh['frames']]
         md.append('')
     (GAME / 'ref/README.md').write_text('\n'.join(md))
