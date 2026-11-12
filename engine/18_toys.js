@@ -149,7 +149,7 @@ const Rewind = {
   // put the world back as the last snapshot had it (and drop it, so the next step goes further back)
   pop() {
     const s = this.snaps.length > 1 ? this.snaps.pop() : this.snaps[0]; if (!s) return false;
-    cells.set(s.cells); backCells.set(s.back); awake.fill(1); P.n = 0;
+    cells.set(s.cells); backCells.set(s.back); worldChanged(); awake.fill(1); P.n = 0;   // (worldChanged: the lamp cache and the still frame hear of a world written by hand)
     entities.length = 0;
     for (const [e, f, c] of s.ents) {
       for (const k in e) if (!(k in f) && (e[k] === null || typeof e[k] === 'number' || typeof e[k] === 'string' || typeof e[k] === 'boolean')) delete e[k];

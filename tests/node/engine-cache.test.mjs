@@ -130,3 +130,16 @@ test('still-frame base: the sun, ambient and occlusion come back unchanged while
   assert.ok(on.base.filter(Boolean).length >= 8, `the base was reused (${on.base})`);
   assert.equal(off.base.filter(Boolean).length, 0);
 });
+
+test('rewind puts the grid back by hand (cells.set): the lamp cache and the still frame hear of it', () => {
+  const run = cache => {
+    const E = loadEngine(); world(E);
+    E.run(`globalThis.LS = ${LAMPS}; CACHE.lamps = CACHE.still = ${cache}; globalThis.out = [];
+      globalThis.go = n => { for (let i = 0; i < n; i++) { computeLighting(10, 10, LS, 1e9); out.push(${lightHash}); } };`);
+    E.run('go(4); Rewind.on = true; Rewind.snapshot()');                            // the lamps are cached, the world is saved
+    E.run('for (let y = H - 60; y < H - 20; y++) setC(75, y, 1)'); E.run('go(4)');    // a wall is built in the first lamp's reach
+    E.run('Rewind.pop()'); E.run('go(4)');                                          // and the world goes back to as it was
+    return [...E.run('out')];
+  };
+  assert.deepEqual(run(true), run(false), 'every frame equal');
+});
