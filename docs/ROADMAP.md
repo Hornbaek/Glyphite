@@ -74,7 +74,9 @@ From the owner's brainstorm: generate art through an image API, snap it to the g
 Later: the animation asset exists (HISTORY 49); next is a game using one (Pip's own frames) (the legs are solved by drawing characters at twice the size: HISTORY 50), moving Space Mouse's other art (Pip, cat-bots, objects) into the pipeline, the stray one-pixel
 column on the lockers' right edge (a cut artefact the gallery will make visible).
 
-## The engine plan (docs/ENGINE_PLAN.md, HISTORY 53-55): what is done, what is open
+## The engine plan (docs/ENGINE_PLAN.md, HISTORY 53-57): what is done, what is open
+
+**The up to date status and the suggested next steps are at the top of `docs/ENGINE_PLAN.md` ("STATUS"); a new session starts there.** The paragraph below is the short version as of engine 0.17.0 and misses the speed work (HISTORY 57) and the look branch (E1, E5 done, E3/E4 in progress, E6-E8 open).
 
 Done on `feature/a-foundations`: **A1-A8** (Windows build, one version, pause as a flag, author checks, errors shown, structures, fast bodies), **B1-B4** (seeded random,
 simulation clock, record and replay, the Node engine test bench), **C1-C10** (detail levels a game chooses, resampling a world, entities, animation, actions with gamepad and

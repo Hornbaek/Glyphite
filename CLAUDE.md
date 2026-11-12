@@ -38,7 +38,7 @@ tools/                  pixelite.mjs (CLI: build, new, list, serve), assemble.mj
                         art_capture.py (a picture of the running game at one pixel per cell: style references, map seeds)
 tests/                  smoke.py (any game, both renderers), lab.py (the PIXEL LAB), studio.py (the SOUND STUDIO and its sound),
                         node/ (unit tests: build, editor patches, Access, pixel tools, songs)
-docs/                   ARCHITECTURE (how it works), HISTORY, LESSONS, ROADMAP (the plan), IDEAS (the idea bank),
+docs/                   ARCHITECTURE (how it works), HISTORY, LESSONS, ROADMAP (the plan), ENGINE_PLAN (STATUS at its top: what is done, what is next), IDEAS (the idea bank),
                         TESTING, DEPLOY
 .claude/skills/         pixelite-new-game, pixelite-verify, pixelite-art-prompt (the prompt for an art sheet), pixelite-pixel-art,
                         pixelite-song (compose a song: plan, write as code, check levels, ship),
