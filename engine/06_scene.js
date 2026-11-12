@@ -114,8 +114,8 @@ function sceneTerrain(ox, oy, time, bkN, bp) {
   }
 
   // 2) terrain (empty cells stay code 0: transparent, so the sky layer shows through them)
-  // (cells are read straight from the arrays inside the world: getC with its four bounds tests for every cell, and again for the
-  // back wall's shadow search, was the bulk of this loop; occAt reads the occupancy the lighting built, which is getC !== EMPTY)
+  // (the cell itself is read straight from the array inside the world. The back wall's shadow search stays on getC: reading the lighting's occupancy
+  // buffer through occAt instead measured 5 to 20% slower, a function with more work per call than getC)
   let anim = 0;
   for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) {
     const k = j * RW + i, cx = ox + i, cy = oy + j, inW = cx >= 0 && cx < W && cy >= 0 && cy < H, ci = inW ? cy * W + cx : -1;
@@ -127,7 +127,7 @@ function sceneTerrain(ox, oy, time, bkN, bp) {
       const bm = inW ? backCells[ci] : 0;
       if (bm) {   // the back wall: the light in the air in front of it, dimmer, with a drop shadow from the world cells
         let f = BACK.dim;
-        for (let s = 0; s < bkN; s++) if (occAt(cx - BK_OFF[2 * s], cy - BK_OFF[2 * s + 1])) { f *= 1 - BACK.shadow * (1 - s / bkN); break; }
+        for (let s = 0; s < bkN; s++) if (getC(cx - BK_OFF[2 * s], cy - BK_OFF[2 * s + 1]) !== EMPTY) { f *= 1 - BACK.shadow * (1 - s / bkN); break; }
         const alb = MAT_ALB[bm];
         // a mast-style back wall (girders) shows its joints one shade brighter
         const joint = MAT_STYLE[bm] === 2 && (getBack(cx, cy - 1) === bm || getBack(cx, cy + 1) === bm) && (getBack(cx - 1, cy) === bm || getBack(cx + 1, cy) === bm);
