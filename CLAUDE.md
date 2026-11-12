@@ -51,7 +51,7 @@ dist/                   build output = the deployed site (git-ignored)
 ```sh
 npm run build                          # = node tools/pixelite.mjs build: engine + every game → dist/; prints SYNTAX_OK
 node tools/pixelite.mjs build <id>     # just one game (faster while iterating)
-node tools/pixelite.mjs new <id> --title "My Game"   # scaffold games/<id>/ from templates/starter
+node tools/pixelite.mjs new <id> --title "My Game"   # scaffold games/<id>/ from templates/starter (--kit platformer: from the Proving Ground)
 node tools/pixelite.mjs list           # games and their status
 npm test                               # unit tests (node --test)
 python3 tests/smoke.py <id>            # loads, starts, runs and screenshots the game in 2D and GL → shots/
