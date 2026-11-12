@@ -7,6 +7,7 @@
   "listed": false,
   "status": "playable",
   "parts": ["world.js", "main.js"],
+  "engine": [],
   "controls": [
     ["Click or tap", "drop a meteor there"]
   ],

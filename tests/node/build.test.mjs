@@ -48,7 +48,7 @@ test('the browser assembler reproduces the built page', () => {
     if (g.template) { m.listed = false; m.template = true; }
     const page = assemble({
       shell: read(`engine/${engine.shell}`),
-      engine: { version: engine.version, parts: engine.parts.map(name => ({ name, code: read(`engine/${name}`) })) },
+      engine: { version: engine.version, parts: engine.parts.map(name => ({ name, code: read(`engine/${name}`) })), optional: engine.optional, stubs: Object.fromEntries(Object.values(engine.optional).map(([, stub]) => [stub, read(`engine/${stub}`)])) },
       manifest: m, head: m.head ? read(`${g.path}/${m.head}`) : '', parts: m.parts.map(name => ({ name, code: read(`${g.path}/${name}`) }))
     });
     assert.equal(page, readFileSync(join(DIST, 'games', g.id, 'index.html'), 'utf8'), g.id);

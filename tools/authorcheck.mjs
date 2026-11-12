@@ -7,7 +7,7 @@
 
 // every top-level key game.json may have; add a key here when the portal, the editor, a tool or the engine starts to read it
 export const MANIFEST_KEYS = ['id', 'title', 'tagline', 'description', 'order', 'listed', 'status', 'thumbnail', 'head', 'parts', 'controls',
-  'tunables', 'levels', 'smoke', 'aria', 'template', 'actions', 'presets', 'detail'];
+  'tunables', 'levels', 'smoke', 'aria', 'template', 'actions', 'presets', 'detail', 'engine'];
 
 // the top-level keys of the object literal that starts at code[open] === '{', in order
 export function literalKeys(code, open) {

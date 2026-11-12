@@ -13,6 +13,7 @@
     "07_sound.js",
     "07_input.js",
     "08_chip.js",
+    "08_music.js",
     "09_structures.js",
     "10_sprite.js",
     "11_loop.js",
@@ -22,5 +23,10 @@
     "15_world.js",
     "16_actions.js",
     "17_ui.js"
-  ]
+  ],
+  "optional": {
+    "chip": ["08_chip.js", "stubs/chip.js"],
+    "iso": ["12_iso.js", "stubs/iso.js"],
+    "sampler": ["13_sampler.js", "stubs/sampler.js"]
+  }
 }

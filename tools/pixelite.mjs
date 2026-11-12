@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Pixelite command line: build the site, scaffold games, serve locally. No dependencies.
 //
-//   node tools/pixelite.mjs build [ids...]        engine + every game → dist/ (the deployable site)
+//   node tools/pixelite.mjs build [ids...] [--minify]   engine + every game → dist/ (the deployable site); --minify (or PIXELITE_MINIFY=1)
+//                                       takes comments and indentation out of the pages (tools/minify.mjs: every line stays where it was)
 //   node tools/pixelite.mjs new <id> [--title T]  scaffold games/<id>/ from templates/starter
 //   node tools/pixelite.mjs list                  the games and their status
 //   node tools/pixelite.mjs serve [--port 8787]   serve dist/ on http://localhost:8787
@@ -24,6 +25,7 @@ import { createServer } from 'node:http';
 import vm from 'node:vm';
 import { assemble } from './assemble.mjs';
 import { checkAuthor } from './authorcheck.mjs';
+import { minifyPage } from './minify.mjs';
 import { loadAssets, validate as validateArt, artDir } from './art/lib.mjs';
 import { buildText as artPipelineText } from './art.mjs';
 
@@ -48,7 +50,9 @@ function gameDirs() {
 
 function loadEngine() {
   const e = readJSON('engine/engine.json');
-  return { ...e, shellCode: read(`engine/${e.shell}`), parts: e.parts.map(name => ({ name, code: read(`engine/${name}`) })) };
+  // optional parts (engine.json "optional"): a page leaves out the ones its game.json "engine" list does not name and carries the stand-in (engine/stubs/)
+  const stubs = Object.fromEntries(Object.values(e.optional || {}).map(([, stub]) => [stub, read(`engine/${stub}`)]));
+  return { ...e, stubs, shellCode: read(`engine/${e.shell}`), parts: e.parts.map(name => ({ name, code: read(`engine/${name}`) })) };
 }
 
 function loadGame(g) {
@@ -162,9 +166,19 @@ function writeWelcome(engine, listing, changes) {
   write(join(DIST, 'welcome/site.json'), JSON.stringify({ engine: engine.version, games, ideas, changes: changes.sections.length }) + '\n');
 }
 
-function build(only) {
+// game.json's "engine": the optional engine parts the page carries (engine.json "optional"); each must be one that exists
+function checkEngineList(engine, g) {
+  const list = g.manifest.engine, known = Object.keys(engine.optional || {});
+  if (list === undefined) return;
+  if (!Array.isArray(list)) die(`${g.path}/game.json: "engine" must be a list of optional engine parts (${known.join(', ')}), or left out for all of them`);
+  const bad = list.filter(k => !known.includes(k));
+  if (bad.length) die(`${g.path}/game.json: unknown engine part ${bad.map(b => `"${b}"`).join(', ')} in "engine" (the optional parts are ${known.join(', ')})`);
+}
+
+function build(only, { minify = false } = {}) {
   const engine = loadEngine();
   const games = gameDirs().map(loadGame).filter(g => !only.length || only.includes(g.manifest.id));
+  for (const g of games) checkEngineList(engine, g);
   if (only.length && !games.length) die(`no game called ${only.join(', ')}`);
   const ids = new Set();
   for (const g of games) { if (ids.has(g.manifest.id)) die(`two games use the id "${g.manifest.id}"`); ids.add(g.manifest.id); }
@@ -180,14 +194,16 @@ function build(only) {
   write(join(DIST, 'src/engine/engine.json'), read('engine/engine.json'));
   write(join(DIST, `src/engine/${engine.shell}`), engine.shellCode);
   for (const p of engine.parts) write(join(DIST, `src/engine/${p.name}`), p.code);
+  for (const [name, code] of Object.entries(engine.stubs)) write(join(DIST, `src/engine/${name}`), code);
 
   const listing = existsSync(join(DIST, 'games.json')) && only.length ? JSON.parse(readFileSync(join(DIST, 'games.json'), 'utf8')).games : [];
   for (const g of games) {
     const m = g.manifest, out = join(DIST, 'games', m.id);
     checkNames(engine, g);
     const ac = checkAuthor(g); for (const w of ac.warnings) console.warn('warning: ' + w); if (ac.errors.length) die(ac.errors.join('\n'));
-    const page = assemble({ shell: engine.shellCode, engine, manifest: m, head: g.head, parts: g.parts });
+    let page = assemble({ shell: engine.shellCode, engine, manifest: m, head: g.head, parts: g.parts });
     checkSyntax(page, `${g.path}`);
+    if (minify) { page = minifyPage(page); checkSyntax(page, `${g.path} (minified)`); }
     write(join(out, 'index.html'), page);
     write(join(out, 'game.json'), JSON.stringify(m, null, 2) + '\n');
     let thumb = null;
@@ -257,7 +273,7 @@ function serve(port) {
 
 const [cmd, ...args] = process.argv.slice(2);
 const flag = (name, def) => { const i = args.indexOf(name); if (i < 0) return def; const v = args[i + 1]; args.splice(i, 2); return v; };
-if (cmd === 'build') build(args);
+if (cmd === 'build') { const i = args.indexOf('--minify'); if (i >= 0) args.splice(i, 1); build(args, { minify: i >= 0 || process.env.PIXELITE_MINIFY === '1' }); }
 else if (cmd === 'new') { const title = flag('--title'); scaffold(args[0], title); }
 else if (cmd === 'list') list();
 else if (cmd === 'serve') serve(+flag('--port', 8787));

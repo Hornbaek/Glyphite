@@ -46,7 +46,8 @@ async function load() {
   const base = S.entry.path;
   S.engine = JSON.parse(await fetchText('/src/engine/engine.json'));
   const gameFiles = ['game.json', ...S.entry.parts];
-  const engFiles = [S.engine.shell, ...S.engine.parts];
+  const stubFiles = Object.values(S.engine.optional || {}).map(([, stub]) => stub);   // the stand-ins for engine parts a game leaves out
+  const engFiles = [S.engine.shell, ...S.engine.parts, ...stubFiles];
   const all = [...gameFiles.map(f => [`${base}/${f}`, `/src/games/${S.id}/${f}`, f, 'game']), ...engFiles.map(f => [`engine/${f}`, `/src/engine/${f}`, f, 'engine'])];
   const texts = await Promise.all(all.map(([, url]) => fetchText(url)));
   all.forEach(([path, , label, group], i) => {
@@ -68,7 +69,8 @@ function buildPage() {
   const manifest = JSON.parse(textOf(`${base}/game.json`));
   const missing = (manifest.parts || []).filter(p => textOf(`${base}/${p}`) === undefined);
   if (missing.length) throw new Error(`game.json lists ${missing.join(', ')}, which the editor can't create: ask Claude to add new files`);
-  const engine = { version: S.engine.version, parts: S.engine.parts.map(name => ({ name, code: textOf(`engine/${name}`) })) };
+  const stubs = Object.fromEntries(Object.values(S.engine.optional || {}).map(([, stub]) => [stub, textOf(`engine/${stub}`)]));
+  const engine = { version: S.engine.version, parts: S.engine.parts.map(name => ({ name, code: textOf(`engine/${name}`) })), optional: S.engine.optional, stubs };
   const page = assemble({
     shell: textOf(`engine/${S.engine.shell}`), engine, manifest,
     head: manifest.head ? textOf(`${base}/${manifest.head}`) || '' : '',

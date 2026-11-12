@@ -15,6 +15,7 @@
     "folk.js",
     "main.js"
   ],
+  "engine": ["iso"],
   "controls": [
     [
       "B or BUILD, then a building (or 1-9)",

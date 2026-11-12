@@ -21,6 +21,7 @@
     "music.js",
     "main.js"
   ],
+  "engine": ["chip"],
   "controls": [
     ["W / Up", "burn the descent engine"],
     ["A D / Left Right", "rotate"],

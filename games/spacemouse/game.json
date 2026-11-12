@@ -22,6 +22,7 @@
     "songs.js",
     "main.js"
   ],
+  "engine": ["sampler"],
   "controls": [
     [
       "A D / Left Right",
