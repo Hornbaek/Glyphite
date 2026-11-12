@@ -122,8 +122,8 @@ cat goes quiet. In Ch. 13 the player recognises the faces.
 
 | Who | Name |
 |---|---|
-| The mouse | **Pip** (she) |
-| The inventor cat | **Miss Clou** (he; first named Tinka) |
+| The mouse | **Pip** (he) |
+| The inventor cat | **Miss Clou** (she; first named Tinka) |
 | The great robot cat | **MEGA-MJAU** |
 | The Holy Cow | **Stellamoo** |
 

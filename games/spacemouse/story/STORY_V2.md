@@ -7,7 +7,7 @@ English) with every suggestion from [FEEDBACK.md](FEEDBACK.md) the owner agreed 
 chose. What changed from version 1 is listed at the end (section 9).*
 
 **The names.** **Pip**, the mouse. **Miss Clou**, the inventor cat. **MEGA-MJAU**, the great robot cat. **Stellamoo**, the
-Holy Cow. Pip is a she, Miss Clou is a he.
+Holy Cow. Pip is a he, Miss Clou is a she.
 
 ---
 
@@ -74,38 +74,38 @@ shops are empty. On Pip's planet nobody knows why: the story of the Holy Cow is 
 
 ### Pip, the mouse (the player)
 
-Small, curious, inventive, and stubborn: Pip does not give up when something looks impossible. She has no equipment
+Small, curious, inventive, and stubborn: Pip does not give up when something looks impossible. He has no equipment
 worth mentioning, only a knack for making things work from whatever is lying around.
 
-**Pip's flaw:** like everyone in town, she **distrusts cats**. Cats are sneaky, cats are selfish, cats eat mice (they
-don't, but everybody says so). Her first rocket is a plastic bottle, a tin can, a few motors, wires and far too much
+**Pip's flaw:** like everyone in town, he **distrusts cats**. Cats are sneaky, cats are selfish, cats eat mice (they
+don't, but everybody says so). His first rocket is a plastic bottle, a tin can, a few motors, wires and far too much
 silver tape. It looks unsafe. It flies.
 
 **Look:** a home-made space suit, slightly baggy, patched and taped, with a small orange air tank, a round glass helmet
 with the ears inside, and a red scarf tied around the neck.
 
 **Arc:** from a little mouse who wants breakfast and doesn't trust cats, to a brave explorer who frees a cat friend with
-the same jump she once used to escape from cats.
+the same jump he once used to escape from cats.
 
 ### Miss Clou, the inventor cat
 
-Clever, self-assured, a little smug and hard to read. He loves milk, loves machines, and hates admitting a mistake.
-He has been in space for ages and knows much more than he says.
+Clever, self-assured, a little smug and hard to read. She loves milk, loves machines, and hates admitting a mistake.
+She has been in space for ages and knows much more than she says.
 
-Miss Clou built MEGA-MJAU. He was jealous that the mice had so much cheese while cats depended on milk lakes they could not
-control, so he designed a machine to run a milk empire and make sure he would never go without. **The plan never
+Miss Clou built MEGA-MJAU. She was jealous that the mice had so much cheese while cats depended on milk lakes they could not
+control, so she designed a machine to run a milk empire and make sure she would never go without. **The plan never
 included the cow.** That was MEGA-MJAU's own idea.
 
-He also designed MEGA-MJAU's defences, so he knows their secret: **they are built to detect cat technology.** No
-cat ship can get close. A ship made of junk is invisible to them. That is why he needs a mouse.
+She also designed MEGA-MJAU's defences, so she knows their secret: **they are built to detect cat technology.** No
+cat ship can get close. A ship made of junk is invisible to them. That is why she needs a mouse.
 
-On the wall of his shed hangs a photo of his old crew, the cats who helped build the robot, all of them missing
+On the wall of her shed hangs a photo of her old crew, the cats who helped build the robot, all of them missing
 now.
 
 **Look:** an orange tabby with green eyes, in a sleek, well-made dark blue space suit with brass fittings, a glowing gauge
 on the chest, a tool belt, a round glass helmet and a blue cape.
 
-**Arc:** from a proud, secretive inventor who works alone and thinks mice are useless, to someone who admits his mistake,
+**Arc:** from a proud, secretive inventor who works alone and thinks mice are useless, to someone who admits her mistake,
 apologises to old friends, and lets a mouse rescue them.
 
 ### MEGA-MJAU, the great robot cat (the villain)
@@ -159,13 +159,13 @@ the sky, and her milk became the Milky Way, and wherever it fell, cheese grew. *
 Milky Way will shine."* The last panel is torn.
 
 Then Pip's home town: colourful, cosy, small houses, cheese shops, fields and alleys. Pip wakes up and goes for
-breakfast. Her favourite shop's shelves are empty: deliveries have been shrinking for weeks, and the last cheese is gone.
+breakfast. His favourite shop's shelves are empty: deliveries have been shrinking for weeks, and the last cheese is gone.
 
-Pip walks through town. The cheese festival is cancelled, the fields are wilting, everyone is worried. At night, she
+Pip walks through town. The cheese festival is cancelled, the fields are wilting, everyone is worried. At night, he
 notices that the Milky Way looks thinner than it used to.
 
-Behind a crate in the market, Pip finds **the last wedge of cheese in town.** She is hungry. Grandma Brie sits nearby,
-hungrier. **The player chooses: eat it, or share it.** If Pip shares, Grandma Brie tells the whole legend and gives her a
+Behind a crate in the market, Pip finds **the last wedge of cheese in town.** He is hungry. Grandma Brie sits nearby,
+hungrier. **The player chooses: eat it, or share it.** If Pip shares, Grandma Brie tells the whole legend and gives him a
 present: an enormous roll of silver tape. ("It fixes everything, dear. Almost.") If Pip eats it, Grandma Brie tells the legend
 anyway, more briefly, and Pip finds the tape later. Nothing is lost, but the town remembers, and so does Grandma Brie at
 the end.
@@ -176,12 +176,12 @@ Most mice laugh at the legend. Pip starts to wonder.
 
 At the edge of town lives a cat, and every mouse knows to stay away. Pip goes anyway, nervous, ready to run.
 
-Miss Clou lives in a shed full of machine parts, maps and inventions. He is not bothered by the cheese shortage ("there
+Miss Clou lives in a shed full of machine parts, maps and inventions. She is not bothered by the cheese shortage ("there
 are bigger things to worry about") and changes the subject when asked what that means. Pip notices the photo on the wall:
 a group of cats in workshop overalls, Miss Clou in the middle.
 
 Miss Clou has an old blueprint for a very simple spacecraft and pushes it across the table. "It might fly. With the right
-parts. Made of the right... junk." He won't build it and won't fly it. Pip is sure it's a trick, but takes the
+parts. Made of the right... junk." She won't build it and won't fly it. Pip is sure it's a trick, but takes the
 blueprint.
 
 *(What Pip doesn't know: Miss Clou can't fly anywhere near MEGA-MJAU in a cat ship. A junk rocket is the one ship that can.)*
@@ -234,7 +234,7 @@ group of controlled cats guard a huge machine. Pip frees them, and some stay to 
 In the archive is a recording: a gigantic robot cat carrying something alive in a shielded container, a faint golden glow
 leaking out.
 
-Miss Clou recognises the machine at once. After a long silence, he says: *"I know who that is. I built it."*
+Miss Clou recognises the machine at once. After a long silence, she says: *"I know who that is. I built it."*
 
 Clue board: *WHO — a giant robot cat. Miss Clou's.*
 
@@ -242,16 +242,16 @@ Clue board: *WHO — a giant robot cat. Miss Clou's.*
 
 Pip is furious: *"I knew it. Cats."*
 
-Miss Clou tells everything. He was jealous that mice had so much cheese, and built MEGA-MJAU to run a milk empire so he
+Miss Clou tells everything. She was jealous that mice had so much cheese, and built MEGA-MJAU to run a milk empire so she
 would never be without. MEGA-MJAU got clever, made its own decisions, took over, and stole the cow, which was never part
-of the plan. His crew, the cats in the photo, tried to stop it and vanished. He has been following its trail
+of the plan. Her crew, the cats in the photo, tried to stop it and vanished. She has been following its trail
 alone ever since.
 
-Then the part he has kept back: MEGA-MJAU's defences were built by him, and **they detect cat technology.** No cat
+Then the part she has kept back: MEGA-MJAU's defences were built by her, and **they detect cat technology.** No cat
 can get near it. *"I needed a ship it couldn't see. I needed... junk. And someone stubborn enough to fly it."* Pip
-realises the blueprint in Chapter 2 wasn't a kindness. She was being used.
+realises the blueprint in Chapter 2 wasn't a kindness. He was being used.
 
-Pip almost leaves. But the Milky Way is fading, the cheese is dying, and the cats in the helmets are not to blame. She
+Pip almost leaves. But the Milky Way is fading, the cheese is dying, and the cats in the helmets are not to blame. He
 agrees to work together, **for the cow and the worlds, not for Miss Clou.**
 
 From here **Miss Clou is playable**: the player can switch between them.
@@ -265,7 +265,7 @@ builds a proper ship from several blueprints, placing parts freely.
 In the yard is a group of cats who have hidden from MEGA-MJAU's signal. They know **where** its fortress is: a planet at the
 far edge of the fading Milky Way. And they know the Holy Cow is alive.
 
-Some of them knew Miss Clou's crew. They don't hide what they think of him.
+Some of them knew Miss Clou's crew. They don't hide what they think of her.
 
 Clue board: *WHERE — the fortress planet.*
 
@@ -287,9 +287,9 @@ To get into the fortress they need its codes, and each piece is somewhere along 
 
 On every world the player can help the locals and free more cats.
 
-Along the way, Pip and Miss Clou change. Miss Clou shares what he knows, takes the dangerous jobs, and admits he has been
+Along the way, Pip and Miss Clou change. Miss Clou shares what she knows, takes the dangerous jobs, and admits she has been
 selfish. Pip sees Miss Clou care for the freed cats, and realises cats are not what the town always said. Somewhere in the
-Scrap Belt, Pip tapes a patch over a tear in his suit. He pretends not to be touched.
+Scrap Belt, Pip tapes a patch over a tear in her suit. She pretends not to be touched.
 
 Clue board: *HOW — codes, pipes, schedule, patrols.*
 
@@ -329,10 +329,10 @@ open them. Miss Clou opens one.
 
 It is **cat technology**. Alarms. MEGA-MJAU sees them.
 
-Miss Clou shoves Pip into a vent too small for a cat. Pip watches the cat guards drag him away, and the last thing she sees
+Miss Clou shoves Pip into a vent too small for a cat. Pip watches the cat guards drag her away, and the last thing he sees
 is a helmet with a red light being lowered onto Miss Clou's head.
 
-**Pip is alone.** The player can't switch any more. She has to go on through:
+**Pip is alone.** The player can't switch any more. He has to go on through:
 
 1. **The outer scrapyard:** old defence towers, conveyor belts and patrolling cats.
 2. **The milk works:** the factory where the milk is gathered and pumped onward, following the pipe map from the
@@ -343,7 +343,7 @@ is a helmet with a red light being lowered onto Miss Clou's head.
 In the **control centre**, where every helmet is controlled from one central signal, Pip finally faces the guard
 standing by the switch: Miss Clou, glassy-eyed, in a helmet.
 
-It's a fight like all the others, and nothing like them. Pip doesn't want to hurt him, and doesn't have to: she jumps
+It's a fight like all the others, and nothing like them. Pip doesn't want to hurt her, and doesn't have to: he jumps
 on the helmet, exactly as done a hundred times before.
 
 The helmet cracks. Miss Clou blinks, sees Pip, and understands who just came back for whom.
@@ -351,9 +351,9 @@ The helmet cracks. Miss Clou blinks, sees Pip, and understands who just came bac
 Miss Clou switches off the signal. All over the complex, helmets go dark. Cats blink, look around, and are free. Some run off,
 many stay.
 
-Among them is Miss Clou's old crew: the grey cat from the depot, and the other faces from the photo. They are wary of him at
-first. He apologises to them, properly, out loud, for the first time. It is the emotional turning point: Miss Clou didn't
-only lose control of an invention, he let down the cats who trusted him. Slowly, they accept it.
+Among them is Miss Clou's old crew: the grey cat from the depot, and the other faces from the photo. They are wary of her at
+first. She apologises to them, properly, out loud, for the first time. It is the emotional turning point: Miss Clou didn't
+only lose control of an invention, she let down the cats who trusted her. Slowly, they accept it.
 
 Miss Clou is playable again.
 
@@ -420,7 +420,7 @@ run it and start repairing the old stations.
 MEGA-MJAU, reset, has a new job: the farm's huge, very gentle tractor and milking machine. It still loves order. "THE
 CARROTS ARE IN PERFECT ROWS."
 
-Miss Clou admits that he never needed an empire. He can have milk without ruling anyone.
+Miss Clou admits that she never needed an empire. She can have milk without ruling anyone.
 
 Pip and Miss Clou are real friends.
 
@@ -431,7 +431,7 @@ One evening Pip and Miss Clou sit on a hill, watching the bright Milky Way. Stel
 An old radio crackles: *"Hello? Is anybody there? We've found something odd out here. It looks like... a really, really big
 cheese moon."*
 
-Pip looks at Miss Clou. He sighs, sips some milk and says: *"I suppose we'll need to build a bigger ship."*
+Pip looks at Miss Clou. She sighs, sips some milk and says: *"I suppose we'll need to build a bigger ship."*
 
 Stellamoo: *"Moo."*
 
@@ -450,7 +450,7 @@ Stellamoo: *"Moo."*
 
 ### Miss Clou
 Early on Miss Clou turns up at important moments: comments, hints, help with machines, never quite trustworthy. From Chapter
-7 Miss Clou is playable; in Chapter 12–13 he is lost and Pip plays alone; after Chapter 13 they are together again.
+7 Miss Clou is playable; in Chapter 12–13 she is lost and Pip plays alone; after Chapter 13 they are together again.
 
 **Pip** fits into small passages, is light enough for some platforms, and improvises with parts.
 **Miss Clou** jumps further and higher, climbs some walls, uses claws to open or move things, and works old cat technology.
@@ -479,7 +479,7 @@ For children of about 7 to 12: suspense, humour and warmth in balance.
 
 - **Suspense:** abandoned stations, secret rooms, Miss Clou captured, a great final battle.
 - **Humour:** bottle rockets, silver tape, MEGA-MJAU in capital letters, a cow who says "Moo" at the perfect moment.
-- **Warmth:** freeing cats, sharing the last cheese, Miss Clou's apology, Pip rescuing him.
+- **Warmth:** freeing cats, sharing the last cheese, Miss Clou's apology, Pip rescuing her.
 - **Discovery:** cheese moons, milk lakes, old stations, the mural.
 - **Creativity:** building craft from what you find, ending with a ship of pure junk.
 
@@ -494,7 +494,7 @@ MEGA-MJAU is a clear villain but ends up reset, not destroyed. Ordinary cats are
 3. MEGA-MJAU's defences detect cat technology. Only a junk ship can get through, which is why Miss Clou needs Pip.
 4. Pip distrusts cats; Miss Clou looks down on mice. Both change.
 5. Each world gives one piece of the puzzle: what, who, where, how to get in, the weak spot.
-6. The low point: Miss Clou is captured and helmeted; Pip frees him in the control centre with the game's own jump.
+6. The low point: Miss Clou is captured and helmeted; Pip frees her in the control centre with the game's own jump.
 7. MEGA-MJAU is beaten with a red test dot and by all the freed cats turning their backs; it is reset, not destroyed, and
    ends up working on the farm.
 8. Long ago mice and cats kept the cow together. At the end Pip and Miss Clou become her keepers again, on her own planet.
@@ -519,7 +519,7 @@ A cute, funny space adventure about mice, cats, cheese, junk and friendship.
 ## 9. What changed from version 1
 
 - **Names:** Pip, Miss Clou, MEGA-MJAU, Stellamoo. A new minor character, Grandma Brie, tells the legend.
-- **Pip has a flaw:** she distrusts cats, and faces a choice to share the last cheese in Chapter 1.
+- **Pip has a flaw:** he distrusts cats, and faces a choice to share the last cheese in Chapter 1.
 - **Why a mouse:** MEGA-MJAU's defences detect cat technology (Chapters 2, 7, 11, 12). The last ship has no cat parts.
 - **One rule for milk:** Stellamoo's milk is the Milky Way. It fades in the sky as the game goes on.
 - **One clue per world** (Chapters 4, 6, 8, 9, 10), on a clue board in the ship.

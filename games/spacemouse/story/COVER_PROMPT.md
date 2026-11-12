@@ -13,14 +13,14 @@ never scary.
 
 Changes:
 
-1. **The mouse, Pip (a girl), wears a space suit.** Same mouse, same pose, same determined face and big round ears, standing on the cheese
+1. **The mouse, Pip (a boy), wears a space suit.** Same mouse, same pose, same determined face and big round ears, standing on the cheese
    rock in front. The suit looks home-made: a soft, slightly baggy suit, patched in places and held together with strips of
-   silver duct tape, a small orange air tank on her back, chunky boots and gloves. A round glass bubble helmet, with the ears
-   inside the glass. Keep the red scarf, tied around the neck of the suit and blowing in the wind, so she is still
+   silver duct tape, a small orange air tank on his back, chunky boots and gloves. A round glass bubble helmet, with the ears
+   inside the glass. Keep the red scarf, tied around the neck of the suit and blowing in the wind, so he is still
    recognisable at a glance.
 
-2. **The cat, Miss Clou (a tomcat), wears a space suit too.** Same orange tabby cat with green eyes and the same calm, slightly smug look, standing
-   beside the mouse. His suit is sleek and well made (cats have the better technology): fitted dark blue panels with brass
+2. **The cat, Miss Clou (a she-cat), wears a space suit too.** Same orange tabby cat with green eyes and the same calm, slightly smug look, standing
+   beside the mouse. Her suit is sleek and well made (cats have the better technology): fitted dark blue panels with brass
    fittings and a small glowing gauge on the chest, a tool belt, and a round glass helmet. Keep the blue cape over the
    shoulders.
 

@@ -15,7 +15,7 @@ Sectors (`sectors.js`, one character per 4 × 4 base-unit tile; the legend is at
 
 **The remake.** `story/` holds the story for a full remake, *Star Whiskers: The Holy Cow* (`STORY_V2.md` is the current version with the
 agreed changes; `STORY.md` is version 1, the owner's Swedish originals are in `sv/`, feedback in `FEEDBACK.md`, prompts for
-the cover and chapter covers in `COVER_PROMPT.md` and `CHAPTER_COVERS.md`; the cover is `ref/cover_star_whiskers.png`). Names: Pip (the mouse, she), Miss Clou (the inventor cat, he),
+the cover and chapter covers in `COVER_PROMPT.md` and `CHAPTER_COVERS.md`; the cover is `ref/cover_star_whiskers.png`). Names: Pip (the mouse, he), Miss Clou (the inventor cat, she),
 MEGA-MJAU (the great robot cat), Stellamoo (the Holy Cow). Nothing in the game uses it yet.
 
 **Controls.** A D / arrows run, W / Up / Space jump (hold for height; press again against a wall to wall-jump), S / Down drops

@@ -20,11 +20,11 @@ guard turns into a robot), say so and ask for a redo with the cast block again. 
 > never scary.
 >
 > The cast, the same on every card:
-> - **Pip**, a small brown girl mouse (she) with big round pink-lined ears and a determined face. A home-made space suit, slightly
->   baggy, patched and held together with silver duct tape, a small orange air tank on her back, a round glass bubble
->   helmet with the ears inside, and a red scarf around the neck. Out of the suit (only where I say) she wears the red
+> - **Pip**, a small brown boy mouse (he) with big round pink-lined ears and a determined face. A home-made space suit, slightly
+>   baggy, patched and held together with silver duct tape, a small orange air tank on his back, a round glass bubble
+>   helmet with the ears inside, and a red scarf around the neck. Out of the suit (only where I say) he wears the red
 >   scarf and a simple brown tunic.
-> - **Miss Clou**, an orange tabby tomcat (he) with green eyes and a calm, slightly smug look. A sleek dark blue space suit with brass
+> - **Miss Clou**, an orange tabby she-cat (she) with green eyes and a calm, slightly smug look. A sleek dark blue space suit with brass
 >   fittings, a small glowing gauge on the chest, a tool belt, a round glass helmet and a blue cape.
 > - **MEGA-MJAU**, a gigantic mechanical cat, dark steel with glowing red eyes, part cat, part factory, part castle. A
 >   red banner with a paw symbol is its emblem. Comically imposing, never horrifying.
