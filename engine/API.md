@@ -554,6 +554,28 @@ A layer is rebuilt when it has scrolled a whole cell, so keep `paint` cheap (it 
 `worldInit` clears them like everything else that belongs to a world (the detail rescale keeps them). `underground: [r, g, b]` (with `grain`) is a built-in painter at
 parallax 1 for the cells under the world's skyline (`colTop`): the answer to stars showing in a cave.
 
+## The screen look: palette and post effects
+
+Colours are continuous (banded per material, then tinted by the lamps), so a frame holds thousands of them. `setPost` lets a game choose one look for the whole screen; every
+option is off, or as it always was, until it is asked for, so a game that never calls it renders bit for bit as before.
+```js
+setPost({ palette: ['#0f380f', '#306230', '#8bac0f', '#9bbc0f'], dither: .6 });   // four greens: the world, the backdrops and the sky lock to them
+setPost({ scanlines: .25, vignette: .6, bloom: false });                           // a CRT: thin dark lines, darker corners, no glow
+setPost({ palette: null });                                                        // one option at a time; the others stay as they were
+getPost()                                                                          // what is set now: { vignette, bloom, palette, dither, scanlines }
+```
+| Option | |
+|---|---|
+| `palette` | `null`, or 2 to 255 colours (`'#rrggbb'`, `'#rgb'` or `[r, g, b]` in bytes). Every pixel of the world, the backdrops and the sky becomes the nearest palette colour (the "redmean" distance, which follows the eye better than plain RGB). The HUD keeps its own colours so text stays readable. **Put the background colour in the palette** (`setBackground`): a cell filled with it is snapped, but the empty space behind everything is drawn by the renderer as it is. A game with `art/` can pass its master palette. |
+| `dither` | 0..1 (default 0): an ordered (Bayer 4 x 4) offset added before the palette picks, so a gradient becomes a pattern and not bands. It is fixed to world cells, so it does not shimmer while the camera moves. Only matters with a `palette`. |
+| `vignette` | 0..1 (default .42, what every game had): how much the corners darken. |
+| `bloom` | `false` switches the glow off for this game; the player's own setting (`setSetting('bloom', …)`, the G key) can still switch it off, and neither undoes the other. |
+| `scanlines` | 0..1 (default 0): a thin dark line at the bottom of each cell row, fixed on the screen, over the world, backdrops and sky but not the HUD. The same lines in WebGL and 2D. |
+
+The palette is applied after the exposure and the light, so a game that uses `setEyeAdaptation` or lamps still reads as light and dark, only in few colours. The glow
+(bloom) is added by the renderer over the locked colours and is not a palette colour, so a game that wants a strict palette switches it off. `setPost` is not undone by
+`worldInit` (it is the game's look, like `setBackdrop`).
+
 ## HUD
 
 A fixed grid of readable cells (`R.hcols × R.hrows`), redrawn every frame inside `GAME.hud(t)`. Text is drawn in the

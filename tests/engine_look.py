@@ -284,6 +284,72 @@ def e4_back_shadows(p, mode):
     b.close()
 
 
+def e6_post(p, mode):
+    b, pg, errs = boot(p, mode)
+    pg.evaluate('LT.bare()')
+    g = pg.evaluate('H - 40')
+    # a lit rock ground under a sky with stars, and a backdrop of hills, so the world, backdrops and sky are all in the picture
+    pg.evaluate(f"""(() => {{
+      setSun(40, [1.15, 1.1, 1]); setAmbient([.3, .32, .4]); GAME.stars = 30; skyKey = '';   // (the star density is not in the sky's cache key: make it look again)
+      addBackdrop({{ parallax: .3, horizon: {g} - 20, paint(gx, dy, out) {{ if (dy < -10 - 6 * Math.sin(gx * .08)) return 0; out[0] = .1; out[1] = .3; out[2] = .35; return SOLID; }} }});
+      LT.frame(4); }})()""")
+    plain = shot(pg)
+    n_plain = len({tuple(c) for c in plain.reshape(-1, 3)})
+    pal = ['#05070c', '#1b2a3a', '#3e6f5a', '#a8c070', '#f4f0d0']
+    pw = {tuple(int(h[i:i + 2], 16) for i in (1, 3, 5)) for h in pal}
+    pg.evaluate(f'setPost({{ palette: {json.dumps(pal)} }}); LT.frame(4)')
+    locked = shot(pg)
+    seen = {tuple(c) for c in locked.reshape(-1, 3)}
+    check(f'E6 {mode}: without a palette the picture has many colours ({n_plain})', n_plain > 40, n_plain)
+    check(f'E6 {mode}: with one the whole picture (world, backdrop, sky) is in it ({len(seen)} colours)', seen <= pw and len(seen) >= 3, sorted(seen - pw)[:5])
+    pg.evaluate('setPost({ palette: null }); LT.frame(4)')
+    check(f'E6 {mode}: taking it off gives the picture back, pixel for pixel', (shot(pg) == plain).all())
+    # dither: the same scene with a two colour palette has a pattern of both, and the pattern holds still
+    pg.evaluate("setPost({ palette: ['#05070c', '#c8d8a0'], dither: 1 }); LT.frame(3)")
+    d1 = shot(pg); pg.evaluate('LT.frame(3)'); d2 = shot(pg)
+    check(f'E6 {mode}: a dithered picture does not shimmer between frames', (d1 == d2).all())
+    pg.evaluate("setPost({ dither: 0 }); LT.frame(3)")
+    check(f'E6 {mode}: the dither changes the picture', (shot(pg) != d1).any())
+    pg.evaluate('setPost({ palette: null, dither: 0 }); LT.frame(3)')
+    # vignette: the corners against the middle on the ground row
+    y = g + 12
+    left, mid = pg.evaluate('cam.x + 2'), pg.evaluate('cam.x + Math.floor(R.cols / 2)')   # world cells at the screen's left edge and in its middle
+    def edge_mid():
+        img = shot(pg)   # the average of a 16 x 6 block of ground cells at each place: one cell of rock texture is too noisy to compare
+        block = lambda x0: np.mean([lum(px(img, pg, x0 + i, y + j)) for i in range(16) for j in range(6)])
+        return block(left), block(mid - 8)
+    e0, m0 = edge_mid()
+    pg.evaluate('setPost({ vignette: 0 }); LT.frame(3)')
+    e1, m1 = edge_mid()
+    check(f'E6 {mode}: the default vignette darkens the edge ({e0:.0f} against {m0:.0f}); none does not ({e1:.0f} against {m1:.0f})', e0 < .9 * m0 and abs(e1 - m1) < .06 * m1 + 2, (e0, m0, e1, m1))
+    pg.evaluate('setPost({ vignette: .42 }); LT.frame(3)')
+    check(f'E6 {mode}: the old value gives the old picture back, pixel for pixel', (shot(pg) == plain).all())
+    # scanlines: the pixel rows whose centre is in the bottom third of a cell row are darker by the amount asked, every other row is as it was
+    chh = pg.evaluate('R.chh')
+    pg.evaluate('setPost({ scanlines: .5 }); LT.frame(3)')
+    sl = shot(pg)
+    import math
+    p0 = math.ceil(.667 * chh - .5)
+    rows_line = [r for r in range(sl.shape[0]) if (r % chh) >= p0]
+    rows_other = [r for r in range(sl.shape[0]) if (r % chh) < p0]
+    x0, x1, y0, y1 = 400, 900, 300, 560   # away from the HUD
+    a, bb = plain[y0:y1, x0:x1], sl[y0:y1, x0:x1]
+    mask_line = np.array([(r % chh) >= p0 for r in range(y0, y1)])
+    same = (np.abs(a[~mask_line] - bb[~mask_line]) <= 1).all()
+    dark = np.abs(bb[mask_line] - a[mask_line] * .5) <= 2.5
+    check(f'E6 {mode}: scanlines leave the other pixel rows alone (cell {chh} px, line from row {p0})', same)
+    check(f'E6 {mode}: and take half the light from the line rows ({dark.mean() * 100:.1f}% of the pixels agree)', dark.mean() > .99, dark.mean())
+    pg.evaluate('setPost({ scanlines: 0 }); LT.frame(3)')
+    check(f'E6 {mode}: scanlines off gives the picture back, pixel for pixel', (shot(pg) == plain).all())
+    # bloom: the game's switch turns the glow off whatever the player's setting is
+    pg.evaluate('setSetting("bloom", true); setPost({ bloom: false })')
+    check(f'E6 {mode}: setPost bloom false switches the glow off', pg.evaluate('R.bloom') is False)
+    pg.evaluate('setPost({ bloom: true })')
+    check(f'E6 {mode}: and true gives the player their setting back', pg.evaluate('R.bloom') is True)
+    check(f'E6 {mode}: no page errors', not errs, errs[:2])
+    b.close()
+
+
 def run(mode):
     print(f'--- {mode}')
     with sync_playwright() as p:
@@ -291,6 +357,7 @@ def run(mode):
         e5_front_and_backdrops(p, mode)
         e3_glow(p, mode)
         e4_back_shadows(p, mode)
+        e6_post(p, mode)
 
 
 if __name__ == '__main__':

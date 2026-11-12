@@ -67,7 +67,7 @@ precision mediump float;
 uniform sampler2D uFont, uWorld, uShim, uHud, uBloom, uSky, uBack;
 uniform vec2 uCanvas, uCell, uHCell, uWorldN, uHudN, uOff, uSkyOff, uFontN, uBackOff0, uBackOff1, uBackOff2;
 uniform vec3 uBg;
-uniform float uBloomOn, uHS, uBackN;
+uniform float uBloomOn, uHS, uBackN, uScan;
 // a backdrop layer (engine/06_scene.js): layer q of the atlas, its own sub-cell scroll
 vec4 back(vec2 p, vec2 off, float q) { return texture2D(uBack, (floor((p - off) / uCell) + vec2(0.5, 0.5 + q * uWorldN.y)) / vec2(uWorldN.x, uWorldN.y * uBackN)); }
 void main() {
@@ -109,6 +109,7 @@ void main() {
        + texture2D(uBloom, bu + vec2(d.x, -d.y) * 2.5).rgb + texture2D(uBloom, bu + vec2(-d.x, d.y) * 2.5).rgb) * 0.08;
     col += b * 0.9;
   }
+  if (uScan > 0.0) col *= 1.0 - uScan * step(0.667, fract(px.y / uCell.y));   // setPost scanlines: a thin dark line at the bottom of each cell row, fixed on the screen
   gl_FragColor = vec4(col, 1.0);
 }`;
 
@@ -140,7 +141,7 @@ function glSetup(canvas, forced) {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     const U = {};
-    for (const n of ['uFont', 'uWorld', 'uShim', 'uHud', 'uBloom', 'uSky', 'uBack', 'uCanvas', 'uCell', 'uHCell', 'uWorldN', 'uHudN', 'uOff', 'uSkyOff', 'uFontN', 'uBg', 'uBloomOn', 'uHS', 'uBackN', 'uBackOff0', 'uBackOff1', 'uBackOff2']) U[n] = gl.getUniformLocation(prog, n);
+    for (const n of ['uFont', 'uWorld', 'uShim', 'uHud', 'uBloom', 'uSky', 'uBack', 'uCanvas', 'uCell', 'uHCell', 'uWorldN', 'uHudN', 'uOff', 'uSkyOff', 'uFontN', 'uBg', 'uBloomOn', 'uHS', 'uBackN', 'uScan', 'uBackOff0', 'uBackOff1', 'uBackOff2']) U[n] = gl.getUniformLocation(prog, n);
     const T = {};
     ['uFont', 'uWorld', 'uShim', 'uHud', 'uBloom', 'uSky', 'uBack'].forEach((name, unit) => {
       const t = gl.createTexture(), f = name === 'uBloom' ? gl.LINEAR : gl.NEAREST;
@@ -320,7 +321,7 @@ function presentGL(dx, dy, sdx, sdy, time) {
   gl.uniform2f(U.uCell, R.cw, R.chh); gl.uniform2f(U.uHCell, R.hcw, R.hchh); gl.uniform1f(U.uHS, R.hs);
   gl.uniform2f(U.uWorldN, RW, RH); gl.uniform2f(U.uHudN, R.hcols, R.hrows);
   gl.uniform2f(U.uOff, dx, dy); gl.uniform2f(U.uSkyOff, sdx, sdy);
-  gl.uniform1f(U.uBloomOn, R.bloom ? 1 : 0);
+  gl.uniform1f(U.uBloomOn, R.bloom ? 1 : 0); gl.uniform1f(U.uScan, POST.scanlines);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 
@@ -341,6 +342,11 @@ function present2D(dx, dy, sdx, sdy, time) {
     ctx.globalCompositeOperation = 'lighter'; ctx.imageSmoothingEnabled = true; ctx.globalAlpha = .55;
     ctx.drawImage(R.bloomCv, dx, dy, RW * cw, RH * chh);
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.imageSmoothingEnabled = false;
+  }
+  if (POST.scanlines > 0) {   // the same line the shader draws: the pixel rows whose centre is in the bottom third of a cell row
+    ctx.fillStyle = `rgba(0,0,0,${POST.scanlines})`;
+    const p0 = Math.ceil(.667 * chh - .5), lh = Math.ceil(chh) - p0;
+    for (let r = 0; r < R.rows; r++) ctx.fillRect(0, r * chh + p0, R.canvas.width, lh);
   }
   const HG = R.hG, HC = R.hC, hw = R.hcw, hh = R.hchh, bg = `rgb(${BG[0]},${BG[1]},${BG[2]})`;
   for (let r = 0; r < R.hrows; r++) for (let c = 0; c < R.hcols; c++) {

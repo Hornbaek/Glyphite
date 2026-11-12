@@ -217,3 +217,90 @@ test('E3 a sprite that blocks lamp light casts a shadow from a lamp, and the lam
   assert.ok(Math.abs(s[11][0] - s[0][0]) < 1e-6 && Math.abs(s[12][0] - s[0][0]) < 1e-6, 'a sprite that does not block lamps leaves the light as it was');
   assert.ok(Math.abs(s[13][0] - s[0][0]) < 1e-6, 'and when it is gone the wall is lit again, the same');
 });
+
+// ---------- E6: a screen palette and post effects the game controls ----------
+const PAL = "['#101820', '#346856', '#88c070', '#e0f8d0']";
+const floorRow = 77;   // the rock floor's top row is 76: this row is floor all the way across the window (cells 20..119)
+const row = (E, x0, x1) => { const out = []; for (let x = x0; x < x1; x++) out.push(E.run(`pixel(${x}, ${floorRow})`)); return out; };
+const avgLum = px => px.reduce((s, c) => s + lum(c), 0) / px.length;
+const lit6 = E => { frameEnv(E); E.run('setAmbient([.7, .7, .75]); GAME.stars = 40;'); return E; };
+
+test('E6 setPost: reads colours as #rgb, #rrggbb and [r, g, b], refuses what is not a palette, and getPost says what is set', () => {
+  const E = loadEngine();
+  assert.deepEqual(JSON.parse(JSON.stringify(E.run('getPost()'))), { vignette: .42, bloom: true, palette: null, dither: 0, scanlines: 0 }, 'the defaults are the look every game had');
+  E.run("setPost({ palette: ['#000', '#ff8000', [10, 20, 300]], dither: 2, vignette: -1, scanlines: .5 })");
+  const p = JSON.parse(JSON.stringify(E.run('getPost()')));
+  assert.deepEqual(p.palette, [[0, 0, 0], [255, 128, 0], [10, 20, 255]]); assert.equal(p.dither, 1, 'clamped to 0..1'); assert.equal(p.vignette, 0); assert.equal(p.scanlines, .5);
+  assert.throws(() => E.run("setPost({ palette: ['#000'] })"), /2 to 255/);
+  assert.throws(() => E.run("setPost({ palette: ['#000', 'red'] })"), /not '#rrggbb'/);
+  assert.throws(() => E.run("setPost({ palette: ['#000', [1, 2]] })"), /#rrggbb/);
+  assert.throws(() => E.run('setPost({ palette: new Array(256).fill("#fff") })'), /2 to 255/);
+  E.run('setPost({ palette: null })'); assert.equal(E.run('getPost().palette'), null, 'null takes it off');
+  E.run('setPost({ vignette: .2 })'); assert.equal(E.run('getPost().vignette'), .2, 'one option leaves the others as they were');
+  assert.equal(E.run('getPost().scanlines'), .5);
+});
+
+test('E6 the palette: every pixel the world draws is a palette colour, and taking it off gives the old frame back bit for bit', () => {
+  const E = lit6(loadEngine());
+  E.run('frame(() => {})'); const before = E.run(frameHash);
+  E.run(`setPost({ palette: ${PAL} })`); E.run('frame(() => {})');
+  const want = new Set([[0x10, 0x18, 0x20], [0x34, 0x68, 0x56], [0x88, 0xc0, 0x70], [0xe0, 0xf8, 0xd0]].map(c => c.join()));
+  const D = E.run('Array.from(R.wPix)'); let drawn = 0; const off = [];
+  for (let q = 0; q < D.length; q += 4) if (D[q + 3]) { drawn++; if (!want.has(`${D[q]},${D[q + 1]},${D[q + 2]}`)) off.push(D.slice(q, q + 3).join()); }
+  assert.ok(drawn >= 300, `the floor is drawn (${drawn} pixels: three rows of the window)`); assert.deepEqual(off.slice(0, 3), [], 'nothing outside the palette');
+  const S = E.run('Array.from(R.sPix)'); let stars = 0;
+  for (let q = 0; q < S.length; q += 4) if (S[q + 3]) { stars++; assert.ok(want.has(`${S[q]},${S[q + 1]},${S[q + 2]}`), 'a star is a palette colour too'); }
+  assert.ok(stars > 0, `the sky had stars to check (${stars})`);
+  E.run('setPost({ palette: null }); frame(() => {})');
+  assert.equal(E.run(frameHash), before, 'the same frame as before the palette, bit for bit');
+  const S2 = E.run('Array.from(R.sPix)'); let back = 0; for (let q = 0; q < S2.length; q += 4) if (S2[q + 3] && !want.has(`${S2[q]},${S2[q + 1]},${S2[q + 2]}`)) back++;
+  assert.ok(back > 0, 'the sky is rebuilt without the palette (it is cached, and the cache heard of the change)');
+});
+
+test('E6 nearest colour: a pixel takes the palette colour closest to it, whatever the palette order', () => {
+  const E = loadEngine();
+  E.run("setPost({ palette: ['#ffffff', '#000000', '#ff0000', '#00ff00'] })");
+  const at = (r, g, b) => [...E.run(`(() => { const i = postIndex(${r}, ${g}, ${b}) * 3; return [POST_PAL[i], POST_PAL[i + 1], POST_PAL[i + 2]]; })()`)];
+  assert.deepEqual(at(250, 240, 250), [255, 255, 255]); assert.deepEqual(at(10, 12, 8), [0, 0, 0]);
+  assert.deepEqual(at(200, 40, 30), [255, 0, 0]); assert.deepEqual(at(40, 190, 60), [0, 255, 0]);
+});
+
+test('E6 the dither: a flat grey between two palette colours is the nearer one without it and a pattern of both with it, anchored to world cells', () => {
+  const E = loadEngine();
+  // a 16 x 16 window of flat grey 100 (alpha 255) that shows world cells from (ox, oy); the palette holds 70 and 118, so 100 is nearer 118
+  const go = (d, ox = 0, oy = 0) => [...E.run(`(() => { setPost({ palette: [[70, 70, 70], [118, 118, 118]], dither: ${d} }); const D = new Uint8ClampedArray(16 * 16 * 4);
+    for (let q = 0; q < D.length; q += 4) { D[q] = D[q + 1] = D[q + 2] = 100; D[q + 3] = 255; } postLock(D, 16, 256, ${ox}, ${oy});
+    const out = []; for (let k = 0; k < 256; k++) out.push(D[k * 4]); return out; })()`)];
+  const flat = go(0), mixed = go(1);
+  assert.deepEqual([...new Set(flat)], [118], 'no dither: every pixel is the nearer colour');
+  assert.deepEqual([...new Set(mixed)].sort((a, b) => a - b), [70, 118], 'full dither: both colours appear');
+  const share = mixed.filter(v => v === 70).length / 256;
+  assert.ok(share > .25 && share < .5, `about the share the offset allows (${share.toFixed(2)} of the pixels are the darker one)`);
+  assert.deepEqual(go(1), mixed, 'the pattern is the same every time: it does not shimmer');
+  const sideways = go(1, 1, 0), down = go(1, 0, 1); let bad = 0;
+  for (let j = 0; j < 15; j++) for (let i = 0; i < 15; i++) { if (sideways[j * 16 + i] !== mixed[j * 16 + i + 1]) bad++; if (down[j * 16 + i] !== mixed[(j + 1) * 16 + i]) bad++; }
+  assert.equal(bad, 0, 'a window one world cell to the right shows the pattern one cell to the left: it is fixed to the world, not to the screen');
+  const half = go(.5), halfDark = half.filter(v => v === 70).length;
+  assert.ok(halfDark > 0 && halfDark < mixed.filter(v => v === 70).length, `half the dither moves fewer pixels to the darker colour (${halfDark} of 256)`);
+  const empty = [...E.run(`(() => { const D = new Uint8ClampedArray(16); D[0] = 100; D[1] = 100; D[2] = 100; D[3] = 0; postLock(D, 2, 4, 0, 0); return Array.from(D.slice(0, 4)); })()`)];
+  assert.deepEqual(empty, [100, 100, 100, 0], 'a pixel with nothing in it is left as it was');
+});
+
+test('E6 vignette: 0 leaves the corners as bright as the middle, the default darkens them, and the old value is bit for bit the old frame', () => {
+  const E = lit6(loadEngine());
+  E.run('frame(() => {})'); const old = E.run(frameHash), edge = avgLum(row(E, 22, 34)), mid = avgLum(row(E, 64, 76));
+  assert.ok(edge < mid * .93, `the default darkens the edge (${edge.toFixed(1)} against ${mid.toFixed(1)})`);
+  E.run('setPost({ vignette: 0 }); frame(() => {})');
+  const edge0 = avgLum(row(E, 22, 34)), mid0 = avgLum(row(E, 64, 76));
+  assert.ok(Math.abs(edge0 - mid0) < mid0 * .03, `none: the same (${edge0.toFixed(1)} and ${mid0.toFixed(1)})`);
+  E.run('setPost({ vignette: .42 }); frame(() => {})'); assert.equal(E.run(frameHash), old, 'back to .42 is the frame every game had');
+  E.run('setPost({ vignette: 1 }); frame(() => {})'); assert.ok(avgLum(row(E, 22, 34)) < edge, 'a stronger value darkens it more');
+});
+
+test('E6 bloom: a game can switch the glow off, the player still can, and neither undoes the other', () => {
+  const E = loadEngine();
+  E.run("setSetting('bloom', true)"); assert.equal(E.run('R.bloom'), true);
+  E.run('setPost({ bloom: false })'); assert.equal(E.run('R.bloom'), false, 'the game switched it off');
+  E.run("setSetting('bloom', false)"); E.run('setPost({ bloom: true })'); assert.equal(E.run('R.bloom'), false, 'the player has it off: the game allowing it does not turn it on');
+  E.run("setSetting('bloom', true)"); assert.equal(E.run('R.bloom'), true, 'and when both allow it, it is on');
+});

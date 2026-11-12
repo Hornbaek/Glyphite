@@ -5,6 +5,70 @@ const tone = c => 1 - Math.exp(-c * 1.7);
 const TONE_LUT = Float32Array.from({ length: 4097 }, (_, i) => tone(i / 512));
 const toneF = c => c <= 0 ? 0 : c >= 8 ? 1 : TONE_LUT[(c * 512) | 0];
 const SOLID = 127;   // the cell code of a plain pixel (full colour)
+
+// ---------- the screen look a game chooses: setPost({ vignette, bloom, palette, dither, scanlines }) (E6) ----------
+// Colours are continuous (banded per material, then tinted by lamps), so a frame holds thousands of them. A `palette` locks the world, the backdrops and the
+// sky to a few colours, so a game looks like one hand-made picture (and ties in with the art pipeline's master palette); the HUD keeps its own colours so text
+// stays readable. It works on the bytes the renderers are handed, so 2D and WebGL agree. Everything is off or as it always was until a game asks:
+//   vignette   0..1, how much the corners darken (default .42, the old fixed value)
+//   bloom      false switches the glow off for this game whatever the player chose (the player's own setting can still switch it off)
+//   palette    null, or 2..255 colours ('#rrggbb', '#rgb' or [r, g, b] in bytes): every world pixel becomes the nearest one. Put the background colour (setBackground) in it
+//   dither     0..1, an ordered (Bayer) dither before the palette picks, so a gradient becomes a pattern instead of bands; anchored to world cells, it does not swim
+//   scanlines  0..1, a thin dark line along the bottom of every cell row, fixed on the screen, over everything but the HUD
+const POST = { vignette: .42, bloom: true, palette: null, dither: 0, scanlines: 0, rev: 0 };
+let POST_PAL = null, POST_N = 0, POST_LUT = null;
+const POST_BAYER = Float32Array.from([0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5], v => (v + .5) / 16 - .5);
+function postColour(c) {
+  if (typeof c === 'string') {
+    const h = c.replace('#', ''), f = h.length === 3 ? [...h].map(x => x + x) : h.match(/../g);
+    if (!f || f.length !== 3 || f.some(x => !/^[0-9a-f]{2}$/i.test(x))) throw new Error(`setPost: palette colour '${c}' is not '#rrggbb'`);
+    return f.map(x => parseInt(x, 16));
+  }
+  if (Array.isArray(c) && c.length >= 3 && c.slice(0, 3).every(Number.isFinite)) return c.slice(0, 3).map(v => clamp(Math.round(v), 0, 255));
+  throw new Error('setPost: a palette colour is "#rrggbb" or [r, g, b] (0..255)');
+}
+function setPost(o = {}) {
+  devKeys('setPost', o, ['vignette', 'bloom', 'palette', 'dither', 'scanlines']);
+  const num = (k, lo, hi) => { if (k in o) { devFinite('setPost ' + k, +o[k]); POST[k] = clamp(Number.isFinite(+o[k]) ? +o[k] : 0, lo, hi); } };
+  num('vignette', 0, 1); num('dither', 0, 1); num('scanlines', 0, 1);
+  if ('bloom' in o) { POST.bloom = !!o.bloom; R.bloom = SETTINGS.bloom && POST.bloom; }
+  if ('palette' in o) {
+    if (o.palette === null || o.palette === undefined) { POST.palette = null; POST_PAL = null; POST_LUT = null; POST_N = 0; }
+    else {
+      if (!Array.isArray(o.palette) || o.palette.length < 2 || o.palette.length > 255) throw new Error('setPost: a palette is 2 to 255 colours');
+      const cols = o.palette.map(postColour); POST.palette = cols; POST_N = cols.length;
+      POST_PAL = new Uint8Array(POST_N * 3); cols.forEach((c, i) => POST_PAL.set(c, i * 3));
+      POST_LUT = new Uint8Array(1 << 18).fill(255);   // the palette index for every colour at 6 bits a channel, found the first time it is asked for
+    }
+  }
+  POST.rev++;   // the sky and the backdrops are cached, and keep their own copy of the look: rebuild them
+}
+const getPost = () => ({ vignette: POST.vignette, bloom: POST.bloom, palette: POST.palette && POST.palette.map(c => c.slice()), dither: POST.dither, scanlines: POST.scanlines });
+// the palette entry nearest to a colour (bytes): the distance is the "redmean" one, which follows the eye better than plain RGB
+function postIndex(r, g, b) {
+  const key = ((r >> 2) << 12) | ((g >> 2) << 6) | (b >> 2), had = POST_LUT[key];
+  if (had !== 255) return had;
+  const cr = (r & 252) + 2, cg = (g & 252) + 2, cb = (b & 252) + 2; let best = 0, bd = 1e9;
+  for (let i = 0; i < POST_N; i++) {
+    const pr = POST_PAL[i * 3], dr = cr - pr, dg = cg - POST_PAL[i * 3 + 1], db = cb - POST_PAL[i * 3 + 2], m = (cr + pr) / 512;
+    const d = (2 + m) * dr * dr + 4 * dg * dg + (3 - m) * db * db;
+    if (d < bd) { bd = d; best = i; }
+  }
+  return POST_LUT[key] = best;
+}
+// lock a finished pixel buffer (RW wide) to the palette; ox, oy: the world cell its top-left pixel shows, which the dither is anchored to
+function postLock(D, RW, n, ox, oy) {
+  const dith = POST.dither * 64;
+  for (let k = 0, q = 0; k < n; k++, q += 4) {
+    if (!D[q + 3]) continue;   // nothing here: the layer behind shows
+    let r = D[q], g = D[q + 1], b = D[q + 2];
+    if (dith) {
+      const o = POST_BAYER[(((k / RW | 0) + oy) & 3) * 4 + (((k % RW) + ox) & 3)] * dith;
+      r = clamp(Math.round(r + o), 0, 255); g = clamp(Math.round(g + o), 0, 255); b = clamp(Math.round(b + o), 0, 255);
+    }
+    const p = postIndex(r, g, b) * 3; D[q] = POST_PAL[p]; D[q + 1] = POST_PAL[p + 1]; D[q + 2] = POST_PAL[p + 2];
+  }
+}
 // Pixel-art shading: the light on a material is cut into its few flat shades (MAT_SHADES, or the colours of its palette), each
 // shown at its middle brightness, so even the darkest is not black. No dither: an evenly lit wall stays one flat colour.
 // `step` moves the shade up or down (a lit top edge one brighter, an underside one darker); `tex` is the cell's own texture,
@@ -46,7 +110,7 @@ function adaptEye(G, n, time) {
 }
 // cL: a shaded cell's brightness before it was cut into shades (which depend on the exposure, so the eye must not measure
 // them); -1 where something drew its own colour
-let cR, cG, cB, cL, vig;
+let cR, cG, cB, cL, vig, vigK = -1;
 // cells (dx, dy) toward the light from a back-wall cell, nearest first: a world cell there shades it
 const BK_OFF = new Int16Array(64), BK_D = [0, 0];
 function backShadowOffsets() {
@@ -222,8 +286,11 @@ function renderScene(ox, oy, time, drawExtras) {
   const RW = R.RW, RH = R.RH, n = RW * RH, G = R.wG, Z = R.wZ, SH = R.wShim;
   if (!cR || cR.length !== n) {
     cR = new Float32Array(n); cG = new Float32Array(n); cB = new Float32Array(n); cL = new Float32Array(n); vig = new Float32Array(n);
-    STILL.tHave = false;
-    for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) { const u = i / RW * 2 - 1, v = j / RH * 2 - 1; vig[j * RW + i] = 1 - .42 * (u * u * .55 + v * v * .8); }
+    STILL.tHave = false; vigK = -1;
+  }
+  if (vigK !== POST.vignette) {   // the corners' darkening: set when the buffers are made and when a game changes it (setPost)
+    vigK = POST.vignette;
+    for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) { const u = i / RW * 2 - 1, v = j / RH * 2 - 1; vig[j * RW + i] = 1 - vigK * (u * u * .55 + v * v * .8); }
   }
   SH.fill(0);
   const bkN = backShadowOffsets();
@@ -298,6 +365,7 @@ function renderScene(ox, oy, time, drawExtras) {
     D[q] = r * 255; D[q + 1] = g * 255; D[q + 2] = b * 255; D[q + 3] = code ? 255 : 0;
     if (bloom) { const on = code > 32; BL[q] = on ? Math.max(0, r - bt) * bg : 0; BL[q + 1] = on ? Math.max(0, g - bt) * bg : 0; BL[q + 2] = on ? Math.max(0, b - bt) * bg : 0; BL[q + 3] = 255; }
   }
+  if (POST_PAL) postLock(D, RW, n, ox, oy);   // (the bloom's bright-pass above reads the unlocked colours: a glow is not a palette colour anyway)
   perfAdd('tone', performance.now() - qt);   // (a part of `scene`: the last pass over every cell, which P4 would move to the GPU)
   renderSky(time); if (BACKDROPS.length) renderBackdrops(time);
 }
@@ -320,7 +388,7 @@ function renderSky(time) {
   R.skyFX = sx - ix; R.skyFY = sy - iy;
   const air = Math.min(1, ATMOS), glare = LR && LR.length === RW * RH ? GAME.starGlare ?? 1 : 0, E = EYE.e;
   const busy = glare > 0 && (L_NLIGHTS > 0 || FX.flash > .03), step = air > 0 ? (time * 8) | 0 : busy ? (time * 5) | 0 : time | 0;
-  const ox = ix - 1, oy = iy - 1, key = `${ox},${oy},${RW},${RH},${step},${Math.round(E * 24)}`;
+  const ox = ix - 1, oy = iy - 1, key = `${ox},${oy},${RW},${RH},${step},${Math.round(E * 24)},${POST.rev}`;
   if (key === skyKey) return;
   skyKey = key; R.skyDirty = true;
   const SG = R.sG, D = R.sPix, paint = GAME.sky, starP = .0055 * ASPECT * (GAME.stars ?? 1) / (RES * RES);
@@ -343,6 +411,7 @@ function renderSky(time) {
     const vv = vig[k] * INK[glyph];
     SG[k] = glyph; D[q] = toneF(r * E) * vv * 255; D[q + 1] = toneF(g * E) * vv * 255; D[q + 2] = toneF(b * E) * vv * 255; D[q + 3] = glyph > 32 ? 255 : 0;
   }
+  if (POST_PAL) postLock(D, RW, RW * RH, ox, oy);
 }
 
 // ---------- backdrops: layers between the sky and the world ----------
@@ -390,7 +459,7 @@ function renderBackdrops(time) {
   for (const L of BACKDROPS) {
     const sx = cam.x * L.px, sy = cam.y / ASPECT * L.py, ix = Math.floor(sx), iy = Math.floor(sy);
     L.fx = sx - ix; L.fy = sy - iy;
-    const ox = ix - 1, oy = iy - 1, step = L.fps ? Math.floor(time * L.fps) : 0, sig = `${ox},${oy},${step},${Math.round(E * 24)},${L.key ? L.key(ox, oy) : ''}`;
+    const ox = ix - 1, oy = iy - 1, step = L.fps ? Math.floor(time * L.fps) : 0, sig = `${ox},${oy},${step},${Math.round(E * 24)},${POST.rev},${L.key ? L.key(ox, oy) : ''}`;
     if (sig === L.sig) continue;
     L.sig = sig; L.dirty = true;
     const base = L.horizon === undefined ? 0 : Math.round(R.rows / 2 + (L.horizon / ASPECT - R.rows / 2) * L.py), D = L.pix, paint = L.paint;
@@ -402,5 +471,6 @@ function renderBackdrops(time) {
         D[q] = toneF(_pc[0] * E) * vv * 255; D[q + 1] = toneF(_pc[1] * E) * vv * 255; D[q + 2] = toneF(_pc[2] * E) * vv * 255; D[q + 3] = glyph > 32 ? 255 : 0;
       } else D[q] = D[q + 1] = D[q + 2] = D[q + 3] = 0;
     }
+    if (POST_PAL) postLock(D, RW, RW * RH, ox, oy);
   }
 }

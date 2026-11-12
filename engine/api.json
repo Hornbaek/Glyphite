@@ -1066,6 +1066,11 @@
    "params": 2,
    "part": "01_core.js"
   },
+  "getPost": {
+   "kind": "function",
+   "params": 0,
+   "part": "06_scene.js"
+  },
   "GhostRecorder": {
    "kind": "class",
    "params": null,
@@ -1771,6 +1776,36 @@
    "params": 1,
    "part": "11_loop.js"
   },
+  "POST": {
+   "kind": "value",
+   "params": null,
+   "part": "06_scene.js"
+  },
+  "POST_BAYER": {
+   "kind": "value",
+   "params": null,
+   "part": "06_scene.js"
+  },
+  "POST_PAL": {
+   "kind": "value",
+   "params": null,
+   "part": "06_scene.js"
+  },
+  "postColour": {
+   "kind": "function",
+   "params": 1,
+   "part": "06_scene.js"
+  },
+  "postIndex": {
+   "kind": "function",
+   "params": 3,
+   "part": "06_scene.js"
+  },
+  "postLock": {
+   "kind": "function",
+   "params": 5,
+   "part": "06_scene.js"
+  },
   "present2D": {
    "kind": "function",
    "params": 5,
@@ -2065,6 +2100,11 @@
    "kind": "function",
    "params": 1,
    "part": "11_loop.js"
+  },
+  "setPost": {
+   "kind": "function",
+   "params": 1,
+   "part": "06_scene.js"
   },
   "setResVars": {
    "kind": "function",
