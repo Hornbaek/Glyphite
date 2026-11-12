@@ -63,8 +63,9 @@ claim a song "sounds" a certain way: say what you wrote and measured. Send them 
   bass and drums dry. The master has a compressor (`comp`), so a quiet song and a loud one come out at similar peaks: judge the
   *arc* by the per-bar RMS.
 - **Stems:** the Sampler plays all tracks; a game brings a layer in or out with `Sampler.track(name, { volume, fade })`. Write
-  each track so it is harmonically complete alone, if a game is going to mute it. The engine has no stingers or transitions
-  yet (`docs/ROADMAP.md`, "Music that follows the game"): a stinger is a short non-looping song (`Sampler.play(song, { loop: false, onEnd })`).
+  each track so it is harmonically complete alone, if a game is going to mute it. `Music.layer(name, on)` does that by name, and a stinger is a short
+  non-looping song the game plays over the music with `Music.stinger(id)` (it ducks the music; preload it with `Music.preload([id])`);
+  songs change between places with a crossfade (`Music.place`, `engine/API.md`, "The music director"), not yet on the bar line.
 - **MIDI in and out:** `node tools/midi.mjs import <file.mid>` makes a song from a MIDI file (a starting point to re-voice: check the
   instruments, volumes and the loop, then run it through `levels.py`); `export` writes a song as a .mid for other programs. Effects,
   automation and the song's own samples are not in a MIDI file.

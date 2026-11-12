@@ -47,9 +47,14 @@ Done: the engine's 16-bit Sampler, the studio at /studio/, songs saved on the si
   pan that move are lanes, a tempo ramp is a ramp, a file with several instruments asks which to open, and a song's own samples
   travel inside the file (a pad or a marimba to other programs). Next: the filter, the sends and the echo as CC events (74, 91, 93), time
   signature changes.
-- **Making instruments off the main thread** (a Worker): a game's first song costs ~0.3 s of blocked frames on its title.
-- **Music that follows the game**: a director helper over `Sampler.track` (layers by state), and songs for Regolith and
-  Fjordheim (Regolith's MIDI can now be turned into Sampler songs to re-voice: `node tools/midi.mjs import games/regolith/music/<name>.mid`).
+- ~~**Making instruments off the main thread**~~ (HISTORY 54, plan F4): built in slices between frames, the longest stretch 133 ms -> 6 ms.
+  Next, if it ever matters: the reverb impulse (`reverbIR`, a few ms when a context first plays a song) could be made in the same queue.
+- ~~**Music that follows the game**~~ (HISTORY 54, plan F1 and F3): `Music` (place, play with a crossfade, layers, stingers) and
+  `defineSound` / `Sfx.play` with pan, distance and a voice cap, effects and music volumes kept per game. Next: songs for Regolith
+  and Fjordheim (Regolith's MIDI can now be turned into Sampler songs to re-voice: `node tools/midi.mjs import games/regolith/music/<name>.mid`,
+  and then its `RegolithMusic` can go), `explode()` and the structure thuds placed with `Sfx.place` (they pass `heard()`, so no pan yet),
+  a Chip song as a `Music` source, musical transitions (wait for the bar line before a crossfade), a music change inside a level by
+  trigger (D8: `Music.layer` / `Music.play` are plain calls a trigger can make).
 
 ## Art pipeline (HISTORY 41; docs/ART_PIPELINE.md)
 
@@ -212,6 +217,6 @@ Each new game should need no engine edits. Every engine edit it forces goes on t
 - **The lander sprite at RES 1** has about 13×7 cells, too coarse to show detail.
 - **The legacy tests** `test.py` to `test13.py` were written against earlier versions (the old
   lander shape, the pause overlay). They may need updating before use as regressions.
-- **Music:** more pieces and per-site themes. The music director could crossfade.
+- **Music:** more pieces and per-site themes. (The engine's music director crossfades now: HISTORY 54.)
 - **Gameplay:** fuel pickups, more pad types, a campaign or score table, and a lander damage model
   where one leg breaks and the lander tips instead of crashing.

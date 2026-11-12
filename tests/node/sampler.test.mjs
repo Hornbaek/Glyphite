@@ -29,16 +29,20 @@ test('instruments made in slices between frames are the same samples as made at 
 });
 
 test('making the heaviest instruments never takes one long stretch (a drum kit used to stall the page for ~130 ms)', async () => {
-  let best = Infinity, steps = 0;
-  for (let i = 0; i < 3; i++) {   // the fastest of a few tries: another process on the machine can steal any one stretch
+  // Judged as a share of the whole job, not in milliseconds, so a busy machine (the unit tests run side by side) does not fail it: made in one
+  // piece, the kit alone is more than half of kit + harp; in slices no step may be more than a fifth of it (about 3% when the machine is quiet)
+  let best = Infinity, steps = 0, ms = 0;
+  for (let i = 0; i < 3; i++) {   // the best of a few tries: another process can steal any one stretch
     const { run } = boot();
     run('Sampler.build.sliceMs = 0');   // one step per slice: the longest slice is the longest step
     await run("Sampler.prepare(['kit', 'harp'])");
-    best = Math.min(best, run('Sampler.build.longest')); steps = run('Sampler.build.slices');
-    if (best < 12) break;
+    const share = run('Sampler.build.longest') / run('Sampler.build.work');
+    if (share < best) { best = share; ms = run('Sampler.build.longest'); }
+    steps = run('Sampler.build.slices');
+    if (best < .08) break;
   }
   assert.ok(steps > 150, `${steps} steps: the work is cut into many small pieces`);
-  assert.ok(best < 60, `the longest step was ${best.toFixed(1)} ms`);
+  assert.ok(best < .2, `the longest step was ${(best * 100).toFixed(0)}% of the job (${ms.toFixed(1)} ms)`);
 });
 
 test('a song asked to play with wait: true starts when its instruments are made, and the old song plays on until then', async () => {

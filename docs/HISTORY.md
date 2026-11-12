@@ -1098,6 +1098,28 @@ Packages A1-A8, B1-B4 of the plan, on branch `feature/a-foundations`.
   mass, jump height and step-up equal at RES 1-3, no tunnelling, chunks freeze with their mass, slabs, pause), `tests/node/author.test.mjs`, and
   `tests/engine_browser.py` (pause, errors, replay gives the same world).
 
+## 54. The engine plan: sound (F1, F3, F4) (Claude Code, 2026-11-12)
+
+> "Work through all the tiers and also work on all the improvements from the plan. I want them all :)" (the plan: `docs/ENGINE_PLAN.md`, section F)
+
+Packages F1, F3 and F4 of the plan; engine 0.15.1.
+
+- **F4, instruments made between frames.** The instrument recipes, the drum kit and the BRR encoder are generators; `Sampler.prepare` works them off
+  one page-wide queue in the browser's idle time, and `Sampler.play(song, { wait: true })` starts a song when its instruments are made instead of
+  stalling. Space Mouse's two songs (12 instruments), the fastest time seen for each step over nine fresh runs: before, a stretch of 133 ms (a drum
+  kit) and 778 ms of work in 12 stretches; after, a longest stretch of 6.3 ms and 717 ms of work in 1180. In Chrome on the real page: 97 slices,
+  longest 8.6 ms (2D) and 19 ms (software GL). Every instrument is sample-for-sample what it was (46 variants, 174 buffers). No Worker (see ARCHITECTURE).
+- **F1, sounds as data, placed in the world.** `defineSound` / `Sfx.play(name, { x, y, pitch, vol })`: tone, noise and Sampler-note layers, `spread`,
+  `limit`, `gap`; `Sfx.place` adds a pan and a vacuum's distance gain to `heard()`; at most 24 voices (the quietest is stolen); effects and music
+  on their own buses under the constant master, `Sfx.setVolumes({ music, sfx })`, kept per game and shared with `Pixelite.settings`. Every old Sfx
+  function works as before (`pickup`, `alarm`, `win`, `launch` are data now and can be replaced).
+- **F3, the music director.** `Music.place / play / layer / stinger / preload` over the Sampler: crossfades (the old song plays on in a deck of its
+  own), layers that carry over between songs, stingers on a second deck with the music ducked. Space Mouse's hand-written `stationMusic()` is gone;
+  its music is `Music.preload()` and one `Music.place(...)` a frame. Regolith plays MIDI through the Chip and keeps its own director, renamed
+  `RegolithMusic` (the engine owns `Music` now).
+- **Tests.** `tests/node/audio-mock.mjs` (a recording Web Audio for the Node bench), `sampler.test.mjs`, `sound.test.mjs`, `music.test.mjs`, and
+  `tests/engine_sound.py` against the real Web Audio in both renderers.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |
