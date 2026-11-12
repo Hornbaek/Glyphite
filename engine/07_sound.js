@@ -1,7 +1,8 @@
 // ===================== ENGINE · sound: effects (Sfx), sounds as data (defineSound), the music director (Music) =====================
 // Sfx: procedural one-shots plus a filtered-noise "thrust hum" loop (engine(throttle) 0..1), all synthesised, started by the first input.
 // Everything it plays goes through two buses: effects (the effects volume) and music (the Chip and the Sampler), then one master that
-// mute switches off. The volumes and the mute are the player's: they are kept in localStorage (storeKey('sound')) and come back next time.
+// mute switches off. The volumes and the mute are the player's: they are kept in localStorage (storeKey('sound')) and come back next time,
+// and the settings screen (Pixelite.settings, part 16) shows and changes the same numbers through setVolumes() and `muted`.
 // Sound that travels through air. In a vacuum (setAtmosphere 0, the default) a sound is heard at once at full volume, as if felt
 // through the ground. With an atmosphere it arrives distance / 343 m/s later, and the farther it is the quieter and duller it
 // is, so a flash can be followed by thunder you can count. Sfx.heard(x, y) says how a sound at (x, y) is heard; pass the result
@@ -16,7 +17,8 @@ const Sfx = {
   volumes: { music: 1, sfx: 1 }, _muted: false, _for: null,
   maxVoices: 24, voices: [], stats: { played: 0, dropped: 0, stolen: 0 },
   get muted() { this.load(); return this._muted; },
-  set muted(on) { this._muted = !!on; },
+  // assigning it mutes (or not) at once; it is not kept by itself: setMuted() and toggle() keep it, and the settings do their own
+  set muted(on) { this._for = GAME.id || ''; this._muted = !!on; this.applyVolumes(); },
   init() {
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
     this.load();
@@ -55,7 +57,11 @@ const Sfx = {
       this._muted = d.muted === true;
     } catch (e) { }
   },
-  save() { try { localStorage.setItem(storeKey('sound'), JSON.stringify({ music: this.volumes.music, sfx: this.volumes.sfx, muted: this._muted })); } catch (e) { } },
+  save() {
+    try { localStorage.setItem(storeKey('sound'), JSON.stringify({ music: this.volumes.music, sfx: this.volumes.sfx, muted: this._muted })); } catch (e) { }
+    // the settings system, when there is one (part 16), holds the same three numbers for the pause menu: keep them the same
+    if (typeof SETTINGS !== 'undefined') { SETTINGS.music = this.volumes.music; SETTINGS.sfx = this.volumes.sfx; SETTINGS.mute = this._muted; saveSettings(); }
+  },
   applyVolumes() {
     if (!this.ctx) return; const t = this.ctx.currentTime;
     this.sfxBus.gain.setTargetAtTime(this.volumes.sfx, t, .02); this.musicBus.gain.setTargetAtTime(this.volumes.music, t, .02);

@@ -181,3 +181,27 @@ test('the saves are the game\'s own: another game id, another place in storage',
   assert.equal(B.run('Sfx.getVolumes().music'), 1);
   assert.ok(store.has('alpha.sound') && !store.has('beta.sound'));
 });
+
+test('the settings system (SETTINGS, part 16) and Sfx hold the same volumes and mute: its applySettings() calls work, and so do Sfx\'s own', () => {
+  const { run, audio } = boot();
+  run('Sfx.init()');
+  // what part 16 does: assign muted, set the master by hand, hand over the volumes
+  run('SETTINGS.music = .3; SETTINGS.sfx = .6; SETTINGS.mute = true; applySettings()');
+  assert.deepEqual(json(run('Sfx.getVolumes()')), { music: .3, sfx: .6, muted: true });
+  assert.equal(run('Sfx.muted'), true); assert.equal(run('Sfx.master').gain.value, 0, 'its own write to Sfx.master.gain.value is the last word');
+  assert.deepEqual(run('Sfx.sfxBus').gain.events.at(-1).slice(0, 2), ['target', .6]);
+  run('setSetting("mute", false)'); assert.equal(run('Sfx.muted'), false);
+  assert.deepEqual(run('Sfx.master').gain.events.at(-1).slice(0, 2), ['target', .5]);
+  // and the other way: Sfx's own calls show up in the settings (and are kept there)
+  run('Sfx.setVolumes({ music: .9 }); Sfx.toggle()');
+  assert.equal(run('SETTINGS.music'), .9); assert.equal(run('SETTINGS.mute'), true); assert.equal(run('SETTINGS.sfx'), .6);
+  assert.match(run("localStorage.getItem('glyphite.settings')"), /"music":0.9/);
+  // assigning muted mutes at once, even before a setting is changed
+  run('Sfx.muted = false'); assert.equal(run('Sfx.master').gain.events.at(-1)[1], .5);
+  // a page load: applySettings() runs before the first input, with the volumes from the last visit; the sound starts with them
+  const store = new Map([['glyphite.settings', JSON.stringify({ music: .2, sfx: .4, mute: true })]]);
+  const B = boot(store);
+  B.run('loadSettings(); applySettings()');
+  B.run('Sfx.init()');
+  assert.equal(B.run('Sfx.musicBus').gain.value, .2); assert.equal(B.run('Sfx.sfxBus').gain.value, .4); assert.equal(B.run('Sfx.master').gain.value, 0);
+});
