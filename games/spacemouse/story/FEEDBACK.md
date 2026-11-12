@@ -1,7 +1,8 @@
 # Star Whiskers: The Holy Cow — feedback on the story
 
 Notes on [STORY.md](STORY.md) (the English version of the owner's Swedish documents) and the cover
-(`../ref/cover_star_whiskers.png`). These are suggestions: the owner decides what to keep.
+(`../ref/cover_star_whiskers.png`). **The owner agreed to all of them on 2026-11-12**; STORY.md is still the original and gets them when the story is rewritten.
+The prompt for an updated cover is in [COVER_PROMPT.md](COVER_PROMPT.md).
 
 ---
 
