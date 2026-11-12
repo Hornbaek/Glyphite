@@ -201,6 +201,7 @@
  "stepFX",
  "stepParticles",
  "stepPlatforms",
+ "stepRewind",
  "stepShell",
  "stepSlabs",
  "stepTimers",

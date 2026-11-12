@@ -21,6 +21,7 @@
     "14_entities.js",
     "15_world.js",
     "16_actions.js",
-    "17_ui.js"
+    "17_ui.js",
+    "18_toys.js"
   ]
 }

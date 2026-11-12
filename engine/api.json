@@ -616,6 +616,11 @@
    "params": 0,
    "part": "17_ui.js"
   },
+  "drawLine": {
+   "kind": "function",
+   "params": 7,
+   "part": "18_toys.js"
+  },
   "drawPauseMenu": {
    "kind": "function",
    "params": 0,
@@ -866,6 +871,11 @@
    "params": 2,
    "part": "01_core.js"
   },
+  "GhostRecorder": {
+   "kind": "class",
+   "params": null,
+   "part": "18_toys.js"
+  },
   "GL_FS": {
    "kind": "value",
    "params": null,
@@ -890,6 +900,11 @@
    "kind": "function",
    "params": 1,
    "part": "02_particles.js"
+  },
+  "Grapple": {
+   "kind": "class",
+   "params": null,
+   "part": "18_toys.js"
   },
   "gravityAt": {
    "kind": "function",
@@ -1521,6 +1536,11 @@
    "params": 0,
    "part": "11_loop.js"
   },
+  "Rewind": {
+   "kind": "value",
+   "params": null,
+   "part": "18_toys.js"
+  },
   "rigCamera": {
    "kind": "function",
    "params": 3,
@@ -1540,6 +1560,11 @@
    "kind": "function",
    "params": 0,
    "part": "01_core.js"
+  },
+  "Rope": {
+   "kind": "class",
+   "params": null,
+   "part": "18_toys.js"
   },
   "rr": {
    "kind": "function",
@@ -1811,6 +1836,16 @@
    "params": 4,
    "part": "14_entities.js"
   },
+  "spawnEcho": {
+   "kind": "function",
+   "params": 3,
+   "part": "18_toys.js"
+  },
+  "spawnGhost": {
+   "kind": "function",
+   "params": 2,
+   "part": "18_toys.js"
+  },
   "spawnGrain": {
    "kind": "function",
    "params": 5,
@@ -1940,6 +1975,11 @@
    "kind": "function",
    "params": 1,
    "part": "09_structures.js"
+  },
+  "stepRewind": {
+   "kind": "function",
+   "params": 0,
+   "part": "18_toys.js"
   },
   "stepShell": {
    "kind": "function",

@@ -84,7 +84,7 @@ class Body {
 // It also reads what it touches (materials' climbable, hazard, grip, conveyor and bouncy flags): `contacts` { under, left, right,
 // above, inside } are the materials around it (0 for none), `hazard` the largest damage per second of what it touches or is
 // inside (`hazardMat` which), `climbing` is true while it climbs (up / down while inside a climbable cell, jump to let go) and
-// `carry` the conveyor speed under its feet. On a moving platform (addPlatform) it is carried, by whole cells like the platform.
+// `carry` the conveyor speed under its feet; `step(dt, { rope })` hangs it from a Grapple's rope (`hanging` while taut). On a moving platform (addPlatform) it is carried, by whole cells like the platform.
 // Options are in hero.o (defaults below) and can be changed at any time.
 function charDefaults() {
   const S = RES;
@@ -116,7 +116,7 @@ class Character {
     this.onGround = false; this.ground = 0; this.wall = 0;
     this.coyoteT = 0; this.bufferT = 0; this.lockT = 0; this.dropT = 0; this.rising = false; this.held = false;
     this.jumped = this.wallJumped = this.bumped = this.crushed = false; this.landed = 0; this.bounced = 0;
-    this.climbing = false; this.carry = 0; this.hazard = 0; this.hazardMat = 0; this.platform = null;
+    this.climbing = false; this.hanging = false; this.carry = 0; this.hazard = 0; this.hazardMat = 0; this.platform = null;
     this.contacts = { under: 0, left: 0, right: 0, above: 0, inside: 0 };
     this._cb = [];
   }
@@ -256,6 +256,17 @@ class Character {
     }
     this.scanContacts();
   }
+  // hanging from a rope { x, y, len } (a Grapple's): beyond its length the character is pulled back onto the circle and loses the outward part of its
+  // velocity, so it swings; `hanging` is true while the rope is taut
+  hang(r) {
+    const o = this.o, cy = this.y - o.h * .6, rx = this.x - r.x, ry = cy - r.y, d = Math.hypot(rx, ry) || 1e-6;
+    this.hanging = d >= r.len - 1;
+    if (d > r.len) {
+      const nx = rx / d, ny = ry / d, vr = this.vx * nx + this.vy * ny;
+      if (vr > 0) { this.vx -= vr * nx; this.vy -= vr * ny; }
+      this.moveX(-nx * (d - r.len), false); this.moveY(-ny * (d - r.len));
+    }
+  }
   step(dt, inp = {}) {
     const o = this.o, gw = o.gravity || G, wasGround = this.onGround, dir = clamp(inp.x || 0, -1, 1), vdir = clamp((inp.down ? 1 : 0) - (inp.up ? 1 : 0), -1, 1);
     this.jumped = this.wallJumped = this.bumped = this.crushed = false; this.landed = 0; this.bounced = 0;
@@ -293,6 +304,7 @@ class Character {
     const target = this.lockT > 0 ? this.vx : dir * o.run;
     let rate = o.run / (target === 0 || (this.vx !== 0 && Math.sign(target) !== Math.sign(this.vx)) ? o.stopT : o.accelT);
     rate *= wasGround ? MAT_GRIP[this.ground] : o.air;
+    if (inp.rope && !wasGround && dir === 0) rate = 0;   // swinging on a rope with no input: nothing brakes it
     this.vx += clamp(target - this.vx, -rate * dt, rate * dt);
     if (dir) this.facing = dir > 0 ? 1 : -1;
     // jump from the ground (or just after leaving it), else off a wall
@@ -306,6 +318,7 @@ class Character {
     this.vy += g * (this.vy > 0 ? o.fallMul : 1) * dt;
     if (o.wallSlide > 0 && this.wall && dir === this.wall && this.vy > o.wallSlide) this.vy = o.wallSlide;
     if (this.vy > o.fallMax) this.vy = o.fallMax;
+    this.hanging = false; if (inp.rope) this.hang(inp.rope);
     // move: across (stepping up bumps, also when falling onto a ledge's corner), down stairs, then up or down
     this.moveX(this.vx * dt, (wasGround && !this.jumped) || this.vy >= 0);
     if (wasGround && !this.jumped && this.vy >= 0) this.snapDown();

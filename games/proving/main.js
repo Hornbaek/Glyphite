@@ -7,6 +7,7 @@ function gameHud(t) {
   hudBar(17, 0, 6, STATS.hp, 3, HC.red, 'HP');
   hudText(narrow ? 1 : 30, narrow ? 1 : 0, `BOMBS ${STATS.bombs}`, HC.txt);
   hudText(narrow ? 12 : R.hcols - 24, narrow ? 1 : 0, `DEATHS ${STATS.deaths}  ${STATS.time.toFixed(1)} S`, HC.dim);
+  if (Rewind.rewinding) { const s = '<< REWIND <<'; hudText(Math.floor((R.hcols - s.length) / 2), 3, s, HC.amber); }
   if (HINT && state === 'play') {
     const lines = hudWrap(typeof HINT === 'function' ? HINT() : HINT, Math.min(56, R.hcols - 8)), w = Math.max(...lines.map(l => l.length)) + 4, c0 = Math.floor((R.hcols - w) / 2), r0 = R.hrows - lines.length - 4 - (touchShown() ? 7 : 0);
     hudBox(c0, r0, w, lines.length + 2, HC.dim, true); lines.forEach((l, i) => hudText(c0 + 2, r0 + 1 + i, l, HC.txt));
@@ -61,7 +62,7 @@ Pixelite.run({
   start: startRun,
   restart() { newLevel(false); setState('play'); },
   menu: [{ label: 'NEW GAME (ERASE SAVE)', onSelect: () => { setPaused(false); newLevel(true); setState('play'); } }],
-  update: gameUpdate, onKey: gameKey, hud: gameHud,
+  update: gameUpdate, onKey: gameKey, hud: gameHud, draw() { if (HERO_E && HERO_E.hook) HERO_E.hook.draw(); },
   onBlast(x, y, R0) {
     for (const e of entities) if (e.type === 'slime' && !e.dead && Math.hypot(e.x - x, e.y - 2 * RES - y) < R0 * 1.4) killSlime(e);
     if (HERO_E && state === 'play' && Math.hypot(HERO_E.x - x, HERO_E.y - 3 * RES - y) < R0 * .9) hurt(HERO_E, 'YOUR OWN BOMB', 1);

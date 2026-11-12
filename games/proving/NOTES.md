@@ -23,11 +23,11 @@ Read `CLAUDE.md`, then this file; the engine side is `engine/API.md` ("Character
 | 0-30 | walking, coins, a catwalk (jump up through it, down drops), a ladder to a high ledge | `Character` coyote time and jump buffer, `oneWay`, `climbable` in the back wall |
 | 31-53 | ice, two conveyor belts | `grip`, `conveyor` |
 | 54-70 | a spring and a spike pit | `bouncy`, `hazard`, hit feedback, respawn |
-| 71-91 | a ferry over spikes, a lift to a high ledge, checkpoint flags | `addPlatform` (carried by whole cells, slimes ride them too) |
+| 71-91 | a ferry over spikes (or swing over the beam above it with the hook: E), a lift to a high ledge, checkpoint flags | `addPlatform` (carried by whole cells, slimes ride them too), `Grapple` |
 | 92-107 | a low-gravity room with a ledge only a floating jump reaches, slimes, a brick tower | `addGravityZone`, entities with `fsm`, `fireProjectile`, `explode` + structures falling |
 | 108-111 | a dirt wall to dig and the goal flag | `carve`, `loadTileMap` triggers, `screenResult` |
 
-Also on show: the **camera rig** (dead zone, look-ahead, bounds), **actions** with gamepad (A jump, X pebble, B bomb, Y dig) and touch buttons made
+Also on show: **rewind** (hold R: `Rewind`, the last 8 seconds, with the game's numbers kept through `Rewind.keep`), a **ghost** of your best run replayed beside you (`GhostRecorder`, `spawnGhost`, kept with `Pixelite.save`), the **camera rig** (dead zone, look-ahead, bounds), **actions** with gamepad (A jump, X pebble, B bomb, Y dig) and touch buttons made
 from them, the **shell** (title, pause menu, rebinding), **settings** and **saves** (the run continues at its checkpoint after a reload;
 "NEW GAME" in the pause menu erases it), seeded **record/replay**, **tunables** that act live, and `Pixelite.run({ detail: { levels: [2] } })`.
 

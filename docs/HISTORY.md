@@ -1139,6 +1139,7 @@ level that uses them all.
   `raycast`, projectiles that move by rays (the starter's bolts are `fireProjectile` now, D7), triggers, `loadTileMap` (tile maps with props, spawns, entities,
   merged triggers, D8), `reachSearch` / `navPath` / `jumpArc` (Space Mouse's level search made general: the engine can prove a level finishable), `rescaleWorld`
   (C2: a game without `regenerate` is resampled when the detail changes).
+- **Toys** (`engine/18_toys.js`): verlet `Rope` (collides with the grid, snaps under tension), a `Grapple` hook that swings a `Character` (`step(dt, { rope })`, can rip a weak anchor out), `GhostRecorder` / `spawnGhost` / `spawnEcho` (ghost racers, an echo of your own path), `Rewind` (snapshots of the world, hold to step back; a grid copy per snapshot, not deltas), `drawLine`. The Proving Ground has a hook beam over the ferry pit, rewind on R and a ghost of the best run. The platformer kit: `node tools/pixelite.mjs new <id> --kit platformer` (C12). `engine/api.json` and a lint of game code against it (C11), a phone-sized smoke run and a page size budget (B5, partly).
 - **Look and feel**: sprite `tint`, `flash`, `palette` and animations (`defineAnim`, `drawAnim`, `animFromAsset`, C4); camera rigs (C6: look-ahead, dead zone, rooms,
   bounds); `cameraShake`.
 - **Input and shell** (`engine/16_actions.js`, `17_ui.js`): **actions** from `game.json` over keys, gamepad (analog sticks) and touch, buttons made from them, multi-touch
@@ -1150,8 +1151,7 @@ level that uses them all.
   `tests/mechanics.py` runs every station in a page (27 checks, including gamepad, rebinding, the save across a reload and a replay that gives the same world).
 - **Found on the way**: grains landing on a pile could vanish (A, part 1); a slime on the lift rides it up and hurts the hero (the test kills the slimes first).
 - **Not done** (and why): the plan's D2 (liquids, reactions, heat conduction) and E1-E8 (sun from either side, emissive sprites, layers and backdrops, palette lock,
-  zoom, weather) were not started; C11 (the generated api.json and the lint), C12 (starters per genre: the Proving Ground is the platformer one, by hand), B5 (golden
-  screenshots), A5's `game.json` key list is by hand. The performance packages are in their own branch (see ROADMAP).
+  zoom, weather) were not started; C12 has only the platformer kit (no top-down, isometric or sandbox kits), B5 has no golden screenshots, A5's `game.json` key list is by hand. The performance packages are in their own branch (see ROADMAP).
 - **Verified**: build, 175 unit tests, the smoke test of seven games in both renderers, `tests/engine_browser.py`, Space Mouse reach and mechanics, Fjordheim's playthrough,
   the Proving Ground's check and mechanics (three runs).
 
