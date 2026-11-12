@@ -94,8 +94,8 @@ function tearDown(o) {
   HOME.buildings.forEach(markFoot);   // the ones after it moved down the list
   if (o.type === 'field') isoPaintFoot(o);
   // a cloud of dust and splinters where it stood
-  for (let k = 0; k < 14 * o.w * o.h; k++) { isoToWorld(o.i + Math.random() * o.w, o.j + Math.random() * o.h, _hw); spawnP(PT_SMOKE, _hw[0], _hw[1] - rr(0, 6) * RES, rr(-4, 4) * RES, rr(-6, -1) * RES, rr(.8, 2), pick('%&o@:'), 0); }
-  for (let k = 0; k < 8; k++) chips(o.i + Math.random() * o.w, o.j + Math.random() * o.h, [.75, .6, .4]);
+  for (let k = 0; k < 14 * o.w * o.h; k++) { isoToWorld(o.i + rnd() * o.w, o.j + rnd() * o.h, _hw); spawnP(PT_SMOKE, _hw[0], _hw[1] - rr(0, 6) * RES, rr(-4, 4) * RES, rr(-6, -1) * RES, rr(.8, 2), pick('%&o@:'), 0); }
+  for (let k = 0; k < 8; k++) chips(o.i + rnd() * o.w, o.j + rnd() * o.h, [.75, .6, .4]);
   Sfx.thud(6);
   const got = back.filter(([, k]) => k > 0).map(([g, k]) => `${k} ${g}`).join(', ');
   news(`${BUILDINGS[o.type].name.toUpperCase()} ${o.done ? 'TORN DOWN' : 'CALLED OFF'}${got ? `: ${got} back` : ''}`, HC.amber);
@@ -154,7 +154,7 @@ function growNature() {
   for (const t of trees) {
     if (!t.alive) continue;
     const k = tidx(t.i, t.j);
-    if (thing[k] === T_STUMP && Math.random() < .3) { thing[k] = T_SAPLING; t.grown = 0; t.t = 0; }
+    if (thing[k] === T_STUMP && rnd() < .3) { thing[k] = T_SAPLING; t.grown = 0; t.t = 0; }
     else if (thing[k] === T_SAPLING && ++t.t >= 3) { thing[k] = T_TREE; t.grown = 1; }
   }
 }

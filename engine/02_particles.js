@@ -10,13 +10,14 @@ function particlesAlloc(max) {
 }
 particlesAlloc(9000);
 const ch = c => c.charCodeAt(0);
-const pick = s => s.charCodeAt((Math.random() * s.length) | 0);
+const pick = s => s.charCodeAt((rnd() * s.length) | 0);
 
 function spawnP(t, x, y, vx, vy, life, glyph, m) {
+  if (DEV) devFinite('spawnP', x, y, vx, vy, life);
   if (P.n >= PMAX) return -1;
   const i = P.n++;
   P.t[i] = t; P.x[i] = x; P.y[i] = y; P.vx[i] = vx; P.vy[i] = vy; P.age[i] = 0; P.life[i] = life;
-  P.g[i] = glyph; P.m[i] = m | 0; P.s[i] = (Math.random() * 256) | 0; P.rest[i] = 0;
+  P.g[i] = glyph; P.m[i] = m | 0; P.s[i] = (rnd() * 256) | 0; P.rest[i] = 0;
   return i;
 }
 function killP(i) {
@@ -42,10 +43,18 @@ function defineParticle(spec) {
 }
 const ptype = t => t >= PT_CUSTOM ? PTYPES[t - PT_CUSTOM] : null;
 
-// put a flying grain back into the voxel grid (search upward for room)
+// put a flying grain back into the voxel grid: search upward for room, then in the neighbouring columns (a grain landing on a
+// steep pile must not vanish: sand is neither made nor lost)
 function deposit(x, y, m) {
-  const cx = Math.floor(x); let cy = Math.floor(y / ASPECT);
-  for (let k = 0; k < 4; k++, cy--) if (cy >= 0 && getC(cx, cy) === EMPTY) { setC(cx, cy, m); return true; }
+  const cx0 = Math.floor(x), cy0 = Math.floor(y / ASPECT);
+  for (let d = 0; d <= 4; d++) for (const cx of d ? [cx0 - d, cx0 + d] : [cx0]) {
+    if (cx < 0 || cx >= W) continue;
+    for (let k = 0, cy = cy0; k < 12 && cy >= 0; k++, cy--) {
+      const c = getC(cx, cy);
+      if (c === EMPTY) { setC(cx, cy, m); return true; }
+      if (MAT_LIQ[c] && !MAT_LIQ[m]) { putSolid(cx, cy, m); return true; }   // a grain landing in a liquid takes its cell; the liquid moves aside, nothing is lost
+    }
+  }
   return false;
 }
 
@@ -75,7 +84,7 @@ function stepParticles(dt) {
     }
     else if (t === PT_GAS || t === PT_FIRE) { const k = 1 - 1.6 * dt; VX[i] *= k; VY[i] *= k; }
     else if (t === PT_SMOKE || t === PT_VAPOR) { const k = 1 - 1.1 * dt; VX[i] *= k; VY[i] = VY[i] * k - (t === PT_VAPOR ? 1.2 : .4) * S * dt; }
-    else VY[i] += G * dt;
+    else { VY[i] += G * dt; if (GX) VX[i] += GX * dt; }
     // integrate with sub-steps so nothing tunnels through a cell
     const sp = Math.abs(VX[i]) + Math.abs(VY[i]);
     const n = Math.min(10, 1 + ((sp * dt / .7) | 0));
@@ -87,27 +96,28 @@ function stepParticles(dt) {
       const cx = Math.floor(nx), cy = Math.floor(ny / ASPECT);
       const m = cy < 0 ? EMPTY : cells[cy * W + cx];
       if (m === EMPTY) { X[i] = nx; Y[i] = ny; continue; }
+      if (MAT_LIQ[m]) { if (particleInLiquid(i, t, m, h)) { dead = true; break; } X[i] = nx; Y[i] = ny; continue; }   // a liquid is not a wall
       // --- collision: find the blocking axis ---
-      const hitX = getC(cx, Math.floor(Y[i] / ASPECT)) !== EMPTY;
-      const hitY = getC(Math.floor(X[i]), cy) !== EMPTY;
+      const hitX = MAT_SOLID[getC(cx, Math.floor(Y[i] / ASPECT))] === 1;
+      const hitY = MAT_SOLID[getC(Math.floor(X[i]), cy)] === 1;
       const bothOrDiag = (!hitX && !hitY) || (hitX && hitY);
       const vin = Math.hypot(VX[i], VY[i]);
       if (t === PT_GRAIN || t === PT_DEBRIS) {
-        if (vin < (t === PT_DEBRIS ? 5 : 7) * S || (hitY && VY[i] > 0 && Math.random() < .7)) { deposit(X[i], Y[i], P.m[i]); dead = true; break; }
+        if (vin < (t === PT_DEBRIS ? 5 : 7) * S || (hitY && VY[i] > 0 && rnd() < .7)) { deposit(X[i], Y[i], P.m[i]); dead = true; break; }
         bounce(i, hitX, hitY, bothOrDiag, t === PT_DEBRIS ? .35 : .2, .6);
       } else if (t === PT_GAS) {
         const ci = cy * W + cx;
-        if (MAT_GRAN[m] && Math.random() < .11 * (vin / (30 * S))) {      // exhaust scours regolith
+        if (MAT_GRAN[m] && rnd() < .11 * (vin / (30 * S))) {      // exhaust scours regolith
           cells[ci] = EMPTY; wakeAt(cx, cy);
           normalAt(nx, ny, _n);
           const rv = .45 * vin;
           spawnGrain(cx + .5 + _n[0] * .8, (cy + .5) * ASPECT + _n[1] * .8 - .5, _n[0] * rv * rr(.4, 1) + rr(-6, 6) * S, _n[1] * rv * rr(.5, 1) - rr(1, 5) * S, m);
-        } else if (MAT_SUBL[m] && Math.random() < MAT_SUBL[m]) {          // ...and sublimates ice
+        } else if (MAT_SUBL[m] && rnd() < MAT_SUBL[m]) {          // ...and sublimates ice
           cells[ci] = EMPTY; wakeAt(cx, cy);
           for (let k = 0; k < 3; k++) spawnP(PT_VAPOR, cx + .5, (cy + .5) * ASPECT, rr(-6, 6) * S, rr(-8, -2) * S, rr(.6, 1.4), pick('~-.'), 0);
         }
         if (heat[ci] < 1) heat[ci] += .012;
-        if (Math.random() < .08) spawnP(PT_DUST, X[i], Y[i] - .3, VX[i] * .2 + rr(-8, 8) * S, -rr(2, 9) * S, rr(.6, 1.6), pick(".'`"), m);
+        if (rnd() < .08) spawnP(PT_DUST, X[i], Y[i] - .3, VX[i] * .2 + rr(-8, 8) * S, -rr(2, 9) * S, rr(.6, 1.6), pick(".'`"), m);
         // plume flattens and runs along the ground
         if (hitY || bothOrDiag) { const s2 = VX[i] >= 0 ? 1 : -1; VX[i] += s2 * Math.abs(VY[i]) * rr(.4, .9); VY[i] *= -.12; }
         if (hitX) VX[i] *= -.25;
@@ -121,7 +131,7 @@ function stepParticles(dt) {
       else {   // spark, wreck
         const e = t === PT_SPARK ? .55 : .28;
         bounce(i, hitX, hitY, bothOrDiag, e, t === PT_SPARK ? .8 : .55);
-        if (t === PT_WRECK && vin > 8 * S && Math.random() < .5) spawnP(PT_SPARK, X[i], Y[i], rr(-8, 8) * S, -rr(4, 12) * S, rr(.2, .6), pick("*+'"), 0);
+        if (t === PT_WRECK && vin > 8 * S && rnd() < .5) spawnP(PT_SPARK, X[i], Y[i], rr(-8, 8) * S, -rr(4, 12) * S, rr(.2, .6), pick("*+'"), 0);
       }
       break;   // stop sub-stepping after a contact
     }
@@ -150,7 +160,7 @@ function explode(x, y, R, power, quiet) {
     if (d > R * 1.3) continue;
     if (d > R) {                                  // crater rim: heated, sometimes fused (regolith to glass)
       addHeat(cx, cy, .9 * power * (1.3 - d / R));
-      if (MAT_FUSE[m] && Math.random() < MAT_FUSEP[m] * power) setC(cx, cy, MAT_FUSE[m]);
+      if (MAT_FUSE[m] && rnd() < MAT_FUSEP[m] * power) setC(cx, cy, MAT_FUSE[m]);
       continue;
     }
     const strength = power * (1 - d / R) * rr(.8, 1.4) + .25;
@@ -162,7 +172,7 @@ function explode(x, y, R, power, quiet) {
     if (mb) mb(cx + .5, (cy + .5) * ASPECT, dx * v, dy * v, 'blast');
     else if (MAT_VAPOR[m]) {
       for (let k = 0; k < 2; k++) spawnP(PT_VAPOR, cx + .5, (cy + .5) * ASPECT, dx * v * .6 + rr(-4, 4) * S, dy * v * .6 - 3 * S, rr(.8, 1.8), pick('~-.'), 0);
-    } else if (Math.random() < (MAT_GRAN[m] ? .7 : .55)) {
+    } else if (rnd() < (MAT_LIQ[m] ? .9 : MAT_GRAN[m] ? .7 : .55)) {
       const om = ejectaOf(m);
       if (om) spawnGrain(cx + .5, (cy + .5) * ASPECT, dx * v + rr(-2, 2) * S, dy * v - rr(2, 8) * power * S, om);
     }

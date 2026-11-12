@@ -209,6 +209,24 @@ way.
 - **Music leaks into beat tests.** Once a test starts the audio, the game's music plays, and `Beat.step` fires on its real
   drum hits between the frames being compared. Set `Chip.playing = false` while measuring anything beat-driven.
 
+- **A later part's global may not be read while the parts load.** `const DEV` (part 11) is in its temporal dead zone when `07_sound.js` runs,
+  so the built-in sounds are set up with `soundOf()` directly, not `defineSound()` (which calls `devKeys`, which reads `DEV`).
+- **A game cannot reuse an engine name.** `Music` became an engine global, and Regolith's own `const Music` (a Chip director) made the
+  build refuse the game; it is `RegolithMusic` now. Check `node tools/pixelite.mjs build` after adding any top-level name to a part.
+- **A yield inside a hot loop is almost free; a long loop without one is the stall.** Turning the instrument recipes into generators
+  (`yield` every 8192 samples, every 128 BRR blocks, every 4 harmonics) cost nothing measurable (717 ms against 778 ms of work) and
+  cut the longest stretch from 133 ms to 6 ms. Time a step's cost as the fastest of several fresh runs: on a busy machine any one
+  stretch can be stolen, and `threadCpuUsage` has a 15 ms resolution on Windows.
+- **A timer waits 15 ms on Windows.** `setTimeout(f, 0)` between 1000 small slices made a 1 s job take 3 s in Node; the queue's
+  `build.later` hook lets a test run the slices back to back (`queueMicrotask`).
+- **A playing deck that is replaced must be told to stop everything.** A crossfade hands the old mixer to a deck that fades out;
+  the strips' `lfo` and `pitch` oscillators run until stopped, so `disposeMix` stops them, or every song change would leak a mixer.
+- **The settings system and Sfx both keep the volumes.** `SETTINGS` (part 16) calls `Sfx.setVolumes` and assigns `Sfx.muted`; Sfx copies
+  what it is given into `SETTINGS` and saves both, and an assignment to `muted` counts as having loaded, or the later lazy `load()`
+  would put the old saved mute over the new one.
+- **`git status` shows every text file modified on this Windows checkout** (`core.autocrlf=true` against `* text=auto eol=lf`) and a plain
+  `git merge` refuses. Rewrite the CRLF files with LF once, and use `git -c core.autocrlf=false merge`.
+
 ## Image APIs (the art pipeline)
 
 - **Model names move.** `gpt-image-2` makes no transparent background; `gpt-image-1.5` does but draws worse; the newest one that does and draws well in November 2026 was
@@ -323,3 +341,49 @@ way.
 - **A Windows checkout with `core.autocrlf` cannot build.** `checkSyntax` looks for `<script>\n` and the page template then has `\r\n`:
   the build says "Unexpected identifier 'html'". Build in a clone with `-c core.autocrlf=false` (the unit tests that compare generated files fail
   the same way in the checkout itself; CI, on Linux, is not affected).
+
+## Speed and caches (the engine plan, speed work; HISTORY 57)
+
+- **Measure the work, not the gap between frames.** `perfAvg` read 16.7 ms whether a frame took 2 ms or 16. The stage timers (`Pixelite.perf`) showed the lighting as the biggest stage of
+  every game but Fjordheim (11 to 60 ms at RES 2 and 3 in headless Chrome; Fjordheim has no shadowed lamp, and its terrain pass is the biggest), and two shadowed lamps of radius 90 base units
+  as most of the showcase's.
+- **Software GL pollutes the JavaScript numbers.** SwiftShader runs in another process but on the same cores: the same `light` stage read 14 ms with `#2d` and 18 to 35 ms with `#gl`.
+  Compare JavaScript stages in `#2d`; `present` and the readback say nothing about a real GPU.
+- **A cache is only as exact as what tells it to let go.** The lamp cache and the still frame trust the revision counter (`setC`, `wakeAt`); a game that writes `cells[]` by hand while it
+  runs must call `worldChanged()`. Things with no writer to hook (`backCells`, which `isoSetTile` and games write directly; `heat`, which cools by itself) are watched by a checksum or a scan of
+  the window instead, a few tenths of a millisecond. `CACHE.audit` re-does everything and compares, and the tests break each guard on purpose (a mutated `backSig`, `heatCalm`,
+  `emissiveIn`) to see that they fail.
+- **Cache what is a pure function, apply what varies.** A lamp's cast does not depend on its colour or intensity, so a flickering lamp (the intensity changes every frame) is still cached:
+  what is kept is the falloff and the distance, and `cr * a` is computed each frame, in the same lamp order, which is why the float sums come out the same. Adding all the lamps together first
+  would have been faster and not bit for bit.
+- **Record only what has stood still.** A moving lamp or a moving camera must cost nothing extra, so a lamp is recorded only after two frames with the same parameters and the camera in the
+  same cell (the previous frame's hashes; no entry is made before), and a cast made stale by a change near it must see four quiet frames before it is recorded again.
+- **The camera moving defeats both caches, on purpose.** The window cuts a lamp's rays at its edge, so a lamp partly off screen casts differently from one in view; keeping a cast across a
+  camera move needs the cast to be defined beyond the window (the plan's "shift and fill the edge"), which the surface buffers do not cover. In a platformer that runs, the gain is in the
+  standing, talking, dying and title stretches; for the running ones it is P3's cheaper loops.
+- **A short name in a long function shadows.** `computeLighting` had `const S = LSAT` inside the block that the still frame wrapped; the outer `S = STILL` was shadowed, `S.snapBase` read
+  `undefined` on an Int32Array and nothing was ever kept, without an error. A look at the state after each frame (`have: false`) found it.
+- **Make the A/B harness deterministic before trusting it.** Run to run, `EYE.e`, the beat, `Math.random` (the 404 game's lander lands somewhere else), the page's address (the 404 game draws it)
+  and wall-clock toasts (the HUD) all differed: the first A/B said every game differed, even a build against itself.
+- **A minifier that drops indentation can make a comment into a marker.** `lineMap` takes a line that *starts* with `// ----- ... -----` for the assembler's file marker; the Chip had an
+  indented comment of that shape, which became one once its indentation was gone. The minifier keeps a marker only if it started in column 0.
+- **Check that the "optimisation" is one, in the same process.** The terrain pass called `getC` for every cell and again for the back wall's shadow search; replacing the second with a read of the lighting's
+  occupancy buffer through a function (`occAt`) looked free and was 5 to 20% slower (it does more work per call than `getC`). Reading the cell itself from the array, the thing the plan named, moved the scene stage
+  by less than the noise. Timing the P1 `renderScene` against the new one in one page, alternating, and varying the loop found it; the build-to-build numbers (10 to 20% scatter between page loads) could not.
+## Liquids
+
+- **"Solid" used to mean "not empty", in forty places.** A liquid lives in the grid, so every `cells[i] !== EMPTY` that meant *something stands here* (collision, light occlusion, the sun
+  sweep, the skyline, structural support, island flood fills, chunk landing, raycast, carve) had to become `MAT_SOLID[cells[i]]`. A new place that asks "is anything here" must pick which it means;
+  `MAT_SOLID[m]` is exactly `m !== 0` in a world with no liquid, which is how the frames of the old games stayed pixel for pixel the same.
+- **Hash the finished frame before you touch a renderer.** Block `requestAnimationFrame` with an init script (so no live frame runs), seed the page (`?seed=3`), `Pixelite.test.start()`, step, `render()`, and
+  hash `R.wPix`, `R.sPix` and the HUD in both renderers; run it on the old build and the new one. Two runs of the old build must agree first (the 404 game does not: it has its own clock).
+- **Make room for displaced liquid through the liquid, not up its column.** The first `displaceLiquid` walked straight up and sideways and gave up at the first solid cell, so a chunk freezing in a pool
+  (whose own top row closed the column) lost a cell of water. A breadth-first search through the liquid cells to the nearest free one finds the surface whatever lies on top.
+- **A move that only goes lower never jitters.** The flow lets a cell run along its row only to a cell that has free space under it, so a settled pool is a fixed point, its chunks sleep, and the
+  surface is flat to within the run length; moving to a neighbour at the same height would slosh forever (and keep every chunk awake).
+- **Strokes at the surface act like a jump.** Swimming up at full speed through the surface threw the swimmer out of the water; with the head out, holding up only treads water, and a press hops out
+  (a one-frame press hops low because letting go early cuts a jump). The box bobs at the boundary where its middle leaves the liquid, so "swimming" flips every few steps there: a hop after swimming
+  needs a short grace time (`swimT`), and tests should count steps, not read one instant.
+- **`const` inside `E.run('...')` of the Node harness is gone after the call** (a direct eval keeps its own scope): share state with `globalThis.x = ...`.
+- **Fire needs a source that outlasts the first cell.** A cell burnt away leaves its heat in an empty cell, which conducts nothing, so ignition has to come from the burning cells' own heating
+  of their neighbours (a step of +.35 catches wood at .3 at once); a test that lights one cell of fast-burning wood fails one run in a few.

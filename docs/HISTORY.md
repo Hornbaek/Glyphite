@@ -1075,6 +1075,163 @@ Every "Next:" the roadmap listed under those three items, done in one go.
 - **Verified:** build, unit tests, the studio test, and the smoke test of every game in both renderers (in a clone with LF line endings: see
   LESSONS on this Windows checkout).
 
+## 53. The engine plan, part 1: a safe foundation (Claude Code, 2026-11-11)
+
+> "Work through all the tiers and also work on all the improvements from the plan. I want them all :)" (the plan: `docs/ENGINE_PLAN.md`, PR 47)
+
+Packages A1-A8, B1-B4 of the plan, on branch `feature/a-foundations`.
+
+- **A1 builds on Windows.** `.gitattributes` (`* text=auto eol=lf`, binaries marked), `read()` in `tools/pixelite.mjs` strips `
+`, the art tool writes
+  `/` in recorded paths, `git apply` in the diff test ignores autocrlf, `node tools/py.mjs` runs `python3` or `python`, and the smoke test takes
+  `PIXELITE_BROWSER_CHANNEL=chrome` where Playwright's Chromium is not installed (and a `file:///` URL that works on Windows). 135 unit tests pass here.
+- **A2** one engine version: the assembler writes `ENGINE_VERSION` from `engine.json`; `Pixelite.version` and `probe().version` read it.
+- **A3, A4** presses made while paused are dropped; pause is a flag (`Pixelite.pause`, `Pixelite.paused`) any game state can use, with the old
+  `'paused'` state kept as an alias; the page pauses when hidden.
+- **A5, A6** author checks (`engine/00_dev.js`, `tools/authorcheck.mjs`) and errors shown (overlay with file and line in `?dev` and the editor, a HUD
+  line for players). Every game's `Math.random` became `rnd()`.
+- **A7** structures: a hillside too big for a chunk sinks as a slab instead of hanging; a forced freeze lifts the chunk out of the ground and keeps cells
+  that do not fit as grains; a chunk resting on a still game body rests. **A8** `Body.step` sub-steps by speed. Found by the new sand test: `deposit()`
+  gave a grain up after four cells, so sand landing on a steep pile vanished (a pile lost a third of its mass); it now looks 12 cells up and 4 columns across.
+- **B1, B2** seeded `rnd()` and `Pixelite.seed(n)` / `?seed=n`; draw time is the simulation clock. **B3** `test.record/replay/tap/stepUntil/hash`,
+  `?replay=`. **B4** `tests/node/engine-harness.mjs` loads the engine into a Node `vm` (no browser): `tests/node/engine.test.mjs` (sand keeps its
+  mass, jump height and step-up equal at RES 1-3, no tunnelling, chunks freeze with their mass, slabs, pause), `tests/node/author.test.mjs`, and
+  `tests/engine_browser.py` (pause, errors, replay gives the same world).
+
+## 54. The engine plan: sound (F1, F3, F4) (Claude Code, 2026-11-12)
+
+> "Work through all the tiers and also work on all the improvements from the plan. I want them all :)" (the plan: `docs/ENGINE_PLAN.md`, section F)
+
+Packages F1, F3 and F4 of the plan; engine 0.15.1.
+
+- **F4, instruments made between frames.** The instrument recipes, the drum kit and the BRR encoder are generators; `Sampler.prepare` works them off
+  one page-wide queue in the browser's idle time, and `Sampler.play(song, { wait: true })` starts a song when its instruments are made instead of
+  stalling. Space Mouse's two songs (12 instruments), the fastest time seen for each step over nine fresh runs: before, a stretch of 133 ms (a drum
+  kit) and 778 ms of work in 12 stretches; after, a longest stretch of 6.3 ms and 717 ms of work in 1180. In Chrome on the real page: 97 slices,
+  longest 8.6 ms (2D) and 19 ms (software GL). Every instrument is sample-for-sample what it was (46 variants, 174 buffers). No Worker (see ARCHITECTURE).
+- **F1, sounds as data, placed in the world.** `defineSound` / `Sfx.play(name, { x, y, pitch, vol })`: tone, noise and Sampler-note layers, `spread`,
+  `limit`, `gap`; `Sfx.place` adds a pan and a vacuum's distance gain to `heard()`; at most 24 voices (the quietest is stolen); effects and music
+  on their own buses under the constant master, `Sfx.setVolumes({ music, sfx })`, kept per game and shared with `Pixelite.settings`. Every old Sfx
+  function works as before (`pickup`, `alarm`, `win`, `launch` are data now and can be replaced).
+- **F3, the music director.** `Music.place / play / layer / stinger / preload` over the Sampler: crossfades (the old song plays on in a deck of its
+  own), layers that carry over between songs, stingers on a second deck with the music ducked. Space Mouse's hand-written `stationMusic()` is gone;
+  its music is `Music.preload()` and one `Music.place(...)` a frame. Regolith plays MIDI through the Chip and keeps its own director, renamed
+  `RegolithMusic` (the engine owns `Music` now).
+- **Tests.** `tests/node/audio-mock.mjs` (a recording Web Audio for the Node bench), `sampler.test.mjs`, `sound.test.mjs`, `music.test.mjs`, and
+  `tests/engine_sound.py` against the real Web Audio in both renderers.
+
+## 55. The engine plan: the platformer toolkit and the Proving Ground (Claude Code, 2026-11-12)
+
+> "Work through all the tiers and also work on all the improvements from the plan. I want them all :) Create a level that showcases the updates, like a test level."
+
+Packages C1, C3-C10, D1, D3-D10 of `docs/ENGINE_PLAN.md` and the platformer picks from the idea bank, on engine 0.16.0 (new parts 14 to 17), and a test
+level that uses them all.
+
+- **Materials** (D1): `climbable` (also in the back wall: a ladder painted behind a room), `hazard`, `grip`, `conveyor` (carries a `Character`, a `Body`
+  and sand), `bouncy` (a `Character` is thrown up, a `Body` bounces). `Character` takes `up`, climbs, rides conveyors, slides on ice, bounces, and reports
+  `contacts`, `hazard`, `carry`, `bounced`, `crushed`, `platform`. `ramp:` (ignored for ages) is gone from the games, `grains` is the new name of `grainGlyphs`.
+- **Moving platforms** (D3, `addPlatform`): chunks on a path, moved by whole cells, carrying a character standing on them (and slimes), crushing against walls;
+  a blast turns one into a falling chunk. **Gravity** (D5): `setGravity(mps2, sideways)`, `addGravityZone`, per-body `gs`; a jump's launch uses the world's
+  gravity, so it goes higher in a low-g zone (Space Mouse's low-gravity rooms are zones now). **Digging** (D6): `carve`, `fill`. **Bodies** (D4): `bodyVsBody`,
+  opt-in chunk-against-chunk contacts (`CHUNK_CONTACTS`).
+- **Entities** (C3, `engine/14_entities.js`): `defineEntity` / `spawn` / `near` / `overlapping`, a `Character` per entity, sleeping off screen, probe
+  counts; timers, tweens, `fsm`, `useStates` (D10); `seek` / `flee` / `wander`, `findTilePath` (Fjordheim's A* moved here, D9). **World tools** (`engine/15_world.js`):
+  `raycast`, projectiles that move by rays (the starter's bolts are `fireProjectile` now, D7), triggers, `loadTileMap` (tile maps with props, spawns, entities,
+  merged triggers, D8), `reachSearch` / `navPath` / `jumpArc` (Space Mouse's level search made general: the engine can prove a level finishable), `rescaleWorld`
+  (C2: a game without `regenerate` is resampled when the detail changes).
+- **Toys** (`engine/18_toys.js`): verlet `Rope` (collides with the grid, snaps under tension), a `Grapple` hook that swings a `Character` (`step(dt, { rope })`, can rip a weak anchor out), `GhostRecorder` / `spawnGhost` / `spawnEcho` (ghost racers, an echo of your own path), `Rewind` (snapshots of the world, hold to step back; a grid copy per snapshot, not deltas), `drawLine`. The Proving Ground has a hook beam over the ferry pit, rewind on R and a ghost of the best run. The platformer kit: `node tools/pixelite.mjs new <id> --kit platformer` (C12). `engine/api.json` and a lint of game code against it (C11), a phone-sized smoke run and a page size budget (B5, partly).
+- **Look and feel**: sprite `tint`, `flash`, `palette` and animations (`defineAnim`, `drawAnim`, `animFromAsset`, C4); camera rigs (C6: look-ahead, dead zone, rooms,
+  bounds); `cameraShake`.
+- **Input and shell** (`engine/16_actions.js`, `17_ui.js`): **actions** from `game.json` over keys, gamepad (analog sticks) and touch, buttons made from them, multi-touch
+  pinch and long press (C5); settings and saves (C10: `Pixelite.settings`, `save` / `load`, `worldSave` / `worldLoad`); the HUD kit, a message feed and floating texts drawn
+  by the engine (C7, C8; the four games' own loops are deleted); the standard shell: title, pause menu, key rebinding (C9). C1: `detail: { levels: [2] }` offers one
+  detail level.
+- **The Proving Ground** (`games/proving/`, unlisted): a 112 x 24 tile level, left to right: walking, a catwalk and a ladder, ice, belts, a spring over spikes, a ferry
+  and a lift, a low-gravity room, slimes, a brick tower, a dirt wall, the goal. `tests/check.mjs` proves it finishable with the engine's reach search (Node, about a minute);
+  `tests/mechanics.py` runs every station in a page (27 checks, including gamepad, rebinding, the save across a reload and a replay that gives the same world).
+- **Found on the way**: grains landing on a pile could vanish (A, part 1); a slime on the lift rides it up and hurts the hero (the test kills the slimes first).
+- **Not done** (and why): the plan's D2 (liquids, reactions, heat conduction) and E1-E8 (sun from either side, emissive sprites, layers and backdrops, palette lock,
+  zoom, weather) were not started; C12 has only the platformer kit (no top-down, isometric or sandbox kits), B5 has no golden screenshots, A5's `game.json` key list is by hand. The performance packages are in their own branch (see ROADMAP).
+- **Verified**: build, 175 unit tests, the smoke test of seven games in both renderers, `tests/engine_browser.py`, Space Mouse reach and mechanics, Fjordheim's playthrough,
+  the Proving Ground's check and mechanics (three runs).
+
+## 56. The engine plan: liquids, swimming and reactions (D2) (Claude Code, 2026-11-12)
+
+> Package D2 of `docs/ENGINE_PLAN.md`: liquids that fall, spread level and pool, swimming and buoyancy, splashes, light that dims with depth, reactions as data, and a water station for the Proving Ground.
+
+Engine 0.17.0, two new parts: `engine/19_liquid.js` and `engine/20_reactions.js`.
+
+- **Liquids** (`liquid: true`, `viscosity`, `murk`): a liquid is a material in the grid that is not solid (`MAT_SOLID` is 0, `MAT_LIQ` 1), so `solidU`, `Character`, `Body`, particles,
+  `lineClear`, `sunAt`, `raycast` and the light's occlusion pass through it, and it is never structure (`structuralCheck`, `settleIslands`, `breakOff`, `startSlab` and the chunk
+  freeze all ignore it). The cellular step moves a liquid cell down, or along its row to the nearest drop within `12 x RES x (1 - viscosity)^2` cells, one swap with an empty cell at a time, so
+  **its mass is exact** and a poured column settles flat (to within a row) in a second or two at every detail level; a heavier liquid sinks through a lighter one; sand sinks through water
+  (two cells swap) or floats on a denser liquid, grains lighter than the liquid float, droplets rejoin it. A solid taking a liquid's cell (a chunk freezing in a pool, a slab sinking in,
+  sand landing) moves the liquid to the nearest free cell reachable through liquid (`displaceLiquid`, `putSolid`): the level rises, nothing is lost.
+- **Swimming and floating**: `Character` swims while the middle of its box is in a liquid (strokes up, down and across, slow sink, treading water at the surface, a press at the surface hops
+  out; `inLiquid`, `submerged`, `swimming`, `liquid`, `splashed`; options `swim`, `swimSpeed`, `swimRise`, `sink`). `Body` gets buoyancy by the share of its hull under, its density against the
+  liquid's (`dens`, default 1.5), and drag. Fast entries splash (`splash`, droplets in the liquid's colour); fire and sparks are put out.
+- **Light and look**: the sun and ambient light dim per colour channel with the depth of liquid above (a table per liquid), lamps under water keep theirs, a liquid casts no sun shadow; a liquid
+  cell is drawn as a translucent flat colour with a brighter top row and glints, in the shared colour buffers, so WebGL and the 2D canvas show the same. Games without a liquid draw
+  pixel for pixel as before (checked by hashing the finished frame of all seven games in both renderers against the build before the change).
+- **Reactions as data**: `reacts: [{ with, makes, leaves, heat, chance }]` (lava + water makes hot stone and steam, one water cell per stone cell), `flammable` / `ignite` / `burnsTo` (a burning
+  cell heats its neighbours: fire spreads through the `heat` field; a liquid beside it puts it out), `conduct` (heat flows between conducting cells: a metal bar carries a fire across a gap) and
+  `hot` (lava stays hot, a liquid carries its heat). The engine names no material.
+- **Proving Ground**: a pool station between the brick tower and the dirt wall (the goal moved 20 tiles right): a basin four tiles deep with three of water, four coins on the bottom and in the water, steps up
+  the far side, a hint, a splash sound; `check.mjs` swims it (the reach search needs nothing new: its tries of holding jump and a direction already swim to the steps) and proves all 35 coins and the goal can be
+  reached; `mechanics.py` has 11 new checks (falling in with a splash, a soft landing, a slow sink, treading water, diving, every coin, the water drawn blue with a bright top row, light dimmer and bluer at
+  the bottom, swimming across and hopping out).
+- **Tests**: `tests/node/engine-liquid.test.mjs` (mass and a flat pool at three detail levels, drops and blasts, thick against thin, sand and pumice and oil, not solid, no structure, a chunk landing in a pool,
+  swimming, floating bodies) and `engine-reactions.test.mjs` (water and lava, fire across a rock gap, a metal bar and under water, conduction conserves heat, lava lights wood).
+- **Found on the way**: a displaced liquid first went straight up its own column and was lost when a chunk's own top row closed it (fixed: it searches through the liquid); the strokes up at the surface
+  threw the swimmer clear of the water like a jump (holding up with the head out now only treads water); a one-frame jump press at the surface hops low because letting go early cuts a jump (hold it).
+- **Not done**: see ROADMAP (pressure through a bend, waves, a veil over sprites, gas, particles that react, the falling-sand sandbox game).
+
+## 57. The engine plan, speed: stage timers, cached lamps, still frames, smaller pages (Claude Code, 2026-11-12)
+
+> "Please continue the performance work (P1, P3, E2, P2, P6, P4 if justified)... Pixel-identical output is required for P3/E2/P2 (check with Pixelite.test.hash() and frozen-frame screenshots in both renderers for all games)... report briefly with real before/after numbers" (packages P1, P2, P3, P4, P6 and E2 of `docs/ENGINE_PLAN.md`; engine 0.17.1, merged with `feature/a-foundations` 0.17.0: liquids and reactions)
+
+- **P1 measure first.** `Pixelite.perf` (also `probe().perf`, and a box on the F3 key) times `step`, `light`, `scene`, `gameDraw`, `hud`, `present`, their sum `draw`, and `tone` (the last pass of the scene, a part of
+  `scene`); `mean()` / `reset()` for scripts, `sync` to count the wait for the picture. `perfAvg` is the time between frames; these are the work. `tests/perf.py` runs every game, both renderers, RES 2 and 3, 1280 x 800 and
+  2560 x 1440, in a moving scene and an idle one (`--caches off`, `--json`, `--compare`). Headless Chrome has no GPU: `#gl` is SwiftShader, which shares the cores with the page, so its JavaScript stages read
+  higher than `#2d`'s and its `present` says nothing about a real GPU; the numbers below are `#2d`, 1280 x 800. Run to run, and from one page load to the next, a stage varies by 10 to 20% on this machine (other
+  sessions share it): the comparisons below that matter alternate the two things in one page.
+- **What the first measurement said** (the P1 build, before anything else): the lighting is the biggest stage of every game but Fjordheim (`light` 11 to 26 ms at RES 2, 18 to 42 at RES 3 in Regolith, Space Mouse and the showcase; the
+  showcase's two shadowed lamps of radius 90 base units are most of its 21 ms), Fjordheim's terrain pass is its biggest (`scene` 9 ms), and the last pass over the cells (`tone`) is 1.1 to 2.3 ms in every game.
+- **P3 cheaper inner loops.** The occupancy fill is row by row; `colTop` is rescanned only in the 16-column strips where a chunk changed (a **per-chunk revision counter**, bumped in `setC` and `wakeAt`; `worldChanged()` for
+  code that writes `cells[]` by hand while the game runs, `updateSkyline()` is still the full rescan), so a still world, and an isometric game whose world grid is empty, cost nothing; the effect and flicker lights are pooled
+  objects; the terrain pass reads the cell itself from the array. No output changed. **Honest result:** `scene` did not get faster by more than noise (a first version read the back wall's shadow search through the lighting's
+  occupancy buffer instead of `getC` and was 5 to 20% *slower*: reverted, found by timing the P1 `renderScene` against the new one in one process).
+- **E2 lamps cached while nothing changes.** A lamp's cast (the cells its rays reach, the falloff and the distance) is kept and added again; colour and intensity are applied each frame, so flickering lamps stay cached.
+  Valid while no chunk under the lamp's reach changed and the camera is in the same cell; recorded once a lamp stood still for two frames (a moving lamp or camera costs nothing extra). The same numbers in the same order.
+- **P2 still frames.** The sun, ambient and occlusion come back from a copy while the camera cell, the sun and ambient, the shadow-casting bodies' cells and the world under the window and the sun's sweep are the same;
+  the shaded terrain and the light buffers too while the lamps, back wall, exposure, materials and backdrop are the same, nothing in the window is hot or emissive, no crystal or glint is in view and the beat pulse is off.
+- **Measured (E2 + P2), caches off against on, alternating blocks of 25 frames in one page, median of five, `light` in ms:**
+  Space Mouse RES 2 play 13.2 to 1.4, idle 13.7 to 1.3; RES 3 22.6 to 1.8 and 22.3 to 1.8 (the mouse's lamps flicker, the geometry does not change: -90%).
+  Regolith RES 2 idle 5.8 to 0.6 (-90%; RES 3 7.7 to 5.5), moving or burning: no change (the lander's own lights move). Fjordheim 2.7 to 1.4-1.6 at RES 2, 4.4-4.6 to 1.8-2.0 at RES 3 (-41% to -59%).
+  The Proving Ground idle 9.7 to 3.4 and 9.0 to 3.3 (-65%); notfound while the lander burns 2.9 to 0.3. The showcase (meteors and sand land by the big lamps all the time) and the starter (its lamps are on the drone):
+  no change, and where nothing can be reused the bookkeeping costs up to half a millisecond (notfound idle `light` 2.2 to 2.3-2.8). `scene` and `tone` do not move: the terrain snapshot gave nothing measurable at these
+  sizes (copying nine buffers costs about what shading a mostly empty window does), and it is used rarely, since most lamps flicker; it stays because it is exact and tested. **While the camera runs, a lamp is cast
+  again every frame** (the window cuts its rays), so a running platformer gains little from E2; it gains when the mouse stands, talks, dies or sits on the title.
+- **P6 smaller pages.** `game.json` `"engine": [...]` names the optional engine parts a page carries (`chip`, `iso`, `sampler`); a part left out is replaced by a stand-in (`engine/stubs/`) that does nothing when
+  the engine calls it and says what to add when a game does. All seven pages say what they use. `08_music.js` (the beat, `b64buf`, note names) was split out of the Chip so it stays. `build --minify` takes
+  comments and indentation out and nothing else (every line stays where it was, so the `// -----` markers, `PIXELITE_LINE0` and the error lines map unchanged; the build is not minified unless asked). Page sizes
+  in KB, every part / with the `game.json` list / and minified: starter 412 / 325 / 226, notfound 409 / 322 / 224, showcase 409 / 322 / 223, Proving Ground 430 / 343 / 242, Regolith 482 / 411 / 301,
+  Fjordheim 629 / 546 / 420, Space Mouse 690 / 669 / 522. The editor passes the optional map to the same assembler; `engine` is a known `game.json` key.
+- **P4 GPU tone mapping: not done, on the numbers.** The last pass (`tone`) is 1.1 to 2.3 ms at 1280 x 800 in every game (about 100k cells at 2560 x 1440: 2 to 3.5 ms), 5 to 19% of a game's draw and 7 to 14% of a 16.7 ms frame;
+  in WebGL `present` is 0.4 to 0.7 ms of CPU. A shader would save at most that, only in WebGL (the 2D canvas keeps the CPU path), would not be bit for bit the CPU's (so no golden frames across the two), and
+  needs the shading bands, palettes and glints moved into the fragment shader (an L package). What costs most is `light` while the camera runs and `scene`'s terrain pass: P2's snapshots do not reach them, and a GPU
+  path for the whole terrain pass is the thing to try, with a real-GPU measurement first (`tests/perf.py` on a phone and a laptop).
+- **Exact, and tested.** Before the merge, every game's frames (world and sky pixels, `LR/LG/LB/LDX/LDY`, the world hash, the exposure) over 54 frames each, in both renderers at RES 2 and 3, were bit for bit
+  those of the P1 build (24 of 24; a deterministic A/B harness: seeded, eye and beat reset, `Math.random` seeded, `?path=` for the 404 game; the HUD is left out, its toast follows the wall clock), and again for P2 and for
+  the minified pages against the merged build. `tests/engine_cache.py` (every game, both renderers, caches off / on / on with the engine's own audit, through a still stretch, a moving camera, the sun, the ambient light,
+  a block built under a lamp, the back wall written by hand, a material changed, heat, a spark and a blast) and `tests/node/engine-cache.test.mjs` (the counter, the skyline, the occupancy fill, pooled lights, the lamp cache, the
+  base, the audit catching a stale cast, rewind) are in the repository; breaking the back-wall checksum, the heat scan, the emissive scan or rewind's `worldChanged` on purpose makes them fail. The smoke test, `engine_browser.py`,
+  `engine_light.py`, `engine_audio.py`, the 404 test, Space Mouse's mechanics and reach, Fjordheim's playthrough and Regolith's lamp-post and roof tests pass on the merged tree.
+- **What to know.** Code that writes `cells[]` by hand while the game runs calls `worldChanged()` (rewind's restore did not: now it does); the Proving Ground draws its animations from `clockT`, the frame loop's wall-time clock,
+  so a test sets `clockT` with the frame. A test's `Pixelite.test.render(t)` does not.
+- **Not done.** Keeping a lamp's cast across a camera move ("shift and fill the edge"): the window cuts a lamp's rays at its edge, so a lamp partly off screen casts differently from one in view, and the surface buffers
+  stop at the window. A terrain snapshot that survives flickering lamps or crystals (most scenes have them). P4 and P5 (see above).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

@@ -81,16 +81,10 @@ function putLit(cx, cy, code, ar, ag, ab, floor = .1) {
 }
 const lightAtCell = (cx, cy, out) => { const i = cx - L_OX, j = cy - L_OY; if (i < 0 || j < 0 || i >= R.RW || j >= R.RH) { out[0] = out[1] = out[2] = 0; return out; } const k = j * R.RW + i; out[0] = LR[k]; out[1] = LG[k]; out[2] = LB[k]; return out; };
 
-function renderScene(ox, oy, time, drawExtras) {
-  const RW = R.RW, RH = R.RH, n = RW * RH, G = R.wG, Z = R.wZ, SH = R.wShim;
-  if (!cR || cR.length !== n) {
-    cR = new Float32Array(n); cG = new Float32Array(n); cB = new Float32Array(n); cL = new Float32Array(n); vig = new Float32Array(n);
-    for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) { const u = i / RW * 2 - 1, v = j / RH * 2 - 1; vig[j * RW + i] = 1 - .42 * (u * u * .55 + v * v * .8); }
-  }
-  SH.fill(0);
-  const bkN = backShadowOffsets();
-  Beat.step(time);
-  const bp = Beat.pulse();   // 0..1: how hard the music is hitting right now (0 when the pulse is off)
+// Steps 1 and 2 of a frame: emissive things pour light into the buffers, then every terrain cell is shaded. Nothing in it depends on what the frame draws on
+// top, so a still frame can keep its outcome (the still-frame snapshot, below) and skip it. Returns how many of the cells follow the clock (crystals, glints).
+function sceneTerrain(ox, oy, time, bkN, bp) {
+  const RW = R.RW, RH = R.RH, G = R.wG, Z = R.wZ, SH = R.wShim;
   // 1) emissive particles and hot rock pour light into the buffers
   for (let p = 0; p < P.n; p++) {
     const t = P.t[p], ct = t >= PT_CUSTOM ? PTYPES[t - PT_CUSTOM] : null;
@@ -120,21 +114,26 @@ function renderScene(ox, oy, time, drawExtras) {
   }
 
   // 2) terrain (empty cells stay code 0: transparent, so the sky layer shows through them)
+  // (the cell itself is read straight from the array inside the world. The back wall's shadow search stays on getC: reading the lighting's occupancy
+  // buffer through occAt instead measured 5 to 20% slower, a function with more work per call than getC)
+  let anim = 0;
   for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) {
-    const k = j * RW + i, cx = ox + i, cy = oy + j; let m = getC(cx, cy);
+    const k = j * RW + i, cx = ox + i, cy = oy + j, inW = cx >= 0 && cx < W && cy >= 0 && cy < H, ci = inW ? cy * W + cx : -1;
+    let m = inW ? cells[ci] : getC(cx, cy), liq = 0;
+    if (MAT_LIQ[m]) { liq = m; m = EMPTY; anim++; }   // a liquid cell is drawn as what is behind it, then painted over (paintLiquid); its surface glints follow the clock
     const lr = LR[k], lg = LG[k], lb = LB[k];
     let glyph = 0, r = 0, g = 0, b = 0, raw = -1;
     if (m === EMPTY) {
       Z[k] = 0;   // particles and rings always draw over the back wall
-      const bm = cx >= 0 && cx < W && cy >= 0 && cy < H ? backCells[cy * W + cx] : 0;
+      const bm = inW ? backCells[ci] : 0;
       if (bm) {   // the back wall: the light in the air in front of it, dimmer, with a drop shadow from the world cells
         let f = BACK.dim;
-        for (let s = 0; s < bkN; s++) if (getC(cx - BK_OFF[2 * s], cy - BK_OFF[2 * s + 1]) !== EMPTY) { f *= 1 - BACK.shadow * (1 - s / bkN); break; }
+        for (let s = 0; s < bkN; s++) if (MAT_SOLID[getC(cx - BK_OFF[2 * s], cy - BK_OFF[2 * s + 1])]) { f *= 1 - BACK.shadow * (1 - s / bkN); break; }
         const alb = MAT_ALB[bm];
         // a mast-style back wall (girders) shows its joints one shade brighter
         const joint = MAT_STYLE[bm] === 2 && (getBack(cx, cy - 1) === bm || getBack(cx, cy + 1) === bm) && (getBack(cx - 1, cy) === bm || getBack(cx + 1, cy) === bm);
         raw = (.3 * alb[0] * lr + .59 * alb[1] * lg + .11 * alb[2] * lb) * f;
-        shadeCell(bm, alb[0] * lr * f, alb[1] * lg * f, alb[2] * lb * f, lr, lg, lb, texOf(vari[cy * W + cx]), joint ? 1 : 0, _shd);
+        shadeCell(bm, alb[0] * lr * f, alb[1] * lg * f, alb[2] * lb * f, lr, lg, lb, texOf(vari[ci]), joint ? 1 : 0, _shd);
         r = _shd[0]; g = _shd[1]; b = _shd[2]; glyph = SOLID;
       }
     } else {
@@ -142,8 +141,8 @@ function renderScene(ox, oy, time, drawExtras) {
         const a = getC(cx - 1, cy), c = getC(cx + 1, cy), d = getC(cx, cy + 1), ok = q => q !== EMPTY && MAT_STYLE[q] !== 2;
         m = ok(a) ? a : ok(c) ? c : ok(d) ? d : m;
       }
-      const inW = cx >= 0 && cx < W && cy >= 0 && cy < H, ci = inW ? cy * W + cx : -1;
       const alb = MAT_ALB[m], v = inW ? vari[ci] : 77, h = inW ? heat[ci] : 0, s = LSURF[k], st = MAT_STYLE[m];
+      if (st === 3 || (MAT_SHINY[m] > 0 && s === 2)) anim++;   // crystals and glints look different from one moment to the next
       if (s === 1) { const fl = .1 + .13 * LAOD[k]; r = alb[0] * Math.max(lr, fl); g = alb[1] * Math.max(lg, fl); b = alb[2] * Math.max(lb, fl * 1.25); }
       else { r = alb[0] * lr; g = alb[1] * lg; b = alb[2] * lb; }
       if (h > .02) { r += h * 1.35; g += h * h * .6; b += h * h * h * .3; }
@@ -161,6 +160,48 @@ function renderScene(ox, oy, time, drawExtras) {
       Z[k] = raw;
     }
     G[k] = glyph; cR[k] = r; cG[k] = g; cB[k] = b; cL[k] = raw;
+    if (liq) paintLiquid(k, cx, cy, liq, time);
+  }
+  return anim;
+}
+
+// ---------- the still-frame snapshot (04_light.js, stillPlan): the terrain pass's outcome, kept ----------
+// What steps 1 and 2 leave behind: the scene buffers (glyph, depth, colour, brightness) and the light buffers after the glow of hot and glowing things. A
+// still frame copies them back. Not kept while the window holds crystals or glints: they follow the clock, so the pass has to be made again.
+const SNAP = { n: 0, G: null, Z: null, R: null, Gc: null, B: null, L: null, LR: null, LG: null, LB: null };
+function stillSave() {
+  const n = R.RW * R.RH;
+  if (SNAP.n !== n) { SNAP.n = n; SNAP.G = new Uint8Array(n); for (const k of ['Z', 'R', 'Gc', 'B', 'L', 'LR', 'LG', 'LB']) SNAP[k] = new Float32Array(n); }
+  SNAP.G.set(R.wG); SNAP.Z.set(R.wZ); SNAP.R.set(cR); SNAP.Gc.set(cG); SNAP.B.set(cB); SNAP.L.set(cL); SNAP.LR.set(LR); SNAP.LG.set(LG); SNAP.LB.set(LB);
+  stillSavedTerrain();
+}
+function stillRestore() { R.wG.set(SNAP.G); R.wZ.set(SNAP.Z); cR.set(SNAP.R); cG.set(SNAP.Gc); cB.set(SNAP.B); cL.set(SNAP.L); LR.set(SNAP.LR); LG.set(SNAP.LG); LB.set(SNAP.LB); }
+// audit: the snapshot must equal what the full pass just made
+function stillCompare() {
+  if (SNAP.n !== R.RW * R.RH) return;
+  for (let k = 0; k < SNAP.n; k++) {
+    if (SNAP.G[k] !== R.wG[k] || SNAP.Z[k] !== R.wZ[k] || SNAP.R[k] !== cR[k] || SNAP.Gc[k] !== cG[k] || SNAP.B[k] !== cB[k] || SNAP.L[k] !== cL[k] || SNAP.LR[k] !== LR[k] || SNAP.LG[k] !== LG[k] || SNAP.LB[k] !== LB[k]) {
+      CACHE.bad++; STILL.tHave = false; console.warn('the still-frame terrain was stale (cell ' + k + '): something it depends on changed without the engine hearing of it (engine/API.md, Performance)'); return;
+    }
+  }
+}
+
+function renderScene(ox, oy, time, drawExtras) {
+  const RW = R.RW, RH = R.RH, n = RW * RH, G = R.wG, Z = R.wZ, SH = R.wShim;
+  if (!cR || cR.length !== n) {
+    cR = new Float32Array(n); cG = new Float32Array(n); cB = new Float32Array(n); cL = new Float32Array(n); vig = new Float32Array(n);
+    STILL.tHave = false;
+    for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) { const u = i / RW * 2 - 1, v = j / RH * 2 - 1; vig[j * RW + i] = 1 - .42 * (u * u * .55 + v * v * .8); }
+  }
+  SH.fill(0);
+  const bkN = backShadowOffsets();
+  Beat.step(time);
+  const bp = Beat.pulse();   // 0..1: how hard the music is hitting right now (0 when the pulse is off)
+  if (STILL.terrain && !CACHE.audit) stillRestore();
+  else {
+    const anim = sceneTerrain(ox, oy, time, bkN, bp);
+    if (STILL.terrain) stillCompare();   // (audit: the snapshot must equal what was just made)
+    if (STILL.snapTerrain && !anim) stillSave();
   }
 
   // 3) particles, lit by the same buffers
@@ -195,7 +236,7 @@ function renderScene(ox, oy, time, drawExtras) {
 
   // 4) falling chunks, then the game's own objects
   drawChunks();
-  if (drawExtras) drawExtras();
+  if (drawExtras) { const q = performance.now(); drawExtras(); PERF.gd = performance.now() - q; }
 
   // 5) shock rings and floating text
   const band = 1.3 * Math.sqrt(RES);
@@ -213,6 +254,7 @@ function renderScene(ox, oy, time, drawExtras) {
   }
 
   // 6) tone map + vignette → bytes (alpha: is anything in the cell; and the optional bloom bright-pass)
+  const qt = performance.now();
   adaptEye(G, n, time);
   const D = R.wPix, BL = R.bloomPix, bloom = R.bloom, E = EYE.e;
   const bt = .62 - .1 * bp, bg = 460 * (1 + 1.2 * bp);   // the bloom bright-pass: on a drum hit its threshold drops and its gain rises
@@ -223,6 +265,7 @@ function renderScene(ox, oy, time, drawExtras) {
     D[q] = r * 255; D[q + 1] = g * 255; D[q + 2] = b * 255; D[q + 3] = code ? 255 : 0;
     if (bloom) { const on = code > 32; BL[q] = on ? Math.max(0, r - bt) * bg : 0; BL[q + 1] = on ? Math.max(0, g - bt) * bg : 0; BL[q + 2] = on ? Math.max(0, b - bt) * bg : 0; BL[q + 3] = 255; }
   }
+  perfAdd('tone', performance.now() - qt);   // (a part of `scene`: the last pass over every cell, which P4 would move to the GPU)
   renderSky(time);
 }
 

@@ -8,6 +8,7 @@
   "status": "draft",
   "thumbnail": "thumb.png",
   "parts": ["world.js", "drone.js", "main.js"],
+  "engine": [],
   "controls": [
     ["W / Up", "thrust"],
     ["A D / Left Right", "rotate"],

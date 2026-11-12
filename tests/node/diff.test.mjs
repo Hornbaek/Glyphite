@@ -24,7 +24,7 @@ test('random edits round-trip through git apply', () => {
       mkdirSync(join(dir, 'g')); writeFileSync(join(dir, 'g/f.js'), a);
       execFileSync('git', ['init', '-q'], { cwd: dir });
       writeFileSync(join(dir, 'p.diff'), unifiedDiff('g/f.js', a, b));
-      execFileSync('git', ['apply', 'p.diff'], { cwd: dir, stdio: 'pipe' });
+      execFileSync('git', ['-c', 'core.autocrlf=false', 'apply', 'p.diff'], { cwd: dir, stdio: 'pipe' });
       assert.equal(readFileSync(join(dir, 'g/f.js'), 'utf8'), b, `trial ${trial}`);
     } finally { rmSync(dir, { recursive: true, force: true }); }
   }

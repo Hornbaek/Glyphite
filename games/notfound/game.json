@@ -8,6 +8,7 @@
   "status": "playable",
   "head": "head.html",
   "parts": ["world.js", "main.js"],
+  "engine": [],
   "controls": [
     ["W / Up", "burn (about 4 s of fuel)"],
     ["A D / Left Right", "drift sideways"],

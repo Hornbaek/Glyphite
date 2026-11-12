@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Pixelite command line: build the site, scaffold games, serve locally. No dependencies.
 //
-//   node tools/pixelite.mjs build [ids...]        engine + every game → dist/ (the deployable site)
+//   node tools/pixelite.mjs build [ids...] [--minify]   engine + every game → dist/ (the deployable site); --minify (or PIXELITE_MINIFY=1)
+//                                       takes comments and indentation out of the pages (tools/minify.mjs: every line stays where it was)
 //   node tools/pixelite.mjs new <id> [--title T]  scaffold games/<id>/ from templates/starter
 //   node tools/pixelite.mjs list                  the games and their status
 //   node tools/pixelite.mjs serve [--port 8787]   serve dist/ on http://localhost:8787
@@ -23,12 +24,15 @@ import { execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import vm from 'node:vm';
 import { assemble } from './assemble.mjs';
+import { checkAuthor } from './authorcheck.mjs';
+import { minifyPage } from './minify.mjs';
+import { engineApi, checkCalls, gameDeclared } from './apicheck.mjs';
 import { loadAssets, validate as validateArt, artDir } from './art/lib.mjs';
 import { buildText as artPipelineText } from './art.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist');
-const read = p => readFileSync(join(ROOT, p), 'utf8');
+const read = p => readFileSync(join(ROOT, p), 'utf8').replace(/\r\n/g, '\n');   // LF always: a Windows checkout may have CRLF
 const readJSON = p => JSON.parse(read(p));
 const write = (p, s) => { mkdirSync(dirname(p), { recursive: true }); writeFileSync(p, s); };
 const ID_RE = /^[a-z][a-z0-9-]{1,31}$/;
@@ -47,7 +51,9 @@ function gameDirs() {
 
 function loadEngine() {
   const e = readJSON('engine/engine.json');
-  return { ...e, shellCode: read(`engine/${e.shell}`), parts: e.parts.map(name => ({ name, code: read(`engine/${name}`) })) };
+  // optional parts (engine.json "optional"): a page leaves out the ones its game.json "engine" list does not name and carries the stand-in (engine/stubs/)
+  const stubs = Object.fromEntries(Object.values(e.optional || {}).map(([, stub]) => [stub, read(`engine/${stub}`)]));
+  return { ...e, stubs, shellCode: read(`engine/${e.shell}`), parts: e.parts.map(name => ({ name, code: read(`engine/${name}`) })) };
 }
 
 function loadGame(g) {
@@ -161,9 +167,20 @@ function writeWelcome(engine, listing, changes) {
   write(join(DIST, 'welcome/site.json'), JSON.stringify({ engine: engine.version, games, ideas, changes: changes.sections.length }) + '\n');
 }
 
-function build(only) {
+// game.json's "engine": the optional engine parts the page carries (engine.json "optional"); each must be one that exists
+function checkEngineList(engine, g) {
+  const list = g.manifest.engine, known = Object.keys(engine.optional || {});
+  if (list === undefined) return;
+  if (!Array.isArray(list)) die(`${g.path}/game.json: "engine" must be a list of optional engine parts (${known.join(', ')}), or left out for all of them`);
+  const bad = list.filter(k => !known.includes(k));
+  if (bad.length) die(`${g.path}/game.json: unknown engine part ${bad.map(b => `"${b}"`).join(', ')} in "engine" (the optional parts are ${known.join(', ')})`);
+}
+
+const PAGE_BUDGET_KB = 900;   // a game page is one file with everything in it (the biggest today is about 530 KB)
+function build(only, { minify = false } = {}) {
   const engine = loadEngine();
   const games = gameDirs().map(loadGame).filter(g => !only.length || only.includes(g.manifest.id));
+  for (const g of games) checkEngineList(engine, g);
   if (only.length && !games.length) die(`no game called ${only.join(', ')}`);
   const ids = new Set();
   for (const g of games) { if (ids.has(g.manifest.id)) die(`two games use the id "${g.manifest.id}"`); ids.add(g.manifest.id); }
@@ -179,13 +196,19 @@ function build(only) {
   write(join(DIST, 'src/engine/engine.json'), read('engine/engine.json'));
   write(join(DIST, `src/engine/${engine.shell}`), engine.shellCode);
   for (const p of engine.parts) write(join(DIST, `src/engine/${p.name}`), p.code);
+  for (const [name, code] of Object.entries(engine.stubs)) write(join(DIST, `src/engine/${name}`), code);
 
   const listing = existsSync(join(DIST, 'games.json')) && only.length ? JSON.parse(readFileSync(join(DIST, 'games.json'), 'utf8')).games : [];
   for (const g of games) {
     const m = g.manifest, out = join(DIST, 'games', m.id);
     checkNames(engine, g);
-    const page = assemble({ shell: engine.shellCode, engine, manifest: m, head: g.head, parts: g.parts });
+    const api = engineApi().names, declared = gameDeclared(g.parts);
+    for (const p of g.parts) for (const w of checkCalls(`${g.path}/${p.name}`, p.code, api, declared)) console.warn('warning: ' + w);
+    const ac = checkAuthor(g); for (const w of ac.warnings) console.warn('warning: ' + w); if (ac.errors.length) die(ac.errors.join('\n'));
+    let page = assemble({ shell: engine.shellCode, engine, manifest: m, head: g.head, parts: g.parts });
     checkSyntax(page, `${g.path}`);
+    if (minify) { page = minifyPage(page); checkSyntax(page, `${g.path} (minified)`); }
+    if (page.length > PAGE_BUDGET_KB * 1024) die(`${g.path}: the page is ${Math.round(page.length / 1024)} KB, over the ${PAGE_BUDGET_KB} KB budget (one page per game: trim what the game carries, or raise PAGE_BUDGET_KB on purpose)`);
     write(join(out, 'index.html'), page);
     write(join(out, 'game.json'), JSON.stringify(m, null, 2) + '\n');
     let thumb = null;
@@ -213,19 +236,28 @@ function build(only) {
   console.log('SYNTAX_OK');
 }
 
-function scaffold(id, title) {
-  if (!ID_RE.test(id || '')) die('usage: new <id> [--title "Title"]   (id: lower-case letters, digits, dashes; 2-32 chars)');
+// kits: `starter` (a flying cave game, small, every engine feature once) or `platformer` (the Proving Ground: a tile-map level with a hero,
+// slimes, moving platforms, projectiles, the shell, saves and a reach check: delete the stations you do not need)
+function scaffold(id, title, kit = 'starter') {
+  if (!ID_RE.test(id || '')) die('usage: new <id> [--title "Title"] [--kit starter|platformer]   (id: lower-case letters, digits, dashes; 2-32 chars)');
+  if (!['starter', 'platformer'].includes(kit)) die(`no kit called ${kit} (starter or platformer)`);
   const dst = join(ROOT, 'games', id);
   if (existsSync(dst)) die(`games/${id} already exists`);
-  cpSync(join(ROOT, 'templates', 'starter'), dst, { recursive: true });
+  const src = kit === 'platformer' ? join(ROOT, 'games', 'proving') : join(ROOT, 'templates', 'starter'), from = kit === 'platformer' ? 'proving' : 'starter';
+  cpSync(src, dst, { recursive: true, filter: p => !(kit === 'platformer' && /[\\/](tests|NOTES\.md)$/.test(p)) });
+  if (kit === 'platformer') writeFileSync(join(dst, 'NOTES.md'), `# ${id}: notes
+
+Started from the platformer kit (games/proving, the Proving Ground: read its NOTES.md for what each file holds and which engine feature each station shows).
+Keep this file current: the next Claude session reads it before changing the game.
+`);
   const mp = join(dst, 'game.json'), m = JSON.parse(readFileSync(mp, 'utf8'));
   const order = Math.max(0, ...gameDirs().filter(g => g.base === 'games' && g.name !== id).map(g => readJSON(`${g.path}/game.json`).order || 0)) + 1;
   Object.assign(m, { id, title: title || id.replace(/(^|-)(\w)/g, (_, d, c) => (d ? ' ' : '') + c.toUpperCase()), listed: true, status: 'draft', order,
-    tagline: 'A new Pixelite game (draft)', description: 'Copied from the starter; not made yet.' });
+    tagline: 'A new Pixelite game (draft)', description: `Copied from the ${kit} kit; not made yet.` });
   delete m.thumbnail; rmSync(join(dst, 'thumb.png'), { force: true });   // make one with tools/thumbnail.py
   writeFileSync(mp, JSON.stringify(m, null, 2) + '\n');
-  for (const f of readdirSync(dst)) if (f.endsWith('.js')) { const p = join(dst, f); writeFileSync(p, readFileSync(p, 'utf8').replace(/id: 'starter'/g, `id: '${id}'`)); }
-  console.log(`created games/${id}/ from templates/starter
+  for (const f of readdirSync(dst)) if (f.endsWith('.js')) { const p = join(dst, f); writeFileSync(p, readFileSync(p, 'utf8').replace(new RegExp(`id: '${from}'`, 'g'), `id: '${id}'`)); }
+  console.log(`created games/${id}/ from the ${kit} kit
 next:
   1. edit games/${id}/game.json (title, tagline, description, controls, tunables)
   2. make the game in games/${id}/*.js (see engine/API.md and the pixelite-new-game skill)
@@ -255,8 +287,8 @@ function serve(port) {
 
 const [cmd, ...args] = process.argv.slice(2);
 const flag = (name, def) => { const i = args.indexOf(name); if (i < 0) return def; const v = args[i + 1]; args.splice(i, 2); return v; };
-if (cmd === 'build') build(args);
-else if (cmd === 'new') { const title = flag('--title'); scaffold(args[0], title); }
+if (cmd === 'build') { const i = args.indexOf('--minify'); if (i >= 0) args.splice(i, 1); build(args, { minify: i >= 0 || process.env.PIXELITE_MINIFY === '1' }); }
+else if (cmd === 'new') { const title = flag('--title'); scaffold(args[0], title, flag('--kit') || 'starter'); }
 else if (cmd === 'list') list();
 else if (cmd === 'serve') serve(+flag('--port', 8787));
 else { console.log(readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').slice(1, 7).map(l => l.replace(/^\/\/ ?/, '')).join('\n')); process.exit(cmd ? 1 : 0); }

@@ -111,7 +111,7 @@ function stepPerson(p, dt) {
       if (p.task === 'seek') { if (goBeside(p, b.i, b.j, b.w, b.h)) { p.task = 'walk'; p.doing = `building the ${BUILDINGS[b.type].name.toLowerCase()}`; } else wait(p, 'cannot reach the building site'); return; }
       if (p.task === 'work') {
         faceTo(p, b.i, b.j); b.progress += dt * sp / BUILDINGS[b.type].work; p.anim = 'work';
-        if (Math.random() < dt * 3) chips(b.i + b.w / 2, b.j + b.h / 2, [.75, .6, .4]);
+        if (rnd() < dt * 3) chips(b.i + b.w / 2, b.j + b.h / 2, [.75, .6, .4]);
         if (b.progress >= 1) { finishBuilding(b); p.anim = null; backToWork(p); }
       }
       return;
@@ -133,14 +133,14 @@ function stepPerson(p, dt) {
         const [ti, tj] = p.target; faceTo(p, ti, tj);
         if (p.mode === 'plant') {
           if ((p.t += dt * sp) > 2) {
-            if (!thingAt(ti, tj)) addTree(ti, tj, Math.random() < .5 ? 'pine' : 'birch', 0);
+            if (!thingAt(ti, tj)) addTree(ti, tj, rnd() < .5 ? 'pine' : 'birch', 0);
             p.logs = 0; p.task = 'seek'; p.mode = null;
           }
           return;
         }
         if (thingAt(ti, tj) !== T_TREE) { p.task = 'seek'; return; }
         p.anim = 'chop';
-        if (Math.random() < dt * 4) chips(ti + .5, tj + .5, [.8, .7, .5]);
+        if (rnd() < dt * 4) chips(ti + .5, tj + .5, [.8, .7, .5]);
         if ((p.t += dt * sp) > 4) {
           thing[tidx(ti, tj)] = T_STUMP; Sfx.thud(4); p.anim = null;
           p.carry = 'log'; p.task = goBeside(p, b.i, b.j, b.w, b.h) ? 'carry' : 'deliver'; p.doing = 'carrying a log home';
@@ -179,7 +179,7 @@ function stepPerson(p, dt) {
         // in autumn and winter the sawyer leaves the hearth its firewood
         if (HOME.stock.wood <= (HOME.season >= 2 ? 6 : 0)) { p.doing = HOME.season >= 2 ? 'leaving the logs for the fire' : 'waiting for logs'; p.anim = null; return; }
         p.doing = 'sawing planks'; p.anim = 'work';
-        if (Math.random() < dt * 5) chips(b.i + 1, b.j + 1, [.9, .8, .6]);
+        if (rnd() < dt * 5) chips(b.i + 1, b.j + 1, [.9, .8, .6]);
         if ((p.t += dt * sp) > 6) { p.t = 0; HOME.stock.wood--; HOME.stock.planks++; floatText(p, '+1 PLANK', 'planks'); }
       }
       return;
@@ -235,7 +235,7 @@ function breakStone(p, dt, sp) {
   if (p.task === 'work') {
     const r = p.target; faceTo(p, r.i, r.j); p.anim = 'chop';
     if (r.stone <= 0) { p.anim = null; p.task = 'seek'; return false; }
-    if (Math.random() < dt * 4) chips(r.i + .5, r.j + .5, [.7, .7, .7]);
+    if (rnd() < dt * 4) chips(r.i + .5, r.j + .5, [.7, .7, .7]);
     if ((p.t += dt * sp) > 4) {
       p.anim = null;
       if (--r.stone <= 0) { const k = tidx(r.i, r.j); thing[k] = 0; ref[k] = -1; }
@@ -247,7 +247,7 @@ function breakStone(p, dt, sp) {
 }
 function wait(p, why) { p.doing = why; p.task = 'seekLater'; p.t = 0; }
 function idleNear(p, b, why) {
-  const s = b ? [b.i, b.j, b.w, b.h] : store(), spot = nearTile(s[0] + (s[2] >> 1), s[1] + (s[3] >> 1), 3, (i, j) => walkable(i, j) && Math.random() < .3);
+  const s = b ? [b.i, b.j, b.w, b.h] : store(), spot = nearTile(s[0] + (s[2] >> 1), s[1] + (s[3] >> 1), 3, (i, j) => walkable(i, j) && rnd() < .3);
   p.doing = why;
   if (spot && goTo(p, (i, j) => i === spot[0] && j === spot[1])) { p.task = 'walk'; p.idleWalk = true; } else { p.task = 'rest'; p.t = 0; }
 }
@@ -272,8 +272,8 @@ function newAnimals() {
   ANIMALS = []; RAVENS = [];
   const add = (kind, n, test, near) => {
     for (let k = 0; k < n; k++) {
-      const s = nearTile(near[0] + ((Math.random() * 6) | 0) - 3, near[1] + ((Math.random() * 6) | 0) - 3, 6, (i, j) => walkable(i, j) && test(i, j));
-      if (s) ANIMALS.push({ kind, u: s[0] + .5, v: s[1] + .5, ti: s[0], tj: s[1], path: [], t: Math.random() * 4, dx: 1, dy: 1, phase: 0, leaving: false });
+      const s = nearTile(near[0] + ((rnd() * 6) | 0) - 3, near[1] + ((rnd() * 6) | 0) - 3, 6, (i, j) => walkable(i, j) && test(i, j));
+      if (s) ANIMALS.push({ kind, u: s[0] + .5, v: s[1] + .5, ti: s[0], tj: s[1], path: [], t: rnd() * 4, dx: 1, dy: 1, phase: 0, leaving: false });
     }
   };
   add('sheep', 3, (i, j) => groundAt(i, j) === G_MEADOW || groundAt(i, j) === G_GRASS, [LANDING[0] + 3, LANDING[1] - 6]);
@@ -290,19 +290,19 @@ function stepAnimals(dt) {
   for (const a of ANIMALS) {
     if (a.path.length) { walk(a, dt, a.kind === 'deer' ? .9 : .45); continue; }
     if ((a.t -= dt) > 0) continue;
-    a.t = 3 + Math.random() * 5;
+    a.t = 3 + rnd() * 5;
     if (a.leaving) {
       a.path = findPath(a.ti, a.tj, (i, j) => i === N - 1 || j === 0) || [];
       if (!a.path.length) a.gone = true;
       continue;
     }
     const want = a.kind === 'deer' ? (i, j) => DIRS.some(([p, q]) => thingAt(i + p, j + q) === T_TREE) : (i, j) => groundAt(i, j) !== G_SAND;
-    const s = nearTile(a.ti + ((Math.random() * 7) | 0) - 3, a.tj + ((Math.random() * 7) | 0) - 3, 2, (i, j) => walkable(i, j) && want(i, j));
+    const s = nearTile(a.ti + ((rnd() * 7) | 0) - 3, a.tj + ((rnd() * 7) | 0) - 3, 2, (i, j) => walkable(i, j) && want(i, j));
     if (s) a.path = findPath(a.ti, a.tj, (i, j) => i === s[0] && j === s[1]) || [];
   }
   ANIMALS = ANIMALS.filter(a => !(a.leaving && (a.gone || (!a.path.length && (a.ti === N - 1 || a.tj === 0)))));
   // a raven crosses the sky now and then
-  if (Math.random() < dt / 25) { const y = cam.y + R.rows * ASPECT * (.1 + Math.random() * .4); RAVENS.push({ x: cam.x - 10 * RES, y, vx: 26 * RES, t: 0 }); if (Math.random() < .4) Sfx.tone(380, .12, .03, 'sawtooth'); }
+  if (rnd() < dt / 25) { const y = cam.y + R.rows * ASPECT * (.1 + rnd() * .4); RAVENS.push({ x: cam.x - 10 * RES, y, vx: 26 * RES, t: 0 }); if (rnd() < .4) Sfx.tone(380, .12, .03, 'sawtooth'); }
   for (const r of RAVENS) { r.x += r.vx * dt; r.y += Math.sin(r.t * 2) * 3 * RES * dt; r.t += dt; }
   RAVENS = RAVENS.filter(r => r.x < cam.x + R.cols + 20 * RES);
 }

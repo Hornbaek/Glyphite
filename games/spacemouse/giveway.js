@@ -12,7 +12,7 @@ function crumbleAt(c) {
   const row = Math.round(c.y / ASPECT), hw = c.o.w / 2;
   for (let cx = Math.floor(c.x - hw) - 1; cx <= Math.floor(c.x + hw) + 1; cx++) {
     const i = row * W + cx;
-    if (cx >= 0 && cx < W && cells[i] === RUST && !CRUMBLE.has(i) && !SEC.bracketCells.has(i)) { CRUMBLE.set(i, .32 + Math.random() * .12); if (Math.random() < .3) Sfx.burst(.35, 500, 110, .16, 'lowpass', 3); }
+    if (cx >= 0 && cx < W && cells[i] === RUST && !CRUMBLE.has(i) && !SEC.bracketCells.has(i)) { CRUMBLE.set(i, .32 + rnd() * .12); if (rnd() < .3) Sfx.burst(.35, 500, 110, .16, 'lowpass', 3); }
   }
 }
 function stepCrumble(dt) {
@@ -20,15 +20,15 @@ function stepCrumble(dt) {
   const S = RES, spread = [];
   for (const [i, t] of CRUMBLE) {
     const cx = i % W, cy = (i / W) | 0;
-    if (t - dt > 0) { CRUMBLE.set(i, t - dt); if (Math.random() < dt * 4) spawnP(PT_DUST, cx + .5, (cy + 1) * ASPECT, rr(-1, 1) * S, rr(1, 4) * S, rr(.4, .8), pick(".,"), RUST); continue; }
+    if (t - dt > 0) { CRUMBLE.set(i, t - dt); if (rnd() < dt * 4) spawnP(PT_DUST, cx + .5, (cy + 1) * ASPECT, rr(-1, 1) * S, rr(1, 4) * S, rr(.4, .8), pick(".,"), RUST); continue; }
     CRUMBLE.delete(i);
     const m = cells[i], to = CRUMBLES_TO[m];
     if (!to) continue;
     setC(cx, cy, to);
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const j = (cy + dy) * W + cx + dx; if (cells[j] === m && !CRUMBLE.has(j) && !SEC.bracketCells.has(j)) spread.push(j); }
   }
-  for (const j of spread) CRUMBLE.set(j, .03 + Math.random() * .09);
-  if (spread.length && Math.random() < .15) Sfx.burst(.25, 900, 150, .12, 'lowpass', 2);
+  for (const j of spread) CRUMBLE.set(j, .03 + rnd() * .09);
+  if (spread.length && rnd() < .15) Sfx.burst(.25, 900, 150, .12, 'lowpass', 2);
 }
 
 // a blast (a shorted cat-bot) within about two tiles of a cracked wall sets the whole panel going
@@ -36,7 +36,7 @@ function crackWalls(x, y, R) {
   const r = R + 2 * TILE * RES, cx0 = Math.floor(x), cy0 = Math.floor(y / ASPECT);
   for (let cy = cy0 - Math.ceil(r / ASPECT); cy <= cy0 + Math.ceil(r / ASPECT); cy++) for (let cx = Math.floor(cx0 - r); cx <= cx0 + r; cx++) {
     const i = cy * W + cx;
-    if (cx >= 0 && cy >= 0 && cx < W && cy < H && cells[i] === WEAK && !CRUMBLE.has(i) && Math.hypot(cx + .5 - x, (cy + .5) * ASPECT - y) < r) CRUMBLE.set(i, .1 + Math.random() * .25);
+    if (cx >= 0 && cy >= 0 && cx < W && cy < H && cells[i] === WEAK && !CRUMBLE.has(i) && Math.hypot(cx + .5 - x, (cy + .5) * ASPECT - y) < r) CRUMBLE.set(i, .1 + rnd() * .25);
   }
 }
 
@@ -76,10 +76,10 @@ function stepGantries(dt) {
   for (const g of SEC.gantries) {
     if (g.t < 0 || g.fallen) continue;
     g.t -= dt;
-    if (Math.random() < dt * 14) {   // the brackets groan and shed rust
-      const [bx, by] = g.brackets[(Math.random() * g.brackets.length) | 0];
-      spawnP(PT_DUST, (bx + Math.random()) * SEC.tw, (by + Math.random()) * SEC.th * ASPECT, rr(-3, 3) * S, rr(1, 6) * S, rr(.4, .9), pick(".,'"), RUST);
-      if (Math.random() < .3) spawnP(PT_SPARK, (bx + .5) * SEC.tw, (by + .5) * SEC.th * ASPECT, rr(-8, 8) * S, rr(-6, 2) * S, rr(.2, .5), pick("'*"), 0);
+    if (rnd() < dt * 14) {   // the brackets groan and shed rust
+      const [bx, by] = g.brackets[(rnd() * g.brackets.length) | 0];
+      spawnP(PT_DUST, (bx + rnd()) * SEC.tw, (by + rnd()) * SEC.th * ASPECT, rr(-3, 3) * S, rr(1, 6) * S, rr(.4, .9), pick(".,'"), RUST);
+      if (rnd() < .3) spawnP(PT_SPARK, (bx + .5) * SEC.tw, (by + .5) * SEC.th * ASPECT, rr(-8, 8) * S, rr(-6, 2) * S, rr(.2, .5), pick("'*"), 0);
     }
     if (g.t > 0) continue;
     g.fallen = true;
@@ -87,7 +87,7 @@ function stepGantries(dt) {
       const cx = i % W, cy = (i / W) | 0, gx = Math.floor(cx / SEC.tw), gy = Math.floor(cy / SEC.th);
       if (!g.brackets.some(([x, y]) => x === gx && y === gy)) continue;
       setC(cx, cy, EMPTY);
-      if (Math.random() < .25) spawnGrain(cx + .5, (cy + .5) * ASPECT, rr(-4, 4) * S, rr(-2, 3) * S, FLAKES);
+      if (rnd() < .25) spawnGrain(cx + .5, (cy + .5) * ASPECT, rr(-4, 4) * S, rr(-2, 3) * S, FLAKES);
     }
     Sfx.burst(.6, 300, 60, .4, 'lowpass', 4); Sfx.burst(.3, 2400, 600, .2, 'bandpass', 3);
     FX.shake = Math.min(1, FX.shake + .4);
@@ -102,15 +102,10 @@ function startGantry(g) {
 }
 
 // ---------- low gravity ----------
-// Inside a sector's lowG rectangles ([x0, y0, x1, y1] in tiles) gravity is halved and jumps go twice as high (same launch
+// Inside a sector's lowG rectangles ([x0, y0, x1, y1] in tiles) gravity is halved (an engine gravity zone, made in buildSector) and jumps go twice as high (same launch
 // speed): the gravity generator is failing.
 function lowGravityAt(x, y) {
   const z = SEC.def.lowG; if (!z) return false;
   const tx = x / SEC.tw, ty = y / ASPECT / SEC.th;
   return z.some(([x0, y0, x1, y1]) => tx >= x0 && tx < x1 + 1 && ty >= y0 && ty < y1 + 1);
-}
-function applyGravityZone(c, base) {
-  const low = lowGravityAt(c.x, c.y - c.o.h / 2);
-  c.o.gravity = low ? G * .5 : 0; c.o.jump = base * (low ? 2 : 1);
-  return low;
 }

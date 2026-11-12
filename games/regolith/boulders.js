@@ -4,7 +4,7 @@ function makeBoulder(x, y, r) {
   const hull = [], n = Math.max(10, Math.round(r * 4));
   for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; hull.push({ x: Math.cos(a) * r, y: Math.sin(a) * r, kind: 0 }); }
   const m = (r / RES) * (r / RES) * .6, b = new Body(x, y, m, .5 * m * r * r, hull);
-  b.r = r; b.seed = (Math.random() * 1000) | 0; b.sleep = false; b.rest = 0; b.dead = false;
+  b.r = r; b.seed = (rnd() * 1000) | 0; b.sleep = false; b.rest = 0; b.dead = false;
   return b;
 }
 function spawnBoulders(rng) {
