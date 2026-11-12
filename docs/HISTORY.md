@@ -1232,6 +1232,50 @@ Engine 0.17.0, two new parts: `engine/19_liquid.js` and `engine/20_reactions.js`
 - **Not done.** Keeping a lamp's cast across a camera move ("shift and fill the edge"): the window cuts a lamp's rays at its edge, so a lamp partly off screen casts differently from one in view, and the surface buffers
   stop at the window. A terrain snapshot that survives flickering lamps or crystals (most scenes have them). P4 and P5 (see above).
 
+## 58. The engine plan, the look: sun from either side, layers, glowing sprites, a palette, zoom, weather and the time of day (Claude Code, 2026-11-12)
+
+> "Just continue where it left off" (the next session of `docs/ENGINE_PLAN.md`, step 1: take the look branch, finish E3 and E4, then E6, E7, E8 and show them in the Proving Ground; engine 0.18.0). The look branch
+> (`worktree-agent-a276acf83fb7dbba3`) had E1 and E5 done and E3 / E4 written but "not verified". It was made before PR 48 was squash-merged, so its three look commits were cherry-picked onto `main` as
+> `feature/look` instead of merging `main` into it (a merge would have conflicted on all of PR 48's history).
+
+- **E1 the sun from either side.** `setSun(angle)`: 1..89 is the left half of the sky, 91..179 the right (90 is taken as 89); the sweep and `sunAt` mirror, and a mirrored world with a mirrored sun gives the mirrored light bit for bit
+  (`engine-look.test.mjs`). **E5 layers.** A front pass after `GAME.draw` (front props, entities with `front: true`, `drawFront`) so a character walks behind grass; `addBackdrop({ parallax, horizon, paint })`, up to three
+  layers between the sky and the world on the sky layer's sub-cell technique in both renderers, and `underground: [r, g, b]` for a cave with no stars.
+- **E3 glowing sprites (finished and verified).** A sprite's `emit` layer: glowing pixels are drawn unlit and pour light into the next frame's buffers; `drawSprite(..., { emit })` switches a lamp off or flickers it;
+  `markSpriteDyn(..., { blocksLamps: true })` makes a sprite cast a shadow from a lamp. **E4 back-wall shadows per light (finished and verified).** `setBackdrop({ lamps: true })`: the back wall's drop shadow falls away from the lamps
+  that light each cell (a table of 32 directions, blended with `dir` where no lamp reaches) instead of one way for the whole screen. The WIP had no E4 test: `engine_look.py` now has one (a lamp to the right of a pillar: the left
+  of the pillar is shaded, the right is lit, and with the lamp out of reach both ways draw the same wall). The three names it added were in neither `api.json` nor `internal.json` (two unit tests failed): added.
+- **E6 a screen palette and post effects.** `setPost({ palette, dither, vignette, bloom, scanlines })`. A palette of 2 to 255 colours locks the world, the backdrops and the sky (not the HUD) to the nearest colour (the redmean
+  distance, a 6-bit-a-channel lookup built as colours turn up), an optional world-anchored Bayer dither so a gradient is a pattern that does not swim when the camera moves, a vignette that is a number (the old .42 is the
+  default), `bloom: false` on top of the player's own setting, and scanlines (a thin line at the bottom of each cell row, fixed on the screen, in the shader and in the 2D presenter, found equal to the pixel in both).
+  It works on the bytes both renderers are handed, so 2D and WebGL agree. Nothing changes until it is called: switching an option off again gives the old picture back, pixel for pixel (tested for the palette, the vignette,
+  the scanlines).
+- **E7 zoom.** `setZoom(z, at)`, `getZoom()`, `zoomStep(dir)` and `Pixelite.run({ zoom: { min, max, default, wheel, pinch } })`: the cell's width in device pixels is `cw1 * z`, rounded to whole pixels so it stays crisp (the zoom you
+  get is the nearest the pixels allow; `getZoom()` says what it came to), applied by the same resize that makes the view's buffers. The point of the picture at `at` stays where it is (the pointer, for the wheel), a camera that
+  follows something keeps following it, the physics and the detail level are not touched, the limits are .5 to 4 (a 2 pixel cell is the smallest). The wheel (in notches of 100) and a pinch drive it for a game that asks, also while paused.
+  Measured in both renderers: a 12 cell pillar is 48, 96, 144 and 24 pixels wide at 1, 2, 3 and .5, stays in the middle, and is the same width again back at 1. **Cost:** zooming out lights and draws more cells (four times as many at .5).
+- **E8 weather, wind, fog and the time of day** (a new part, `engine/21_weather.js`). `setTimeOfDay(hour, { sunrise, sunset, rate, horizon, sky, ambient, sun })` drives the sun (rising on the left, setting on the right, red at the
+  horizon and white overhead, off at night), the ambient light, the sky gradient and the stars, and can run the clock itself; `setSkyGradient({ top, horizon, stars, at })` is the sky layer's base colour on its own;
+  `setWeather('rain' | 'snow', { amount, pile })` is an emitter above the view (rain falls in short streaks, takes heat out of what it hits, splashes and ends in a liquid; snow drifts; a `pile` material turns a share of the drops into
+  cells that the sand and liquid rules settle); `setWind(speed, gust)` pulls smoke, vapour, dust, the weather and any particle type with a `wind` coupling toward a speed; `setFog({ colour, density, ground })` is a veil lit by the scene
+  (dark at night), thicker over the backdrops and the sky. Particle types got `onHit`, `onLiquid` and `wind`. The sky, the backdrops and the fog's colour are cached layers keyed on what they depend on, so a slow day costs a rebuild
+  only when a colour has moved by a sixty-fourth. No particle type is made until a game calls `setWeather`.
+- **Looked at, not only measured.** The pictures of a day, a dusk, a night and a foggy rain were rendered and looked at: the first sunset had its stars out while the sky was still orange (stars now fade in over the hour after
+  sunset), the sunset's warm band was hidden behind the ground (the gradient's horizon is at the bottom of the screen: `at` / `horizon` put it where the ground is), and rain as one pixel looked like snow (a second pixel right
+  behind it makes a streak).
+- **The Proving Ground shows it** (`games/proving/look.js`): two layers of hills behind the level, grass in the front pass that the hero walks behind and that leans with the wind, the torches' flames glowing (emit), the mouse wheel
+  zooming, and seven live tunables, all off by default so the level plays and looks as it did (the hills and grass are always there): `daylight`, `hour`, `dayRate`, `weather` (rain / snow that piles), `wind`, `fog`, `look` (four
+  greens with a dither / a CRT). The torches burn brighter at night.
+- **Tests.** 32 unit tests in `engine-look.test.mjs` (E1, E3 to E8) and `tests/engine_look.py` (82 checks of the pictures in each renderer, 164 in all: shadows swinging from one side to the other, the pillar's width at every
+  zoom, the palette, fog, rain, snow piling...). `npm test` 246, `engine_cache`, `engine_browser`, `engine_light`, `engine_look`, `smoke --all` and the phone smoke pass; the level check and the Proving Ground's mechanics pass.
+- **Two flaky tests found and fixed on the way.** `engine-reactions.test.mjs` ("fire spreads through wood ...") failed 2 runs in 40 on the unchanged E7 commit too: `hotWorld()` never seeded the random numbers (seeded now: 0 in 40).
+  The Proving Ground's pool check ("the top row of the water is brighter than the row under it") read the water at a fixed row, which is the surface only when the water is still: after the hero has thrashed about in the pool
+  it can be a row higher, and the check failed 2 runs in 17 once the demo was in (the commit before it: 0 in 10; which of the additions made the sloshing show was not separated). It finds the first water cell of the column now: 0 in 20.
+- **What to know.** `GAME.stars` is not in the sky's cache key (the sky is rebuilt when the exposure, the camera or a colour changes, not when the star density does): a game that changes it at run time should reset `skyKey = ''`
+  (the tunable switch in the Proving Ground changes the gradient, which rebuilds it). Fog and a palette change only drawn cells: the plain sky has no cells to tint until a gradient or a painter gives it some.
+- **Not done.** Pressure in liquids, waves, gas as a material (D2's list). Wind on structures and bodies (it moves particles only). A palette made from a game's `art/` master palette automatically. Weather that dims the sun
+  (an overcast), thunder and lightning, rain that wets materials. Key-driven zoom (the wheel and a pinch only). Real-GPU timings of the post effects and of zoomed-out views (`tests/perf.py` on a phone).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

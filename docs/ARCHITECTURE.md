@@ -369,11 +369,22 @@ path.
 6. Tone map `tone(c × E) = 1 - exp(-1.7·c·E)` and vignette into bytes, plus the bloom bright-pass. `E` is the exposure of
    the eye adaptation (`adaptEye`): the geometric mean luminance of the visible cells is measured *before* the tone map (so
    exposure cannot feed back into its own measurement) and `EYE.e` eases toward `key / mean` (to the power of the strength,
-   clamped), faster down than up. Then `renderSky(time)` rebuilds the sky layer when needed.
+   clamped), faster down than up. The vignette is `POST.vignette` (default .42). Then, when a game asked for them, the **fog** (`fogLayer`, 21_weather.js) mixes the finished bytes toward
+   its colour, which `fogPrep(E)` made from the scene's own light through the same tone curve, and the **palette lock** (`postLock`, `setPost`) snaps every drawn pixel to the nearest palette colour
+   (with an optional world-anchored Bayer dither); the bloom's bright-pass was taken before both. Then `renderSky(time)` rebuilds the sky layer and `renderBackdrops(time)` the backdrop layers when needed,
+   each through the same fog and palette lock. Scanlines are not in the buffers: both presenters draw them (a thin line at the bottom of each cell row, fixed on the screen), the shader and the 2D canvas alike.
 
 The sky has stars from a hash (density `GAME.stars`) and whatever the game paints through
-`GAME.skyBegin` / `GAME.sky`. Regolith paints the Earth: an ellipse, lit from the same sun, with
+`GAME.skyBegin` / `GAME.sky`; under both, `setSkyGradient` (and `setTimeOfDay` through it) gives it a base colour from the top of the screen to a chosen row, and the stars show on it as bright as the hour
+lets them (`SKYG.stars`). The layer's cache key carries `POST.rev`, `SKYG.rev` and the fog's colour; it does not carry the star density. Regolith paints the Earth: an ellipse, lit from the same sun, with
 continents and clouds from fbm noise, turning slowly; its night side hides the stars behind it.
+
+**Zoom** is a factor in `renderResize` (05_render.js): the cell is `cw1 * R.zoom` device pixels (`cw1`: what the detail level and the screen's width give), rounded to whole pixels and never below 2, and
+`R.cols` / `R.rows` follow, exactly as for a window resize, so every buffer the view owns is made again and nothing else has to know. `setZoom` (11_loop.js) keeps the point the game names where it was by
+moving the camera across the resize.
+
+**Weather** (`engine/21_weather.js`) steps with the world (`stepWeather` in `stepWorld`): the clock first, then an emitter that spawns rain and snow particles above the view; wind is a coupling in `stepParticles`;
+a particle type's `onHit` and `onLiquid` end a drop, which is how rain cools a cell, splashes, and piles up as cells (`deposit`) that the sand and liquid rules then take over.
 
 The sky layer is rebuilt when it has scrolled a whole cell, once a second, when the quantised exposure changes, and, when
 something needs it, about 5-8 times a second: stars twinkle (an atmosphere: a per-star sine) and are dimmed by *light
