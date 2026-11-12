@@ -11,6 +11,11 @@
    "params": null,
    "part": "04_light.js"
   },
+  "_bkKey": {
+   "kind": "value",
+   "params": null,
+   "part": "06_scene.js"
+  },
   "_camT": {
    "kind": "value",
    "params": null,
@@ -311,7 +316,17 @@
    "params": null,
    "part": "06_scene.js"
   },
+  "backShadowLamp": {
+   "kind": "function",
+   "params": 5,
+   "part": "06_scene.js"
+  },
   "backShadowOffsets": {
+   "kind": "function",
+   "params": 0,
+   "part": "06_scene.js"
+  },
+  "backShadowTable": {
    "kind": "function",
    "params": 0,
    "part": "06_scene.js"
@@ -340,6 +355,11 @@
    "kind": "function",
    "params": 2,
    "part": "16_actions.js"
+  },
+  "BK_DIRS": {
+   "kind": "value",
+   "params": null,
+   "part": "06_scene.js"
   },
   "BK_OFF": {
    "kind": "value",

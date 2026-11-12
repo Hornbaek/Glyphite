@@ -252,12 +252,45 @@ def e3_glow(p, mode):
     b.close()
 
 
+def e4_back_shadows(p, mode):
+    b, pg, errs = boot(p, mode)
+    pg.evaluate('LT.bare()')
+    g = pg.evaluate('H - 40')
+    # a rock pillar standing in front of a back wall, lit only by a lamp to its right whose light goes through the rock (shadow: false), so any difference between
+    # the two ways of shading comes from the back wall's drop shadow alone
+    y = g - 20
+    pg.evaluate(f"""(() => {{
+      setSun(null); setAmbient([.3, .3, .36]);
+      LT.block(170, {g} - 45, 186, {g});
+      for (let y = {g} - 80; y < {g}; y++) for (let x = 0; x < W; x++) if (cells[y * W + x] === 0) backCells[y * W + x] = LT.rock;
+      window.LT.lampX = 215;
+      GAME.lights = (t, out) => out.push({{ x: LT.lampX, y: {y}, r: 90, c: [1, 1, 1], I: 1.2, shadow: false }});
+      LT.frame(4); }})()""")
+    def cells(lamps):
+        pg.evaluate(f'setBackdrop({{ lamps: {str(lamps).lower()} }}); LT.frame(4)')
+        img = shot(pg)
+        return lum(px(img, pg, 169, y)), lum(px(img, pg, 186, y))   # the wall just left of the pillar and just right of it
+    (l_off, r_off), (l_on, r_on) = cells(False), cells(True)
+    check(f'E4 {mode}: the fixed direction shades the wall right of the pillar, not the left (left {l_off:.0f}, right {r_off:.0f})', r_off < .8 * l_off, (l_off, r_off))
+    check(f'E4 {mode}: with lamps the shadow falls away from the lamp: the left of the pillar is shaded (left {l_on:.0f} against {l_off:.0f})', l_on < .8 * l_off, (l_off, l_on))
+    check(f'E4 {mode}: and the right, toward the lamp, is lit (right {r_on:.0f} against {r_off:.0f})', r_on > 1.25 * r_off, (r_off, r_on))
+    pg.evaluate('LT.lampX = 400')   # a lamp that does not reach the pillar: both ways of shading must then agree
+    f_off, f_on = cells(False), cells(True)
+    check(f'E4 {mode}: where no lamp reaches, both ways draw the same wall (off {f_off[0]:.0f}/{f_off[1]:.0f}, on {f_on[0]:.0f}/{f_on[1]:.0f})', abs(f_off[0] - f_on[0]) < 1 and abs(f_off[1] - f_on[1]) < 1, (f_off, f_on))
+    pg.evaluate('LT.lampX = 215')
+    again = cells(False)
+    check(f'E4 {mode}: switching it off again gives the fixed shadow back', abs(again[0] - l_off) < 1 and abs(again[1] - r_off) < 1, (again, l_off, r_off))
+    check(f'E4 {mode}: no page errors', not errs, errs[:2])
+    b.close()
+
+
 def run(mode):
     print(f'--- {mode}')
     with sync_playwright() as p:
         e1_sun_sides(p, mode)
         e5_front_and_backdrops(p, mode)
         e3_glow(p, mode)
+        e4_back_shadows(p, mode)
 
 
 if __name__ == '__main__':

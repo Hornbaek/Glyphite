@@ -174,7 +174,7 @@ draws seams and pipes (`| = +` from its back-wall neighbours), every other style
 | | |
 |---|---|
 | `setBack(x, y, m)`, `getBack(x, y)` | Write / read one back-wall cell (or fill `backCells[y * W + x]` directly while generating). `worldInit` clears it. |
-| `setBackdrop({ dim, shadow, dir, depth })` | `dim` (.42): brightness against the world; `shadow` (.6): how dark the drop shadow is; `dir` ([.6, .8]): the way shadows fall, in units (down and right); `depth` (2.2): how far they reach, base units. |
+| `setBackdrop({ dim, shadow, dir, depth })` | `dim` (.42): brightness against the world; `shadow` (.6): how dark the drop shadow is; `dir` ([.6, .8]): the way shadows fall, in units (down and right); `depth` (2.2): how far they reach, base units; `lamps` (false): the shadow falls away from the lamps that light each cell instead of one way for the whole screen (it turns smoothly toward `dir` where no lamp reaches; the sun does not turn it). |
 
 ## Bodies and contacts
 
