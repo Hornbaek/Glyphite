@@ -38,7 +38,7 @@ function spawnLander() {
   b.vx = s.vx; b.vy = 1.5 * S;
   L = { body: b, throttle: 0, fuel: LEVEL.fuelMax, rockets: LEVEL.rockets, alive: true, cool: 0, lights: true, landedT: 0, touchV: 0, offsiteShown: false, strandT: 0, reason: '', crystals: 0, rcs: 0,
     ef: [0, 0, 0], legs: [-1, 1].map(side => ({ side, c: 0, cv: 0, touch: false, hitV: 0, mat: 0, px: 0, py: 0 })) };
-  rockets = []; meteors = []; shower = false; showerT = 10 + Math.random() * 8;
+  rockets = []; meteors = []; shower = false; showerT = 10 + rnd() * 8;
 }
 
 function controlLander(dt) {
@@ -55,13 +55,13 @@ function controlLander(dt) {
   if (rot && L.fuel > 0) { L.ef[2] = (Math.abs(b.w) < 2.4 || Math.sign(b.w) !== rot ? rot * 6 : 0) * b.I; L.fuel = Math.max(0, L.fuel - .5 * dt); }
   else L.ef[2] = clamp(-b.w * 7, -5, 5) * b.I;
   L.rcs = rot;
-  if (rot && Math.random() < .7) {
+  if (rot && rnd() < .7) {
     b.toWorld(-4.5 * rot * S, -3.8 * S, tmp2); const d = b.dirWorld(-rot, -.3, [0, 0]);
     spawnP(PT_VAPOR, tmp2[0], tmp2[1], b.vx + d[0] * rr(10, 18) * S, b.vy + d[1] * rr(10, 18) * S, rr(.15, .35), pick('-~.'), 0);
   }
   // exhaust plume: hot gas particles that scour and heat whatever they hit
   if (L.throttle > .04) {
-    const n = (L.throttle * 9 * S + Math.random()) | 0;
+    const n = (L.throttle * 9 * S + rnd()) | 0;
     for (let k = 0; k < n; k++) {
       const sp = rr(26, 46) * S * (.55 + .45 * L.throttle), spread = rr(-.2, .2);
       const d = b.dirWorld(Math.sin(spread), Math.cos(spread), [0, 0]); b.toWorld(rr(-1, 1) * S, 4.6 * S, tmp2);
@@ -133,7 +133,7 @@ function stepRockets(dt) {
       r.vx += r.dx * 75 * S * dt; r.vy += r.dy * 75 * S * dt;
       for (let k = 0; k < 2 * S; k++) spawnP(PT_FIRE, r.x - r.dx * 1.6 * S, r.y - r.dy * 1.6 * S, (-r.dx * 12 + rr(-3, 3)) * S, (-r.dy * 12 + rr(-3, 3)) * S, rr(.1, .3), 0, 0);
     }
-    if (Math.random() < .5) spawnP(PT_SMOKE, r.x - r.dx * 2 * S, r.y - r.dy * 2 * S, rr(-1.5, 1.5) * S, rr(-1.5, 1.5) * S, rr(.6, 1.4), pick('o.:'), 0);
+    if (rnd() < .5) spawnP(PT_SMOKE, r.x - r.dx * 2 * S, r.y - r.dy * 2 * S, rr(-1.5, 1.5) * S, rr(-1.5, 1.5) * S, rr(.6, 1.4), pick('o.:'), 0);
     r.vy += G * dt;
     const n = Math.max(1, Math.ceil(Math.hypot(r.vx, r.vy) * dt / .5));
     let boom = r.t > 4.5;
@@ -159,14 +159,14 @@ function stepMeteors(dt) {
   if (state === 'play' && LEVEL.meteorRate > 0) {
     showerT -= dt;
     if (showerT < 0) { shower = !shower; showerT = shower ? rr(5, 8) : rr(14, 24); if (shower) Sfx.alarm(); }
-    if (shower && Math.random() < LEVEL.meteorRate * dt * 22) spawnMeteor();
+    if (shower && rnd() < LEVEL.meteorRate * dt * 22) spawnMeteor();
   }
   for (let i = meteors.length - 1; i >= 0; i--) {
     const m = meteors[i];
     if (m.dead) { meteors.splice(i, 1); explode(m.x, m.y, m.R * .7, .9); continue; }
     m.vy += G * dt * .3;
     for (let k = 0; k < 3 * S; k++) spawnP(PT_FIRE, m.x + rr(-.6, .6) * S, m.y + rr(-.6, .6) * S, -m.vx * .2 + rr(-4, 4) * S, -m.vy * .2 + rr(-4, 4) * S, rr(.2, .5), 0, 0);
-    if (Math.random() < .6) spawnP(PT_SMOKE, m.x, m.y, rr(-2, 2) * S, rr(-2, 2) * S, rr(.8, 1.6), pick('o.:'), 0);
+    if (rnd() < .6) spawnP(PT_SMOKE, m.x, m.y, rr(-2, 2) * S, rr(-2, 2) * S, rr(.8, 1.6), pick('o.:'), 0);
     const n = Math.max(1, Math.ceil(Math.hypot(m.vx, m.vy) * dt / .5));
     let hit = false;
     for (let s = 0; s < n; s++) {
@@ -210,7 +210,7 @@ function onRegolithBlast(x, y, R0, power) {
     if (lp.dead) continue;
     const d = Math.hypot(lp.x - x, lp.y - y);
     if (d < R0 * .9) shatterLamp(lp);
-    else if (d < R0 * 5) lp.flick = Math.max(lp.flick, .6 + Math.random());
+    else if (d < R0 * 5) lp.flick = Math.max(lp.flick, .6 + rnd());
   }
   if (!L || !L.alive) return;
   const S = RES, b = L.body, dx = b.x - x, dy = b.y - y, d = Math.hypot(dx, dy);
@@ -222,7 +222,7 @@ function evalContacts(dt) {
   const S = RES, b = L.body; let left = false, right = false, crash = null, padL = null, padR = null;
   for (const h of b.hits) {
     const v = h.vn / S;   // impact speed in base units/s (2 per m/s)
-    if (h.kind !== 1 && v > 1 && Math.random() < .5) for (let k = 0; k < 4; k++) spawnP(PT_SPARK, h.x, h.y, (rr(-9, 9) + h.nx * 6) * S, rr(-9, -2) * S, rr(.2, .5), pick("*'"), 0);
+    if (h.kind !== 1 && v > 1 && rnd() < .5) for (let k = 0; k < 4; k++) spawnP(PT_SPARK, h.x, h.y, (rr(-9, 9) + h.nx * 6) * S, rr(-9, -2) * S, rr(.2, .5), pick("*'"), 0);
     if (h.kind === 0 && v > 2.6) crash = `HULL IMPACT ${(h.vn * UNIT_M).toFixed(1)} M/S`;
     else if (h.kind === 2 && v > 5.5) crash = 'LANDING STRUT SHEARED';
     else if (h.kind === 1 && v > 2.4) crash = `GEAR COLLAPSED - TOUCHDOWN ${(Math.max(L.touchV, h.vn) * UNIT_M).toFixed(1)} M/S`;

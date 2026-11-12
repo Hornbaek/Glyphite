@@ -33,9 +33,10 @@ camera, hooks).
 **Music.** Two songs in `music/`, played at the Music volume tunable, quieter while paused. "Cargo Bay"
 (`cargo-bay.song.json`: 16 bars in D minor at 104 BPM, flute, harp, strings, finger bass, drums) is the title screen and
 sector 1. "Escape Velocity" (`escape-velocity.song.json`: C minor, 164 BPM, 32 bars; a 4 bar intro plays once, then bars 5-32 loop;
-saw lead, trumpet, brass, string ostinato and pad, choir, harp, bell, synth bass, drums) is sectors 2 and 3. `stationMusic()`
-(`main.js`) plays the song set for the place (`SONG_AT`: the title screen, then each sector's own, else the title's) and
-switches only when the place changes; while the studio previews a song here it leaves the music alone. Each song's `places`
+saw lead, trumpet, brass, string ostinato and pad, choir, harp, bell, synth bass, drums) is sectors 2 and 3. `afterFrame`
+(`main.js`) asks the engine's music director for the song set for the place (`Music.place`, from `SONG_AT`: the title screen, then
+each sector's own, else the title's); it crossfades (1.5 s) only when the place changes, `Music.preload()` in `init` makes the
+instruments between frames, and while the studio previews a song here the director leaves the music alone. Each song's `places`
 (studio: WHERE IT PLAYS) say where it plays. `songs.js` is generated: change a song file (or open it in the studio, save, and
 bring it back: CLAUDE.md, "Songs"), then `node tools/song.mjs spacemouse`. Ideas: a calmer piece for the spacewalk, drums that
 come in when a cat-bot gives chase (`Sampler.track`; Escape Velocity's drums are the track to hold back), a song of its own for

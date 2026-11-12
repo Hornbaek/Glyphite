@@ -29,7 +29,6 @@ function stepCats(dt) {
     }
     k.alert = Math.max(0, k.alert - dt); k.spotT = Math.max(0, k.spotT - dt); k.t += dt;
     c.o.run = (k.alert > 0 ? 30 : 14) * S * TUNE.catSpeed;
-    applyGravityZone(c, 4 * S);
     // walls and ledges: patrolling it turns round, chasing it waits at the edge
     const row = Math.round(c.y / ASPECT), ahead = Math.floor(c.x + k.dir * (c.o.w / 2 + .8));
     const wall = c.solid(ahead, row - 1) && c.solid(ahead, Math.floor((c.y - c.o.h * .6) / ASPECT));
@@ -66,7 +65,7 @@ function stepWrecks(dt) {
   for (const w of SEC.wrecks) {
     const x = w.x * SEC.tw, y = w.y * SEC.tw, age = SEC.time - w.t;
     if (getC(Math.floor(x), Math.floor((y + .3) / ASPECT)) === EMPTY && y < H * ASPECT) { w.vy += G * dt; w.y += w.vy * dt / SEC.tw; } else w.vy = 0;
-    if (age < 2.5 && Math.random() < .25) spawnP(PT_SPARK, x + rr(-2, 2) * S, y - rr(1, 3) * S, rr(-8, 8) * S, -rr(4, 14) * S, rr(.15, .4), pick("*+'"), 0);
+    if (age < 2.5 && rnd() < .25) spawnP(PT_SPARK, x + rr(-2, 2) * S, y - rr(1, 3) * S, rr(-8, 8) * S, -rr(4, 14) * S, rr(.15, .4), pick("*+'"), 0);
   }
 }
 

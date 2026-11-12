@@ -16,6 +16,7 @@
 //   node tools/art.mjs models [openai]                      the image models the account can use
 //   node tools/art.mjs add <game> <asset> --sprite in.png [--raw raw.png] [--kind hand|generated|imported] [--parent 002]
 //        [--note "..."] [--map cargo-bay] [--class prop --target 12x11 --k .5 --place floor --char j --name "Cheese crate"]
+//        [--emit "#ffe08a,#fff3b0" (the colours that glow: a window, a screen, eyes) and/or --emit-mask glow.png (white where it glows)]
 //                                                           a new version (a new asset needs class, target and k): draft
 //   node tools/art.mjs promote <game> <asset> <NNN> [--frame idle]   approve it and make it the live one; with --frame it becomes that frame's picture (an animation)
 //   node tools/art.mjs reject <game> <asset> <NNN> [--note "..."]
@@ -27,7 +28,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, readd
 import { join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ROOT, artDir, readJSON, writeJSON, toHex, fromHex, lum, loadAssets, loadStyle, loadPalette, nextVersion, validate, ID_RE, FRAME_RE, REF_ROLES } from './art/lib.mjs';
-import { spriteFromPNG, pngFromSprite, normalRows, normalsPNG, contactSheet, pipelineJs } from './art/sprite.mjs';
+import { spriteFromPNG, pngFromSprite, normalRows, normalsPNG, contactSheet, pipelineJs, emitRows } from './art/sprite.mjs';
 import { decodePNG, encodePNG } from './png.mjs';
 import { writeVersion, NORMAL_OPTS } from './art/store.mjs';
 export { writeVersion };
@@ -36,6 +37,12 @@ import { curate, nearest, histogram, hexOf, rgbOf } from './art/palette.mjs';
 const die = m => { console.error(`error: ${m}`); process.exit(1); };
 const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
+// the glowing pixels of a version (engine/10_sprite.js, `emit`): meta.emit lists the sprite's colours that glow, and/or emit.png is a mask the size of the
+// sprite (white = fully); null when nothing glows
+function emitFor(v, spr) {
+  const mp = join(v.dir, 'emit.png');
+  return emitRows(spr, { colors: v.meta && v.meta.emit, mask: existsSync(mp) ? readFileSync(mp) : null });
+}
 // a game's live, emitted assets as sprites (what pipeline.js holds)
 export function liveItems(game, root = ROOT) {
   const items = [];
@@ -44,7 +51,7 @@ export function liveItems(game, root = ROOT) {
     if (!a.asset || a.asset.live == null || a.asset.emit === false) continue;
     const v = a.versions.find(x => x.n === a.asset.live); if (!v) continue;
     const spr = spriteFromPNG(readFileSync(join(v.dir, 'sprite.png')));
-    items.push({ id: a.id, asset: a.asset, spr, normals: normalRows(spr, (v.meta && v.meta.normals) || NORMAL_OPTS) });
+    items.push({ id: a.id, asset: a.asset, spr, normals: normalRows(spr, (v.meta && v.meta.normals) || NORMAL_OPTS), emit: emitFor(v, spr) });
   }
   return items;
 }
@@ -56,9 +63,9 @@ function frameItem(a) {
   for (const png of pngs) for (const c of spriteFromPNG(png, { pal: null }).pal) colours.set(c.slice(0, 3).join(), c.slice(0, 3));
   const shared = [...colours.values()].sort((x, y) => lum(x) - lum(y) || x.join().localeCompare(y.join()));
   const frames = {};
-  named.forEach((f, i) => { const spr = spriteFromPNG(pngs[i], { pal: shared.map(c => [...c, 1]) }); frames[f.name] = { spr, normals: normalRows(spr, (f.v.meta && f.v.meta.normals) || NORMAL_OPTS) }; });
+  named.forEach((f, i) => { const spr = spriteFromPNG(pngs[i], { pal: shared.map(c => [...c, 1]) }); frames[f.name] = { spr, normals: normalRows(spr, (f.v.meta && f.v.meta.normals) || NORMAL_OPTS), emit: emitFor(f.v, spr) }; });
   const first = frames[named[0].name];
-  return { id: a.id, asset: a.asset, spr: first.spr, normals: first.normals, frames };
+  return { id: a.id, asset: a.asset, spr: first.spr, normals: first.normals, emit: first.emit, frames };
 }
 export const buildText = (game, root = ROOT) => pipelineJs(game, liveItems(game, root));
 
@@ -200,7 +207,11 @@ async function main(argv) {
     const sprite = readFileSync(o.sprite), raw = o.raw ? readFileSync(o.raw) : null, spr = spriteFromPNG(sprite);
     const target = (cur ? cur.asset.target : asset.target), cls = cur ? cur.asset.class : asset.class;
     if (o.parent && !(cur && cur.versions.some(v => v.n === o.parent))) die(`parent ${o.parent} does not exist`);
-    const n = writeVersion(game, id, { sprite, raw, asset, root, meta: { kind: o.kind || 'hand', parent: o.parent || null, note: o.note || '', brief: o.brief || '', map: o.map || undefined,
+    // glowing pixels: --emit lists the sprite's colours that glow (hex, kept in meta.emit), --emit-mask is a picture the size of the sprite, white where it glows (kept as emit.png)
+    const emitMask = o['emit-mask'] ? readFileSync(o['emit-mask']) : null, emit = o.emit ? o.emit.split(',').map(s => s.trim().toLowerCase()) : undefined;
+    if (emit && !emit.every(c => /^#[0-9a-f]{6}$/.test(c))) die('--emit is a list of colours, #rrggbb,#rrggbb');
+    if (emitMask || emit) { try { if (!emitRows(spr, { colors: emit, mask: emitMask })) die('no pixel of the sprite is one of the --emit colours or inside the --emit-mask'); } catch (e) { die(e.message); } }
+    const n = writeVersion(game, id, { sprite, raw, asset, root, emitMask, meta: { kind: o.kind || 'hand', parent: o.parent || null, note: o.note || '', brief: o.brief || '', map: o.map || undefined, emit,
       target: { class: cls, w: target.w, h: target.h } } });
     console.log(`${game}/${id}/${n}: draft, ${spr.w} x ${spr.h}, ${spr.pal.length} colours (target ${target.w} x ${target.h}). Look at its preview.png, then: node tools/art.mjs promote ${game} ${id} ${n}`); return;
   }

@@ -79,6 +79,12 @@ frame. Unsupported granular cells fall straight down or slide diagonally. Chunks
 nothing moves.
 
 `normalAt(xu, yu)` estimates a surface normal from occupancy in a small window.
+
+**The revision counter.** Every change to a cell stamps its 16 x 16 chunk (`CREV[chunk]`) with a new, higher number from the world's counter `WREV`:
+`setC` and `wakeAt` do it, so the sand, blasts, structures and falling chunks freezing back all do. A cache asks "did anything change in this box since revision
+r?" by reading the few chunk numbers under the box (`chunksChangedSince`, 04_light.js). `worldInit` stamps every chunk, so a cache made for an earlier
+world is never valid. Code that writes `cells[]` itself while the game runs calls `worldChanged(x0, y0, x1, y1)`; the generation-time writes of a level need
+nothing. The same numbers keep `colTop` up to date (`syncSkyline`: only the 16-column strips that changed are rescanned).
 `coolHeat` and `addHeat` manage the heat field.
 
 ## 3. Particles and blasts (`engine/02_particles.js`)
@@ -245,7 +251,10 @@ Steps in `computeLighting(ox, oy, lights, dynTop)`:
    - Walking columns left to right, each solid cell marks the rays that cross it as blocked: 1 means
      terrain, 2 means only a dynamic body.
    - Dynamic cells (lander, boulders, chunks) stay lit behind each other but still cast shadows.
-   - `SUN_L` is the direction sunlight travels; `setSun(elevationDeg)` sets it (Regolith per site) and
+   - A sun on the right (`setSun(91..179)`, `SUN_L[0] < 0`) is the same sweep over the mirrored world: sweep column `xm` is world column
+     `W - 1 - xm`, the window starts at `W - ox - RW`, the rays start beyond the right edge, and the result is written to the window column
+     `RW - 1 - (xm - mx)`. Mirroring the world and the sun gives the mirrored light bit for bit (tests/node/engine-look.test.mjs); `sunAt` marches the other way.
+   - `SUN_L` is the direction sunlight travels; `setSun(angleDeg)` sets it (Regolith per site) and
      `setSun(null)` turns the sun off (caves). Colours: `SUN_C` (the sun: a base colour `SUN_BASE`, dimmed per channel
      by `exp(-AIR_TAU × ATMOS × (airmass(elevation) - 1))` when `setAtmosphere` > 0 and the colour is not pinned; the base
      can come from `kelvinColor`), `AMB_C = [.095, .115, .17]` (`setAmbient`).
@@ -265,6 +274,27 @@ Steps in `computeLighting(ox, oy, lights, dynTop)`:
 
 `splatLight` adds cheap, unshadowed glow for emissive things: hot rock, fire, crystals, pickups.
 
+**What is kept from frame to frame** (both exact: tests/engine_cache.py plays every game with the caches off, on and auditing, and compares every frame bit
+for bit):
+- *The lamp cache* (`lampFor`, `castLamp`, `applyLamp`). A lamp's cast is a pure function of its position, radius, cone and skip, the surfaces
+  (`LSURF`, `LNX`, `LNY`, which come from the terrain) and the window the camera cell gives (`inWin` cuts rays at its edge). The cast writes one number per cell
+  it reaches, once per lamp (the stamp), so it is kept as lists of (cell, attenuation, distance) and added again: `LR[k] += cr * a` with the lamp's colour and
+  intensity of this frame, in the same lamp order, so the float sums are the same. A lamp is recorded once it has stood still for two frames with the camera
+  still (the previous frame's hashes of the lamps' parameters, `_hPrev`), is dropped when a chunk under its reach has a newer revision, and again when the
+  camera moves a whole cell. After a drop it needs four quiet frames before it is recorded again.
+- *The still frame* (`stillPlan`). The *base* (steps 1-3: occupancy, sun, ambient, occlusion) is a function of the window, the sun and ambient colours, the cells
+  the moving bodies cover (a hash of `dynList`) and the world under the window and the sun's sweep (`sunBox`: the columns and rows `sunSweep` reads); when
+  none of these changed, `LR/LG/LB` come back from `STILL.R0..B0` and the surface buffers (`LSURF`, `LNX`, `LSUN`, `LAO`, ...), which nothing else writes, are still
+  right. The lamps and the flash are added on top as always. The *terrain* (steps 1-2 of `renderScene`) also depends on the lamps' parameters, the back wall
+  (a checksum of the window's `backCells`, since games write it directly), `EYE.e`, the backdrop's settings and the materials (`MATS[i]` is a new object
+  whenever `setMaterial` changes one), and needs the window free of emissive particles and of heat above .02, and `BEAT_K` zero. Then
+  `stillRestore` copies the scene buffers and the light buffers (after the glow of hot things) back. Crystals and glints follow the clock, so a window that holds any
+  (`sceneTerrain` counts them) is not kept (the base still is). Snapshots are taken only once a frame's keys equal the last frame's, so a moving camera pays for a few
+  comparisons. (A first version shaded those cells again each frame, in one shared loop with a list mode; the extra per-cell work cost a tenth of the scene in every
+  game, so the pass stayed one plain loop.)
+
+Measured and written down in HISTORY section 57.
+
 **Visibility queries** (`sunAt`, `isLitBy`, same file) march straight lines through `cells` with the lighting's own
 conventions (step 0.6, sun rays that start left of the world or above it are clear, a light's `skip`), so a game can ask
 about any point without reading the lit window. They ignore moving bodies; the lit window and `lightAtCell` still include them.
@@ -277,6 +307,7 @@ There are three grids:
 | Grid | Contents | Scrolling |
 |---|---|---|
 | **Sky** (`R.sG`, `R.sPix`) | stars and the game's sky bodies (Regolith's Earth) | its own sub-cell offset `R.skyFX/FY`, drifting at `SKY_PAR = 0.05` of the camera |
+| **Backdrops** (`BACKDROPS`, up to 3; each `L.pix`) | hills, a far city, a dark wall below the skyline (`addBackdrop`, `engine/06_scene.js`) | one sub-cell offset each (`L.fx/fy`), drifting at their `parallax` of the camera; between the sky and the world |
 | **World** (`R.wG`, `R.wPix`, size `RW × RH` = screen + 1 margin cell each side) | terrain, particles, objects | the camera's sub-cell offset; `ox, oy = floor(cam) - 1` |
 | **HUD** (`R.hG`, `R.hC`) | text | fixed; coarser cells (`R.hcw`) so text is readable at any detail level |
 
@@ -300,14 +331,15 @@ many characters). No web font is loaded.
 **WebGL path.** One full-screen triangle. The fragment shader works per pixel:
 1. If a HUD cell is there, draw its character from the font texture (scaled by `uHS`) over the background.
 2. Otherwise sample the world grid at `pixel - uOff`, moved sideways by the heat shimmer (`uShim`, up to 0.6 of a cell). If
-   the cell is empty, sample the sky grid at `pixel - uSkyOff`; if that is empty too, the background colour.
+   the cell is empty, sample the backdrop layers, nearest first (one atlas texture `uBack`, the layers stacked, each with its own offset `uBackOff0..2`, `uBackN` of them), then the
+   sky grid at `pixel - uSkyOff`; if that is empty too, the background colour.
 3. Add optional bloom from a separate bright-pass texture.
 
-The sky texture is uploaded only when it changes. If the renderer string matches
+The sky texture is uploaded only when it changes, a backdrop's rows of the atlas when that layer was rebuilt. If the renderer string matches
 SwiftShader, llvmpipe and similar, WebGL is dropped for 2D unless `#gl` forces it.
 
-**2D path.** The sky and the world are each one canvas with a pixel per cell, drawn scaled up without smoothing over the
-background colour (the sky only when it changed); cells that shimmer are drawn once more, pushed sideways; then bloom, then the
+**2D path.** The sky, each backdrop and the world are each one canvas with a pixel per cell, drawn scaled up without smoothing over the
+background colour (the sky and a backdrop only when they changed), in that order; cells that shimmer are drawn once more, pushed sideways; then bloom, then the
 HUD: font characters from a tinted, pre-scaled copy of the font, and full blocks as plain rectangles.
 
 `presentFrame(fracX, fracY, t)` computes both pixel offsets plus screen shake and calls the active
@@ -331,16 +363,28 @@ path.
    Shiny glints are single white pixels.
 3. Particles, lit by the light buffers and z-tested by luminance against the terrain.
 4. Falling chunks (`drawChunks`), then game objects through the game's `draw` hook, which writes with
-   `putEmit` (fixed colour), `putLit` (albedo × light) or `drawSprite`.
+   `putEmit` (fixed colour), `putLit` (albedo × light) or `drawSprite`; then the **front pass** in the same way (front props and
+   entities, the state's and the game's `drawFront`), which covers all of it.
 5. Shock rings.
 6. Tone map `tone(c × E) = 1 - exp(-1.7·c·E)` and vignette into bytes, plus the bloom bright-pass. `E` is the exposure of
    the eye adaptation (`adaptEye`): the geometric mean luminance of the visible cells is measured *before* the tone map (so
    exposure cannot feed back into its own measurement) and `EYE.e` eases toward `key / mean` (to the power of the strength,
-   clamped), faster down than up. Then `renderSky(time)` rebuilds the sky layer when needed.
+   clamped), faster down than up. The vignette is `POST.vignette` (default .42). Then, when a game asked for them, the **fog** (`fogLayer`, 21_weather.js) mixes the finished bytes toward
+   its colour, which `fogPrep(E)` made from the scene's own light through the same tone curve, and the **palette lock** (`postLock`, `setPost`) snaps every drawn pixel to the nearest palette colour
+   (with an optional world-anchored Bayer dither); the bloom's bright-pass was taken before both. Then `renderSky(time)` rebuilds the sky layer and `renderBackdrops(time)` the backdrop layers when needed,
+   each through the same fog and palette lock. Scanlines are not in the buffers: both presenters draw them (a thin line at the bottom of each cell row, fixed on the screen), the shader and the 2D canvas alike.
 
 The sky has stars from a hash (density `GAME.stars`) and whatever the game paints through
-`GAME.skyBegin` / `GAME.sky`. Regolith paints the Earth: an ellipse, lit from the same sun, with
+`GAME.skyBegin` / `GAME.sky`; under both, `setSkyGradient` (and `setTimeOfDay` through it) gives it a base colour from the top of the screen to a chosen row, and the stars show on it as bright as the hour
+lets them (`SKYG.stars`). The layer's cache key carries `POST.rev`, `SKYG.rev` and the fog's colour; it does not carry the star density. Regolith paints the Earth: an ellipse, lit from the same sun, with
 continents and clouds from fbm noise, turning slowly; its night side hides the stars behind it.
+
+**Zoom** is a factor in `renderResize` (05_render.js): the cell is `cw1 * R.zoom` device pixels (`cw1`: what the detail level and the screen's width give), rounded to whole pixels and never below 2, and
+`R.cols` / `R.rows` follow, exactly as for a window resize, so every buffer the view owns is made again and nothing else has to know. `setZoom` (11_loop.js) keeps the point the game names where it was by
+moving the camera across the resize.
+
+**Weather** (`engine/21_weather.js`) steps with the world (`stepWeather` in `stepWorld`): the clock first, then an emitter that spawns rain and snow particles above the view; wind is a coupling in `stepParticles`;
+a particle type's `onHit` and `onLiquid` end a drop, which is how rain cools a cell, splashes, and piles up as cells (`deposit`) that the sand and liquid rules then take over.
 
 The sky layer is rebuilt when it has scrolled a whole cell, once a second, when the quantised exposure changes, and, when
 something needs it, about 5-8 times a second: stars twinkle (an atmosphere: a per-star sine) and are dimmed by *light
@@ -370,7 +414,15 @@ the world's pixels (Regolith's lander: `games/regolith/lander_art.js`):
    (`SUN_L`, when `LSUN`), the lamps (`LDX/LDY`) and ambient from above, and multiplies by `0.5 + 0.5·sprRelief`. The
    generator (`portal/assets/normalmap-core.mjs`) builds the same table; a unit test pins both and the relief rule.
 
-`markSpriteDyn` marks the covered cells for shadows; `spriteHull` gives collision points from the
+6. **Emission** (optional `emit` in the data, one base-36 digit a pixel): `sprCells` averages the digits of a cell's samples (9 = all of it glows) and hands it to the pixel
+   callback as `e`; `sprEmit` sends `e > 0` to `sprGlow`, which draws `lit × (1 - min(1, e)) + art × max(1, e) × min(1, e)` and adds the cell to a block of RES × RES in `_glow.bins`.
+   `drawSprite` ends with `emitFlush()` (one splat a block into `EMIT.a`); the end of `renderScene` calls `emitSwap()`, so the NEXT frame's `sceneTerrain` pours `EMIT.b` into the
+   light buffers (`splatLight`, with the particles' and heat's) and its terrain-cache key holds `EMIT.hash`: a still glowing sprite keeps the cache, a moving one redoes the terrain.
+   The cost is a splat per glowing block, nothing for a sprite without the layer (`sprEmit` takes one extra test).
+
+`markSpriteDyn` marks the covered cells for shadows (`dyn = 1`; with `blocksLamps`, `dyn = 3` and the cell joins `BLK`, the box of this frame's lamp blockers: `castLamp` stops a
+shadowed lamp's ray after lighting such a cell, `lampFor` casts a lamp whose reach touches the box again instead of serving the kept cast, and `stillKeys` hashes `dyn`'s values);
+`spriteHull` gives collision points from the
 silhouette. Cost for the lander: about 0.5 ms (RES 1) to 1.6 ms (RES 3) per frame in headless Chromium.
 
 A sprite whose bounding box is off screen is skipped. With `cache: true` (a still sprite: angle 0, no `shift`), steps 1–5
@@ -388,12 +440,24 @@ Physics geometry is derived from the same sprite at 0.28 base units per pixel, o
 (24, 28). `LEG0 = { ax: 3.92, ay: 1.96, fx: 5.46, fy: 6.16, stroke: 1.5, pad: 1.26, k: 4.3, c: 2.2 }`.
 The hull points (`LANDER_HULL0`) are traced from the silhouette.
 
-## 9. Audio (`engine/07_audio_input.js`, `engine/08_chip.js`, `engine/13_sampler.js`)
+## 9. Audio (`engine/07_sound.js`, `engine/08_chip.js`, `engine/13_sampler.js`)
 
-**Sfx** (`07_audio_input.js`): procedural Web Audio effects.
+**Sfx** (`07_sound.js`): procedural Web Audio effects.
 - `engine(throttle)` is a filtered noise loop.
 - One-shots: `boom`, `launch`, `thud`, `pickup`, `alarm`, `win`.
-- M mutes. Audio is suspended while the page is hidden.
+- M mutes (through `setSetting('mute', ...)`, part 16). Audio is suspended while the page is hidden.
+- The graph: every effect goes to `sfxBus`, the Chip and the Sampler to `musicBus`, both into `master` (a constant .5, or 0 when muted)
+  into the destination. `Sfx.volumes` (`setVolumes({ music, sfx })`) are the two buses' gains; they and the mute are the player's, kept
+  in localStorage (`storeKey('sound')`) and copied into `SETTINGS` (the pause menu's numbers) and back, so both agree.
+  `load()` runs lazily (the game id is not known when the part loads) and an explicit `Sfx.muted = x` counts as having loaded.
+- **Sounds as data.** `defineSound(name, recipe)` keeps a sound (`SOUNDS[name]`) as layers of tone, noise burst and Sampler note;
+  `Sfx.play(name, { x, y, pitch, vol })` plays its layers through `tone`, `burst` and `Sampler.note`, all routed through `place(x, y)`:
+  `heard()` plus a pan (`StereoPannerNode`, only when the pan is not 0) and, in a vacuum, a distance gain. A note layer waits for
+  `Sampler.ready` and is skipped (not built on the spot) until then. `pickup`, `alarm`, `win` and `launch` are such sounds, set up
+  directly at load (the dev checks need parts that load later).
+- **Voices.** `admit(t, dur, vol)` is the cap (`maxVoices`, 24): it prunes finished voices, and when full either drops the new voice
+  (quieter than every playing one) or `kill()`s the quietest and takes its place (a 5 ms fade-out). `burst`, `tone` and a note layer
+  all go through it, and return whether they played, so a sound's `limit` and `gap` only count plays that made sound.
 - `Sfx.heard(x, y)`: sound through air. A vacuum returns `HEARD_NOW` (no delay, full volume, unfiltered): sound is felt
   through the ground, as always. With `setAtmosphere` > 0 it returns `{ delay: m / 343, gain: 1 / (1 + m / 120), muffle:
   max(.2, 1 / (1 + m / 250)), m }` for the distance in metres to the listener (`GAME.listener()` or the camera centre).
@@ -413,7 +477,7 @@ The hull points (`LANDER_HULL0`) are traced from the silhouette.
 - API: `Chip.init`, `load(buf)`, `play(song, {loop, fadeIn, onEnd})`, `stop`, `setVolume`, `halt`,
   `connectMidi`, `meter()` for UI meters and beat, `beatAt`.
 
-**Beat** (end of `engine/08_chip.js`): `Beat.step(time)` runs once a frame at the top of `renderScene`. It reads
+**Beat** (`engine/08_music.js`, with `b64buf` and the note names, which stay in every page): `Beat.step(time)` runs once a frame at the top of `renderScene`. It reads
 `Sampler.meter()` while a Sampler song plays, else `Chip.meter()` (the snapshot that matches what the listener hears now) and fires `Beat.v` on a rising edge of the drum
 level (at least 7 and 4 higher than the last frame: kicks, snares and crashes, not most hi-hats), then decays it with a
 0.16 s time constant. `setBeatPulse(k)` scales it into `Beat.pulse()`, which the scene uses three ways: scattered glow
@@ -421,8 +485,15 @@ splats of materials with `beatGlow` are brightened, those materials flash in the
 before it is shaded), and the bloom bright-pass threshold drops (0.62 → 0.52) while its gain rises (×2.2).
 `Beat.blink` replaces the per-game "beacons follow the music" logic (Regolith's old `beaconOn`).
 
-**Music director** (Regolith's `games/regolith/music.js`): picks the piece by game state (title, descent loop, touchdown
-jingle, loss jingle). It handles MIDI file loading, drag-and-drop and MIDI IN, and draws the chip
+**Music director for the Sampler** (`Music`, end of `engine/07_sound.js`): the game says where it is (`Music.place`), the director
+plays the song `SONG_AT` names and crossfades from the one before. It keeps no audio of its own: `Music.play` is
+`Sampler.play(song, { fadeIn, crossfade, wait: true, layers })`, `layer` is `Sampler.track` plus a remembered level per layer (so the
+next song starts with the same tracks out: the `layers` option of `play`), `stinger` is a second `Sampler.deck()` with the music
+`duck`ed. It keeps quiet while `Sampler.forced` (the studio's preview) and `Sampler.force(null)` calls `Music.resume()`. Space Mouse
+uses it from `afterFrame`.
+
+**Music director for the Chip** (Regolith's `games/regolith/music.js`, `RegolithMusic`): picks the piece by game state (title,
+descent loop, touchdown jingle, loss jingle). It handles MIDI file loading, drag-and-drop and MIDI IN, and draws the chip
 meters panel.
 
 **Sampler** (`13_sampler.js`): the 16-bit, SNES-style sound, and the engine of the SOUND STUDIO (`/studio/`), which loads the
@@ -441,11 +512,24 @@ same file on its own (it uses nothing from the other parts).
   at 15 kHz under SNES limits, and a compressor.
 - A song is scheduled 0.12 s ahead every 25 ms (`pump`), by ticks, with the loop's wrap points kept so `position()` and the
   meter match what is heard. `render()` builds the same graph on an `OfflineAudioContext`.
+- **Making instruments in slices.** The recipes (`waveZone`, `ksZone`, `fmZone`, `partialsZone`), the drum kit (`drum`), the BRR
+  encoder (`brrSteps`) and `instrumentSteps` are generators that `yield` every ~1 ms of work. `instrument()` drains one at once (the
+  studio, `render`, a plain `play`); `prepare()` queues tasks (`missing(song)`: the instruments, then the loop starts a loop lane
+  can pick) on one page-wide queue worked by `slice()`, in `requestIdleCallback` where there is one (2 to 8 ms by the idle time
+  left, else `build.sliceMs`), so the longest stretch is a few ms (a drum kit was a single 130 ms one). An instrument half made
+  by the queue is finished by whoever needs it first (`jobs`: the same generator), so a sync `play` never starts a second copy.
+  A Worker was weighed and not used: the recipes close over the Sampler's own helpers and would have to be serialised into a blob
+  worker, which a strict CSP or some `file://` pages refuse. The output is sample-for-sample what the plain functions made.
+- **Decks.** The engine object is made by `makeEngine()`, so `deck()` is a second full Sampler on the same output, and a crossfade
+  (`fadeOut`) hands the song that plays to a fresh deck that keeps scheduling it while its gain ramps to 0, then `dispose()`s it
+  (stops the strips' oscillators, cuts the mixer off the output). `duck()` is a gain node (`out`) between the song's gain and the
+  destination, apart from `setVolume`. `note()` plays one instrument note straight into a destination, sharing `zoneFor` and
+  `scheduleEnv` with `startVoice`.
 
 Songs are base64 MIDI in `games/regolith/songs.js` (decoded with the engine's `b64buf`), generated by
 `games/regolith/tools/compose.py`. The music is also kept as `.mid` files in `games/regolith/music/`.
 
-## 10. Input (`engine/07_audio_input.js`)
+## 10. Input (`engine/07_input.js`)
 
 `Input.keys` (a Set of `KeyboardEvent.code`), `Input.pressed` (taps), `Input.aim` / `mouseAim()`
 (the normalised cursor, used for 6 s after the mouse last moved), `Input.fireQueued`, and
@@ -525,8 +609,9 @@ on the title screen and leads the lander in flight. `afterFrame` runs the music 
   reload, and the `window.claude.hot` snapshot (hot reload in claude.ai artifacts; harmless elsewhere).
 - `update(dt)` (global, so tests can step it and freeze it): `frameNo`, `stateT`, `GAME.update`, clear
   `Input.pressed`, `stepWorld` (chunks, particles, sand, heat near the camera, effects), camera.
-- `draw(t)`: skyline, dynamic marks (`markChunksDyn` + `GAME.markDyn`), lighting (`GAME.lights` + effect
-  lights), scene, HUD (`GAME.hud` + toast), present, `#titleBar` visibility, `GAME.afterFrame`.
+- `draw(t)`: skyline (`syncSkyline`), dynamic marks (`markChunksDyn` + `GAME.markDyn`), lighting (`GAME.lights` + effect
+  lights, pooled objects), scene, HUD (`GAME.hud` + toast), present, `#titleBar` visibility, `GAME.afterFrame`. Each stage is timed (`perfLap`, `PERF` in 05_render.js:
+  `Pixelite.perf`, `probe().perf`, F3).
 - `frame()` runs the fixed-step accumulator (at most 3 steps per frame) with slow motion and the
   slow-device hint.
 - `updateCamera` asks `GAME.camera` for a target, clamps it to the world (and `cameraTop` above it) and
@@ -557,7 +642,11 @@ iframe, so a check runs on the editor's thread: the page waits for it (a second 
    canvas, `#touch`, the game's `head.html` inside `#stage`) around one script = `GAME_MANIFEST`, the
    engine parts and the game parts, each after a `// ----- path -----` marker. `lineMap` turns a page
    line back into a source file and line.
-4. Syntax-checks each script with `vm.Script` and reports errors against the source file.
+   A game's `game.json` may list the optional engine parts it uses (`"engine": ["sampler"]`; engine.json's `"optional"` names `chip`, `iso` and `sampler`):
+   `enginePartsFor` swaps each one it leaves out for its stand-in in `engine/stubs/`, in the same place, so a page without the Sampler is 57 KB smaller and a
+   game that calls what it left out is told what to add. No key, no change. The editor passes the same map and stubs to the same assembler.
+4. Syntax-checks each script with `vm.Script` and reports errors against the source file. With `--minify` (or `PIXELITE_MINIFY=1`) the page's script first goes
+   through `tools/minify.mjs`, which takes out comments and indentation and nothing else (every line stays, so the markers and the line map are unchanged).
 5. Writes the site to `dist/`: the portal (`portal/`), `games/<id>/index.html` + `game.json` +
    `thumb.png`, `ref/` (the game's reference art and its `ref.json`, for the ART page), `src/` (engine and game sources
    for the editor), `assets/assemble.mjs`, `games.json`

@@ -113,8 +113,9 @@ strongest "new voice" you have. **One solo voice first** [C] (Wintory's cello): 
   of times. Exploration loops: 2-4 minutes, low-salience melody (or a melody track that can be muted), variations, silence between
   plays. Combat: layers by intensity. Boss: segments per phase. Puzzle: steady, non-melodic. Title: the main theme that loops cleanly.
 - **Layering and sequencing on the Sampler**: *vertical* = tracks the game fades with `Sampler.track(name, { volume, fade })`
-  (drums when the danger starts); *horizontal* = separate songs the game switches (as `stationMusic()` does per place, with
-  `fadeIn`). The engine has no quantized transitions or stingers (`engine/API.md`, Sampler; ROADMAP): a bridge is a short song you play first.
+  (drums when the danger starts; `Music.layer(name, on)` does it by name and remembers it from song to song); *horizontal* = separate
+  songs the game switches (`Music.place(...)` crossfades per place; `Music.stinger(id)` plays a one-shot over the music, ducking it).
+  The engine has no quantized transitions yet (a crossfade starts at once, not on the bar line; `engine/API.md`, "The music director").
 - **Leave room** for sound effects: the game's SFX are in the same mix; keep the melody and busy figuration out of the way of the
   sounds the player must hear (jumps, pickups, alarms), and the whole song at a modest level (the Music tunable can turn it down).
 - **Keep a voice** [C]: pick two or three fingerprints (a favourite mode, an instrument, a harmonic gesture) and keep them across

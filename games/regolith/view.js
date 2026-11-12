@@ -42,7 +42,7 @@ function regolithLights(t, out) {
   for (const lp of LEVEL.lamps) {
     if (lp.dead || lp.x + lp.r < cam.x || lp.x - lp.r > cam.x + R.cols) continue;
     if (!lp.chunk && cells[lp.mount] === EMPTY) { lp.dead = true; continue; }   // its mast or roof was blown away
-    const I = lp.flick > 0 && Math.random() < .55 ? lp.I * .12 : lp.I;
+    const I = lp.flick > 0 && rnd() < .55 ? lp.I * .12 : lp.I;
     out.push({ x: lp.x, y: lp.y, r: lp.r, c: lp.c, I, shadow: true, dx: lp.dx, dy: lp.dy, cos: lp.cos });
   }
 }
@@ -53,7 +53,7 @@ function drawWorld(t) {
   for (const p of LEVEL.pads) for (const [bx, by, col] of beaconSpots(p)) for (let q = 0; q < p.pw; q++) putEmit(Math.round(bx - (p.pw - 1) / 2) + q, by, on ? 42 : 46, on ? col[0] * 1.6 : .3, on ? col[1] * 1.6 : .2, on ? col[2] * 1.6 : .15);
   for (const lp of LEVEL.lamps) {
     if (lp.hx < cam.x - 10 * RES || lp.hx > cam.x + R.cols + 10 * RES) continue;
-    const on = !lp.dead && !(lp.flick > 0 && Math.random() < .55);
+    const on = !lp.dead && !(lp.flick > 0 && rnd() < .55);
     if (lp.rot) {   // riding a falling post: the shade tumbles with it
       const c = Math.cos(lp.rot), s = Math.sin(lp.rot), hx = lp.hx + .5, hy = (lp.hy + .5) * ASPECT;
       for (let q = -lp.w; q <= lp.w; q++) {
@@ -131,11 +131,6 @@ function drawWorldLabels() {
     worldToHud(lx, ly, _h);
     const s = `x${p.mult}`; hudText(_h[0] - 1, _h[1], s, [242, 178, 76]);
   }
-  for (const tx of FX.texts) {
-    const u = tx.age / tx.life, f = u < .7 ? 1 : 1 - (u - .7) / .3;
-    worldToHud(tx.x, tx.y - tx.age * 5 * RES, _h);
-    hudText(_h[0] - (tx.text.length >> 1), _h[1], tx.text, [tx.c[0] * f, tx.c[1] * f, tx.c[2] * f]);
-  }
 }
 // is a floodlamp's beam on this point? (the engine's visibility query, with each lamp's own cone and shadows)
 function lampLit(x, y) {
@@ -187,7 +182,7 @@ function drawHUD(t) {
     const hint = touch ? 'hold BURN - turn with < > - tap sky to fire' : HCOL > 110 ? 'W/UP burn   A D rotate   SPACE or click: rocket   L lights   G bloom   - + detail   P pause   M sound' : 'W burn  A D rotate  SPACE rocket  - + detail';
     hudText(Math.max(0, Math.floor((HCOL - hint.length) / 2)), R.hrows - (touch ? 9 : 2), hint, HC.dim);
   }
-  if (Music.meters && R.hrows > 24) drawChipMeters(R.hcols - 39, R.hrows - 12, true);
+  if (RegolithMusic.meters && R.hrows > 24) drawChipMeters(R.hcols - 39, R.hrows - 12, true);
   if (state === 'play') { const a = mouseAim(); if (a) hudPut(Math.floor(a[0] * HCOL), Math.floor(a[1] * R.hrows), 43, ...HC.amber); }
   if (state === 'paused') msgBox([['PAUSED', HC.amber], ['P or ESC to resume', HC.dim]]);
   if (state === 'landed' && stateT > .6) {

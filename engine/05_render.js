@@ -8,7 +8,7 @@
 // fainter than a '#'. WebGL draws everything in one full-screen pass; a 2D-canvas path covers browsers without WebGL.
 const R = {
   canvas: null, mode: '2d', gl: null, glU: null, glT: null, ctx: null, dpr: 1,
-  cw: 8, chh: 16, cols: 0, rows: 0, RW: 0, RH: 0,
+  cw: 8, chh: 16, cols: 0, rows: 0, RW: 0, RH: 0, zoom: 1, cw1: 8,
   wG: null, wZ: null, wShim: null, wPix: null, shimPix: null, bloomPix: null, bloom: false,
   sG: null, sPix: null, skyFX: 0, skyFY: 0, skyDirty: true,
   hcw: 12, hchh: 24, hs: 2, hcols: 0, hrows: 0, hG: null, hC: null, hPix: null,
@@ -64,10 +64,12 @@ precision highp float;
 #else
 precision mediump float;
 #endif
-uniform sampler2D uFont, uWorld, uShim, uHud, uBloom, uSky;
-uniform vec2 uCanvas, uCell, uHCell, uWorldN, uHudN, uOff, uSkyOff, uFontN;
+uniform sampler2D uFont, uWorld, uShim, uHud, uBloom, uSky, uBack;
+uniform vec2 uCanvas, uCell, uHCell, uWorldN, uHudN, uOff, uSkyOff, uFontN, uBackOff0, uBackOff1, uBackOff2;
 uniform vec3 uBg;
-uniform float uBloomOn, uHS;
+uniform float uBloomOn, uHS, uBackN, uScan;
+// a backdrop layer (engine/06_scene.js): layer q of the atlas, its own sub-cell scroll
+vec4 back(vec2 p, vec2 off, float q) { return texture2D(uBack, (floor((p - off) / uCell) + vec2(0.5, 0.5 + q * uWorldN.y)) / vec2(uWorldN.x, uWorldN.y * uBackN)); }
 void main() {
   vec2 px = vec2(gl_FragCoord.x, uCanvas.y - gl_FragCoord.y);
   vec2 hc = floor(px / uHCell);
@@ -90,8 +92,12 @@ void main() {
   vec2 wc = floor((wp - vec2(sh, 0.0)) / uCell);
   vec4 w = texture2D(uWorld, (wc + 0.5) / uWorldN);
   vec3 col = w.rgb;
-  if (w.a < 0.5) {                    // nothing in the world here: look through to the sky layer
-    vec4 s = texture2D(uSky, (floor((px - uSkyOff) / uCell) + 0.5) / uWorldN);
+  if (w.a < 0.5) {                    // nothing in the world here: look through the backdrops (nearest first) to the sky layer
+    vec4 s = vec4(0.0);
+    if (uBackN > 2.5) s = back(px, uBackOff2, 2.0);
+    if (s.a < 0.5 && uBackN > 1.5) s = back(px, uBackOff1, 1.0);
+    if (s.a < 0.5 && uBackN > 0.5) s = back(px, uBackOff0, 0.0);
+    if (s.a < 0.5) s = texture2D(uSky, (floor((px - uSkyOff) / uCell) + 0.5) / uWorldN);
     col = s.a > 0.5 ? s.rgb : uBg;
   }
   if (uBloomOn > 0.5) {
@@ -103,6 +109,7 @@ void main() {
        + texture2D(uBloom, bu + vec2(d.x, -d.y) * 2.5).rgb + texture2D(uBloom, bu + vec2(-d.x, d.y) * 2.5).rgb) * 0.08;
     col += b * 0.9;
   }
+  if (uScan > 0.0) col *= 1.0 - uScan * step(0.667, fract(px.y / uCell.y));   // setPost scanlines: a thin dark line at the bottom of each cell row, fixed on the screen
   gl_FragColor = vec4(col, 1.0);
 }`;
 
@@ -134,9 +141,9 @@ function glSetup(canvas, forced) {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     const U = {};
-    for (const n of ['uFont', 'uWorld', 'uShim', 'uHud', 'uBloom', 'uSky', 'uCanvas', 'uCell', 'uHCell', 'uWorldN', 'uHudN', 'uOff', 'uSkyOff', 'uFontN', 'uBg', 'uBloomOn', 'uHS']) U[n] = gl.getUniformLocation(prog, n);
+    for (const n of ['uFont', 'uWorld', 'uShim', 'uHud', 'uBloom', 'uSky', 'uBack', 'uCanvas', 'uCell', 'uHCell', 'uWorldN', 'uHudN', 'uOff', 'uSkyOff', 'uFontN', 'uBg', 'uBloomOn', 'uHS', 'uBackN', 'uScan', 'uBackOff0', 'uBackOff1', 'uBackOff2']) U[n] = gl.getUniformLocation(prog, n);
     const T = {};
-    ['uFont', 'uWorld', 'uShim', 'uHud', 'uBloom', 'uSky'].forEach((name, unit) => {
+    ['uFont', 'uWorld', 'uShim', 'uHud', 'uBloom', 'uSky', 'uBack'].forEach((name, unit) => {
       const t = gl.createTexture(), f = name === 'uBloom' ? gl.LINEAR : gl.NEAREST;
       gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, f); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, f);
@@ -151,6 +158,8 @@ function glSetup(canvas, forced) {
     gl.activeTexture(gl.TEXTURE0 + T.uFont.unit); gl.bindTexture(gl.TEXTURE_2D, T.uFont.tex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, font);
     gl.uniform2f(U.uFontN, font.width, font.height);
+    gl.activeTexture(gl.TEXTURE0 + T.uBack.unit); gl.bindTexture(gl.TEXTURE_2D, T.uBack.tex);   // the backdrops' atlas starts as one empty pixel (a complete texture, though nothing samples it until a layer exists)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4)); T.uBack.w = T.uBack.h = 1; T.uBack.fmt = gl.RGBA;
     canvas.addEventListener('webglcontextlost', e => e.preventDefault());
     return true;
   } catch (e) { console.warn('WebGL renderer unavailable; using 2D canvas.', e); return false; }
@@ -162,11 +171,14 @@ function glTex(name, w, h, fmt, data) {
   else gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w, h, fmt, gl.UNSIGNED_BYTE, data);
 }
 
+const ZOOM_MIN_PX = 2;   // the smallest cell a zoomed-out view draws, in device pixels
+const zoomCw = (cw1, z) => Math.max(ZOOM_MIN_PX, Math.round(cw1 * z));   // the cell size, device pixels, at zoom z when it is cw1 at zoom 1
 function renderResize(cssW, cssH) {
   const gl = R.mode === 'gl', dpr = Math.min(gl ? 3 : 2, window.devicePixelRatio || 1), base = cssW < 640 ? 56 : 150;
-  // world cell shrinks with detail; never below 4 device px, where a finer grid costs more than it shows
-  const cw = Math.max(4, Math.round(cssW / (base * RES) * dpr)), cwCss = cw / dpr;
-  R.dpr = dpr; R.cw = cw; R.chh = cw * ASPECT;
+  // world cell shrinks with detail; never below 4 device px, where a finer grid costs more than it shows. The zoom (setZoom, engine/11_loop.js) scales that size in whole
+  // device pixels, so it stays crisp: in is a bigger cell (fewer cells on the screen), out a smaller one (more cells to light, down to ZOOM_MIN_PX)
+  const cw1 = Math.max(4, Math.round(cssW / (base * RES) * dpr)), cw = R.zoom === 1 ? cw1 : zoomCw(cw1, R.zoom), cwCss = cw / dpr;
+  R.dpr = dpr; R.cw1 = cw1; R.cw = cw; R.chh = cw * ASPECT;
   R.cols = Math.max(40, Math.floor(cssW / cwCss)); R.rows = Math.max(24, Math.floor(cssH / (cwCss * ASPECT)));
   const c = R.canvas;
   c.width = R.cols * cw; c.height = R.rows * R.chh;
@@ -230,6 +242,42 @@ function hudFlow(row, segs) {
 }
 const fmtS = (v, w, d) => (v < 0 ? '-' : '+') + Math.abs(v).toFixed(d).padStart(w, '0');   // signed, zero-padded
 
+// ---------- stage timers: where a frame's time goes (Pixelite.perf, probe().perf, the F3 overlay) ----------
+// perfAvg (11_loop.js) is the time BETWEEN frames, so it reads 16.7 ms whether the work took 2 ms or 16. These are the work: milliseconds of
+// main-thread time per stage, smoothed over about 25 frames. `step` is per fixed step (a frame runs one to three); `scene` leaves out
+// `gameDraw` (the game's own draw hook, which runs inside it); `present` is the time to hand the picture to WebGL or the canvas, which
+// is only the CPU's part: the GPU finishes later, unless `sync` is on (tests/perf.py does that: it reads one pixel back, so the
+// wait is counted). mean() is the plain average since reset(), for a script that wants one number.
+const PERF_STAGES = ['step', 'light', 'scene', 'gameDraw', 'hud', 'present'];
+const PERF = { show: false, sync: false, draw: 0, tone: 0, gd: 0, t0: 0, sum: {}, cnt: {},
+  avg() { const o = {}; for (const s of [...PERF_STAGES, 'draw', 'tone']) o[s] = +this[s].toFixed(2); return o; },   // the smoothed numbers, rounded (probe().perf)
+  mean() { const o = {}; for (const s of PERF_STAGES) o[s] = this.cnt[s] ? +(this.sum[s] / this.cnt[s]).toFixed(3) : 0; o.draw = this.cnt.present ? +(this.sum.draw / this.cnt.present).toFixed(3) : 0; o.tone = this.cnt.tone ? +(this.sum.tone / this.cnt.tone).toFixed(3) : 0; return o; },
+  reset() { for (const s of [...PERF_STAGES, 'draw', 'tone']) { this.sum[s] = 0; this.cnt[s] = 0; } } };
+for (const s of PERF_STAGES) PERF[s] = 0;
+PERF.reset();
+let _perfFrame = 0;   // the draw stages of the frame in progress, added up
+function perfAdd(stage, ms) { PERF.sum[stage] += ms; PERF.cnt[stage]++; PERF[stage] += (ms - PERF[stage]) * .04; }
+function perfBegin() { PERF.t0 = performance.now(); _perfFrame = 0; }
+// the time since the last lap goes to `stage`; 'present' ends the frame
+function perfLap(stage) {
+  const now = performance.now(); let ms = now - PERF.t0; PERF.t0 = now;
+  if (stage === 'scene') { const g = Math.min(PERF.gd, ms); perfAdd('gameDraw', g); ms -= g; PERF.gd = 0; _perfFrame += g; }
+  perfAdd(stage, ms); _perfFrame += ms;
+  if (stage === 'present') perfAdd('draw', _perfFrame);
+}
+function perfFlush() { if (R.mode === 'gl') R.gl.readPixels(0, 0, 1, 1, R.gl.RGBA, R.gl.UNSIGNED_BYTE, new Uint8Array(4)); else R.ctx.getImageData(0, 0, 1, 1); }
+// the F3 overlay: the stage times and the picture's size, on the HUD
+function perfOverlay() {
+  if (!PERF.show) return;
+  const rows = [['step', PERF.step], ['light', PERF.light], ['scene', PERF.scene], [' tone', PERF.tone], ['game', PERF.gameDraw], ['hud', PERF.hud], ['present', PERF.present], ['draw', PERF.draw]];
+  const w = 24, c = 1, r = 1; hudBox(c, r, w, rows.length + 4, HC.dim, true);
+  hudText(c + 2, r, ' PERF (F3) ', HC.cyan);
+  rows.forEach(([n, v], i) => hudText(c + 2, r + 1 + i, `${n.padEnd(8)}${v.toFixed(2).padStart(6)} ms`, n === 'draw' ? HC.gold : HC.txt));
+  hudText(c + 2, r + rows.length + 1, `frame   ${perfAvg.toFixed(1).padStart(6)} ms`, HC.dim);
+  hudText(c + 2, r + rows.length + 2, `${R.cols}x${R.rows} ${R.mode} x${RES}`.slice(0, w - 4), HC.dim);
+}
+if (typeof window !== 'undefined') window.addEventListener('keydown', e => { if (e.code === 'F3' && !e.repeat && !e.ctrlKey && !e.metaKey) { e.preventDefault(); PERF.show = !PERF.show; } });
+
 // camera: the world position (units) of the screen's top-left corner
 const cam = { x: 0, y: 0 };
 // world position (units) → HUD cell
@@ -242,7 +290,9 @@ function presentFrame(fracX, fracY, time) {
   const sx = s ? (vnoise1(time * 23, 3) * 2 - 1) * s : 0, sy = s ? (vnoise1(time * 23, 9) * 2 - 1) * s : 0;
   const dx = Math.round(-(1 + fracX) * R.cw + sx), dy = Math.round(-(1 + fracY) * R.chh + sy);
   const sdx = Math.round(-(1 + R.skyFX) * R.cw + sx), sdy = Math.round(-(1 + R.skyFY) * R.chh + sy);
+  for (const L of BACKDROPS) { L.dx = Math.round(-(1 + L.fx) * R.cw + sx); L.dy = Math.round(-(1 + L.fy) * R.chh + sy); }   // each backdrop's own offset, as the sky's
   if (R.mode === 'gl') presentGL(dx, dy, sdx, sdy, time); else present2D(dx, dy, sdx, sdy, time);
+  if (PERF.sync) perfFlush();
 }
 
 function presentGL(dx, dy, sdx, sdy, time) {
@@ -251,6 +301,18 @@ function presentGL(dx, dy, sdx, sdy, time) {
   gl.viewport(0, 0, R.canvas.width, R.canvas.height);
   glTex('uWorld', RW, RH, gl.RGBA, R.wPix);
   if (R.skyDirty || R.glT.uSky.w !== RW || R.glT.uSky.h !== RH) { glTex('uSky', RW, RH, gl.RGBA, R.sPix); R.skyDirty = false; }
+  const nb = BACKDROPS.length;
+  if (nb) {   // the backdrops are stacked into one texture, one layer after another; a layer is uploaded when it was rebuilt
+    const B = R.glT.uBack;
+    if (B.w !== RW || B.h !== nb * RH) { glTex('uBack', RW, nb * RH, gl.RGBA, null); for (const L of BACKDROPS) L.dirty = true; }
+    BACKDROPS.forEach((L, q) => {
+      if (!L.dirty || !L.pix) return;   // (a layer added after this frame's scene pass has nothing to show yet)
+      gl.activeTexture(gl.TEXTURE0 + B.unit); gl.bindTexture(gl.TEXTURE_2D, B.tex);
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, q * RH, RW, RH, gl.RGBA, gl.UNSIGNED_BYTE, L.pix); L.dirty = false;
+    });
+    for (let q = 0; q < 3; q++) { const L = BACKDROPS[q]; gl.uniform2f(U['uBackOff' + q], L ? L.dx : 0, L ? L.dy : 0); }
+  }
+  gl.uniform1f(U.uBackN, nb);
   const SH = R.wShim, SP = R.shimPix;
   for (let j = 0, k = 0; j < RH; j++) for (let i = 0; i < RW; i++, k++) SP[k] = SH[k] > .05 ? clamp(128 + Math.round(shimShift(k, i, j, time) * 8), 0, 255) : 128;
   glTex('uShim', RW, RH, gl.LUMINANCE, SP);
@@ -262,7 +324,7 @@ function presentGL(dx, dy, sdx, sdy, time) {
   gl.uniform2f(U.uCell, R.cw, R.chh); gl.uniform2f(U.uHCell, R.hcw, R.hchh); gl.uniform1f(U.uHS, R.hs);
   gl.uniform2f(U.uWorldN, RW, RH); gl.uniform2f(U.uHudN, R.hcols, R.hrows);
   gl.uniform2f(U.uOff, dx, dy); gl.uniform2f(U.uSkyOff, sdx, sdy);
-  gl.uniform1f(U.uBloomOn, R.bloom ? 1 : 0);
+  gl.uniform1f(U.uBloomOn, R.bloom ? 1 : 0); gl.uniform1f(U.uScan, POST.scanlines);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 
@@ -273,6 +335,7 @@ function present2D(dx, dy, sdx, sdy, time) {
   ctx.fillStyle = `rgb(${BG[0]},${BG[1]},${BG[2]})`; ctx.fillRect(0, 0, R.canvas.width, R.canvas.height);
   if (R.skyDirty) { R.sCtx.putImageData(R.sImg, 0, 0); R.skyDirty = false; }
   ctx.drawImage(R.sCv, sdx, sdy, RW * cw, RH * chh);
+  for (const L of BACKDROPS) { if (!L.cv) continue; if (L.dirty) { L.ctx.putImageData(L.img, 0, 0); L.dirty = false; } ctx.drawImage(L.cv, L.dx, L.dy, RW * cw, RH * chh); }   // the backdrops, farthest first, over the sky and under the world
   R.wCtx.putImageData(R.wImg, 0, 0);
   ctx.drawImage(R.wCv, dx, dy, RW * cw, RH * chh);
   const SH = R.wShim;   // heat haze: shimmering cells drawn again, pushed sideways
@@ -282,6 +345,11 @@ function present2D(dx, dy, sdx, sdy, time) {
     ctx.globalCompositeOperation = 'lighter'; ctx.imageSmoothingEnabled = true; ctx.globalAlpha = .55;
     ctx.drawImage(R.bloomCv, dx, dy, RW * cw, RH * chh);
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.imageSmoothingEnabled = false;
+  }
+  if (POST.scanlines > 0) {   // the same line the shader draws: the pixel rows whose centre is in the bottom third of a cell row
+    ctx.fillStyle = `rgba(0,0,0,${POST.scanlines})`;
+    const p0 = Math.ceil(.667 * chh - .5), lh = Math.ceil(chh) - p0;
+    for (let r = 0; r < R.rows; r++) ctx.fillRect(0, r * chh + p0, R.canvas.width, lh);
   }
   const HG = R.hG, HC = R.hC, hw = R.hcw, hh = R.hchh, bg = `rgb(${BG[0]},${BG[1]},${BG[2]})`;
   for (let r = 0; r < R.hrows; r++) for (let c = 0; c < R.hcols; c++) {

@@ -16,7 +16,7 @@ edits to a Claude session as a prompt plus a patch. **The repository is the sour
 ```
 engine/                 the engine (shared by every game)
   engine.json           part order + version          API.md   the public API: read it before writing game code
-  shell.html            page template                 01_core … 12_iso.js   the parts (banner says what each does)
+  shell.html            page template                 01_core … 21_weather.js   the parts (banner says what each does; 21 is the time of day, weather, wind and fog)
 games/notfound/         the 404 game: unlisted, served by the Worker for any missing page (worker/index.js)
 games/showcase/         the live engine demo on the public landing page: unlisted, public
 games/<id>/             one folder per game: game.json (manifest), head.html (optional page HTML), *.js parts,
@@ -38,7 +38,7 @@ tools/                  pixelite.mjs (CLI: build, new, list, serve), assemble.mj
                         art_capture.py (a picture of the running game at one pixel per cell: style references, map seeds)
 tests/                  smoke.py (any game, both renderers), lab.py (the PIXEL LAB), studio.py (the SOUND STUDIO and its sound),
                         node/ (unit tests: build, editor patches, Access, pixel tools, songs)
-docs/                   ARCHITECTURE (how it works), HISTORY, LESSONS, ROADMAP (the plan), IDEAS (the idea bank),
+docs/                   ARCHITECTURE (how it works), HISTORY, LESSONS, ROADMAP (the plan), ENGINE_PLAN (STATUS at its top: what is done, what is next), IDEAS (the idea bank),
                         TESTING, DEPLOY
 .claude/skills/         pixelite-new-game, pixelite-verify, pixelite-art-prompt (the prompt for an art sheet), pixelite-pixel-art,
                         pixelite-song (compose a song: plan, write as code, check levels, ship),
@@ -51,7 +51,7 @@ dist/                   build output = the deployed site (git-ignored)
 ```sh
 npm run build                          # = node tools/pixelite.mjs build: engine + every game → dist/; prints SYNTAX_OK
 node tools/pixelite.mjs build <id>     # just one game (faster while iterating)
-node tools/pixelite.mjs new <id> --title "My Game"   # scaffold games/<id>/ from templates/starter
+node tools/pixelite.mjs new <id> --title "My Game"   # scaffold games/<id>/ from templates/starter (--kit platformer: from the Proving Ground)
 node tools/pixelite.mjs list           # games and their status
 npm test                               # unit tests (node --test)
 python3 tests/smoke.py <id>            # loads, starts, runs and screenshots the game in 2D and GL → shots/
@@ -112,9 +112,9 @@ title, game = the project, data = the song as JSON, updated_at, updated_by). A s
 - **Put one into a game** (the studio's [ MORE ] menu writes this prompt): `SELECT data FROM songs WHERE id = ?;`, save it as
   `games/<game>/music/<id>.song.json`, run `node tools/song.mjs <game>` (writes `songs.js` with `SONGS` and `SONG_AT`, which song
   plays where; add it to game.json's parts), and make the game play `SONG_AT`'s songs at their places after `Sampler.prepare` at
-  load (`engine/API.md`, Sampler; Space Mouse's `stationMusic()`). Do what the place's note asks. The repository's copy is what the
+  load (`engine/API.md`, "The music director": `Music.preload()` in `init`, `Music.place(...)` each frame; Space Mouse's `afterFrame`). Do what the place's note asks. The repository's copy is what the
   game plays; a later save in the studio changes nothing until a session brings it over again.
-- **MIDI files**: the studio's [ MORE ] menu opens a .mid as a new song and exports the song as one; `node tools/midi.mjs import <file.mid>`
+- **MIDI files**: the studio's [ MORE ] menu opens a .mid as a new song (you choose which instruments) and exports the song as one; `node tools/midi.mjs list|import <file.mid>`
   / `export <file.song.json>` do the same from a session (notes, instruments, tempo, loop; not effects, automation or samples).
 - A session may also write a song itself: use the **`pixelite-song`** skill (it plans the song, writes it as code, checks its levels
   by rendering it, and ships it; the format is `Sampler.check`'s, see `games/spacemouse/music/cargo-bay.song.json`)
@@ -173,6 +173,13 @@ Apply the diff with `git apply` (if it no longer applies, carry the intent over 
   banner comments (`// ===== ENGINE · … =====` / `GAME · …`). Don't add dead code; delete what you replace.
 - Keep docs current: `docs/HISTORY.md` (what was done, per request), `LESSONS.md` (pitfalls), `ROADMAP.md`
   (follow-ups), `engine/API.md` (any API change), the game's `NOTES.md`.
+
+## What the engine's look offers
+
+Beyond lights and sprites (all in `engine/API.md`, all off until a game asks, so a game that never calls them renders as before): backdrops and a front pass (`addBackdrop`, `drawFront`), glowing sprite pixels (`emit`),
+lamp-following back-wall shadows (`setBackdrop({ lamps: true })`), the sun from either side (`setSun` 91..179), a screen palette, dither, vignette and scanlines (`setPost`), zoom (`setZoom`, `Pixelite.run({ zoom })`),
+and the time of day, sky gradient, rain, snow, wind and fog (`setTimeOfDay`, `setSkyGradient`, `setWeather`, `setWind`, `setFog`). `games/proving/look.js` uses every one behind tunables. A change that alters how a frame
+looks must keep every game bit for bit the same when it is off (`tests/engine_cache.py`, `tests/engine_look.py`) and be looked at, not only measured.
 
 ## Verify before saying it's done
 

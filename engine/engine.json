@@ -1,20 +1,36 @@
 {
   "name": "Pixelite",
-  "version": "0.14.0",
+  "version": "0.18.0",
   "shell": "shell.html",
   "parts": [
+    "00_dev.js",
     "01_core.js",
     "02_particles.js",
     "03_body.js",
     "04_light.js",
     "05_render.js",
     "06_scene.js",
-    "07_audio_input.js",
+    "07_sound.js",
+    "07_input.js",
     "08_chip.js",
+    "08_music.js",
     "09_structures.js",
     "10_sprite.js",
     "11_loop.js",
     "12_iso.js",
-    "13_sampler.js"
-  ]
+    "13_sampler.js",
+    "14_entities.js",
+    "15_world.js",
+    "16_actions.js",
+    "17_ui.js",
+    "18_toys.js",
+    "19_liquid.js",
+    "20_reactions.js",
+    "21_weather.js"
+  ],
+  "optional": {
+    "chip": ["08_chip.js", "stubs/chip.js"],
+    "iso": ["12_iso.js", "stubs/iso.js"],
+    "sampler": ["13_sampler.js", "stubs/sampler.js"]
+  }
 }

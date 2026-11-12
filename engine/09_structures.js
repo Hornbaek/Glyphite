@@ -37,7 +37,7 @@ function structuralCheck(x, y, R) {
   const cx0 = Math.floor(x), cy0 = Math.floor(y / ASPECT);
   const x0 = Math.max(0, cx0 - rx), x1 = Math.min(W - 1, cx0 + rx), y0 = Math.max(0, cy0 - ry), y1 = Math.min(H - 1, cy0 + ry);
   const gw = x1 - x0 + 1, gh = y1 - y0 + 1, mark = new Uint8Array(gw * gh), stack = [];
-  const push = (cx, cy, v) => { const k = (cy - y0) * gw + cx - x0; if (!mark[k] && cells[cy * W + cx] !== EMPTY) { mark[k] = v; stack.push(k); } };
+  const push = (cx, cy, v) => { const k = (cy - y0) * gw + cx - x0; if (!mark[k] && MAT_SOLID[cells[cy * W + cx]]) { mark[k] = v; stack.push(k); } };   // a liquid is not structure
   // anchors: solid cells on the edge of the region (they continue into the world) and anything immovable
   for (let cx = x0; cx <= x1; cx++) { push(cx, y0, 1); push(cx, y1, 1); }
   for (let cy = y0; cy <= y1; cy++) { push(x0, cy, 1); push(x1, cy, 1); }
@@ -53,7 +53,7 @@ function structuralCheck(x, y, R) {
   let comp = [];
   flood(1);                                   // support flows through any solid neighbour, regolith included
   for (let cy = y0; cy <= y1; cy++) for (let cx = x0; cx <= x1; cx++) {
-    const k = (cy - y0) * gw + cx - x0; if (mark[k] || cells[cy * W + cx] === EMPTY) continue;
+    const k = (cy - y0) * gw + cx - x0; if (mark[k] || !MAT_SOLID[cells[cy * W + cx]]) continue;
     comp = []; push(cx, cy, 2); flood(2);     // a floating island
     breakOff(comp);
   }
@@ -72,18 +72,18 @@ function settleIslands(onDrop) {
   const flood = (sp, v, out) => {
     while (sp > 0) {
       const i = st[--sp], x = i % W; if (out) out.push(i);
-      if (x > 0 && !id[i - 1] && cells[i - 1]) { id[i - 1] = v; st[sp++] = i - 1; }
-      if (x < W - 1 && !id[i + 1] && cells[i + 1]) { id[i + 1] = v; st[sp++] = i + 1; }
-      if (i >= W && !id[i - W] && cells[i - W]) { id[i - W] = v; st[sp++] = i - W; }
-      if (i < N - W && !id[i + W] && cells[i + W]) { id[i + W] = v; st[sp++] = i + W; }
+      if (x > 0 && !id[i - 1] && MAT_SOLID[cells[i - 1]]) { id[i - 1] = v; st[sp++] = i - 1; }
+      if (x < W - 1 && !id[i + 1] && MAT_SOLID[cells[i + 1]]) { id[i + 1] = v; st[sp++] = i + 1; }
+      if (i >= W && !id[i - W] && MAT_SOLID[cells[i - W]]) { id[i - W] = v; st[sp++] = i - W; }
+      if (i < N - W && !id[i + W] && MAT_SOLID[cells[i + W]]) { id[i + W] = v; st[sp++] = i + W; }
     }
   };
   const findIslands = () => {
     id.fill(0); let sp = 0;
-    for (let i = 0; i < N; i++) { const m = cells[i]; if ((MAT_ANCHOR[m] || (i >= N - W && m)) && !id[i]) { id[i] = -1; st[sp++] = i; } }
+    for (let i = 0; i < N; i++) { const m = cells[i]; if ((MAT_ANCHOR[m] || (i >= N - W && MAT_SOLID[m])) && !id[i]) { id[i] = -1; st[sp++] = i; } }
     flood(sp, -1);
     const islands = [];
-    for (let i = 0; i < N; i++) if (cells[i] && !id[i]) { const v = islands.length + 1, comp = []; id[i] = v; st[0] = i; flood(1, v, comp); islands.push(comp); }
+    for (let i = 0; i < N; i++) if (MAT_SOLID[cells[i]] && !id[i]) { const v = islands.length + 1, comp = []; id[i] = v; st[0] = i; flood(1, v, comp); islands.push(comp); }
     return islands;
   };
   for (let pass = 0; pass < 12; pass++) {
@@ -95,13 +95,13 @@ function settleIslands(onDrop) {
       const comp = islands[k], v = k + 1; let d = H;
       for (const j of comp) {
         if (j + W < N && id[j + W] === v) continue;
-        let g = 0, q = j + W; while (q < N && cells[q] === EMPTY) { g++; q += W; }
+        let g = 0, q = j + W; while (q < N && !MAT_SOLID[cells[q]]) { g++; q += W; }
         if (q < N && id[q] === v) continue;          // its own lower part lands first
         if (g < d) d = g;
       }
       if (d <= 0 || d >= H) continue;
       comp.sort((a, b) => b - a);
-      for (const j of comp) { cells[j + d * W] = cells[j]; cells[j] = EMPTY; id[j + d * W] = v; id[j] = 0; }
+      for (const j of comp) { if (MAT_LIQ[cells[j + d * W]]) displaceLiquid((j + d * W) % W, ((j + d * W) / W) | 0); cells[j + d * W] = cells[j]; cells[j] = EMPTY; id[j + d * W] = v; id[j] = 0; }
       moved++;
       if (onDrop) onDrop(comp, d);
     }
@@ -109,19 +109,52 @@ function settleIslands(onDrop) {
   }
   if (FILL_MAT) for (const comp of findIslands()) {
     let lo = -1; for (const j of comp) if (!MAT_GRAN[cells[j]] && j > lo) lo = j;
-    if (lo >= 0) for (let q = lo + W; q < N; q += W) { const m = cells[q]; if (m !== EMPTY && !MAT_GRAN[m]) break; cells[q] = FILL_MAT; }
+    if (lo >= 0) for (let q = lo + W; q < N; q += W) { const m = cells[q]; if (MAT_SOLID[m] && !MAT_GRAN[m]) break; cells[q] = FILL_MAT; }
   }
 }
 
 function breakOff(comp) {
   const n = comp.length >> 1; let gran = 0;
   for (let i = 0; i < comp.length; i += 2) if (MAT_GRAN[cells[comp[i + 1] * W + comp[i]]]) gran++;
-  if (gran === n || n > 2600 * RES * RES) return;        // loose dust is the sand sim's job; whole hillsides stay put
+  if (gran === n) return;                                  // loose dust is the sand sim's job
+  if (n > 2600 * RES * RES) { startSlab(comp); return; }   // a whole hillside: too big to tumble, it sinks as a slab instead
   if (n <= 2) {                                            // crumbs just fall as grains
     for (let i = 0; i < comp.length; i += 2) { const cx = comp[i], cy = comp[i + 1], m = cells[cy * W + cx], c = crumbOf(m); setC(cx, cy, EMPTY); if (c) spawnGrain(cx + .5, (cy + .5) * ASPECT, 0, 0, c); }
     return;
   }
   makeChunk(comp);
+}
+
+// A piece too big to simulate as a rigid chunk (thousands of cells) still must not hang in the air: it sinks straight down, a row
+// a step, until it rests on something, then lands with a thud and a cloud of dust. Nothing below it (it would fall out of the
+// world) leaves it where it is.
+const slabs = [];
+function startSlab(comp) {
+  const own = new Set(), idx = [];
+  for (let i = 0; i < comp.length; i += 2) { const j = comp[i + 1] * W + comp[i]; own.add(j); idx.push(j); }
+  const N = W * H; let d = H;
+  for (const j of idx) {
+    if (own.has(j + W)) continue;
+    let g = 0, q = j + W; while (q < N && !MAT_SOLID[cells[q]]) { g++; q += W; }
+    if (q >= N) return;                                      // a column with nothing under it: nowhere to land
+    if (own.has(q)) continue;
+    if (g < d) d = g;
+  }
+  if (d <= 0 || d >= H) return;
+  idx.sort((a, b) => b - a);                                 // bottom row first, so each cell moves into a cell already vacated
+  slabs.push({ idx, rows: d, y: ((idx[idx.length - 1] / W) | 0) });
+}
+function stepSlabs() {
+  for (let k = slabs.length - 1; k >= 0; k--) {
+    const sl = slabs[k], idx = sl.idx;
+    for (let i = 0; i < idx.length; i++) { const j = idx[i], m = cells[j], x = j % W, y = (j / W) | 0; if (!MAT_SOLID[m]) continue; putSolid(x, y + 1, m); setC(x, y, EMPTY); idx[i] = j + W; heat[j + W] = heat[j]; heat[j] = 0; }
+    if (--sl.rows > 0) continue;
+    slabs.splice(k, 1);
+    let lo = 0; for (const j of idx) if (j > lo) lo = j;
+    const lx = lo % W, ly = ((lo / W) | 0) * ASPECT;
+    for (let q = 0; q < 14 * RES; q++) spawnP(PT_DUST, lx + rr(-30, 30) * RES, ly - rr(0, 2), rr(-8, 8) * RES, -rr(1, 6) * RES, rr(.8, 1.8), pick(".'`"), RUBBLE_MAT);
+    Sfx.thud(10); FX.shake = Math.min(1.2, FX.shake + .4);
+  }
 }
 
 function makeChunk(comp) {
@@ -144,6 +177,53 @@ function makeChunk(comp) {
   for (let k = 0; k < 6 * S; k++) spawnP(PT_DUST, X + rr(-2, 2) * S, Y + rr(-2, 2) * S, rr(-4, 4) * S, rr(-4, 1) * S, rr(.6, 1.4), pick(".'`"), RUBBLE_MAT);
   Sfx.thud(4);
   return ch;
+}
+
+// ---------- moving platforms: lifts, doors, ferries ----------
+// A platform is a chunk that follows a path instead of falling: solid to a Character (which it carries, by whole cells, like the
+// platform itself, so a character on it keeps its feet on a row boundary), drawn, lit and shadow-casting like any chunk. Sand and
+// particles pass through it. A blast that bites or shoves it turns it into an ordinary chunk, which falls.
+//   const lift = addPlatform({ x: 40, y: 80, cols: 12, rows: 2, mat: STEEL,         // top-left cell, size in cells, material
+//     path: [[40, 80], [40, 40]], speed: 14, mode: 'pingpong', wait: 1 });           // top-left cells to visit (units/s; seconds to wait)
+//   lift.go(1)       travel to path point 1 and stay ('manual' mode starts like this; the other modes carry on after a wait)
+//   lift.pause(true) stop in place;  lift.arrived  true while it waits at a path point
+//   removePlatform(lift)
+// mode: 'pingpong' (there and back), 'loop' (round the path), 'once' (to the last point and stay), 'manual' (only go()).
+// grid: a Uint8Array(cols * rows) of materials instead of a filled box, for a shaped platform (a gap or a stair).
+function addPlatform({ x, y, cols, rows, mat = 0, grid = null, path = null, speed = 12, mode = 'pingpong', wait = .5 }) {
+  const gw = cols, gh = rows, g = grid || new Uint8Array(gw * gh).fill(mat); let n = 0, M = 0;
+  for (let i = 0; i < g.length; i++) if (g[i]) { n++; M += MAT_DENS[g[i]]; }
+  const X0 = x + gw / 2, Y0 = (y + gh / 2) * ASPECT, ch = { grid: g, gw, gh, ox: x, oy: y, X0, Y0, n, rest: 0, age: 0, kin: true, dx: 0, dy: 0, offX: 0, offY: 0,
+    lx: 0, ly: 0, ti: 0, dir: 1, wait, waitT: 0, speed, mode, arrived: false, paused: false, manual: mode === 'manual' };
+  ch.path = (path || [[x, y]]).map(p => [p[0] - x, p[1] - y]);
+  ch.body = new Body(X0, Y0, Math.max(.5, M * 2 / (120 * RES * RES)), 1, []);
+  ch.go = i => { ch.ti = clamp(i | 0, 0, ch.path.length - 1); ch.manual = true; ch.arrived = false; ch.waitT = 0; ch.paused = false; };
+  ch.pause = on => { ch.paused = on !== false; };
+  ch.target = () => ch.path[ch.ti];
+  chunks.push(ch); return ch;
+}
+function removePlatform(ch) { const i = chunks.indexOf(ch); if (i >= 0) chunks.splice(i, 1); }
+// every fixed step, before the game's update: move the platforms (the characters standing on them read dx, dy in their own step)
+function stepPlatforms(dt) {
+  for (const ch of chunks) {
+    if (!ch.kin) continue;
+    ch.dx = ch.dy = 0;
+    if (ch.paused || ch.path.length < 2 && !ch.manual) continue;
+    if (ch.waitT > 0) { ch.waitT -= dt; if (ch.waitT > 0) continue; }
+    const t = ch.path[ch.ti], vx = t[0] - ch.lx, vy = t[1] - ch.ly, d = Math.hypot(vx, vy), step = ch.speed * RES * dt;
+    ch.arrived = false;
+    if (d <= step) {
+      ch.lx = t[0]; ch.ly = t[1]; ch.arrived = true; ch.waitT = ch.wait;
+      if (!ch.manual && ch.path.length > 1) {
+        if (ch.mode === 'loop') ch.ti = (ch.ti + 1) % ch.path.length;
+        else if (ch.mode === 'once') ch.ti = Math.min(ch.path.length - 1, ch.ti + 1);
+        else { if (ch.ti + ch.dir >= ch.path.length || ch.ti + ch.dir < 0) ch.dir = -ch.dir; ch.ti += ch.dir; }
+      }
+    } else { ch.lx += vx / d * step; ch.ly += vy / d * step; }
+    const ox = Math.round(ch.lx), oy = Math.round(ch.ly);   // the platform moves by whole cells, like pixel art
+    ch.dx = ox - ch.offX; ch.dy = oy - ch.offY; ch.offX = ox; ch.offY = oy;
+    ch.body.x = ch.X0 + ox; ch.body.y = ch.Y0 + oy * ASPECT;
+  }
 }
 
 // contact points: the midpoint of every exposed cell face, in the chunk's local frame
@@ -193,9 +273,11 @@ function checkSupport(x, y, R, delay = 0) {
 
 function stepChunks(dt) {
   const S = RES;
+  if (slabs.length) stepSlabs();
   for (let i = rechecks.length - 1; i >= 0; i--) { const c = rechecks[i]; c.t -= dt; if (c.t <= 0) { rechecks.splice(i, 1); structuralCheck(c.x, c.y, c.R); } }
   for (let i = chunks.length - 1; i >= 0; i--) {
     const ch = chunks[i], b = ch.body; ch.age += dt;
+    if (ch.kin) { mountsMoved(ch); continue; }      // a platform follows its path (stepPlatforms), it does not fall
     b.fx = b.fy = b.tq = 0;
     for (let s = 0; s < 2; s++) {
       b.step(dt / 2);
@@ -205,9 +287,10 @@ function stepChunks(dt) {
     }
     if (!ch.n) { chunks.splice(i, 1); continue; }
     if (GAME.chunkStep) GAME.chunkStep(ch);
-    const still = Math.hypot(b.vx, b.vy) < .5 * S && Math.abs(b.w) < .25 && b.hits.length > 0;
+    // resting on the grid or on a game body that is itself still (chunkVsBody sets ch.onBody) both count as support
+    const still = Math.hypot(b.vx, b.vy) < .5 * S && Math.abs(b.w) < .25 && (b.hits.length > 0 || ch.onBody === frameNo);
     ch.rest = still ? ch.rest + dt : 0;
-    if (ch.rest > .6 || ch.age > 20) { freezeChunk(ch); chunks.splice(i, 1); }
+    if (ch.rest > .6 || ch.age > 20) { freezeChunk(ch, ch.rest <= .6); chunks.splice(i, 1); }
     else if (b.y > H * ASPECT + 40 * S || b.x < -40 * S || b.x > W + 40 * S) { mountsGone(ch); chunks.splice(i, 1); }
     else mountsMoved(ch);
   }
@@ -249,12 +332,22 @@ function chipChunk(ch, wx, wy, k, vx, vy) {
   b.hull = chunkHull(ch);
 }
 
-// back into the grid: rasterise the rotated chunk onto the world cells it now covers
-function freezeChunk(ch) {
+// back into the grid: rasterise the rotated chunk onto the world cells it now covers. Cells that cannot be placed (something
+// already stands there) are not lost: they turn into grains. A chunk frozen by force (it never came to rest) is first lifted out
+// of whatever it overlaps, so it does not freeze into the ground.
+function chunkOverlap(ch) {
+  const [x0, y0, x1, y1] = chunkCellBox(ch); let n = 0;
+  for (let cy = Math.max(0, y0); cy <= Math.min(H - 1, y1); cy++) for (let cx = Math.max(0, x0); cx <= Math.min(W - 1, x1); cx++) if (MAT_SOLID[cells[cy * W + cx]] && chunkCellMat(ch, cx, cy)) n++;
+  return n;
+}
+function freezeChunk(ch, forced) {
+  if (forced) for (let up = 0, lift = chunkOverlap(ch); lift > 0 && up < ch.gh + 8; up++) { ch.body.y -= ASPECT; lift = chunkOverlap(ch); }
   const [x0, y0, x1, y1] = chunkCellBox(ch), placed = [];
   for (let cy = Math.max(0, y0); cy <= Math.min(H - 1, y1); cy++) for (let cx = Math.max(0, x0); cx <= Math.min(W - 1, x1); cx++) {
     const m = chunkCellMat(ch, cx, cy); if (!m) continue;
-    if (cells[cy * W + cx] === EMPTY) { setC(cx, cy, m); placed.push(cy * W + cx); }
+    const c0 = cells[cy * W + cx];
+    if (c0 === EMPTY || MAT_LIQ[c0]) { putSolid(cx, cy, m); placed.push(cy * W + cx); }   // a pool gives way: its liquid is moved, not lost
+    else { const c = crumbOf(m); if (c) spawnGrain(cx + .5, (cy + .5) * ASPECT, 0, -2 * RES, c); }
   }
   mountsFrozen(ch, placed);
 }
@@ -281,7 +374,8 @@ function chunkVsBody(ch, lb, onHit) {
       if (onHit && onHit(-vn, p)) return;
       const rn = rx * ny - ry * nx, qn = qx * ny - qy * nx;
       const j = -1.3 * vn / (1 / lb.m + rn * rn / lb.I + 1 / b.m + qn * qn / b.I);
-      lb.impulse(nx * j, ny * j, rx, ry); b.impulse(-nx * j, -ny * j, qx, qy); ch.rest = 0;
+      lb.impulse(nx * j, ny * j, rx, ry); b.impulse(-nx * j, -ny * j, qx, qy);
+      if (Math.hypot(lb.vx, lb.vy) < .5 * RES) ch.onBody = frameNo; else ch.rest = 0;   // resting on a still body is support; a moving one wakes it
     }
     lb.x += nx * .25; lb.y += ny * .25;
   }
@@ -306,6 +400,7 @@ function blastChunks(x, y, R, power, px = x, py = y) {
   }
 }
 function blastPush(ch, x, y, R, power) {
+  if (ch.kin) { ch.kin = false; ch.body.hull = chunkHull(ch); ch.body.m = Math.max(.2, ch.body.m); ch.body.I = ch.body.m * (ch.gw * ch.gw + ch.gh * ch.gh) / 12 + .02; ch.age = .2; ch.rest = 0; }   // shaken loose: it falls like any chunk
   const b = ch.body, S = RES, c = Math.cos(b.a), s = Math.sin(b.a), reach = R * 2.2, cell = 2 / (120 * S * S);
   const bl = (x - b.x) * c + (y - b.y) * s, blY = -(x - b.x) * s + (y - b.y) * c;   // blast in the chunk's frame
   const at = (gx, gy) => gx >= 0 && gy >= 0 && gx < ch.gw && gy < ch.gh && ch.grid[gy * ch.gw + gx];

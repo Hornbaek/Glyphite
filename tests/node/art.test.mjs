@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { encodePNG, decodePNG } from '../../tools/png.mjs';
 import { ROOT, validate, loadAssets, toJSON, writeJSON, toHex } from '../../tools/art/lib.mjs';
-import { spriteFromPNG, pngFromSprite, normalRows, contactSheet, pipelineJs } from '../../tools/art/sprite.mjs';
+import { spriteFromPNG, pngFromSprite, normalRows, contactSheet, pipelineJs, emitRows } from '../../tools/art/sprite.mjs';
 import { writeVersion, buildText, liveItems, paletteOf } from '../../tools/art.mjs';
 import { curate, nearest, lab, rgbOf } from '../../tools/art/palette.mjs';
 
@@ -245,4 +245,45 @@ test('every imported Space Mouse prop keeps a link to the owner\'s original fram
   for (const a of loadAssets('spacemouse').filter(x => x.versions[0].meta.kind === 'imported')) {
     const src = a.versions[0].meta.source; assert.ok(src && existsSync(join(ROOT, src)), `${a.id}: ${src}`);
   }
+});
+
+// glowing pixels (the engine's sprite `emit` layer, engine/10_sprite.js)
+test('the emit layer: colours and a mask say which pixels glow; the rows are the sprite\'s size, 9 = fully, and nothing glowing is no layer', () => {
+  const s = spriteFromPNG(png(SMALL));   // the yellow pixel is the only one of its colour: row 1, column 2
+  assert.deepEqual(emitRows(s, { colors: ['#f0c850'] }), ['....', '..9.', '....']);
+  assert.deepEqual(emitRows(s, { colors: ['#F0C850'] })[1], '..9.', 'upper case is the same colour');
+  assert.equal(emitRows(s, { colors: ['#123456'] }), null, 'a colour the sprite does not have: nothing glows');
+  assert.equal(emitRows(s, {}), null);
+  const mask = (g) => { const d = new Uint8Array(4 * 3 * 4); for (let i = 0; i < 12; i++) d.set([g[i], g[i], g[i], 255], i * 4); return encodePNG(4, 3, d); };
+  assert.deepEqual(emitRows(s, { mask: mask([0, 0, 0, 0, 255, 128, 0, 0, 0, 0, 0, 0]) }), ['....', '95..', '....'], 'white is 9, grey about half');
+  assert.deepEqual(emitRows(s, { colors: ['#f0c850'], mask: mask([0, 0, 0, 0, 0, 0, 200, 0, 0, 0, 0, 0]) })[1], '..9.', 'a colour and a mask add up (the stronger wins)');
+  assert.throws(() => emitRows(s, { mask: encodePNG(2, 2, new Uint8Array(16)) }), /the emit mask is 2 x 2, the sprite 4 x 3/);
+});
+
+test('an emit layer reaches pipeline.js and a game without one gets the file it always had', () => {
+  const root = tempRepo(); add(root, { version: '001', status: 'approved' }, { live: '001' });
+  const plain = buildText('g', root);
+  assert.ok(!plain.includes('emit'), 'no emit anywhere in the file of a game without glowing pixels');
+  add(root, { version: '002', status: 'approved', emit: ['#f0c850'] }); const a = loadAssets('g', root)[0]; writeJSON(join(a.dir, 'asset.json'), { ...a.asset, live: '002' });
+  const text = buildText('g', root), PIPE_ART = new Function(`${text}\nreturn PIPE_ART;`)();
+  assert.deepEqual(PIPE_ART.box.emit, ['....', '..9.', '....'], 'the live version\'s emit rows are the asset\'s');
+  assert.ok(liveItems('g', root)[0].emit, 'liveItems carries them');
+  assert.deepEqual(validate('g', { root, pipeline: text }).filter(p => !/pipeline\.js/.test(p)), []);
+  // a mask picture beside the sprite works the same way, and a wrong-sized one or a malformed list is refused
+  const vdir = join(a.dir, '002'), d = new Uint8Array(4 * 3 * 4); d.set([255, 255, 255, 255], 5 * 4); writeFileSync(join(vdir, 'emit.png'), encodePNG(4, 3, d));
+  assert.deepEqual(liveItems('g', root)[0].emit, ['....', '.99.', '....'], 'colour and mask together');
+  writeFileSync(join(vdir, 'emit.png'), encodePNG(2, 2, new Uint8Array(16)));
+  assert.match(validate('g', { root }).join('\n'), /emit\.png is 2 x 2, the sprite 4 x 3/);
+  writeFileSync(join(vdir, 'emit.png'), encodePNG(4, 3, d)); const m = loadAssets('g', root)[0].versions[1].meta; m.emit = 'yellow'; writeJSON(join(vdir, 'meta.json'), m);
+  assert.match(validate('g', { root }).join('\n'), /emit is a list of the colours that glow/);
+});
+
+test('an animated asset keeps each frame\'s emit layer, and pipeFrames hands it to the engine only when there is one', () => {
+  const root = tempRepo();
+  add(root, { version: '001', status: 'approved', frame: 'a' }, { frames: { a: '001', b: '002' }, live: undefined }); add(root, { version: '002', status: 'approved', frame: 'b', emit: ['#f0c850'] });
+  const text = buildText('g', root), PIPE_ART = new Function(`${text}\nreturn PIPE_ART;`)();
+  assert.equal(PIPE_ART.box.frames.a.emit, undefined); assert.deepEqual(PIPE_ART.box.frames.b.emit, ['....', '..9.', '....']);
+  assert.match(text, /emit: a\.frames\[n\]\.emit/);
+  const root2 = tempRepo(); add(root2, { version: '001', status: 'approved', frame: 'a' }, { frames: { a: '001' }, live: undefined });
+  assert.doesNotMatch(buildText('g', root2), /emit/, 'no emit in the generated code of a game with none');
 });

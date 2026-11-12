@@ -121,3 +121,13 @@ dialog .row{display:flex;gap:10px;align-items:center}
 .ctl input:not([type=range]){grid-column:2;font:12px var(--mono);color:var(--phosphor);background:var(--void);border:1px solid var(--rim2);border-radius:2px;padding:3px 5px;min-width:0}
 /* the lane under the notes: which line it shows */
 .lane{position:absolute;left:2px;bottom:46px;width:50px;font:700 9px var(--mono);color:var(--phosphor);background:var(--panel2);border:1px solid var(--rim2);border-radius:2px;padding:2px 0}
+
+/* multisample zones, the MIDI instrument picker, the microphone */
+.zones { display: flex; flex-direction: column; gap: 4px; margin: 6px 0; }
+.zrow { display: grid; grid-template-columns: minmax(0, 1fr) 46px auto 46px auto auto auto; gap: 4px; align-items: center; }
+.zrow select, .zrow input { min-width: 0; background: #0b0f17; color: inherit; border: 1px solid #1d2634; padding: 2px 4px; font: inherit; }
+.zrow output { color: #5d6b80; font-size: 10px; white-space: nowrap; }
+.picklist { max-height: 50vh; overflow: auto; display: flex; flex-direction: column; gap: 2px; margin: 8px 0; }
+.pickrow { display: flex; gap: 8px; align-items: baseline; padding: 3px 4px; cursor: pointer; }
+.pickrow:hover { background: #0f1520; }
+.recmeter { width: 100%; max-width: 360px; background: #05070c; display: block; margin: 8px 0; }

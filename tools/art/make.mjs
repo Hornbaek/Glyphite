@@ -164,7 +164,7 @@ export async function make(game, id, o) {
     }
     const v = writeVersion(game, id, { sprite: fit.png, raw: res.png, root, asset: fresh ? newAsset : null, meta: {
       kind: 'generated', parent: parent_, frame: frame || undefined, brief, prompt, map: map || undefined, note,
-      refs: refs.map(r => ({ path: r.file.slice(artDir(game, root).length + 1), role: r.role })),
+      refs: refs.map(r => ({ path: r.file.slice(artDir(game, root).length + 1).replaceAll('\\', '/'), role: r.role })),
       api: { provider: ad.name, model: res.model || mdl, params: res.params || {}, requestId: res.requestId || null, usage: res.usage || null },
       snap: { pixelSize: fit.pixelSize, tries: fit.tries, size: fit.size, palette: map ? `map ${map}` : 'master', colors: pal.length, lattice: fit.lattice, alignedTo: align || undefined, cut: fit.cut || undefined },
       target: { class: asset.class, w: asset.target.w, h: asset.target.h } } });

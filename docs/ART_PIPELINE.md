@@ -26,7 +26,7 @@ art/style/palette.json    the master palette: { colors: ["#rrggbb", ...] }
 art/style/refs/           3 or 4 approved reference images (phase 3)
 art/maps/<map>/           seed.png and palette.json: a sub-palette that must sit inside the master (phase 3)
 art/assets/<asset>/asset.json     what the asset is, and which version is live
-art/assets/<asset>/<NNN>/         one attempt: sprite.png, normals.png, preview.png, meta.json, raw.png (if it has one)
+art/assets/<asset>/<NNN>/         one attempt: sprite.png, normals.png, preview.png, meta.json, raw.png (if it has one), emit.png (if a mask says what glows)
 games/<id>/pipeline.js    GENERATED from the live versions: PIPE_ART; committed, because the Cloudflare build has no tooling for it
 ```
 
@@ -181,8 +181,11 @@ versions, a tree of which came from which, and a **compare** of any two (side by
 static files; deciding is done in the chat (a session runs `art.mjs promote` / `reject`).
 
 ## Using it in a game
-`pipeline.js` defines `PIPE_ART`: each live asset as `{ name, class, char, place, k, w, h, pal, rows, normals }`, the engine's sprite
-format. Space Mouse joins every asset that has a map `char` to its props (`PROP_ART`, `art.js`); anything else a game reads from
+`pipeline.js` defines `PIPE_ART`: each live asset as `{ name, class, char, place, k, w, h, pal, rows, normals, emit? }`, the engine's sprite
+format. **Glowing pixels** (a window, a screen, eyes: the sprite's `emit` layer, engine/API.md "Sprites"): a version says which pixels glow by `meta.emit`, a list of the sprite's own
+colours (`node tools/art.mjs add ... --emit "#ffe08a,#fff3b0"`: every pixel of those colours glows fully), by `emit.png` (a picture the size of the sprite, white where it glows, grey for
+less: `--emit-mask glow.png`), or both; `art.mjs build` then writes `emit` rows into `pipeline.js` (and for each frame of an animation) for that asset only, so a game with no glowing pixels keeps
+the file it had. The engine draws those pixels unlit and lets them light their surroundings; `art.mjs check` refuses a malformed list and a mask of another size. Space Mouse joins every asset that has a map `char` to its props (`PROP_ART`, `art.js`); anything else a game reads from
 `PIPE_ART[id]` and passes to `defineSprite(data, { k: data.k, ox, oy })`. The legend entry, the open-tile list and a map spot
 make a prop appear; `python3 games/spacemouse/tests/reach.py` proves the level can still be finished.
 

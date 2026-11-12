@@ -37,6 +37,10 @@ Map it onto the engine before writing code:
   web editor").
 - **Effects** → `explode`, built-in particles, `defineParticle` for pickups and the like, lights.
 - **Gravity / sun** → `setGravity` (0 for top-down), `setSun(null)` for caves or indoors, `setAmbient`.
+- **The look** (engine/API.md, "Layers in front and far behind", "The screen look", "Weather, wind, fog and the time of day", "Camera"): hills and far scenery are `addBackdrop`, grass the hero
+  walks behind is the front pass (`drawFront`), a window or flame that glows is a sprite `emit` layer, a day and night cycle is `setTimeOfDay(hour, { rate })` (put lamps on `1 - getTimeOfDay().daylight`),
+  rain and snow are `setWeather` (`pile` for drifts), `setWind`, `setFog`, one palette and a CRT or Game Boy look is `setPost`, and a strategy game's zoom is `zoom` in `Pixelite.run`. All off until
+  asked for; `games/proving/look.js` shows every one, behind tunables.
 - **Anything the engine lacks** → add it to the engine as a *general* feature (with API.md and ROADMAP
   updates) only if another game could use it; otherwise keep it in the game.
 
@@ -44,7 +48,10 @@ Map it onto the engine before writing code:
 
 ```sh
 node tools/pixelite.mjs new <id> --title "Game Title"    # id: lower-case, digits, dashes
+node tools/pixelite.mjs new <id> --title "Game Title" --kit platformer   # a side-scrolling platformer: a copy of the Proving Ground (games/proving: tile-map level, hero, enemies, platforms, shell, saves; its NOTES.md says what each file holds)
 ```
+
+A game that does not use the chip music, the sampler or the isometric ground can leave them out of its page: `"engine": ["sampler"]` in game.json lists the optional parts it keeps (`chip`, `iso`, `sampler`; omit the key to keep all); `node tools/pixelite.mjs build --minify` shrinks the pages further.
 This copies the starter, sets the id and title, lists it on the site (`listed: true`, status `draft`).
 Edit `game.json`: `tagline` (one line), `description` (2–3 sentences for the game list), `controls`
 (`[key, action]` pairs), `parts` (load order: data before the code that reads it at load time), and

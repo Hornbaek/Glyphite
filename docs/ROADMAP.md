@@ -24,7 +24,7 @@ The owner found ASCII too dark and chose pixel art, keeping every mechanic:
    offer `tools/pixel-snapper.patch` upstream (the forward difference and the lattice fit, with the benchmark); try
    Sprite Fusion's sister project (github.com/Hugo-Dz/spritefusion-sprite-normals) against ours. Pixel Art Lighter is in
    the PIXEL LAB (/lab/lighter/); its **light masks** (which pixels a light may reach, e.g. a window glowing at night) would
-   be a general engine feature: a per-sprite emissive/mask layer beside `normals`.
+   be a general engine feature: a per-sprite emissive/mask layer beside `normals` (~~done~~: the `emit` layer, E3, HISTORY 58; `tools/pixelsprite.py --emit-mask` makes one from a mask image).
 5. ~~Space Mouse in pixels~~: normal-mapped characters and props, sprites drawn small the pixel-art way. Next: art at the size
    the game shows it (Pip ~14–16 px), the sheet's moss and cobweb drawings as decor, material palettes.
 6. Later: Regolith from `lander_ref.png`, Fjordheim's sheets (their outline colour still carries the magenta tint of the
@@ -34,17 +34,27 @@ The owner found ASCII too dark and chose pixel art, keeping every mechanic:
 ## Sound: the SOUND STUDIO (HISTORY 36)
 
 Done: the engine's 16-bit Sampler, the studio at /studio/, songs saved on the site and played in Space Mouse. Next:
-- ~~**Your own samples**~~ (HISTORY 37). Next: a loop end of its own, crossfaded loops, a microphone, several samples as one
-  multisampled instrument (a note range each).
+- ~~**Your own samples**~~ (HISTORY 37, 52): a loop end of its own, crossfaded loops, a microphone, several samples as one multisampled
+  instrument (a note range each). Next: layers by loudness (a zone per velocity range), a loop found automatically (the
+  nearest zero crossing), a start offset.
 - ~~**Projects and places**~~ (HISTORY 37): next, music that changes inside a level (a place per area or event, not only per level).
-- ~~**Automation**~~ (HISTORY 38): volume, pan and filter lanes per track, tempo changes, glide. Next: curved segments,
-  automating the sends and the echo, a lane per sample's loop point, tempo ramps (not only steps).
+- ~~**Automation**~~ (HISTORY 38, 52): volume, pan and filter lanes per track, tempo changes, glide, curved segments, the sends, pitch bend,
+  the echo's level and feedback, a lane for a sample's loop point, tempo ramps. Next: curves for the tempo ramp, a lane for the chorus
+  and the EQ, a loop lane that moves while a note holds (Web Audio's loop points are not parameters: it would take two crossfaded
+  sources).
 - **Patterns**: SNES composers worked in short patterns; clips that repeat would make long songs quicker to write.
-- ~~**MIDI files**~~ (HISTORY 51): import a .mid into tracks, export the song as .mid (`tools/midi.mjs` too). Next: pitch bends and the volume and pan
-  automation as CC events, a choice of tracks to open, a song's own samples as one-note General MIDI sounds.
-- **Making instruments off the main thread** (a Worker): a game's first song costs ~0.3 s of blocked frames on its title.
-- **Music that follows the game**: a director helper over `Sampler.track` (layers by state), and songs for Regolith and
-  Fjordheim (Regolith's MIDI can now be turned into Sampler songs to re-voice: `node tools/midi.mjs import games/regolith/music/<name>.mid`).
+- ~~**MIDI files**~~ (HISTORY 51, 52): import a .mid into tracks, export the song as .mid (`tools/midi.mjs` too); pitch bend and the volume and
+  pan that move are lanes, a tempo ramp is a ramp, a file with several instruments asks which to open, and a song's own samples
+  travel inside the file (a pad or a marimba to other programs). Next: the filter, the sends and the echo as CC events (74, 91, 93), time
+  signature changes.
+- ~~**Making instruments off the main thread**~~ (HISTORY 54, plan F4): built in slices between frames, the longest stretch 133 ms -> 6 ms.
+  Next, if it ever matters: the reverb impulse (`reverbIR`, a few ms when a context first plays a song) could be made in the same queue.
+- ~~**Music that follows the game**~~ (HISTORY 54, plan F1 and F3): `Music` (place, play with a crossfade, layers, stingers) and
+  `defineSound` / `Sfx.play` with pan, distance and a voice cap, effects and music volumes kept per game. Next: songs for Regolith
+  and Fjordheim (Regolith's MIDI can now be turned into Sampler songs to re-voice: `node tools/midi.mjs import games/regolith/music/<name>.mid`,
+  and then its `RegolithMusic` can go), `explode()` and the structure thuds placed with `Sfx.place` (they pass `heard()`, so no pan yet),
+  a Chip song as a `Music` source, musical transitions (wait for the bar line before a crossfade), a music change inside a level by
+  trigger (D8: `Music.layer` / `Music.play` are plain calls a trigger can make).
 
 ## Art pipeline (HISTORY 41; docs/ART_PIPELINE.md)
 
@@ -63,6 +73,19 @@ From the owner's brainstorm: generate art through an image API, snap it to the g
 6. Optional: approve / iterate / reject buttons on the site (D1 table, modelled on `worker/songs.js`).
 Later: the animation asset exists (HISTORY 49); next is a game using one (Pip's own frames) (the legs are solved by drawing characters at twice the size: HISTORY 50), moving Space Mouse's other art (Pip, cat-bots, objects) into the pipeline, the stray one-pixel
 column on the lockers' right edge (a cut artefact the gallery will make visible).
+
+## The engine plan (docs/ENGINE_PLAN.md, HISTORY 53-57): what is done, what is open
+
+**The up to date status and the suggested next steps are at the top of `docs/ENGINE_PLAN.md` ("STATUS"); a new session starts there.** The paragraph below is the short version as of engine 0.17.0 and misses the speed work (HISTORY 57) and the look (engine 0.18.0, HISTORY 58: **E1 to E8 are all done**: the sun from either side, layers in front and behind, glowing sprites, lamp-following back-wall shadows, a screen palette and post effects, zoom, weather, wind, fog and the time of day).
+
+Done on `feature/a-foundations`: **A1-A8** (Windows build, one version, pause as a flag, author checks, errors shown, structures, fast bodies), **B1-B4** (seeded random,
+simulation clock, record and replay, the Node engine test bench), **C1-C10** (detail levels a game chooses, resampling a world, entities, animation, actions with gamepad and
+touch, camera rigs, HUD kit, messages, the shell, settings and saves), **D1, D2, D3-D10** (material flags, moving platforms, bodies, gravity, carve and fill, rays and projectiles,
+tile maps and triggers, path finding, timers and state machines), **F1, F3, F4** (sound as data, a music director, instruments off the main thread), **G2** (07 split).
+**D2** (liquids, HISTORY 56) is done too: `liquid` materials that flow level and keep their mass, swimming and floating, splashes, light that dims with depth, `reacts`, `flammable`, `conduct`, `hot`, and a pool in the Proving Ground. What D2 left open: pressure (a liquid only runs along its row: a U-tube does not level through the bend; the fix is a flood fill of the connected surface), waves and ripples on the surface, a veil of water drawn over a sprite standing in it, gas as a material (steam is only particles), reactions between a cell and a particle (fire particles only heat what they hit), sand sinking at gravity's pace rather than a cell every other step, and the falling-sand sandbox game the plan wanted as the proof (the pool and `engine-liquid.test.mjs` are the proof for now; rain and snow in E8 can now land as liquid cells and pile). Open, in the plan's order (E1 to E8, the look, are done: HISTORY 58): **C11** the generated `api.json` and a lint of game code against it (done too: HISTORY 55), **C12** starters per genre (the Proving Ground is the platformer one), **B5** golden
+screenshots and budgets in CI, **F2** key remapping is in the shell (the colour-blind HUD set and hold-to-toggle are not), **G1** the roadmap as "open work only". The speed
+packages (P1-P6, E2) are on the branch `worktree-agent-ac4b8929a6f13b2d3` until merged. Ideas from the bank that the toolkit now makes small: ropes and a grapple (verlet
+ropes are not built), a boss as a breakable structure with mounts, time rewind from grid deltas, an echo enemy (replay of the player's inputs), ghost racers (the replay exists).
 
 ## Principles to keep
 
@@ -119,8 +142,7 @@ and pulse presets* (`flicker` on any light, `flickerAt`, `Sfx.buzz`), plus `draw
    frames built in would save the boilerplate.
 2. **Level and map import:** a tool that turns a PNG with a colour key into voxel materials, for
    hand-made levels.
-3. **Sun from any side:** `setSun` only lights from the left (the sweep walks columns left to right);
-   mirror the sweep for light from the right.
+3. ~~**Sun from any side**~~ (E1, HISTORY 58): `setSun(91..179)` is the sun on the right; the sweep mirrors.
 4. **Gravity as a vector:** `G` is downward only. Top-down games set it to zero, which works, but
    sideways gravity (or per-body gravity) is not possible yet.
 
@@ -149,7 +171,7 @@ Build at least one more small game on the engine to check that it is game-agnost
     its wall) itself; a `drawProps` helper with view culling would let any tile-map game place sprites from its legend.
   - **Moving platforms and lifts** (kinematic chunks that carry characters): a Character stands on a falling chunk but is
     not carried sideways by one.
-  - **Back-wall shadows per light**, instead of one fixed direction.
+  - ~~**Back-wall shadows per light**, instead of one fixed direction.~~ (E4: `setBackdrop({ lamps: true })`, HISTORY 58)
   - **A walking-game starter**, or a `--kit platformer` option for `pixelite.mjs new`, so the next platformer starts from
     Space Mouse's pieces (tile maps, the reach search) rather than the flying starter.
 - a falling-sand sandbox;
@@ -163,9 +185,8 @@ Build at least one more small game on the engine to check that it is game-agnost
     `' , ;` in the grass colour, and it had to be brightened 1.5x to show. A cell background colour (a tint behind the
     glyph) would let ground read as a surface without competing with the sprites.
   - **Touch** (done in 0.6.1: `Input.drag`, `'TapUp'`, `Input.pointer`): Fjordheim pans by dragging and places with two
-    taps. Still missing: pinch to zoom (needs zoom, below) and a long press for a second action.
-  - **Zoom**: the view's scale is fixed (a base unit is the same size on screen at every detail level). An RTS wants to
-    zoom out over the whole map; it would need a second, coarser scale for the view, not just for detail.
+    taps. ~~Pinch to zoom~~ (E7: `Pixelite.run({ zoom })`; Fjordheim does not ask for it yet) and a long press for a second action (`'TapHold'` exists).
+  - ~~**Zoom**~~ (E7, HISTORY 58): `setZoom` scales the cell in whole device pixels, with the wheel and a pinch; an RTS can zoom out over its map (a zoomed-out Fjordheim lights four times the cells at .5: measure it).
   - **Sprite contrast**: dark art (the Gemini buildings) turns into dim `#` blocks. Fjordheim lifts its palettes and picks
     the dense glyph by material (`games/fjordheim/tools/art.py`); a sprite option for both would serve every game.
   - **Pathfinding as an engine helper**: Fjordheim's A* over tiles (`findPath`, eight ways, no corner cutting) is general.
@@ -184,9 +205,14 @@ Each new game should need no engine edits. Every engine edit it forces goes on t
 
 - **Deterministic simulation:** a seeded RNG in the engine (`Pixelite.rand`) for replays and
   reliable tests.
-- **Performance:**
-  - Profile lighting at RES 3 on large screens.
-  - Consider moving the light computation to a worker or to WebGL.
+- **Performance** (the engine plan's P and E2 packages, HISTORY 57, engine 0.17.1):
+  - ~~Profile lighting at RES 3 on large screens~~: `Pixelite.perf` (stage timers, F3), `tests/perf.py` (every game, both renderers, RES 2 and 3, two screen sizes).
+  - ~~Cheaper inner loops (P3)~~, ~~lamps cached while nothing changes (E2)~~, ~~still frames reuse the sun, ambient and terrain shading (P2)~~ (exact: `tests/engine_cache.py`),
+    ~~smaller pages: optional engine parts and `build --minify` (P6)~~.
+  - **Open:** keep a lamp's cast across a camera move (the plan's "shift and fill the edge": needs a cast defined beyond the window, which the surface buffers do not cover); reuse
+    of still frames that have fire, sparks or hot rock in the window (today the base still comes from the copy, the terrain is redone); `build:cloudflare` does not minify yet (the
+    owner's call: `node tools/pixelite.mjs build --minify`, tested, about a fifth smaller). **P4 (GPU tone mapping): not done**, on the numbers: the last pass is 1.1 to 2.3 ms at 1280 x 800 (`Pixelite.perf.tone`), WebGL's CPU `present` 0.4 to 0.7 ms; a shader would save at most that, only in WebGL, and not bit for bit. Measure `tests/perf.py` on a real GPU (a phone) before choosing between this, a GPU terrain pass and a lighting Worker (P5).
+  - Consider moving the light computation to a worker or to WebGL (P5: only with numbers that call for it; the caches come first).
   - ~~Cache sprite rasterisation when nothing changed~~: `drawSprite` `cache` (engine 0.6.0) for still sprites.
 - **Tests:** turn the most useful scripts in `games/regolith/tests/` into a regression suite with
   pass/fail thresholds (landing tolerances, floating islands, clearance, sky smoothness, sprite timing)
@@ -195,7 +221,7 @@ Each new game should need no engine edits. Every engine edit it forces goes on t
 
 ## Backlog and known issues (Regolith Lander)
 
-- **Stars in caves.** A 2D cross-section has no back wall, so caves show stars. Option: mask the sky
+- ~~**Stars in caves.**~~ (E5: `addBackdrop({ underground: [r, g, b] })` paints a dark wall under the skyline; Regolith does not use it yet.) A 2D cross-section has no back wall, so caves show stars. Option: mask the sky
   below the terrain skyline (`colTop`) except where the cave opens to the sky, or paint a dark
   "back wall".
 - **No chunk-to-chunk collision.** Falling pieces pass through each other, and boulders don't
@@ -207,6 +233,6 @@ Each new game should need no engine edits. Every engine edit it forces goes on t
 - **The lander sprite at RES 1** has about 13×7 cells, too coarse to show detail.
 - **The legacy tests** `test.py` to `test13.py` were written against earlier versions (the old
   lander shape, the pause overlay). They may need updating before use as regressions.
-- **Music:** more pieces and per-site themes. The music director could crossfade.
+- **Music:** more pieces and per-site themes. (The engine's music director crossfades now: HISTORY 54.)
 - **Gameplay:** fuel pickups, more pad types, a campaign or score table, and a lander damage model
   where one leg breaks and the lander tips instead of crashing.
