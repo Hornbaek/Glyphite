@@ -103,7 +103,7 @@ function stepTriggers() {
 
 // ---------- tile maps: rows of characters become a world, props, spawns and triggers ----------
 //   const map = loadTileMap(rows, legend, { tile: 4, margin: 0 });
-//   legend: { '#': { mat: ROCK }, 'L': { back: LADDER_WALL, mat: LADDER }, 'T': { prop: TORCH_SPR }, 'e': { entity: 'slime' }, 'P': { spawn: 'start' },
+//   legend: { '#': { mat: ROCK }, 'L': { back: LADDER_WALL, mat: LADDER }, 'T': { prop: TORCH_SPR }, 'g': { prop: GRASS_SPR, front: true }, 'e': { entity: 'slime' }, 'P': { spawn: 'start' },
 //             'Z': { trigger: 'door' }, 'c': { entity: ['coin', { value: 5 }] } }   (a bare number is { mat: n }; a space or an unknown character is empty)
 // A tile is `tile` base units (x RES cells) square. loadTileMap calls worldInit with the map's size (plus `margin` tiles of empty
 // sky above and rock-free space around, if given), fills the cells, puts props where they stand, spawns entities (feet at the middle
@@ -123,7 +123,7 @@ function loadTileMap(rows, legend, o = {}) {
     const ch = rows[r][c], d = L(ch); if (!d) continue;
     const x0 = m + c * tc, y0 = m + r * tc;
     if (d.mat || d.back) for (let j = 0; j < tc; j++) for (let i = 0; i < tc; i++) { if (d.mat) setC(x0 + i, y0 + j, d.mat); if (d.back) setBack(x0 + i, y0 + j, d.back); }
-    if (d.prop) PROPS.push({ spr: d.prop, x: x0 + tc / 2, y: (y0 + tc) * ASPECT, opts: d.propOpts || {} });
+    if (d.prop) PROPS.push({ spr: d.prop, x: x0 + tc / 2, y: (y0 + tc) * ASPECT, opts: d.propOpts || {}, front: !!d.front });
     const fx = x0 + tc / 2, fy = (y0 + tc) * ASPECT;
     if (d.entity) { const [type, props] = Array.isArray(d.entity) ? d.entity : [d.entity, {}]; spawn(type, fx, fy, { ...props, tile: [c, r] }); }
     if (d.spawn) (map.spawns[d.spawn] = map.spawns[d.spawn] || []).push([fx, fy]);
@@ -143,8 +143,10 @@ function loadTileMap(rows, legend, o = {}) {
   }
   return map;
 }
-function drawProps() {
+// front: the props the legend marked `front: true` (drawn after the game's draw hook), or the others
+function drawProps(front = false) {
   for (const p of PROPS) {
+    if (p.front !== front) continue;
     if (p.x + 40 * RES < cam.x || p.x - 40 * RES > cam.x + R.cols || p.y + 8 * RES < cam.y || p.y - 60 * RES > cam.y + R.rows * ASPECT) continue;
     drawSprite(p.spr, p.x, p.y - p.spr.h * p.spr.k * RES / 2, 0, { cache: true, ...p.opts });
   }
@@ -313,6 +315,7 @@ function rescaleWorld(k) {
   for (const p of PROPS) { p.x *= k; p.y *= k; }
   for (const t of triggers) { t.x *= k; t.y *= k; t.w *= k; t.h *= k; }
   for (const z of gravityZones) { z.x0 *= k; z.x1 *= k; z.y0 *= k; z.y1 *= k; }
+  for (const L of BACKDROPS) if (L.horizon !== undefined) L.horizon *= k;
   for (const { c } of plats) {
     const gw = Math.max(1, Math.round(c.gw * k)), gh = Math.max(1, Math.round(c.gh * k)), g = new Uint8Array(gw * gh);
     for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) g[y * gw + x] = c.grid[Math.min(c.gh - 1, Math.floor(y / k)) * c.gw + Math.min(c.gw - 1, Math.floor(x / k))];
@@ -324,7 +327,7 @@ function rescaleWorld(k) {
 }
 // worldInit that keeps what lives in the world (entities, props, triggers, platforms): only the grids are replaced
 function worldInitKeep(w, h) {
-  const ents = entities.slice(), pr = PROPS.slice(), tr = triggers.slice(), tm = TIMERS.slice(), tw = TWEENS.slice(), mn = mounts.slice();
+  const ents = entities.slice(), pr = PROPS.slice(), tr = triggers.slice(), tm = TIMERS.slice(), tw = TWEENS.slice(), mn = mounts.slice(), bd = BACKDROPS.slice();
   worldInit(w, h);
-  entities.push(...ents); PROPS.push(...pr); triggers.push(...tr); TIMERS.push(...tm); TWEENS.push(...tw); mounts.push(...mn);   // platforms are put back by the caller, resized
+  entities.push(...ents); PROPS.push(...pr); triggers.push(...tr); TIMERS.push(...tm); TWEENS.push(...tw); mounts.push(...mn); BACKDROPS.push(...bd);   // platforms are put back by the caller, resized
 }

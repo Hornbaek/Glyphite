@@ -92,3 +92,31 @@ test('E1 the still-frame base follows a sun that crosses to the other side, and 
   assert.deepEqual(on.out, off.out, 'every frame equal');
   assert.ok(on.base.filter(Boolean).length >= 2, `the base was reused (${on.base})`);
 });
+
+// ---------- E5: layers in front and far behind ----------
+test('E5 a tile map legend entry with front: true puts its prop on the front pass; entities have front too', () => {
+  const E = loadEngine();
+  E.run(`setResVars(2); defineMaterial('rock', {}); const spr = defineSprite({ w: 2, h: 2, pal: [[255, 0, 0, 1]], rows: ['00', '00'] }, { k: .5 });
+    loadTileMap(['.g.t', '####'], { '#': 1, g: { prop: spr, front: true }, t: { prop: spr } }, { tile: 4 });`);
+  assert.deepEqual([...E.run('PROPS.map(p => p.front)')], [true, false], 'g is a front prop, t an ordinary one');
+  E.run("defineEntity('fg', { front: true }); defineEntity('bg', {})");
+  assert.equal(E.run('ENTITY_TYPES.fg.front'), true);
+  assert.equal(E.run('ENTITY_TYPES.bg.front'), undefined, 'an entity without it is as before');
+});
+
+test('E5 backdrops: at most three, worldInit clears them, the detail rescale keeps them, and the cave layer paints below the skyline', () => {
+  const E = loadEngine();
+  E.run(`setResVars(2); defineMaterial('rock', {}); worldInit(60, 40); for (let y = 25; y < 40; y++) for (let x = 0; x < 60; x++) cells[y * W + x] = 1; updateSkyline();
+    globalThis.a = addBackdrop({ parallax: .2 }); globalThis.b = addBackdrop({ parallax: [.4, .1] }); addBackdrop({ underground: [.1, .1, .2] });`);
+  assert.equal(E.run('BACKDROPS.length'), 3);
+  assert.throws(() => E.run('addBackdrop({})'), /at most 3/);
+  assert.deepEqual([...E.run('[a.px, a.py, b.px, b.py]')], [.2, .2, .4, .1], 'a number is both axes, a pair is x and y');
+  E.run('removeBackdrop(a)'); assert.equal(E.run('BACKDROPS.length'), 2);
+  E.run('worldInitKeep(60, 40)'); assert.equal(E.run('BACKDROPS.length'), 2, 'the rescale keeps them');
+  const paint = (x, y) => [...E.run(`(() => { const o = [0, 0, 0]; const g = BACKDROPS[1].paint(${x}, ${y}, o); return [g, o[0]]; })()`)];
+  assert.equal(E.run('BACKDROPS[1].px'), 1, 'the cave layer moves with the world');
+  assert.equal(paint(10, 10)[0], 0, 'above the ground: nothing, the sky shows');
+  assert.equal(paint(10, 30)[0], 127, 'below the skyline: a solid dark wall');
+  assert.equal(paint(-3, 30)[0], 0, 'beside the world: nothing');
+  E.run('worldInit(60, 40)'); assert.equal(E.run('BACKDROPS.length'), 0, 'a new world clears them');
+});

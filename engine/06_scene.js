@@ -266,7 +266,7 @@ function renderScene(ox, oy, time, drawExtras) {
     if (bloom) { const on = code > 32; BL[q] = on ? Math.max(0, r - bt) * bg : 0; BL[q + 1] = on ? Math.max(0, g - bt) * bg : 0; BL[q + 2] = on ? Math.max(0, b - bt) * bg : 0; BL[q + 3] = 255; }
   }
   perfAdd('tone', performance.now() - qt);   // (a part of `scene`: the last pass over every cell, which P4 would move to the GPU)
-  renderSky(time);
+  renderSky(time); if (BACKDROPS.length) renderBackdrops(time);
 }
 
 // ---------- sky: stars and the game's sky bodies on their own layer ----------
@@ -309,5 +309,65 @@ function renderSky(time) {
     }
     const vv = vig[k] * INK[glyph];
     SG[k] = glyph; D[q] = toneF(r * E) * vv * 255; D[q + 1] = toneF(g * E) * vv * 255; D[q + 2] = toneF(b * E) * vv * 255; D[q + 3] = glyph > 32 ? 255 : 0;
+  }
+}
+
+// ---------- backdrops: layers between the sky and the world ----------
+// Hills, a far city, a wall of mountains: each backdrop is a grid of cells of its own, scrolled by the camera times its `parallax` (the sky layer's own
+// sub-cell offset technique, so it glides instead of stepping a cell at a time, in both renderers), drawn behind every world cell that is empty and in front of
+// the sky, so the back wall, the terrain and everything the game draws cover it. The first one added is the farthest.
+//   addBackdrop({ parallax: .3 | [px, py], horizon: worldRow, begin(ox, oy, t) {}, paint(gx, dy, out, t) { return SOLID; }, animate: 4, key: (ox, oy) => v })
+//   parallax  how much of the camera's movement it follows: 0 holds still on the screen, 1 moves with the world (default .3)
+//   paint     asked for every cell when the layer is rebuilt: gx is the cell's column in the layer's own space (it scrolls by cam.x * px, so a hill that is a function
+//             of gx stays put), dy its row (see horizon). Return a cell code (0 = nothing, the sky shows; SOLID or a character's brightness) with out = [r, g, b]
+//             in light units, as GAME.sky does. The colours are not lit: the painter picks them (setTimeOfDay's colours are in SKY_AT / AMB_C).
+//   horizon   a world row (units): dy = 0 is the layer's row that stands where that world row does when the camera is centred on it, so hills painted below dy = 0
+//             sit on the ground of a level whose ground is at that row. Without it dy is the layer's own row.
+//   begin     once before each rebuild, with the layer's first column and row
+//   animate   a number of rebuilds a second even when the layer has not scrolled (drifting clouds); key(ox, oy): rebuild when what it returns changes
+//   underground: [r, g, b]  instead of paint: a dark wall below the skyline of the world (parallax 1), so a cave and everything under the ground shows no stars
+// A layer is rebuilt when it has scrolled a whole cell, when the exposure moves, on `animate`, or when `key` changes: keep paint cheap (it runs for about
+// 64 000 cells at 1280 x 800). worldInit clears the backdrops with everything else that belongs to a world; at most BACKDROP_MAX (3) at a time.
+const BACKDROPS = [], BACKDROP_MAX = 3;
+function addBackdrop(o = {}) {
+  devKeys('addBackdrop', o, ['parallax', 'horizon', 'begin', 'paint', 'animate', 'key', 'underground', 'grain']);
+  if (BACKDROPS.length >= BACKDROP_MAX) throw new Error(`addBackdrop: at most ${BACKDROP_MAX} backdrops at a time (removeBackdrop one first)`);
+  const par = Array.isArray(o.parallax) ? o.parallax : [o.parallax ?? .3, o.parallax ?? .3];
+  const L = { px: par[0], py: par[1], horizon: o.horizon, begin: o.begin || null, paint: o.paint || null, fps: o.animate || 0, key: o.key || null, fx: 0, fy: 0, dx: 0, dy: 0, sig: null, dirty: true, pix: null, cv: null, ctx: null, img: null };
+  if (o.underground) {
+    const c = o.underground, gr = o.grain ?? .3;
+    L.px = L.py = 1; L.horizon = undefined;
+    L.paint = (gx, gy, out) => { if (gx < 0 || gx >= W || !colTop || gy < colTop[gx]) return 0; const v = 1 + gr * (hash2(gx, gy, 77) - .5); out[0] = c[0] * v; out[1] = c[1] * v; out[2] = c[2] * v; return SOLID; };
+    L.key = (ox) => { let h = 0; if (colTop) for (let x = Math.max(0, ox), e = Math.min(W, ox + R.RW); x < e; x++) h = (Math.imul(h, 31) + colTop[x]) | 0; return h; };   // the skyline under the window
+  }
+  BACKDROPS.push(L); return L;
+}
+function removeBackdrop(L) { const i = BACKDROPS.indexOf(L); if (i >= 0) BACKDROPS.splice(i, 1); }
+function clearBackdrops() { BACKDROPS.length = 0; }
+// a layer's pixel buffer (and, for the 2D canvas, its own canvas) for this size and renderer
+function backdropAlloc(L) {
+  const RW = R.RW, RH = R.RH; L.pix = new Uint8ClampedArray(RW * RH * 4); L.sig = null; L.dirty = true;
+  if (R.mode === '2d') { L.cv = makeCanvas(RW, RH); L.ctx = L.cv.getContext('2d'); L.img = new ImageData(L.pix, RW, RH); } else L.cv = L.ctx = L.img = null;
+}
+function renderBackdrops(time) {
+  const RW = R.RW, RH = R.RH, key0 = `${RW},${RH},${R.mode}`;
+  if (R.bKey !== key0) { R.bKey = key0; for (const L of BACKDROPS) L.pix = null; }   // a new size or renderer: every layer's buffers again
+  for (const L of BACKDROPS) if (!L.pix) backdropAlloc(L);
+  const E = EYE.e;
+  for (const L of BACKDROPS) {
+    const sx = cam.x * L.px, sy = cam.y / ASPECT * L.py, ix = Math.floor(sx), iy = Math.floor(sy);
+    L.fx = sx - ix; L.fy = sy - iy;
+    const ox = ix - 1, oy = iy - 1, step = L.fps ? Math.floor(time * L.fps) : 0, sig = `${ox},${oy},${step},${Math.round(E * 24)},${L.key ? L.key(ox, oy) : ''}`;
+    if (sig === L.sig) continue;
+    L.sig = sig; L.dirty = true;
+    const base = L.horizon === undefined ? 0 : Math.round(R.rows / 2 + (L.horizon / ASPECT - R.rows / 2) * L.py), D = L.pix, paint = L.paint;
+    if (L.begin) L.begin(ox, oy, time);
+    for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) {
+      const k = j * RW + i, q = k * 4; let glyph = paint ? paint(ox + i, oy + j - base, _pc, time) : 0;
+      if (glyph > 0) {
+        const vv = vig[k] * INK[glyph];
+        D[q] = toneF(_pc[0] * E) * vv * 255; D[q + 1] = toneF(_pc[1] * E) * vv * 255; D[q + 2] = toneF(_pc[2] * E) * vv * 255; D[q + 3] = glyph > 32 ? 255 : 0;
+      } else D[q] = D[q + 1] = D[q + 2] = D[q + 3] = 0;
+    }
   }
 }

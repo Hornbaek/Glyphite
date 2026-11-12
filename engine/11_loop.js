@@ -203,7 +203,11 @@ function draw(t) {
   const ox = Math.floor(cam.x) - 1, oy = Math.floor(cam.y / ASPECT) - 1;
   const fx = cam.x - Math.floor(cam.x), fy = cam.y / ASPECT - Math.floor(cam.y / ASPECT);
   computeLighting(ox, oy, gatherLights(t), dynTop); perfLap('light');
-  renderScene(ox, oy, t, () => { if (PROPS.length) drawProps(); if (entities.length) drawEntities(t); if (STATES && STATES[state] && STATES[state].draw) STATES[state].draw(t); if (GAME.draw) GAME.draw(t); }); perfLap('scene');
+  renderScene(ox, oy, t, () => {
+    if (PROPS.length) drawProps(false); if (entities.length) drawEntities(t, false); if (STATES && STATES[state] && STATES[state].draw) STATES[state].draw(t); if (GAME.draw) GAME.draw(t);
+    // the front pass: what stands in front of everything above (a character walks behind grass and pillars)
+    if (PROPS.length) drawProps(true); if (entities.length) drawEntities(t, true); if (STATES && STATES[state] && STATES[state].drawFront) STATES[state].drawFront(t); if (GAME.drawFront) GAME.drawFront(t);
+  }); perfLap('scene');
   hudClear(); HUDBTNS.length = 0; ACTIVE_MENU = null;
   if (GAME.hud) GAME.hud(t); if (STATES && STATES[state] && STATES[state].hud) STATES[state].hud(t);
   drawFloatingTexts(); drawShell(t); drawFeed(); perfOverlay(); perfLap('hud');
@@ -299,7 +303,7 @@ function boot(data) {
 // ---------- the public object: run a game, and drive it from tests ----------
 const _engineUpdate = update;
 // every key Pixelite.run() reads (a misspelt hook would be ignored without a word)
-const HOOKS = ['id', 'touch', 'keys', 'detail', 'particles', 'cameraTop', 'cameraEase', 'init', 'regenerate', 'update', 'camera', 'markDyn', 'lights', 'draw', 'hud',
+const HOOKS = ['id', 'touch', 'keys', 'detail', 'particles', 'cameraTop', 'cameraEase', 'init', 'regenerate', 'update', 'camera', 'markDyn', 'lights', 'draw', 'drawFront', 'hud',
   'afterFrame', 'shell', 'menu', 'restart', 'quit', 'floatText', 'saveVersion', 'migrate', 'onKey', 'onBlast', 'chunkStep', 'skyBegin', 'sky', 'stars', 'starGlare', 'onTune', 'start', 'snapshot', 'probe', 'levels', 'listener'];
 const Pixelite = {
   version: typeof ENGINE_VERSION === 'string' ? ENGINE_VERSION : '0.0.0',
