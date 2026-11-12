@@ -1155,6 +1155,52 @@ level that uses them all.
 - **Verified**: build, 175 unit tests, the smoke test of seven games in both renderers, `tests/engine_browser.py`, Space Mouse reach and mechanics, Fjordheim's playthrough,
   the Proving Ground's check and mechanics (three runs).
 
+## 56. The engine plan, speed: stage timers, cached lamps, still frames, smaller pages (Claude Code, 2026-11-12)
+
+> "Please continue the performance work (P1, P3, E2, P2, P6, P4 if justified)... Pixel-identical output is required for P3/E2/P2 (check with Pixelite.test.hash() and frozen-frame screenshots in both renderers for all games)... report briefly with real before/after numbers" (packages P1, P2, P3, P4, P6 and E2 of `docs/ENGINE_PLAN.md`; engine 0.16.1, merged with `feature/a-foundations` 0.16.0)
+
+- **P1 measure first.** `Pixelite.perf` (also `probe().perf`, and a box on the F3 key) times `step`, `light`, `scene`, `gameDraw`, `hud`, `present`, their sum `draw`, and `tone` (the last pass of the scene, a part of
+  `scene`); `mean()` / `reset()` for scripts, `sync` to count the wait for the picture. `perfAvg` is the time between frames; these are the work. `tests/perf.py` runs every game, both renderers, RES 2 and 3, 1280 x 800 and
+  2560 x 1440, in a moving scene and an idle one (`--caches off`, `--json`, `--compare`). Headless Chrome has no GPU: `#gl` is SwiftShader, which shares the cores with the page, so its JavaScript stages read
+  higher than `#2d`'s and its `present` says nothing about a real GPU; the numbers below are `#2d`, 1280 x 800. Run to run, and from one page load to the next, a stage varies by 10 to 20% on this machine (other
+  sessions share it): the comparisons below that matter alternate the two things in one page.
+- **What the first measurement said** (the P1 build, before anything else): the lighting is the biggest stage of every game but Fjordheim (`light` 11 to 26 ms at RES 2, 18 to 42 at RES 3 in Regolith, Space Mouse and the showcase; the
+  showcase's two shadowed lamps of radius 90 base units are most of its 21 ms), Fjordheim's terrain pass is its biggest (`scene` 9 ms), and the last pass over the cells (`tone`) is 1.1 to 2.3 ms in every game.
+- **P3 cheaper inner loops.** The occupancy fill is row by row; `colTop` is rescanned only in the 16-column strips where a chunk changed (a **per-chunk revision counter**, bumped in `setC` and `wakeAt`; `worldChanged()` for
+  code that writes `cells[]` by hand while the game runs, `updateSkyline()` is still the full rescan), so a still world, and an isometric game whose world grid is empty, cost nothing; the effect and flicker lights are pooled
+  objects; the terrain pass reads the cell itself from the array. No output changed. **Honest result:** `scene` did not get faster by more than noise (a first version read the back wall's shadow search through the lighting's
+  occupancy buffer instead of `getC` and was 5 to 20% *slower*: reverted, found by timing the P1 `renderScene` against the new one in one process).
+- **E2 lamps cached while nothing changes.** A lamp's cast (the cells its rays reach, the falloff and the distance) is kept and added again; colour and intensity are applied each frame, so flickering lamps stay cached.
+  Valid while no chunk under the lamp's reach changed and the camera is in the same cell; recorded once a lamp stood still for two frames (a moving lamp or camera costs nothing extra). The same numbers in the same order.
+- **P2 still frames.** The sun, ambient and occlusion come back from a copy while the camera cell, the sun and ambient, the shadow-casting bodies' cells and the world under the window and the sun's sweep are the same;
+  the shaded terrain and the light buffers too while the lamps, back wall, exposure, materials and backdrop are the same, nothing in the window is hot or emissive, no crystal or glint is in view and the beat pulse is off.
+- **Measured (E2 + P2), caches off against on, alternating blocks of 25 frames in one page, median of five, `light` in ms:**
+  Space Mouse RES 2 play 13.2 to 1.4, idle 13.7 to 1.3; RES 3 22.6 to 1.8 and 22.3 to 1.8 (the mouse's lamps flicker, the geometry does not change: -90%).
+  Regolith RES 2 idle 5.8 to 0.6 (-90%; RES 3 7.7 to 5.5), moving or burning: no change (the lander's own lights move). Fjordheim 2.7 to 1.4-1.6 at RES 2, 4.4-4.6 to 1.8-2.0 at RES 3 (-41% to -59%).
+  The Proving Ground idle 9.7 to 3.4 and 9.0 to 3.3 (-65%); notfound while the lander burns 2.9 to 0.3. The showcase (meteors and sand land by the big lamps all the time) and the starter (its lamps are on the drone):
+  no change, and where nothing can be reused the bookkeeping costs up to half a millisecond (notfound idle `light` 2.2 to 2.3-2.8). `scene` and `tone` do not move: the terrain snapshot gave nothing measurable at these
+  sizes (copying nine buffers costs about what shading a mostly empty window does), and it is used rarely, since most lamps flicker; it stays because it is exact and tested. **While the camera runs, a lamp is cast
+  again every frame** (the window cuts its rays), so a running platformer gains little from E2; it gains when the mouse stands, talks, dies or sits on the title.
+- **P6 smaller pages.** `game.json` `"engine": [...]` names the optional engine parts a page carries (`chip`, `iso`, `sampler`); a part left out is replaced by a stand-in (`engine/stubs/`) that does nothing when
+  the engine calls it and says what to add when a game does. All seven pages say what they use. `08_music.js` (the beat, `b64buf`, note names) was split out of the Chip so it stays. `build --minify` takes
+  comments and indentation out and nothing else (every line stays where it was, so the `// -----` markers, `PIXELITE_LINE0` and the error lines map unchanged; the build is not minified unless asked). Page sizes
+  in KB, every part / with the `game.json` list / and minified: starter 412 / 325 / 226, notfound 409 / 322 / 224, showcase 409 / 322 / 223, Proving Ground 430 / 343 / 242, Regolith 482 / 411 / 301,
+  Fjordheim 629 / 546 / 420, Space Mouse 690 / 669 / 522. The editor passes the optional map to the same assembler; `engine` is a known `game.json` key.
+- **P4 GPU tone mapping: not done, on the numbers.** The last pass (`tone`) is 1.1 to 2.3 ms at 1280 x 800 in every game (about 100k cells at 2560 x 1440: 2 to 3.5 ms), 5 to 19% of a game's draw and 7 to 14% of a 16.7 ms frame;
+  in WebGL `present` is 0.4 to 0.7 ms of CPU. A shader would save at most that, only in WebGL (the 2D canvas keeps the CPU path), would not be bit for bit the CPU's (so no golden frames across the two), and
+  needs the shading bands, palettes and glints moved into the fragment shader (an L package). What costs most is `light` while the camera runs and `scene`'s terrain pass: P2's snapshots do not reach them, and a GPU
+  path for the whole terrain pass is the thing to try, with a real-GPU measurement first (`tests/perf.py` on a phone and a laptop).
+- **Exact, and tested.** Before the merge, every game's frames (world and sky pixels, `LR/LG/LB/LDX/LDY`, the world hash, the exposure) over 54 frames each, in both renderers at RES 2 and 3, were bit for bit
+  those of the P1 build (24 of 24; a deterministic A/B harness: seeded, eye and beat reset, `Math.random` seeded, `?path=` for the 404 game; the HUD is left out, its toast follows the wall clock), and again for P2 and for
+  the minified pages against the merged build. `tests/engine_cache.py` (every game, both renderers, caches off / on / on with the engine's own audit, through a still stretch, a moving camera, the sun, the ambient light,
+  a block built under a lamp, the back wall written by hand, a material changed, heat, a spark and a blast) and `tests/node/engine-cache.test.mjs` (the counter, the skyline, the occupancy fill, pooled lights, the lamp cache, the
+  base, the audit catching a stale cast, rewind) are in the repository; breaking the back-wall checksum, the heat scan, the emissive scan or rewind's `worldChanged` on purpose makes them fail. The smoke test, `engine_browser.py`,
+  `engine_light.py`, `engine_audio.py`, the 404 test, Space Mouse's mechanics and reach, Fjordheim's playthrough and Regolith's lamp-post and roof tests pass on the merged tree.
+- **What to know.** Code that writes `cells[]` by hand while the game runs calls `worldChanged()` (rewind's restore did not: now it does); the Proving Ground draws its animations from `clockT`, the frame loop's wall-time clock,
+  so a test sets `clockT` with the frame. A test's `Pixelite.test.render(t)` does not.
+- **Not done.** Keeping a lamp's cast across a camera move ("shift and fill the edge"): the window cuts a lamp's rays at its edge, so a lamp partly off screen casts differently from one in view, and the surface buffers
+  stop at the window. A terrain snapshot that survives flickering lamps or crystals (most scenes have them). P4 and P5 (see above).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

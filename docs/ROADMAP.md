@@ -213,7 +213,7 @@ Each new game should need no engine edits. Every engine edit it forces goes on t
     ~~smaller pages: optional engine parts and `build --minify` (P6)~~.
   - **Open:** keep a lamp's cast across a camera move (the plan's "shift and fill the edge": needs a cast defined beyond the window, which the surface buffers do not cover); reuse
     of still frames that have fire, sparks or hot rock in the window (today the base still comes from the copy, the terrain is redone); `build:cloudflare` does not minify yet (the
-    owner's call: `node tools/pixelite.mjs build --minify`, tested, about a fifth smaller). @@P4ROAD@@
+    owner's call: `node tools/pixelite.mjs build --minify`, tested, about a fifth smaller). **P4 (GPU tone mapping): not done**, on the numbers: the last pass is 1.1 to 2.3 ms at 1280 x 800 (`Pixelite.perf.tone`), WebGL's CPU `present` 0.4 to 0.7 ms; a shader would save at most that, only in WebGL, and not bit for bit. Measure `tests/perf.py` on a real GPU (a phone) before choosing between this, a GPU terrain pass and a lighting Worker (P5).
   - Consider moving the light computation to a worker or to WebGL (P5: only with numbers that call for it; the caches come first).
   - ~~Cache sprite rasterisation when nothing changed~~: `drawSprite` `cache` (engine 0.6.0) for still sprites.
 - **Tests:** turn the most useful scripts in `games/regolith/tests/` into a regression suite with

@@ -367,4 +367,6 @@ way.
   and wall-clock toasts (the HUD) all differed: the first A/B said every game differed, even a build against itself.
 - **A minifier that drops indentation can make a comment into a marker.** `lineMap` takes a line that *starts* with `// ----- ... -----` for the assembler's file marker; the Chip had an
   indented comment of that shape, which became one once its indentation was gone. The minifier keeps a marker only if it started in column 0.
-- **Direct array reads are the cheap win.** The terrain pass called `getC` (four bounds tests) per cell and again for the back wall's shadow search, up to nine times a cell at RES 3.
+- **Check that the "optimisation" is one, in the same process.** The terrain pass called `getC` for every cell and again for the back wall's shadow search; replacing the second with a read of the lighting's
+  occupancy buffer through a function (`occAt`) looked free and was 5 to 20% slower (it does more work per call than `getC`). Reading the cell itself from the array, the thing the plan named, moved the scene stage
+  by less than the noise. Timing the P1 `renderScene` against the new one in one page, alternating, and varying the loop found it; the build-to-build numbers (10 to 20% scatter between page loads) could not.
