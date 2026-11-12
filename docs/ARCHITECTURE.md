@@ -403,7 +403,15 @@ the world's pixels (Regolith's lander: `games/regolith/lander_art.js`):
    (`SUN_L`, when `LSUN`), the lamps (`LDX/LDY`) and ambient from above, and multiplies by `0.5 + 0.5·sprRelief`. The
    generator (`portal/assets/normalmap-core.mjs`) builds the same table; a unit test pins both and the relief rule.
 
-`markSpriteDyn` marks the covered cells for shadows; `spriteHull` gives collision points from the
+6. **Emission** (optional `emit` in the data, one base-36 digit a pixel): `sprCells` averages the digits of a cell's samples (9 = all of it glows) and hands it to the pixel
+   callback as `e`; `sprEmit` sends `e > 0` to `sprGlow`, which draws `lit × (1 - min(1, e)) + art × max(1, e) × min(1, e)` and adds the cell to a block of RES × RES in `_glow.bins`.
+   `drawSprite` ends with `emitFlush()` (one splat a block into `EMIT.a`); the end of `renderScene` calls `emitSwap()`, so the NEXT frame's `sceneTerrain` pours `EMIT.b` into the
+   light buffers (`splatLight`, with the particles' and heat's) and its terrain-cache key holds `EMIT.hash`: a still glowing sprite keeps the cache, a moving one redoes the terrain.
+   The cost is a splat per glowing block, nothing for a sprite without the layer (`sprEmit` takes one extra test).
+
+`markSpriteDyn` marks the covered cells for shadows (`dyn = 1`; with `blocksLamps`, `dyn = 3` and the cell joins `BLK`, the box of this frame's lamp blockers: `castLamp` stops a
+shadowed lamp's ray after lighting such a cell, `lampFor` casts a lamp whose reach touches the box again instead of serving the kept cast, and `stillKeys` hashes `dyn`'s values);
+`spriteHull` gives collision points from the
 silhouette. Cost for the lander: about 0.5 ms (RES 1) to 1.6 ms (RES 3) per frame in headless Chromium.
 
 A sprite whose bounding box is off screen is skipped. With `cache: true` (a still sprite: angle 0, no `shift`), steps 1–5

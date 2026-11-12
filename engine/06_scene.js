@@ -48,15 +48,43 @@ function adaptEye(G, n, time) {
 // them); -1 where something drew its own colour
 let cR, cG, cB, cL, vig;
 // cells (dx, dy) toward the light from a back-wall cell, nearest first: a world cell there shades it
-const BK_OFF = new Int16Array(64);
+const BK_OFF = new Int16Array(64), BK_D = [0, 0];
 function backShadowOffsets() {
   const d = BACK.dir, l = Math.hypot(d[0], d[1]) || 1, reach = BACK.depth * RES;
   let n = 0, px = 0, py = 0;
+  BK_D[0] = d[0] / l; BK_D[1] = d[1] / l;
   for (let t = .7; t <= reach && n < 32; t += .7) {
     const dx = Math.round(d[0] / l * t), dy = Math.round(d[1] / l * t / ASPECT);
     if ((dx || dy) && (dx !== px || dy !== py)) { BK_OFF[2 * n] = dx; BK_OFF[2 * n + 1] = dy; n++; px = dx; py = dy; }
   }
+  if (BACK.lamps) backShadowTable();
   return n;
+}
+// setBackdrop({ lamps: true }): the drop shadow of the back wall falls away from the lamps that light each cell instead of one way for the whole screen. The cells toward a
+// light, nearest first, are looked up in a table of BK_DIRS directions (the same steps backShadowOffsets takes, rebuilt when the depth, RES or aspect change); the direction at a
+// cell is the lamps' (LDX, LDY: toward the lights, weighted by what each gives) blended with BACK.dir by how strongly the lamps light it, mag / (mag + .3), so the shadow turns
+// smoothly and a cell no lamp reaches keeps the fixed direction (the sun does not turn it: the back wall is a few cells behind the world, lit as if from the screen's upper left).
+const BK_DIRS = 32, BK_TAB = new Int16Array(BK_DIRS * 64), BK_CNT = new Uint8Array(BK_DIRS);
+let _bkKey = '';
+function backShadowTable() {
+  const key = `${BACK.depth},${RES},${ASPECT}`; if (key === _bkKey) return; _bkKey = key;
+  const reach = BACK.depth * RES;
+  for (let q = 0; q < BK_DIRS; q++) {
+    const a = q * 2 * Math.PI / BK_DIRS - Math.PI, ux = Math.cos(a), uy = Math.sin(a), o = q * 64;
+    let n = 0, px = 0, py = 0;
+    for (let t = .7; t <= reach && n < 32; t += .7) {
+      const dx = Math.round(ux * t), dy = Math.round(uy * t / ASPECT);
+      if ((dx || dy) && (dx !== px || dy !== py)) { BK_TAB[o + 2 * n] = dx; BK_TAB[o + 2 * n + 1] = dy; n++; px = dx; py = dy; }
+    }
+    BK_CNT[q] = n;
+  }
+}
+// the share of its light a back-wall cell keeps under the drop shadow of the world cells toward the lamps that light it (1 = none)
+function backShadowLamp(cx, cy, lx, ly, mag) {
+  const m = mag / (mag + .3), vx = -BK_D[0] * (1 - m) + lx / mag * m, vy = -BK_D[1] * (1 - m) + ly / mag * m;   // toward the light: the opposite of the way shadows fall
+  const q = (((Math.atan2(vy, vx) + Math.PI) * (BK_DIRS / (2 * Math.PI)) + .5) | 0) % BK_DIRS, n = BK_CNT[q], o = q * 64;
+  for (let s = 0; s < n; s++) if (MAT_SOLID[getC(cx + BK_TAB[o + 2 * s], cy + BK_TAB[o + 2 * s + 1])]) return 1 - BACK.shadow * (1 - s / n);
+  return 1;
 }
 const _fc = [0, 0, 0], _pc = [0, 0, 0];
 // direction → line glyph: - \ | /
@@ -98,6 +126,8 @@ function sceneTerrain(ox, oy, time, bkN, bp) {
     splatLight(cx, cy, _fc[0] * k, _fc[1] * k, _fc[2] * k, t === PT_SPARK ? 2 : 3);
     if (t !== PT_SPARK) { const q = j * RW + i; SH[q] = Math.min(1, SH[q] + .25 * life); if (j > 0) SH[q - RW] = Math.min(1, SH[q - RW] + .2 * life); }
   }
+  // glowing sprite pixels, as drawSprite recorded them last frame (10_sprite.js, EMIT)
+  for (let q = 0, E = EMIT.b; q < E.length; q += 6) splatLight(E[q], E[q + 1], E[q + 2], E[q + 3], E[q + 4], E[q + 5]);
   // per cell, so a hot or glowing area gives the same light at any detail and cell size (cells are ASPECT units tall)
   const hk = ASPECT / (2 * RES * RES), cmod = Math.max(3, Math.round(6 * RES * RES / ASPECT));
   for (let j = 0; j < RH; j++) {
@@ -128,7 +158,9 @@ function sceneTerrain(ox, oy, time, bkN, bp) {
       const bm = inW ? backCells[ci] : 0;
       if (bm) {   // the back wall: the light in the air in front of it, dimmer, with a drop shadow from the world cells
         let f = BACK.dim;
-        for (let s = 0; s < bkN; s++) if (MAT_SOLID[getC(cx - BK_OFF[2 * s], cy - BK_OFF[2 * s + 1])]) { f *= 1 - BACK.shadow * (1 - s / bkN); break; }
+        const lmag = BACK.lamps ? Math.hypot(LDX[k], LDY[k]) : 0;
+        if (lmag > 1e-3) f *= backShadowLamp(cx, cy, LDX[k], LDY[k], lmag);   // a lamp lights this cell: the shadow falls away from it
+        else for (let s = 0; s < bkN; s++) if (MAT_SOLID[getC(cx - BK_OFF[2 * s], cy - BK_OFF[2 * s + 1])]) { f *= 1 - BACK.shadow * (1 - s / bkN); break; }
         const alb = MAT_ALB[bm];
         // a mast-style back wall (girders) shows its joints one shade brighter
         const joint = MAT_STYLE[bm] === 2 && (getBack(cx, cy - 1) === bm || getBack(cx, cy + 1) === bm) && (getBack(cx - 1, cy) === bm || getBack(cx + 1, cy) === bm);
@@ -253,6 +285,7 @@ function renderScene(ox, oy, time, drawExtras) {
     }
   }
 
+  if (EMIT.a.length || EMIT.b.length) emitSwap();   // what the sprites drawn this frame glow with is poured in next frame
   // 6) tone map + vignette → bytes (alpha: is anything in the cell; and the optional bloom bright-pass)
   const qt = performance.now();
   adaptEye(G, n, time);

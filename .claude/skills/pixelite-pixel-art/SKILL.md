@@ -98,6 +98,11 @@ its normal map (green up), check it in the PIXEL LAB ([ LOAD A NORMAL MAP ]), th
 `node tools/normalmap.mjs --from-map normals.png --rows` (`--green-down` for maps from tools that point green down).
 Keep the exported map in the game's `ref/` with the art.
 
+**Glowing pixels** (a window at night, a screen, eyes, a lamp's bulb): a sprite may carry `emit: [...]` beside `normals` (same size, `.` or a base-36 digit, 9 = the pixel is fully its own
+light). The engine draws those pixels unlit and lets them light their surroundings (`engine/API.md`, "Glowing pixels"). Mark them while converting:
+`python3 tools/pixelsprite.py ... --emit '#ffe08a,#fff3b0'` (every pixel of those palette colours glows) or `--emit-mask glow.png` (white where it glows), or in the art pipeline
+`node tools/art.mjs add ... --emit '#ffe08a'`. Pick the glowing colours as their own palette entries (the same yellow as the lit wall would glow too).
+
 ### 4. Scale, origin and parts (game decisions)
 
 - **Scale `k`** (base units per art pixel): pixel art looks best at **one art pixel per world pixel** at the game's

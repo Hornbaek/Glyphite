@@ -415,6 +415,18 @@ then multiplied by `0.5 + 0.5·sprRelief(n, l)`, where `l` points toward the lig
 the lamps' own direction, `LDX/LDY`, and a little sky from above): up to ×1.35 facing the light, down to ×0.65 facing away,
 exactly ×1 for a flat pixel or a sprite without normals.
 
+**Glowing pixels (the `emit` layer).** A sprite's data may also carry `emit: ['....99..', ...]`, rows the size of `rows`: `.` where a pixel does not glow, a base-36 digit where it
+does (`9`: the pixel is fully its own colour, unlit, a window, a screen, eyes; `1`..`8` that share of it, the rest lit as usual; `a`..`z` brighter than the art, up to 3.9). A glowing
+pixel is drawn **unlit** (the art's own colours at any hour) and **gives light**: `drawSprite` records where, and the scene pass of the *next* frame pours the record into the light
+buffers like fire (`splatLight`): the terrain and particles drawn after it, and the next frame's sprites, are lit by it, one frame behind, which is not visible for anything that moves like a
+character. The glowing cells of a sprite are added up in blocks of RES × RES cells (a big screen is a few splats, its light the same in total, per base cell, so it is the same at every
+detail level). `defineSprite(data, { glow: 3, glowGain: .05 })`: `glow` is the radius of that light in base cells (0: glowing pixels but no light), `glowGain` its strength per base cell of
+glow; `drawSprite(spr, x, y, a, { emit: .5 })` scales the glow of one draw (0: the lamp is off: ordinary lit pixels and no light; a flicker). A sprite without an `emit` layer is drawn
+exactly as before. Made from the art by `tools/pixelsprite.py --emit '#ffe08a' [--emit-mask glow.png]` or, in the art pipeline, `node tools/art.mjs add ... --emit '#ffe08a'` (docs/ART_PIPELINE.md).
+**Sprites that block lamp light.** A sprite stops the sun through `markSpriteDyn`; `markSpriteDyn(spr, x, y, a, { blocksLamps: true })` (and `blocksLamps: true` in a `defineEntity`)
+makes its cells stop the light of lamps as well (shadowed lamps only: a character between a lamp and a wall casts a shadow on it), the lit side of the sprite itself still being lit. A lamp
+whose reach touches such a sprite is cast again every frame instead of being kept (`Pixelite.cache`), and goes back to the cache when the sprite has gone.
+
 **Cleaning AI art.** `node tools/snap.mjs in.png out.png [--colors 16] [--pixel-size P] [--palette hex,...]` runs Pixel
 Snapper (Sprite Fusion, MIT): it snaps AI-made pixel art to the grid it was meant to have and to a palette.
 `k` = base units per pixel, `(ox, oy)` the origin pixel (centre of mass). `part(c, r)` gives movable parts (1..n)
@@ -442,6 +454,8 @@ defineEntity('slime', {
   props: { hp: 3 },                     // default fields (copied) of every one spawned
   touches: ['player'],                  // types whose overlap calls onTouch(e, other) every step
   always: true,                         // update off screen too (default: more than 2 screens away it sleeps; sleep: 3 changes that)
+  front: true,                          // drawn in the front pass, after the game's draw hook (see Layers in front and far behind)
+  blocksLamps: true,                    // its sprite also stops the light of lamps, not only the sun's (see Sprites, Glowing pixels)
   init(e) {}, update(e, dt) {}, draw(e, t) {}, lights(e, t, out) {}, onTouch(e, other) {}, onLeave(e) {}
 });
 const e = spawn('slime', x, y, { hp: 5 });      // e.dead = true removes it at the end of the step

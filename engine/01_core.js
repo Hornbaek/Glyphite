@@ -176,9 +176,17 @@ function worldChanged(x0 = 0, y0 = 0, x1 = W - 1, y1 = H - 1) {
   for (let cy = b; cy <= d; cy++) for (let cx = a; cx <= c; cx++) CREV[cy * CWn + cx] = r;
 }
 // dynamic occluders: cells covered by moving bodies this frame (they cast sun shadows)
+// A cell marked with lamp = 1 (a sprite with blocksLamps) also stops the light of lamps (dyn = 3, not 1); BLK is the box around this frame's lamp blockers, which the
+// lamp cache steps around (a lamp whose reach touches it is cast again every frame) and the still-frame keys hash.
 let dynList = [];
-function markDynCell(i) { if (!dyn[i]) { dyn[i] = 1; dynList.push(i); } }
-function clearDyn() { for (const i of dynList) dyn[i] = 0; dynList.length = 0; }
+const BLK = { n: 0, x0: 0, y0: 0, x1: 0, y1: 0 };
+function markDynCell(i, lamp) { if (!dyn[i]) { dyn[i] = lamp ? 3 : 1; dynList.push(i); } else if (lamp) dyn[i] = 3; }
+function markBlocker(cx, cy) {
+  if (!BLK.n++) { BLK.x0 = BLK.x1 = cx; BLK.y0 = BLK.y1 = cy; return; }
+  if (cx < BLK.x0) BLK.x0 = cx; else if (cx > BLK.x1) BLK.x1 = cx;
+  if (cy < BLK.y0) BLK.y0 = cy; else if (cy > BLK.y1) BLK.y1 = cy;
+}
+function clearDyn() { for (const i of dynList) dyn[i] = 0; dynList.length = 0; BLK.n = 0; }
 function setC(x, y, m) { if (x < 0 || y < 0 || x >= W || y >= H) return; const i = y * W + x; if (cells[i] === m) return; cells[i] = m; if (MAT_HOT[m]) heat[i] = MAT_HOT[m]; wakeAt(x, y); }
 const solidU = (xu, yu) => MAT_SOLID[getC(Math.floor(xu), Math.floor(yu / ASPECT))] === 1;
 
@@ -188,9 +196,10 @@ const solidU = (xu, yu) => MAT_SOLID[getC(Math.floor(xu), Math.floor(yu / ASPECT
 // with a drop shadow where world cells stand between it and the light (setBackdrop), so rooms read as rooms. Where it is 0
 // the sky shows through: windows, hull breaches, the outdoors. Materials are the same registry as the world's; 'mast' style
 // draws seams and pipes (| = +) from its back-wall neighbours, every other style uses its ramp.
-const BACK = { dim: .42, shadow: .6, dir: [.6, .8], depth: 2.2 };
+const BACK = { dim: .42, shadow: .6, dir: [.6, .8], depth: 2.2, lamps: false };
 // dim: brightness against the world; shadow: how dark the drop shadow is (0..1); dir: the way shadows fall (x, y in units,
-// default down and to the right); depth: how far they reach (base units)
+// default down and to the right); depth: how far they reach (base units); lamps: the shadow falls away from the lamps that light each cell instead
+// (06_scene.js, backShadowLamp), keeping dir where no lamp reaches
 function setBackdrop(o) { Object.assign(BACK, o); }
 const getBack = (x, y) => x < 0 || y < 0 || x >= W || y >= H ? EMPTY : backCells[y * W + x];
 function setBack(x, y, m) { if (x >= 0 && y >= 0 && x < W && y < H) backCells[y * W + x] = m; }
