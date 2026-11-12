@@ -237,10 +237,10 @@ const fmtS = (v, w, d) => (v < 0 ? '-' : '+') + Math.abs(v).toFixed(d).padStart(
 // is only the CPU's part: the GPU finishes later, unless `sync` is on (tests/perf.py does that: it reads one pixel back, so the
 // wait is counted). mean() is the plain average since reset(), for a script that wants one number.
 const PERF_STAGES = ['step', 'light', 'scene', 'gameDraw', 'hud', 'present'];
-const PERF = { show: false, sync: false, draw: 0, gd: 0, t0: 0, sum: {}, cnt: {},
-  avg() { const o = {}; for (const s of [...PERF_STAGES, 'draw']) o[s] = +this[s].toFixed(2); return o; },   // the smoothed numbers, rounded (probe().perf)
-  mean() { const o = {}; for (const s of PERF_STAGES) o[s] = this.cnt[s] ? +(this.sum[s] / this.cnt[s]).toFixed(3) : 0; o.draw = this.cnt.present ? +(this.sum.draw / this.cnt.present).toFixed(3) : 0; return o; },
-  reset() { for (const s of [...PERF_STAGES, 'draw']) { this.sum[s] = 0; this.cnt[s] = 0; } } };
+const PERF = { show: false, sync: false, draw: 0, tone: 0, gd: 0, t0: 0, sum: {}, cnt: {},
+  avg() { const o = {}; for (const s of [...PERF_STAGES, 'draw', 'tone']) o[s] = +this[s].toFixed(2); return o; },   // the smoothed numbers, rounded (probe().perf)
+  mean() { const o = {}; for (const s of PERF_STAGES) o[s] = this.cnt[s] ? +(this.sum[s] / this.cnt[s]).toFixed(3) : 0; o.draw = this.cnt.present ? +(this.sum.draw / this.cnt.present).toFixed(3) : 0; o.tone = this.cnt.tone ? +(this.sum.tone / this.cnt.tone).toFixed(3) : 0; return o; },
+  reset() { for (const s of [...PERF_STAGES, 'draw', 'tone']) { this.sum[s] = 0; this.cnt[s] = 0; } } };
 for (const s of PERF_STAGES) PERF[s] = 0;
 PERF.reset();
 let _perfFrame = 0;   // the draw stages of the frame in progress, added up
@@ -257,7 +257,7 @@ function perfFlush() { if (R.mode === 'gl') R.gl.readPixels(0, 0, 1, 1, R.gl.RGB
 // the F3 overlay: the stage times and the picture's size, on the HUD
 function perfOverlay() {
   if (!PERF.show) return;
-  const rows = [['step', PERF.step], ['light', PERF.light], ['scene', PERF.scene], ['game', PERF.gameDraw], ['hud', PERF.hud], ['present', PERF.present], ['draw', PERF.draw]];
+  const rows = [['step', PERF.step], ['light', PERF.light], ['scene', PERF.scene], [' tone', PERF.tone], ['game', PERF.gameDraw], ['hud', PERF.hud], ['present', PERF.present], ['draw', PERF.draw]];
   const w = 24, c = 1, r = 1; hudBox(c, r, w, rows.length + 4, HC.dim, true);
   hudText(c + 2, r, ' PERF (F3) ', HC.cyan);
   rows.forEach(([n, v], i) => hudText(c + 2, r + 1 + i, `${n.padEnd(8)}${v.toFixed(2).padStart(6)} ms`, n === 'draw' ? HC.gold : HC.txt));

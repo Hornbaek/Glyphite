@@ -323,3 +323,30 @@ way.
 - **A Windows checkout with `core.autocrlf` cannot build.** `checkSyntax` looks for `<script>\n` and the page template then has `\r\n`:
   the build says "Unexpected identifier 'html'". Build in a clone with `-c core.autocrlf=false` (the unit tests that compare generated files fail
   the same way in the checkout itself; CI, on Linux, is not affected).
+
+## Speed and caches (the engine plan, speed work; HISTORY 54)
+
+- **Measure the work, not the gap between frames.** `perfAvg` read 16.7 ms whether a frame took 2 ms or 16. The stage timers (`Pixelite.perf`) showed the lighting as the biggest stage of
+  every game but Fjordheim (11 to 60 ms at RES 2 and 3 in headless Chrome; Fjordheim has no shadowed lamp, and its terrain pass is the biggest), and two shadowed lamps of radius 90 base units
+  as most of the showcase's.
+- **Software GL pollutes the JavaScript numbers.** SwiftShader runs in another process but on the same cores: the same `light` stage read 14 ms with `#2d` and 18 to 35 ms with `#gl`.
+  Compare JavaScript stages in `#2d`; `present` and the readback say nothing about a real GPU.
+- **A cache is only as exact as what tells it to let go.** The lamp cache and the still frame trust the revision counter (`setC`, `wakeAt`); a game that writes `cells[]` by hand while it
+  runs must call `worldChanged()`. Things with no writer to hook (`backCells`, which `isoSetTile` and games write directly; `heat`, which cools by itself) are watched by a checksum or a scan of
+  the window instead, a few tenths of a millisecond. `CACHE.audit` re-does everything and compares, and the tests break each guard on purpose (a mutated `backSig`, `heatCalm`,
+  `emissiveIn`) to see that they fail.
+- **Cache what is a pure function, apply what varies.** A lamp's cast does not depend on its colour or intensity, so a flickering lamp (the intensity changes every frame) is still cached:
+  what is kept is the falloff and the distance, and `cr * a` is computed each frame, in the same lamp order, which is why the float sums come out the same. Adding all the lamps together first
+  would have been faster and not bit for bit.
+- **Record only what has stood still.** A moving lamp or a moving camera must cost nothing extra, so a lamp is recorded only after two frames with the same parameters and the camera in the
+  same cell (the previous frame's hashes; no entry is made before), and a cast made stale by a change near it must see four quiet frames before it is recorded again.
+- **The camera moving defeats both caches, on purpose.** The window cuts a lamp's rays at its edge, so a lamp partly off screen casts differently from one in view; keeping a cast across a
+  camera move needs the cast to be defined beyond the window (the plan's "shift and fill the edge"), which the surface buffers do not cover. In a platformer that runs, the gain is in the
+  standing, talking, dying and title stretches; for the running ones it is P3's cheaper loops.
+- **A short name in a long function shadows.** `computeLighting` had `const S = LSAT` inside the block that the still frame wrapped; the outer `S = STILL` was shadowed, `S.snapBase` read
+  `undefined` on an Int32Array and nothing was ever kept, without an error. A look at the state after each frame (`have: false`) found it.
+- **Make the A/B harness deterministic before trusting it.** Run to run, `EYE.e`, the beat, `Math.random` (the 404 game's lander lands somewhere else), the page's address (the 404 game draws it)
+  and wall-clock toasts (the HUD) all differed: the first A/B said every game differed, even a build against itself.
+- **A minifier that drops indentation can make a comment into a marker.** `lineMap` takes a line that *starts* with `// ----- ... -----` for the assembler's file marker; the Chip had an
+  indented comment of that shape, which became one once its indentation was gone. The minifier keeps a marker only if it started in column 0.
+- **Direct array reads are the cheap win.** The terrain pass called `getC` (four bounds tests) per cell and again for the back wall's shadow search, up to nine times a cell at RES 3.

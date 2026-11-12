@@ -139,7 +139,8 @@ effects, chunks and mounts. Then fill `cells[y * W + x] = MATERIAL` directly (fa
 | `addHeat(x, y, h)` | Heat a cell (hot rock glows and lights its surroundings). |
 | `simGranular()` | One sand step (the engine runs it every step; call it in a loop during generation to settle sand, after `awake.fill(1)`). |
 | `settleIslands(onDrop)` | Drop floating solid pieces until they rest; `onDrop(cellIndices, rows)` lets you move objects riding them. Call after generation. |
-| `updateSkyline()`, `colTop[x]` | First solid row of each column (updated every frame). |
+| `updateSkyline()`, `colTop[x]` | First solid row of each column. The frame loop keeps it up to date from the world's revision counter (only the 16-column strips where something changed are rescanned); `updateSkyline()` rescans every column, so call it after writing `cells[]` yourself (a generator does, once). |
+| `worldChanged(x0, y0, x1, y1)` | Say which cells (all of them with no arguments) you wrote with `cells[i] = m` *while the game runs*: the lamp cache and the still-frame reuse (see Performance) trust the engine's revision counter, which `setC`, the sand, blasts and structures bump by themselves. Writing at generation time, before the first frame, needs nothing (`worldInit` starts a new revision), and neither do `backCells`, `heat` and `vari` (a checksum of the window and the hot-or-not scan watch those). |
 
 **The back wall.** A second grid, `backCells` (same size, material ids, 0 = none), for walls, panels and pipes behind the rooms
 of a station, a house or a cave. It is never solid: nothing collides with it and light and sand pass it by. It is drawn
@@ -327,7 +328,7 @@ flip, then only lit each frame, so hundreds of trees and houses stay cheap (`gam
 
 ## Isometric maps
 
-`engine/12_iso.js`, for games seen from above at an angle (`games/fjordheim/`). The ground is a grid of `ni × nj` tiles
+`engine/12_iso.js` (`"iso"` in game.json's `"engine"` list), for games seen from above at an angle (`games/fjordheim/`). The ground is a grid of `ni × nj` tiles
 drawn as 2:1 diamonds into the back wall (never solid, lit and shaded by the scene like any material); the world
 grid stays empty, so every light reaches the ground. Everything standing on it is a sprite, drawn back to front.
 ```js
@@ -386,11 +387,13 @@ is off the canvas: for a cursor that may rest, like edge scrolling), `Input.touc
 `buzz(level 0..1)` (a looping mains hum for dying lamps and live wires: set it every frame, e.g. from `flickerAt()` times how
 near the lamp is).
 
-`Chip` (NES-style synth playing MIDI): `Chip.load(arrayBuffer)` → song, `Chip.play(song, { loop, fadeIn, onEnd })`,
+The Chip, the Sampler and the isometric ground are **optional engine parts** (see Performance, Smaller pages): a game names the ones it plays with in `game.json`'s `"engine"` list.
+
+`Chip` (NES-style synth playing MIDI; `"chip"`): `Chip.load(arrayBuffer)` → song, `Chip.play(song, { loop, fadeIn, onEnd })`,
 `Chip.stop(fade)`, `Chip.setVolume(v)`, `Chip.meter()` (lanes and beat, for visualisers), `Chip.connectMidi()`.
 Embed songs as base64 (`b64buf`); see `games/regolith/music.js` for a music director.
 
-`Sampler` (16-bit, Super Nintendo style, `engine/13_sampler.js`): sampled instruments made from recipes (piano, strings,
+`Sampler` (16-bit, Super Nintendo style, `engine/13_sampler.js`; `"sampler"`): sampled instruments made from recipes (piano, strings,
 choir, brass, flute, synths, basses, guitars, a General MIDI drum kit: `Sampler.INSTRUMENTS`, `Sampler.KIT`), each squeezed
 through the SNES's 4-bit BRR compression at 32 kHz or less (a track's `sound.rate`: grit). Per track: an SNES envelope (attack,
 decay, sustain, `fall` while held, release), vibrato, octave and fine tune, a 3-band EQ, a filter, chorus, pan, volume, and
@@ -527,7 +530,8 @@ milliseconds of main-thread time per stage, smoothed over about 25 frames (also 
 | `step` | one fixed step (`GAME.update` and the engine's world step; a frame runs one to three) |
 | `light` | skyline, shadow marks (`GAME.markDyn`), `GAME.lights`, the sun, ambient occlusion, the lamps |
 | `scene` | terrain, particles, falling chunks, rings, the tone map into bytes, the sky layer; without `gameDraw` |
-| `gameDraw` | `GAME.draw` |
+| `tone` | *of which* the last pass of `scene`: every cell's tone map, vignette and bytes (and the bloom's bright pass). Not part of `draw`'s sum |
+| `gameDraw` | `GAME.draw`, with the engine's props, entities and state drawing |
 | `hud` | `GAME.hud`, the toast and the F3 box |
 | `present` | handing the picture to WebGL or the canvas: the CPU's part only, the GPU finishes later |
 | `draw` | `light + scene + gameDraw + hud + present` |
@@ -536,3 +540,44 @@ milliseconds of main-thread time per stage, smoothed over about 25 frames (also 
 `Pixelite.perf.sync = true` reads a pixel back after presenting, so `present` then includes the wait for the picture (software GL, a slow
 GPU). `tests/perf.py` runs every game at RES 2 and 3 and two screen sizes in both renderers and prints the table. Headless Chrome has no GPU,
 so its `present` says little; `light`, `scene` and `step` are JavaScript and mean the same everywhere.
+
+### Caches: lamps and still frames
+
+Most frames of most games change little: the camera is still, the world is not being dug, the lamps do not move. Two caches skip the work that
+would make the same numbers again. Both are **exact**: a frame comes out bit for bit as it did without them (`tests/engine_cache.py` plays every game
+with them off, on, and on with the engine re-doing and comparing everything), so there is nothing to tune and nothing a game can see, except time.
+
+- **The lamp cache** (`engine/04_light.js`). A lamp's cast (which cells its rays reach and how much light each gets: depends on its position, radius,
+  cone, and the surfaces) is kept per lamp and added again instead of cast again; colour and intensity are applied each frame, so a flickering or pulsing
+  lamp stays cached. Valid while no chunk of the world within the lamp's reach was written to (the world's revision counter) and the camera is in the same
+  cell; recorded once the lamp has stood still for two frames, so a moving lamp or a moving camera costs nothing extra.
+- **The still frame** (`engine/04_light.js`, `06_scene.js`). The sun, ambient and occlusion (the *base*) come back from a copy while the camera cell, the sun
+  and ambient colours, the moving bodies that cast shadows and the world under the window and the sun's sweep are the same. The shaded terrain and the
+  light buffers come back too while, on top of that, the lamps are the same, the back wall, the exposure, the materials and the backdrop are the
+  same, nothing in the window is hot or emissive (fire, gas, sparks, particles with a `light` hook) and `setBeatPulse` is off. Particles, falling
+  chunks, sprites, rings and the HUD are drawn every frame as before; crystals and glints, which follow the clock, are shaded again each frame.
+
+`Pixelite.cache` has the switches and counters: `lamps` and `still` (set `false` to turn one off), `hit` / `miss` / `rec` (lamps of the last frame:
+served from the cache, cast, cast and recorded), `baseHit` / `terrainHit` (0 or 1: what the last frame reused), `audit` (true: do everything, compare with
+what was kept) and `bad` (what the audit found). The one rule for game code: if you write `cells[]` yourself while the game runs, call `worldChanged()`.
+`CACHE.audit` finds a miss (it prints a warning naming the cause); in `?dev` pages a lamp is audited now and then.
+
+### Smaller pages: `"engine"` in game.json
+
+A page carries the whole engine, about 350 KB of script, of which the Sampler is 57 KB, the Chip 19 KB and the isometric ground 5 KB, used or not.
+`game.json` may name the optional parts the game plays with:
+
+```json
+"engine": ["sampler"]
+```
+
+The optional parts are `chip` (`08_chip.js`), `iso` (`12_iso.js`) and `sampler` (`13_sampler.js`); `engine/engine.json` lists them under `"optional"`. A part left
+out is replaced, in the same place, by its stand-in in `engine/stubs/`: the engine's own calls to it (the sound starting up, the beat asking for a meter,
+the studio's preview message) do nothing, and any other call (`Sampler.play`, `isoInit`, `Chip.load`) throws a message saying which name to add. Without the key
+(every older game) the page carries everything, byte for byte as before; `"engine": []` is the smallest page. The beat (`Beat`, `setBeatPulse`), `b64buf` and
+`noteName` are always there (`engine/08_music.js`). A new game starts from the starter, which says `"engine": []`: add `"sampler"` when it plays songs.
+
+`node tools/pixelite.mjs build --minify` (or `PIXELITE_MINIFY=1`) goes further: it takes the comments and the indentation out of every page and nothing else (`tools/minify.mjs`).
+No line is joined or removed, so every line stays where it was: the `// ----- path -----` markers, `PIXELITE_LINE0` and the error overlay's `file:line` work
+unchanged, and `tests/node/smaller.test.mjs` checks the number of lines, the file of every line, that every source compiles and that the minified engine makes the
+same world. The deployed site is built without it unless you ask (`npm run build:cloudflare`); it is meant for the build that goes to players.

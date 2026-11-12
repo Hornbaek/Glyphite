@@ -263,6 +263,7 @@ function renderScene(ox, oy, time, drawExtras) {
   }
 
   // 6) tone map + vignette → bytes (alpha: is anything in the cell; and the optional bloom bright-pass)
+  const qt = performance.now();
   adaptEye(G, n, time);
   const D = R.wPix, BL = R.bloomPix, bloom = R.bloom, E = EYE.e;
   const bt = .62 - .1 * bp, bg = 460 * (1 + 1.2 * bp);   // the bloom bright-pass: on a drum hit its threshold drops and its gain rises
@@ -273,6 +274,7 @@ function renderScene(ox, oy, time, drawExtras) {
     D[q] = r * 255; D[q + 1] = g * 255; D[q + 2] = b * 255; D[q + 3] = code ? 255 : 0;
     if (bloom) { const on = code > 32; BL[q] = on ? Math.max(0, r - bt) * bg : 0; BL[q + 1] = on ? Math.max(0, g - bt) * bg : 0; BL[q + 2] = on ? Math.max(0, b - bt) * bg : 0; BL[q + 3] = 255; }
   }
+  perfAdd('tone', performance.now() - qt);   // (a part of `scene`: the last pass over every cell, which P4 would move to the GPU)
   renderSky(time);
 }
 

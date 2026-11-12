@@ -79,6 +79,12 @@ frame. Unsupported granular cells fall straight down or slide diagonally. Chunks
 nothing moves.
 
 `normalAt(xu, yu)` estimates a surface normal from occupancy in a small window.
+
+**The revision counter.** Every change to a cell stamps its 16 x 16 chunk (`CREV[chunk]`) with a new, higher number from the world's counter `WREV`:
+`setC` and `wakeAt` do it, so the sand, blasts, structures and falling chunks freezing back all do. A cache asks "did anything change in this box since revision
+r?" by reading the few chunk numbers under the box (`chunksChangedSince`, 04_light.js). `worldInit` stamps every chunk, so a cache made for an earlier
+world is never valid. Code that writes `cells[]` itself while the game runs calls `worldChanged(x0, y0, x1, y1)`; the generation-time writes of a level need
+nothing. The same numbers keep `colTop` up to date (`syncSkyline`: only the 16-column strips that changed are rescanned).
 `coolHeat` and `addHeat` manage the heat field.
 
 ## 3. Particles and blasts (`engine/02_particles.js`)
@@ -265,6 +271,25 @@ Steps in `computeLighting(ox, oy, lights, dynTop)`:
 
 `splatLight` adds cheap, unshadowed glow for emissive things: hot rock, fire, crystals, pickups.
 
+**What is kept from frame to frame** (both exact: tests/engine_cache.py plays every game with the caches off, on and auditing, and compares every frame bit
+for bit):
+- *The lamp cache* (`lampFor`, `castLamp`, `applyLamp`). A lamp's cast is a pure function of its position, radius, cone and skip, the surfaces
+  (`LSURF`, `LNX`, `LNY`, which come from the terrain) and the window the camera cell gives (`inWin` cuts rays at its edge). The cast writes one number per cell
+  it reaches, once per lamp (the stamp), so it is kept as lists of (cell, attenuation, distance) and added again: `LR[k] += cr * a` with the lamp's colour and
+  intensity of this frame, in the same lamp order, so the float sums are the same. A lamp is recorded once it has stood still for two frames with the camera
+  still (the previous frame's hashes of the lamps' parameters, `_hPrev`), is dropped when a chunk under its reach has a newer revision, and again when the
+  camera moves a whole cell. After a drop it needs four quiet frames before it is recorded again.
+- *The still frame* (`stillPlan`). The *base* (steps 1-3: occupancy, sun, ambient, occlusion) is a function of the window, the sun and ambient colours, the cells
+  the moving bodies cover (a hash of `dynList`) and the world under the window and the sun's sweep (`sunBox`: the columns and rows `sunSweep` reads); when
+  none of these changed, `LR/LG/LB` come back from `STILL.R0..B0` and the surface buffers (`LSURF`, `LNX`, `LSUN`, `LAO`, ...), which nothing else writes, are still
+  right. The lamps and the flash are added on top as always. The *terrain* (steps 1-2 of `renderScene`) also depends on the lamps' parameters, the back wall
+  (a checksum of the window's `backCells`, since games write it directly), `EYE.e`, the backdrop's settings and the materials (`MATS[i]` is a new object
+  whenever `setMaterial` changes one), and needs the window free of emissive particles and of heat above .02, and `BEAT_K` zero. Then
+  `stillRestore` copies the scene buffers and the light buffers (after the glow of hot things) back, and shades again only the cells that follow the clock (crystals,
+  glints: `_tAnim`). Snapshots are taken only once a frame's keys equal the last frame's, so a moving camera pays for a few comparisons.
+
+Measured and written down in HISTORY section 54.
+
 **Visibility queries** (`sunAt`, `isLitBy`, same file) march straight lines through `cells` with the lighting's own
 conventions (step 0.6, sun rays that start left of the world or above it are clear, a light's `skip`), so a game can ask
 about any point without reading the lit window. They ignore moving bodies; the lit window and `lightAtCell` still include them.
@@ -413,7 +438,7 @@ The hull points (`LANDER_HULL0`) are traced from the silhouette.
 - API: `Chip.init`, `load(buf)`, `play(song, {loop, fadeIn, onEnd})`, `stop`, `setVolume`, `halt`,
   `connectMidi`, `meter()` for UI meters and beat, `beatAt`.
 
-**Beat** (end of `engine/08_chip.js`): `Beat.step(time)` runs once a frame at the top of `renderScene`. It reads
+**Beat** (`engine/08_music.js`, with `b64buf` and the note names, which stay in every page): `Beat.step(time)` runs once a frame at the top of `renderScene`. It reads
 `Sampler.meter()` while a Sampler song plays, else `Chip.meter()` (the snapshot that matches what the listener hears now) and fires `Beat.v` on a rising edge of the drum
 level (at least 7 and 4 higher than the last frame: kicks, snares and crashes, not most hi-hats), then decays it with a
 0.16 s time constant. `setBeatPulse(k)` scales it into `Beat.pulse()`, which the scene uses three ways: scattered glow
@@ -525,8 +550,9 @@ on the title screen and leads the lander in flight. `afterFrame` runs the music 
   reload, and the `window.claude.hot` snapshot (hot reload in claude.ai artifacts; harmless elsewhere).
 - `update(dt)` (global, so tests can step it and freeze it): `frameNo`, `stateT`, `GAME.update`, clear
   `Input.pressed`, `stepWorld` (chunks, particles, sand, heat near the camera, effects), camera.
-- `draw(t)`: skyline, dynamic marks (`markChunksDyn` + `GAME.markDyn`), lighting (`GAME.lights` + effect
-  lights), scene, HUD (`GAME.hud` + toast), present, `#titleBar` visibility, `GAME.afterFrame`.
+- `draw(t)`: skyline (`syncSkyline`), dynamic marks (`markChunksDyn` + `GAME.markDyn`), lighting (`GAME.lights` + effect
+  lights, pooled objects), scene, HUD (`GAME.hud` + toast), present, `#titleBar` visibility, `GAME.afterFrame`. Each stage is timed (`perfLap`, `PERF` in 05_render.js:
+  `Pixelite.perf`, `probe().perf`, F3).
 - `frame()` runs the fixed-step accumulator (at most 3 steps per frame) with slow motion and the
   slow-device hint.
 - `updateCamera` asks `GAME.camera` for a target, clamps it to the world (and `cameraTop` above it) and
@@ -557,7 +583,11 @@ iframe, so a check runs on the editor's thread: the page waits for it (a second 
    canvas, `#touch`, the game's `head.html` inside `#stage`) around one script = `GAME_MANIFEST`, the
    engine parts and the game parts, each after a `// ----- path -----` marker. `lineMap` turns a page
    line back into a source file and line.
-4. Syntax-checks each script with `vm.Script` and reports errors against the source file.
+   A game's `game.json` may list the optional engine parts it uses (`"engine": ["sampler"]`; engine.json's `"optional"` names `chip`, `iso` and `sampler`):
+   `enginePartsFor` swaps each one it leaves out for its stand-in in `engine/stubs/`, in the same place, so a page without the Sampler is 57 KB smaller and a
+   game that calls what it left out is told what to add. No key, no change. The editor passes the same map and stubs to the same assembler.
+4. Syntax-checks each script with `vm.Script` and reports errors against the source file. With `--minify` (or `PIXELITE_MINIFY=1`) the page's script first goes
+   through `tools/minify.mjs`, which takes out comments and indentation and nothing else (every line stays, so the markers and the line map are unchanged).
 5. Writes the site to `dist/`: the portal (`portal/`), `games/<id>/index.html` + `game.json` +
    `thumb.png`, `ref/` (the game's reference art and its `ref.json`, for the ART page), `src/` (engine and game sources
    for the editor), `assets/assemble.mjs`, `games.json`

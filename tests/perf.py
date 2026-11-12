@@ -5,6 +5,7 @@
   python tools/with_chrome.py tests/perf.py regolith --renderers 2d --res 2 --sizes 1280x800
   python tools/with_chrome.py tests/perf.py --json before.json       # keep the numbers ...
   python tools/with_chrome.py tests/perf.py --compare before.json    # ... and print the change against them later
+  python tools/with_chrome.py tests/perf.py --caches off             # the lamp cache and the still-frame reuse switched off (the same tree, to see what they give)
   python3 tests/perf.py                                              # (where Playwright's own Chromium is installed)
 
 For each game x renderer x RES x viewport it opens the built page, starts the game, steps a scene and times 40 frames, each one
@@ -14,9 +15,10 @@ frame of each stage (engine/API.md, Performance):
 
   step     one fixed step of the simulation        light    skyline, shadow marks, lamps, sun
   scene    terrain, particles, chunks, effects     game     the game's own draw hook
+  tone     of which the last pass over the cells: the tone map, the vignette, the bytes (P4's target)
   hud      the HUD (and the F3 overlay)            present  handing the picture to WebGL or the canvas (the CPU's part)
   gpu      present with `Pixelite.perf.sync` on: a pixel is read back, so the wait for the picture is counted too
-  draw     light + scene + game + hud + present
+  draw     light + scene + game + hud + present (tone is inside scene)
 
 The JavaScript stages (step, light, scene, game, hud) mean the same everywhere. `present` and `gpu` do not: headless Chrome has no GPU, so
 WebGL is SwiftShader (software) and the 2D canvas is software too. Their absolute numbers say little about a real machine; use them to compare
@@ -27,7 +29,7 @@ from playwright.async_api import async_playwright
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 FLAGS = {'gl': ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], '2d': ['--disable-gpu']}
-STAGES = ['step', 'light', 'scene', 'gameDraw', 'hud', 'present', 'draw']
+STAGES = ['step', 'light', 'scene', 'tone', 'gameDraw', 'hud', 'present', 'draw']
 
 LOOP = """([n, keys, sync]) => {
   Pixelite.perf.sync = sync; Pixelite.perf.reset();
@@ -36,7 +38,7 @@ LOOP = """([n, keys, sync]) => {
 }"""
 
 
-async def measure(p, gid, renderer, res, size, frames, keys):
+async def measure(p, gid, renderer, res, size, frames, keys, caches):
     w, h = size
     kw = {'channel': os.environ['PIXELITE_BROWSER_CHANNEL']} if os.environ.get('PIXELITE_BROWSER_CHANNEL') else {}   # tools/with_chrome.py sets one itself
     browser = await p.chromium.launch(args=FLAGS[renderer], **kw)
@@ -48,6 +50,7 @@ async def measure(p, gid, renderer, res, size, frames, keys):
         await page.goto(f'file:///{ROOT.as_posix()}/dist/games/{gid}/index.html?seed=7#{renderer}')
         await page.wait_for_timeout(900)
         await page.evaluate(f'setDetail({res})')
+        if not caches: await page.evaluate('Pixelite.cache.lamps = Pixelite.cache.still = false')
         await page.evaluate('Pixelite.test.start(); Pixelite.test.freeze()')
         info = await page.evaluate('({ r: Pixelite.test.probe().renderer, cols: R.cols, rows: R.rows, world: [W, H] })')
         out['info'] = info
@@ -83,6 +86,7 @@ async def main():
     ap.add_argument('--res', default='2,3')
     ap.add_argument('--sizes', default='1280x800,2560x1440')
     ap.add_argument('--frames', type=int, default=40)
+    ap.add_argument('--caches', default='on', choices=['on', 'off'], help='off: the lamp cache and the still-frame reuse switched off')
     ap.add_argument('--json', help='write the numbers here')
     ap.add_argument('--compare', help='a file written by --json: print the change against it')
     a = ap.parse_args()
@@ -103,7 +107,7 @@ async def main():
                     size = tuple(int(x) for x in sz.split('x'))
                     for res in [float(x) for x in a.res.split(',') if x]:
                         key = f'{gid}/{renderer}/{sz}/res{res:g}'
-                        r = await measure(p, gid, renderer, res, size, a.frames, keys)
+                        r = await measure(p, gid, renderer, res, size, a.frames, keys, a.caches == 'on')
                         results[key] = r
                         if 'error' in r or r.get('errors'):
                             failed += 1; print(f'{key}: FAILED {r.get("error") or r["errors"]}', flush=True); continue
