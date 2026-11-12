@@ -14,6 +14,11 @@ Three layers:
    `engine_audio.py [2d|gl ...]` checks sound through air (delay, volume and dullness with distance, only with an atmosphere;
    `explode()` passing it on; the listener hook) by spying on `Sfx.burst`, and the beat (drum-hit edges from a faked chip
    meter, `blink`, material `beatGlow` and the bloom swell measured in pixels).
+   `engine_sound.py [2d|gl ...]` runs the sound parts against the browser's real Web Audio, with Space Mouse as the host: its
+   instruments are made in slices (the longest stretch), sounds placed in the world (pan, distance, a note layer), the voice cap under
+   300 thuds, the volumes and mute kept over a reload, a crossfade by moving to a level with another song, layers, and a stinger that
+   ducks the music and lets it back. The Node tests `sound.test.mjs`, `music.test.mjs` and `sampler.test.mjs` check the same
+   against a recording stand-in for Web Audio (`tests/node/audio-mock.mjs`: every node, connection and parameter event can be read).
    `notfound.py [2d|gl ...]` (or `--url <a missing page on a running site>`) plays the 404 game: the address becomes rock, the
    lander crashes within ten seconds and breaks some of it, Enter restarts, a hostile address is only drawn as rock.
    `thumbnail_pick.py` checks the frame scoring of `tools/thumbnail.py --auto` on synthetic frames (no browser).

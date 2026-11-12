@@ -393,7 +393,19 @@ The hull points (`LANDER_HULL0`) are traced from the silhouette.
 **Sfx** (`07_sound.js`): procedural Web Audio effects.
 - `engine(throttle)` is a filtered noise loop.
 - One-shots: `boom`, `launch`, `thud`, `pickup`, `alarm`, `win`.
-- M mutes. Audio is suspended while the page is hidden.
+- M mutes (through `setSetting('mute', ...)`, part 16). Audio is suspended while the page is hidden.
+- The graph: every effect goes to `sfxBus`, the Chip and the Sampler to `musicBus`, both into `master` (a constant .5, or 0 when muted)
+  into the destination. `Sfx.volumes` (`setVolumes({ music, sfx })`) are the two buses' gains; they and the mute are the player's, kept
+  in localStorage (`storeKey('sound')`) and copied into `SETTINGS` (the pause menu's numbers) and back, so both agree.
+  `load()` runs lazily (the game id is not known when the part loads) and an explicit `Sfx.muted = x` counts as having loaded.
+- **Sounds as data.** `defineSound(name, recipe)` keeps a sound (`SOUNDS[name]`) as layers of tone, noise burst and Sampler note;
+  `Sfx.play(name, { x, y, pitch, vol })` plays its layers through `tone`, `burst` and `Sampler.note`, all routed through `place(x, y)`:
+  `heard()` plus a pan (`StereoPannerNode`, only when the pan is not 0) and, in a vacuum, a distance gain. A note layer waits for
+  `Sampler.ready` and is skipped (not built on the spot) until then. `pickup`, `alarm`, `win` and `launch` are such sounds, set up
+  directly at load (the dev checks need parts that load later).
+- **Voices.** `admit(t, dur, vol)` is the cap (`maxVoices`, 24): it prunes finished voices, and when full either drops the new voice
+  (quieter than every playing one) or `kill()`s the quietest and takes its place (a 5 ms fade-out). `burst`, `tone` and a note layer
+  all go through it, and return whether they played, so a sound's `limit` and `gap` only count plays that made sound.
 - `Sfx.heard(x, y)`: sound through air. A vacuum returns `HEARD_NOW` (no delay, full volume, unfiltered): sound is felt
   through the ground, as always. With `setAtmosphere` > 0 it returns `{ delay: m / 343, gain: 1 / (1 + m / 120), muffle:
   max(.2, 1 / (1 + m / 250)), m }` for the distance in metres to the listener (`GAME.listener()` or the camera centre).
@@ -421,8 +433,15 @@ splats of materials with `beatGlow` are brightened, those materials flash in the
 before it is shaded), and the bloom bright-pass threshold drops (0.62 → 0.52) while its gain rises (×2.2).
 `Beat.blink` replaces the per-game "beacons follow the music" logic (Regolith's old `beaconOn`).
 
-**Music director** (Regolith's `games/regolith/music.js`): picks the piece by game state (title, descent loop, touchdown
-jingle, loss jingle). It handles MIDI file loading, drag-and-drop and MIDI IN, and draws the chip
+**Music director for the Sampler** (`Music`, end of `engine/07_sound.js`): the game says where it is (`Music.place`), the director
+plays the song `SONG_AT` names and crossfades from the one before. It keeps no audio of its own: `Music.play` is
+`Sampler.play(song, { fadeIn, crossfade, wait: true, layers })`, `layer` is `Sampler.track` plus a remembered level per layer (so the
+next song starts with the same tracks out: the `layers` option of `play`), `stinger` is a second `Sampler.deck()` with the music
+`duck`ed. It keeps quiet while `Sampler.forced` (the studio's preview) and `Sampler.force(null)` calls `Music.resume()`. Space Mouse
+uses it from `afterFrame`.
+
+**Music director for the Chip** (Regolith's `games/regolith/music.js`, `RegolithMusic`): picks the piece by game state (title,
+descent loop, touchdown jingle, loss jingle). It handles MIDI file loading, drag-and-drop and MIDI IN, and draws the chip
 meters panel.
 
 **Sampler** (`13_sampler.js`): the 16-bit, SNES-style sound, and the engine of the SOUND STUDIO (`/studio/`), which loads the
@@ -441,6 +460,19 @@ same file on its own (it uses nothing from the other parts).
   at 15 kHz under SNES limits, and a compressor.
 - A song is scheduled 0.12 s ahead every 25 ms (`pump`), by ticks, with the loop's wrap points kept so `position()` and the
   meter match what is heard. `render()` builds the same graph on an `OfflineAudioContext`.
+- **Making instruments in slices.** The recipes (`waveZone`, `ksZone`, `fmZone`, `partialsZone`), the drum kit (`drum`), the BRR
+  encoder (`brrSteps`) and `instrumentSteps` are generators that `yield` every ~1 ms of work. `instrument()` drains one at once (the
+  studio, `render`, a plain `play`); `prepare()` queues tasks (`missing(song)`: the instruments, then the loop starts a loop lane
+  can pick) on one page-wide queue worked by `slice()`, in `requestIdleCallback` where there is one (2 to 8 ms by the idle time
+  left, else `build.sliceMs`), so the longest stretch is a few ms (a drum kit was a single 130 ms one). An instrument half made
+  by the queue is finished by whoever needs it first (`jobs`: the same generator), so a sync `play` never starts a second copy.
+  A Worker was weighed and not used: the recipes close over the Sampler's own helpers and would have to be serialised into a blob
+  worker, which a strict CSP or some `file://` pages refuse. The output is sample-for-sample what the plain functions made.
+- **Decks.** The engine object is made by `makeEngine()`, so `deck()` is a second full Sampler on the same output, and a crossfade
+  (`fadeOut`) hands the song that plays to a fresh deck that keeps scheduling it while its gain ramps to 0, then `dispose()`s it
+  (stops the strips' oscillators, cuts the mixer off the output). `duck()` is a gain node (`out`) between the song's gain and the
+  destination, apart from `setVolume`. `note()` plays one instrument note straight into a destination, sharing `zoneFor` and
+  `scheduleEnv` with `startVoice`.
 
 Songs are base64 MIDI in `games/regolith/songs.js` (decoded with the engine's `b64buf`), generated by
 `games/regolith/tools/compose.py`. The music is also kept as `.mid` files in `games/regolith/music/`.

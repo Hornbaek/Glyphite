@@ -97,18 +97,11 @@ function gameDraw(t) {
   drawMouse();
 }
 function gameMarkDyn() { return Math.min(markMouse(), markCats()); }
-// the song for where Pip is (SONG_AT, set in the SOUND STUDIO's WHERE IT PLAYS): the title's on the title screen, each sector's
-// own in it, else the title's; a new one only when the place changes. While the studio previews a song here, it has the say.
-let musicNow = null;
-function stationMusic() {
-  if (Sampler.forced) { musicNow = null; return; }
-  const id = state === 'title' ? SONG_AT.title : SONG_AT.levels[SEC.n - 1] ?? SONG_AT.title;
-  if (!id || id === musicNow) return;
-  musicNow = id; Sampler.play(SONGS[id], { fadeIn: 1.5 });
-}
 function gameAfterFrame(t) {
   Sfx.buzz(buzzLevel(t));
-  stationMusic();
+  // the song for where Pip is (SONG_AT, set in the SOUND STUDIO's WHERE IT PLAYS): the title's on the title screen, each sector's own in it,
+  // else the title's. The music director crossfades when the place changes and keeps quiet while the studio previews a song here.
+  Music.place(state === 'title' ? 'title' : SEC.n - 1);
   const music = TUNE.music * (state === 'paused' ? .35 : 1);   // quieter while paused
   if (music !== Sampler.vol) Sampler.setVolume(music);
 }
@@ -164,8 +157,8 @@ Pixelite.run({
   stars: 1,
   init() {
     setGravity(GRAV_BASE * .5 * TUNE.gravity); setEyeAdaptation(.55, { max: 2.2 }); setBackdrop({ dim: .5 }); showTitle();
-    // the music: instruments are made now, a few frames apart; it starts with the first key or tap (the browser's rule)
-    for (const id in SONGS) Sampler.prepare(SONGS[id]);
+    // the music: instruments are made now, between frames; it starts with the first key or tap (the browser's rule)
+    Music.preload();
     Sampler.setVolume(TUNE.music);
   },
   regenerate: gameRegenerate,

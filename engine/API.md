@@ -516,9 +516,44 @@ back wall run-length packed, entities by their plain fields; at the same detail 
 ## Sound
 
 `Sfx` (procedural, starts on the first input): `Sfx.engine(throttle 0..1)` (a looping thrust hum), `boom(power)`,
-`launch()`, `thud(v)`, `pickup()`, `alarm()`, `win()`, `tone(freq, dur, vol, type, delay)`, `burst(...)`, `heard(x, y)`, `toggle()`,
-`buzz(level 0..1)` (a looping mains hum for dying lamps and live wires: set it every frame, e.g. from `flickerAt()` times how
-near the lamp is).
+`launch()`, `thud(v)`, `pickup()`, `alarm()`, `win()`, `tone(freq, dur, vol, type, delay, at, slideTo)`, `burst(dur, f0, f1, vol, type, q, at)`,
+`heard(x, y)`, `place(x, y)`, `play(name, opts)`, `toggle()`, `buzz(level 0..1)` (a looping mains hum for dying lamps and live
+wires: set it every frame, e.g. from `flickerAt()` times how near the lamp is). `at` (the last argument of `tone`, `burst`, `boom`) is
+where the sound is heard from: `Sfx.heard(x, y)` or `Sfx.place(x, y)`, below.
+
+**Sounds as data, placed in the world.** `defineSound(name, recipe)` once (in `init`), then `Sfx.play(name, { x, y, pitch, vol })` from
+anywhere, with no x and y for a sound that is simply here. A recipe is `{ vol, spread, limit, gap, layers }`, or just the list of layers,
+or one layer; a layer is one of
+- `{ tone: Hz, dur, vol, type: 'square', slide: Hz to slide to, delay }`: an oscillator that fades out;
+- `{ burst: dur, from: Hz, to: Hz, vol, filter: 'lowpass', q, delay }`: filtered noise sweeping from one frequency to another;
+- `{ note: 72, instrument: 'bell', dur, vel, rate, release, vol, delay }`: one note of a Sampler instrument (`Sampler.note`), so a
+  sound effect can be a bell or a pluck; its instrument is made between frames when the sound is defined, and until it is that layer
+  is silent (the rest of the sound plays) rather than a stall.
+`vol` scales the whole sound, `spread: .05` detunes every play by up to 5% so repeats do not sound alike, `limit: 2` lets at most two of
+it sound at once, `gap: .1` keeps it from playing again within 0.1 s. `pitch` in `play` is a frequency multiplier (2 = an octave up).
+`Sfx.play` returns true when it played. `pickup`, `alarm`, `win` and `launch` are defined this way (so `Sfx.play('pickup')` works, and
+`defineSound('pickup', ...)` replaces the engine's); a misspelt name in the dev build says what you may have meant.
+```js
+defineSound('door', { vol: .8, spread: .08, gap: .1, layers: [{ burst: .25, from: 600, to: 120, vol: .4 }, { tone: 140, slide: 70, dur: .2, type: 'triangle', vol: .2 }] });
+defineSound('chime', { note: 84, instrument: 'bell', dur: .3 });
+Sfx.play('door', { x: door.x, y: door.y });                 // left of the camera: heard from the left, and quieter the farther it is
+```
+**Where a sound is.** `Sfx.place(x, y)` is `heard(x, y)` with a pan added: `{ delay, gain, muffle, m, pan }`. `pan` is -1..1 by how far left
+or right of the listener the sound is (a sound at the edge of the screen is 85% to that side); `gain` is `heard()`'s own with an
+atmosphere, and in a vacuum, where `heard()` says full volume everywhere, it still fades with distance (full beside the listener, half
+at 1.5 half-screens, a fifth at 4.5). `Sfx.play` uses it when you give `x`; your own `burst` / `tone` / `boom` calls can pass it as their
+last argument and get the pan too. (The engine's own blasts, `explode()`, still pass `heard()`: no pan yet.)
+
+**Voices.** At most `Sfx.maxVoices` (24) effect voices sound at once: a new one takes the place of the quietest, or is dropped when it
+is quieter than all of them, so a collapsing wall's hundred thuds cannot stack up as audio nodes. `Sfx.stats` counts `played`,
+`dropped` and `stolen`. Sounds too quiet to hear (below .003) make no nodes at all.
+
+**Volumes and mute.** Everything goes through two buses, effects and music (the Chip and the Sampler), into one master that is a
+constant .5 (headroom). `Sfx.setVolumes({ music, sfx })` sets either (0..1, 1 = as made) and returns `Sfx.getVolumes()`
+(`{ music, sfx, muted }`); `Sfx.setMuted(on)`, `toggle()` and the `Sfx.muted` field (assign it to mute at once) do the mute. They are
+kept in localStorage under the game's id (`storeKey('sound')`) and come back at the next visit; they also set `Pixelite.settings`
+(`music`, `sfx`, `mute`) and are saved there, which is what the pause menu and the M key change, so the two never disagree. Set them
+before the first input and they are applied when the sound starts.
 
 `Chip` (NES-style synth playing MIDI): `Chip.load(arrayBuffer)` → song, `Chip.play(song, { loop, fadeIn, onEnd })`,
 `Chip.stop(fade)`, `Chip.setVolume(v)`, `Chip.meter()` (lanes and beat, for visualisers), `Chip.connectMidi()`.
@@ -532,15 +567,28 @@ sends to the master's SNES echo (a delay fed back through its 8-tap FIR filter) 
 compressor. `song.snes` keeps only what the console had: 8 voices and the echo. Songs are plain data, made in the SOUND
 STUDIO (`/studio/`, which runs this same file) and kept in a game as `music/<id>.song.json`; `node tools/song.mjs <game>`
 writes them into the game's `songs.js` as `SONGS['<id>']`.
-- `Sampler.prepare(song)`: makes its instruments a few frames apart (~30-100 ms each); do it at load, so the music starts
-  smoothly. `Sampler.play(song, { from = 0, loop = true, fadeIn, onEnd })`: plays from tick `from` (`Sampler.PPQ` = 96 per
-  beat), looping the song's loop region (or the whole song); called before the first input, it starts with the sound.
+- `Sampler.prepare(songOrList, { first })`: makes a song's instruments (or a list: `['bell', { instrument: 'strings', rate: 16000 }]`)
+  in the browser's idle time, a few milliseconds at a time (`Sampler.build.sliceMs`), so no frame stalls; a promise, and `first` puts it
+  ahead of whatever else is waiting. Do it at load (`Music.preload()` does). `Sampler.ready(songOrList)` says whether it is all made.
+  (A drum kit used to be one 130 ms stall; the longest stretch is now a few ms, `Sampler.build` has the numbers: `slices`,
+  `longest`, `work`.) `Sampler.play(song, { from = 0, loop = true, fadeIn, onEnd, crossfade, wait, layers })`: plays from tick `from`
+  (`Sampler.PPQ` = 96 per beat), looping the song's loop region (or the whole song); called before the first input, it starts with the
+  sound. A plain `play` makes any instrument that is missing on the spot (the old stall); with `wait: true` it waits for them between
+  frames and starts when they are, the song playing now going on until then. `crossfade: 1.5` lets the song playing now fade out over
+  that many seconds, in a deck of its own, while this one (give it a `fadeIn` too) fades in. `layers: { 'Drums': 0 }` (or a function of
+  the song) starts the song with those tracks already out.
 - `Sampler.stop(fade)`, `Sampler.setVolume(v)` (`Sampler.vol`), `Sampler.playing`, `Sampler.position()` (the tick heard now).
 - `Sampler.track(nameOrIndex, { volume, fade })`: brings a track in or out, for music that follows the game (drums when the
   danger starts, a melody in the safe room).
 - `Sampler.meter()`: `{ beat, drum, tracks: [level 0..1] }`; `Beat` follows the Sampler's song when one plays (kick and
   snare hits fire `Beat.v`), else the Chip's.
 - Live notes (a MIDI keyboard): `Sampler.noteOn(track, note, vel)` returns a voice for `noteOff(voice)`, `bend(voice, semis)`.
+- `Sampler.note(instrument, note, { vel, dur, rate, pitch, gain, pan, delay, release, dest })`: one note of a built-in instrument on its
+  own, with no song or mixer, into `dest` (default: the Sampler's output); returns the voice (`cut(at)` stops it) or null. It is what a
+  `{ note }` layer of a sound plays. Make the instrument first (`prepare([id])`) or the first call makes it on the spot.
+- **Decks.** `Sampler.deck()` is another player on the same output (null before the first input): its own song, mixer and volume,
+  for something that plays over the music; `deck.dispose()` when it is done. `Sampler.duck(level, { fade })` turns a deck's output down
+  (and back up with 1) apart from `setVolume`. `Music.stinger` uses both.
 - `Sampler.render(song, { from, seconds, sampleRate, loop })` → an `AudioBuffer`, rendered offline (exports, tests).
 - `Sampler.check(song)` fills in a song's defaults and keeps only valid notes (`[tick, length, note, velocity]`).
 - **A song's own samples** (loaded in the studio): `song.samples[id] = { name, rate, root, loop, brr }`: real SNES BRR bytes in
@@ -554,8 +602,8 @@ writes them into the game's `songs.js` as `SONGS['<id>']`.
   (`instrument: 'multi:<id>'`): a note plays the zone whose notes (`lo`..`hi`, MIDI) hold it (the nearest zone when none does), pitched
   from that sample's own `root`; each zone is made as loud as the others. Only in the song when there is one.
 - **Where it plays:** `song.places = { title, levels: [level indices], note }`, set in the studio's WHERE IT PLAYS.
-  `tools/song.mjs` collects them into `SONG_AT` beside `SONGS` (`SONG_AT.title`, `SONG_AT.levels[i]`, `SONG_AT.other`): play
-  `SONG_AT.levels[level]` when a level starts (Space Mouse: `stationMusic()` in `main.js`).
+  `tools/song.mjs` collects them into `SONG_AT` beside `SONGS` (`SONG_AT.title`, `SONG_AT.levels[i]`, `SONG_AT.other`): the music
+  director plays them (`Music.place(...)` below; Space Mouse calls it every frame in `afterFrame`).
 - **Automation:** `track.auto = { volume, pan, filter }`, each a list of `[tick, value]` points (volume 0..1 on top of the fader,
   pan -1..1 in place of the track's own, filter 0..1 = 40 Hz..16 kHz, which turns a track's filter on as a low-pass): straight
   lines between points, level before the first and after the last. A third number on a point bends the segment that arrives at it
@@ -570,10 +618,30 @@ writes them into the game's `songs.js` as `SONGS['<id>']`.
 - **Glide:** `track.sound.glide` (seconds, 0 = off): the track plays one note at a time, and a note that starts while the last
   is still held slides to its pitch from that one (a lead line).
 - `Sampler.force(song | null)`: play this song and nothing else (the game's own `play` calls and the Chip keep quiet) until
-  `force(null)`. A page embedding the game sends `{ type: 'pixelite:music', song }` for it: the studio's preview.
+  `force(null)`, which also lets the music director play the song the game last asked for. A page embedding the game sends
+  `{ type: 'pixelite:music', song }` for it: the studio's preview.
 
-**Sound through air.** In a vacuum (`setAtmosphere(0)`, the default) every sound is heard at once at full volume, as if felt
-through the ground, exactly as before. With an atmosphere, `Sfx.heard(x, y)` says how a sound at that point (body
+**The music director.** `Music` plays the song for where the game is, crossfades between songs, brings tracks in and out as the mood
+changes, and plays stingers over the music. It works on the game's `SONGS` and `SONG_AT` (written by `tools/song.mjs`) and on the
+Sampler's own deck, so `Beat`, `Sampler.meter()`, `Sampler.track` and the studio's preview work as before. They are plain calls: a
+hook, a state change or a trigger can make them. (A game that plays MIDI through the Chip, Regolith, keeps its own director; the
+name `Music` belongs to the engine, so that one is `RegolithMusic`.)
+- `Music.preload(ids?)`: makes the instruments of the songs (default: every song) between frames; call it in `init`. A song whose
+  instruments are not made when it is asked for starts when they are, never stalling a frame.
+- `Music.place('title')`, `Music.place(levelIndex)`, `Music.place('<id>')`: the song `SONG_AT` names for that place (a level with no song
+  of its own gets the title's; `'<id>'` is a song placed only by a note, `SONG_AT.other`). Asking again for the place it is in does
+  nothing, so it can be called every frame. `Music.songAt(where)` says which song that is.
+- `Music.play(id, { fade = 1.5, from, loop, restart })`: this song, the one playing fading out over `fade` seconds as it fades in.
+  `Music.stop({ fade })`. `Music.current` is the song asked for. `Music.define(id, song)` adds a song of your own beside `SONGS`.
+- `Music.layer(name, on, { volume, fade = .5 })`: brings the track called `name` in or out (`Music.layers({ danger: ['Drums', 'Bass'] })
+  names a layer of several). Only a change does anything, and the level carries over to the next song: drums that are out stay out
+  when the level changes. Write each track so it is harmonically complete alone.
+- `Music.stinger(id, { duck = .35, fade = .15, volume })`: a song of one pass (a fanfare, a death) on a second deck over the music, which
+  ducks while it plays and comes back up after. Preload it (`Music.preload([id])`) so it is ready when the event happens.
+- While the studio previews a song in the game (`Sampler.force`) the director keeps quiet, and takes over again when it ends.
+
+**Sound through air.** In a vacuum (`setAtmosphere(0)`, the default) `Sfx.heard` says every sound is heard at once at full volume, as
+if felt through the ground, exactly as before. With an atmosphere, `Sfx.heard(x, y)` says how a sound at that point (body
 coordinates) reaches the listener: `{ delay: distance / 343 m/s in seconds, gain, muffle, m: metres }`, quieter and duller
 (a lower filter) the farther it is. `explode()` already uses it, so a blast is a flash and then, after the delay, the boom;
 a far one (over 100 m) adds a long low rumble, thunder. Your own one-shots can pass it as the last argument:
