@@ -251,7 +251,10 @@ Steps in `computeLighting(ox, oy, lights, dynTop)`:
    - Walking columns left to right, each solid cell marks the rays that cross it as blocked: 1 means
      terrain, 2 means only a dynamic body.
    - Dynamic cells (lander, boulders, chunks) stay lit behind each other but still cast shadows.
-   - `SUN_L` is the direction sunlight travels; `setSun(elevationDeg)` sets it (Regolith per site) and
+   - A sun on the right (`setSun(91..179)`, `SUN_L[0] < 0`) is the same sweep over the mirrored world: sweep column `xm` is world column
+     `W - 1 - xm`, the window starts at `W - ox - RW`, the rays start beyond the right edge, and the result is written to the window column
+     `RW - 1 - (xm - mx)`. Mirroring the world and the sun gives the mirrored light bit for bit (tests/node/engine-look.test.mjs); `sunAt` marches the other way.
+   - `SUN_L` is the direction sunlight travels; `setSun(angleDeg)` sets it (Regolith per site) and
      `setSun(null)` turns the sun off (caves). Colours: `SUN_C` (the sun: a base colour `SUN_BASE`, dimmed per channel
      by `exp(-AIR_TAU × ATMOS × (airmass(elevation) - 1))` when `setAtmosphere` > 0 and the colour is not pinned; the base
      can come from `kelvinColor`), `AMB_C = [.095, .115, .17]` (`setAmbient`).
