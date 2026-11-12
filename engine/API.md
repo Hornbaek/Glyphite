@@ -657,6 +657,24 @@ centre unless the game gives a `listener: () => [x, y] | null` hook (Regolith: t
   material flashes in its own colour and its light grows) and swells the bloom (lower threshold, more gain).
   `Beat.pulse()` returns the scaled value for the game's own lights, e.g. `I: .9 * (1 + .8 * Beat.pulse())`.
 
+## Ropes, a grappling hook, ghosts and rewind
+
+- `drawLine(x0, y0, x1, y1, r, g, b)`: the cells between two world points, in light units (like `putEmit`).
+- **Ropes** (`engine/18_toys.js`): `const rope = new Rope(ax, ay, bx, by, 14, { slack: .05, pinA: true, pinB: true, maxTension: 2.5, collide: true, gravity: 1, onSnap(i) {} })`;
+  `rope.a` / `rope.b` (a point, `() => [x, y]` or an object with x, y) are what the pinned ends follow; `rope.step(dt)` every step, `rope.draw(r, g, b)` in `GAME.draw`, `rope.cut(i)`.
+  Verlet point masses with distance constraints; they collide with the grid (not chunks). A link stretched past `maxTension` times its length snaps (`rope.snapped`).
+  For rope bridges, chains, tow cables, pendulums.
+- **Grappling hook**: `const hook = new Grapple(hero, { range, rip, reel })`; `hook.fire(dx, dy)` → true if it caught a solid cell; pass `hook.rope` to `hero.step(dt, { rope: hook.rope })`
+  while attached: beyond its length the character is pulled back onto the circle and loses the outward velocity, so it swings (`hero.hanging` while taut; left / right pump the
+  swing, nothing brakes it); `hook.reel(-1 | 1, dt)`, `hook.release()`, `hook.update()` every step before the character's (lets go when the anchor cell is gone; with `rip: n` a
+  material tougher than 0 but weaker than n is torn out of the wall by a hard pull), `hook.draw()`.
+- **Ghosts and echoes**: `const rec = new GhostRecorder(hero)`, `rec.step(tag)` every step, `rec.frames`; `spawnGhost(rec.frames, { anim: e => sprite, tint, loop, onEnd })` replays them as an
+  entity (a ghost racer: keep the frames with `Pixelite.save`); `spawnEcho(hero, 10, { anim, tint, touches: ['hero'], onTouch })` plays your own path 10 seconds behind you (call `echo.rec.step()` every step).
+- **Rewind**: `Rewind.start({ seconds: 10, every: 6, action: 'rewind' })` keeps a snapshot of the world every 6 steps (cells, back wall, entities with their plain fields and
+  `Character`s, moving platforms, falling chunks); while the action is held (or `Rewind.hold(true)`) each step puts back one snapshot, about six game seconds per second, then play goes
+  on from there (`Rewind.rewinding`). It copies the grid whole (350 KB for a 900 x 200 world), not as changes. Heat, particles, timers and the game's own variables are not kept: put them in entity
+  fields or in `Rewind.keep = { save() → state, load(state) }`. `Rewind.stop()`.
+
 ## Levels in the web editor
 
 A game with hand-drawn tile maps gets a **LEVELS** tab in the site's editor (a pixel editor: one coloured square per tile)
@@ -715,6 +733,9 @@ presses made while paused are dropped, not saved up for the first step after res
 one line on the HUD for a player; `Pixelite.errors` lists them and `probe().errors` counts them. With `?dev` (or in the editor) the engine
 also warns, with the nearest valid name, about an unknown option to `defineMaterial`, `new Character` or `Pixelite.run`, and about a NaN in a
 body, a character, a particle or a light. The build refuses a game that repeats a key in its `Pixelite.run({...})` hooks or has an unknown
-`game.json` key (`tools/authorcheck.mjs`), and warns about `Math.random` in game code.
+`game.json` key (`tools/authorcheck.mjs`), and warns about `Math.random` in game code, about a call to an engine function with more arguments than it takes
+and about a call to an undefined name one or two letters from an engine function (`tools/apicheck.mjs`, which also writes `engine/api.json`, every top-level
+name of the engine with its kind and parameters: run `node tools/apicheck.mjs --write` after changing the engine; a unit test fails if it is stale or if a new
+name is neither in this file nor listed in `engine/internal.json`).
 
 `tests/smoke.py <id>` uses exactly this for any game. URL hash `#2d` / `#gl` forces a renderer.

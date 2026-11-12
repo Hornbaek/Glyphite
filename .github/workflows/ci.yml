@@ -44,6 +44,8 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Smoke-test every game in both renderers
         run: python3 tests/smoke.py --all
+      - name: Smoke-test every game on a phone-sized touch screen
+        run: python3 tests/smoke.py --all --renderers 2d --phone
       # The editor's LEVELS tab end to end, and every Space Mouse sector can still be finished (a map edit that walls off
       # a goal or leaves a crumb out of reach fails here).
       - name: Level editor, Space Mouse levels, the pixel lab, the sound studio and the art gallery

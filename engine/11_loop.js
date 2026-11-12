@@ -154,6 +154,7 @@ function updateCamera(dt, snap) {
 function update(dt) {
   frameNo++; stateT += dt;
   stepActions(); stepCapture(); stepUi(); stepShell();
+  if (stepRewind()) { updateCamera(dt); return; }   // held rewind: this step puts the world back instead of playing
   if (chunks.length) stepPlatforms(dt);
   if (GAME.update) GAME.update(dt);
   if (STATES && STATES[state] && STATES[state].update) STATES[state].update(dt);

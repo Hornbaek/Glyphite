@@ -119,11 +119,27 @@ async def main():
             await page.evaluate("Pixelite.test.press('KeyL'); st(14, ['KeyL'])")
         d1 = await page.evaluate("(() => { let n = 0; for (let i = 0; i < cells.length; i++) if (cells[i] === DIRT) n++; return n; })()")
         check(d1 < d0, f'digging removes dirt ({d0} -> {d1})')
+        # --- the grappling hook, rewind -----------------------------------------------------
+        d0 = await page.evaluate('STATS.deaths')
+        await page.evaluate("for (const e of entities) if (e.type === 'slime') e.dead = true; STATS.hp = 3; HERO_E.hook.release(); tp(70, 18); HERO_E.facing = HERO_E.char.facing = 1; st(3)")
+        await page.evaluate("Pixelite.test.press('KeyE'); st(1)")
+        check(await page.evaluate('HERO_E.hook.rope !== null'), 'the hook catches the beam over the pit')
+        await page.evaluate("st(150, ['ArrowRight'])")
+        probe = await page.evaluate('({ x: hero().x, y: hero().y, hang: hero().hanging, deaths: STATS.deaths })')
+        check(probe['x'] > 72 * 8 and probe['y'] < 21 * 8 and probe['deaths'] == d0, f"the hero swings out over the pit on the rope ({probe})")
+        await page.evaluate("Pixelite.test.press('KeyE'); st(2); tp(10, 18); st(60)")
+        x1 = await page.evaluate("st(80, ['ArrowRight']); hero().x")
+        await page.evaluate("st(12, ['KeyR'])"); x2 = await page.evaluate('hero().x')
+        check(x2 < x1 - 20, f'holding rewind puts the hero back ({x1:.0f} -> {x2:.0f})')
+        await page.evaluate("st(20)")
         # --- checkpoint, save, goal ------------------------------------------------------
         await page.evaluate('tp(31, 18); st(5)')
         check(await page.evaluate('STATS.cp') >= 0 and await page.evaluate("Pixelite.load('run') !== null"), 'a checkpoint is saved')
         await page.evaluate('tp(111, 18); st(5)')
         check(await page.evaluate('state') == 'won', 'touching the goal wins')
+        # a better run leaves a ghost for the next one
+        await page.evaluate("Pixelite.erase('run'); newLevel(false); setState('play'); st(5)")
+        check(await page.evaluate("Pixelite.load('ghost') !== null") and await page.evaluate("entityCounts().ghost") == 1, 'the best run is replayed as a ghost on the next one')
         await b.close()
         # --- the save brings the run back; rebinding is kept; a gamepad plays ---------------
         b, page, errs = await new_page(p)

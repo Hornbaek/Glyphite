@@ -70,7 +70,7 @@ function levelRows() {
   fill(58, GROUND, 65, ROWS - 2, ' '); fill(58, ROWS - 2, 65, ROWS - 2, '^'); put(56, GROUND, 's'); coins(13, 59, 62, 64);
   // D: a ferry over a longer pit (see FERRY), a lift to a high ledge (see LIFT)
   fill(71, GROUND, 83, ROWS - 2, ' '); fill(71, ROWS - 2, 83, ROWS - 2, '^'); coins(15, 74, 77, 80);
-  put(84, 17, 'F'); fill(85, GROUND, 87, GROUND, ' '); fill(88, 12, 91, 12, '#'); put(90, 11, 'c');
+  fill(72, 7, 82, 7, '#'); put(84, 17, 'F'); fill(85, GROUND, 87, GROUND, ' '); fill(88, 12, 91, 12, '#'); put(90, 11, 'c');
   // E: low gravity (a high ledge only a floating jump reaches), slimes, a brick tower to topple
   fill(92, 6, 104, 17, '~'); fill(97, 12, 101, 12, '#'); coins(11, 98, 99, 100);
   put(94, 17, 'e'); put(101, 17, 'e'); fill(106, 12, 107, 17, 'B'); put(106, 11, 'e'); coins(16, 103, 104);
@@ -87,6 +87,7 @@ function levelRows() {
   zone(85, 9, 88, 17, '7');
   zone(92, 14, 96, 17, '8');
   zone(108, 12, 110, 17, '9');
+  zone(66, 11, 70, 17, '7');
   return g.map(r => r.join(''));
 }
 const LEGEND = {
@@ -103,7 +104,7 @@ const HINTS = {
   hint4: () => 'ICE: FEET DO NOT GRIP, STOPPING TAKES A WHILE',
   hint5: () => 'CONVEYOR BELTS CARRY YOU',
   hint6: () => 'SPIKES HURT. THE PINK BLOCK IS A SPRING',
-  hint7: () => 'A FERRY CARRIES YOU OVER THE SPIKES, A LIFT TAKES YOU UP',
+  hint7: () => `A FERRY CARRIES YOU OVER THE SPIKES (OR SWING OVER THE BEAM: ${actionLabel('grapple')} SHOOTS A HOOK UP AND FORWARD, AGAIN LETS GO). A LIFT TAKES YOU UP`,
   hint8: () => `LOW GRAVITY: JUMPS GO HIGHER.  ${actionLabel('fire')} THROWS A PEBBLE, ${actionLabel('bomb')} A BOMB`,
   hint9: () => `${actionLabel('dig')} DIGS DIRT IN FRONT OF YOU. THE FLAG AT THE END WINS`
 };

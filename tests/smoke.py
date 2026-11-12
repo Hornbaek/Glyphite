@@ -18,9 +18,10 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 FLAGS = {'gl': ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'], '2d': ['--disable-gpu']}
 
 
-async def run_one(p, gid, renderer, res_levels, steps, keys):
+async def run_one(p, gid, renderer, res_levels, steps, keys, phone=False):
     browser = await p.chromium.launch(args=FLAGS[renderer], channel=os.environ.get('PIXELITE_BROWSER_CHANNEL') or None)   # e.g. 'chrome' where Playwright's own Chromium is not installed
-    page = await browser.new_page(viewport={'width': 1280, 'height': 800})
+    # --phone: a Pixel-7-sized touch screen (the page must fit it, with its touch buttons, and still run)
+    page = await browser.new_page(viewport={'width': 412, 'height': 915}, has_touch=True, is_mobile=True, device_scale_factor=2) if phone else await browser.new_page(viewport={'width': 1280, 'height': 800})
     errors = []
     page.on('pageerror', lambda e: errors.append(str(e)))
     page.on('console', lambda m: errors.append('console.error: ' + m.text) if m.type == 'error' and 'fonts.g' not in m.text else None)
@@ -46,12 +47,15 @@ async def run_one(p, gid, renderer, res_levels, steps, keys):
         await page.evaluate('setDetail(2); Pixelite.test.start(); Pixelite.test.step(90)')
         await page.evaluate('Pixelite.test.freeze(); Pixelite.test.render()')
         (ROOT / 'shots').mkdir(exist_ok=True)
-        shot = ROOT / 'shots' / f'smoke_{gid}_{renderer}.png'
+        shot = ROOT / 'shots' / f'smoke_{gid}_{renderer}{"_phone" if phone else ""}.png'
         await page.screenshot(path=str(shot))
         out['shot'] = str(shot.relative_to(ROOT))
         problems = []
         if out['title']['renderer'] != renderer: problems.append(f"renderer is {out['title']['renderer']}")
         if probe['frame'] <= title['frame']: problems.append('the simulation did not advance')
+        if phone:
+            fit = await page.evaluate('({ sw: document.documentElement.scrollWidth, iw: innerWidth, touch: !!document.querySelector("#touch") })')
+            if fit['sw'] > fit['iw'] + 1: problems.append(f"the page is wider than a phone ({fit['sw']} > {fit['iw']})")
         out['problems'] = problems + errors[:5]
         out['ok'] = not problems and not errors
     except Exception as e:   # a missing Pixelite object, a timeout...
@@ -67,6 +71,7 @@ async def main():
     ap.add_argument('--renderers', default='2d,gl')
     ap.add_argument('--res', default='1,3')
     ap.add_argument('--steps', type=int, default=180)
+    ap.add_argument('--phone', action='store_true', help='run on a 412 x 915 touch screen instead of a desktop window')
     a = ap.parse_args()
     listing = json.loads((ROOT / 'dist' / 'games.json').read_text())
     ids = [g['id'] for g in listing['games']] if a.all or not a.games else a.games
@@ -79,7 +84,7 @@ async def main():
             manifest = json.loads((ROOT / known[gid]['path'] / 'game.json').read_text())
             keys = manifest.get('smoke', {}).get('keys', ['ArrowUp', 'ArrowRight', 'Space'])
             for r in a.renderers.split(','):
-                res = await run_one(p, gid, r, [float(x) for x in a.res.split(',') if x], a.steps, keys)
+                res = await run_one(p, gid, r, [float(x) for x in a.res.split(',') if x], a.steps, keys, a.phone)
                 print(json.dumps(res), flush=True)
                 failed += not res['ok']
     print(f'{"FAIL" if failed else "PASS"}: {failed} failing run(s)')
