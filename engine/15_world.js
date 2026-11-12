@@ -3,7 +3,7 @@
 // ---------- raycast ----------
 // raycast(x0, y0, dx, dy, max, opts) walks a ray (units; x in cells, y in units) through the grid and any chunks and entities:
 //   → { x, y, dist, nx, ny, cell: [cx, cy], material, chunk, entity } for the first thing it meets, or null.
-// opts: { entities: true | ['type', ...] (also test entities), ignore: entity, through: m => bool (materials the ray passes) }.
+// opts: { entities: true | ['type', ...] (also test entities), ignore: entity, through: m => bool (materials the ray passes), liquids: true (stop at a liquid) }.
 function raycast(x0, y0, dx, dy, max = 400, opts = {}) {
   const len = Math.hypot(dx, dy); if (len < 1e-9) return null;
   dx /= len; dy /= len;
@@ -12,7 +12,7 @@ function raycast(x0, y0, dx, dy, max = 400, opts = {}) {
   let tx = dx ? ((dx > 0 ? cx + 1 : cx) - x0) / dx : 1e30, ty = dy ? (((dy > 0 ? cy + 1 : cy) * ASPECT) - y0) / dy : 1e30, t = 0, nx = 0, ny = 0;
   const cb = []; for (const ch of chunks) { const b = chunkCellBox(ch); b.push(ch); cb.push(b); }
   for (let steps = 0; steps < 5000 && t <= max; steps++) {
-    const m = getC(cx, cy);
+    let m = getC(cx, cy); if (MAT_LIQ[m] && !opts.liquids) m = EMPTY;   // a ray passes through liquid unless asked to stop at it
     if (m !== EMPTY && !(opts.through && opts.through(m))) { best = { dist: t, material: m, cell: [cx, cy], chunk: null, entity: null, nx, ny }; break; }
     if (m === EMPTY) for (const b of cb) if (cx >= b[0] && cx <= b[2] && cy >= b[1] && cy <= b[3]) { const cm = chunkCellMat(b[4], cx, cy); if (cm && !(opts.through && opts.through(cm))) { best = { dist: t, material: cm, cell: [cx, cy], chunk: b[4], entity: null, nx, ny }; break; } }
     if (best) break;
@@ -160,7 +160,7 @@ function carve(x, y, R, o = {}) {
   let n = 0;
   for (let j = -ry; j <= ry; j++) for (let i = -rx; i <= rx; i++) {
     const cx = cx0 + i, cy = cy0 + j; if (cx < 0 || cy < 0 || cx >= W || cy >= H) continue;
-    const m = cells[cy * W + cx]; if (m === EMPTY || MAT_TOUGH[m] >= 99 || MAT_TOUGH[m] > 4 * power) continue;
+    const m = cells[cy * W + cx]; if (!MAT_SOLID[m] || MAT_TOUGH[m] >= 99 || MAT_TOUGH[m] > 4 * power) continue;   // a liquid is not dug: it flows into the hole
     const ux = cx + .5 - x, uy = (cy + .5) * ASPECT - y, d = Math.hypot(ux, uy); if (d > R) continue;
     setC(cx, cy, EMPTY); heat[cy * W + cx] = 0; n++;
     if (o.eject !== false) { const c = crumbOf(m); if (c && rnd() < .7) spawnGrain(cx + .5, (cy + .5) * ASPECT, ux / (d + .5) * rr(3, 10) * S, uy / (d + .5) * rr(3, 10) * S - rr(1, 5) * S, c); }

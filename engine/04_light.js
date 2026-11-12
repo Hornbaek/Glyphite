@@ -62,7 +62,7 @@ function lightAlloc(rw, rh) {
 }
 function updateSkyline() {
   if (!colTop || colTop.length !== W) colTop = new Int32Array(W);
-  for (let x = 0; x < W; x++) { let y = 0; while (y < H && cells[y * W + x] === EMPTY) y++; colTop[x] = y; }
+  for (let x = 0; x < W; x++) { let y = 0; while (y < H && !MAT_SOLID[cells[y * W + x]]) y++; colTop[x] = y; }
 }
 function satBox(i0, j0, i1, j1) {
   i0 = clamp(i0, 0, LOW - 1); i1 = clamp(i1, 0, LOW - 1); j0 = clamp(j0, 0, LOH - 1); j1 = clamp(j1, 0, LOH - 1);
@@ -72,7 +72,7 @@ function satBox(i0, j0, i1, j1) {
 function occAt(cx, cy) {
   const a = cx - L_OX + LMX, b = cy - L_OY + LMY;
   if (a >= 0 && b >= 0 && a < LOW && b < LOH) return LOCC[b * LOW + a];
-  return getC(cx, cy) !== EMPTY ? 1 : 0;
+  return MAT_SOLID[getC(cx, cy)];
 }
 
 let L_NLIGHTS = 0;
@@ -80,7 +80,7 @@ function computeLighting(ox, oy, lights, dynTop) {
   L_OX = ox; L_OY = oy; L_NLIGHTS = lights.length;
   const RW = L_RW, RH = L_RH, OW = LOW, OH = LOH, B = LBOX;
   // 1) occupancy + summed-area table
-  for (let j = 0; j < OH; j++) { const cy = oy - LMY + j; for (let i = 0; i < OW; i++) LOCC[j * OW + i] = getC(ox - LMX + i, cy) !== EMPTY ? 1 : 0; }
+  for (let j = 0; j < OH; j++) { const cy = oy - LMY + j; for (let i = 0; i < OW; i++) LOCC[j * OW + i] = MAT_SOLID[getC(ox - LMX + i, cy)]; }
   const S = LSAT, sw = OW + 1;
   for (let j = 0; j < OH; j++) { let run = 0; for (let i = 0; i < OW; i++) { run += LOCC[j * OW + i]; S[(j + 1) * sw + i + 1] = S[j * sw + i + 1] + run; } }
   // 2) sun: sweep columns in the light's direction, tracking which rays are blocked
@@ -122,6 +122,7 @@ function computeLighting(ox, oy, lights, dynTop) {
     }
     LR[k] = r; LG[k] = g; LB[k] = b;
   }
+  if (ANY_LIQ) dimLiquidLight(ox, oy);   // sun and ambient die with the depth of liquid they cross (engine/18_liquid.js); lamps below keep theirs
   // 4) point & cone lights, shadowed by voxels
   LDX.fill(0); LDY.fill(0);
   for (const L of lights) addPointLight(L, ox, oy);
@@ -152,7 +153,7 @@ function sunSweep(ox, oy, dynTop) {
   for (let x = xs0; x < x1; x++) {
     const kx = k * x, inX = x >= ox;
     for (let y = yTop; y < yBot; y++) {
-      const ci = y * W + x, solid = cells[ci] !== EMPTY, dy = dyn[ci];
+      const ci = y * W + x, solid = MAT_SOLID[cells[ci]] === 1, dy = dyn[ci];
       const v = RB[((y + .5 - kx - k * .5 - bMin) * 2) | 0];
       if (inX && y >= oy && (dy ? v !== 1 : v === 0)) LSUN[(y - oy) * RW + x - ox] = 1;
       if (solid || dy) {
@@ -212,7 +213,7 @@ function addPointLight(L, ox, oy) {
 // ---------- visibility queries for gameplay ----------
 // Positions are body coordinates (x in cells, y in units: cell row × ASPECT). Both read the world directly, so they work
 // anywhere, not only in the lit window, and they ignore moving bodies (the lander, boulders): terrain and frozen chunks only.
-const solidAt = (cx, cy) => cx >= 0 && cx < W && cy >= 0 && cy < H && cells[cy * W + cx] !== EMPTY;
+const solidAt = (cx, cy) => cx >= 0 && cx < W && cy >= 0 && cy < H && MAT_SOLID[cells[cy * W + cx]] === 1;
 // is the straight line from (x0, y0) to (x1, y1) free of terrain, ignoring the first `skip` units and the cell it ends in
 function lineClear(x0, y0, x1, y1, skip) {
   const dx = x1 - x0, dy = y1 - y0, d = Math.hypot(dx, dy);

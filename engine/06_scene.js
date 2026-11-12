@@ -121,7 +121,8 @@ function renderScene(ox, oy, time, drawExtras) {
 
   // 2) terrain (empty cells stay code 0: transparent, so the sky layer shows through them)
   for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) {
-    const k = j * RW + i, cx = ox + i, cy = oy + j; let m = getC(cx, cy);
+    const k = j * RW + i, cx = ox + i, cy = oy + j; let m = getC(cx, cy), liq = 0;
+    if (MAT_LIQ[m]) { liq = m; m = EMPTY; }   // a liquid cell is drawn as what is behind it, then painted over (paintLiquid)
     const lr = LR[k], lg = LG[k], lb = LB[k];
     let glyph = 0, r = 0, g = 0, b = 0, raw = -1;
     if (m === EMPTY) {
@@ -129,7 +130,7 @@ function renderScene(ox, oy, time, drawExtras) {
       const bm = cx >= 0 && cx < W && cy >= 0 && cy < H ? backCells[cy * W + cx] : 0;
       if (bm) {   // the back wall: the light in the air in front of it, dimmer, with a drop shadow from the world cells
         let f = BACK.dim;
-        for (let s = 0; s < bkN; s++) if (getC(cx - BK_OFF[2 * s], cy - BK_OFF[2 * s + 1]) !== EMPTY) { f *= 1 - BACK.shadow * (1 - s / bkN); break; }
+        for (let s = 0; s < bkN; s++) if (MAT_SOLID[getC(cx - BK_OFF[2 * s], cy - BK_OFF[2 * s + 1])]) { f *= 1 - BACK.shadow * (1 - s / bkN); break; }
         const alb = MAT_ALB[bm];
         // a mast-style back wall (girders) shows its joints one shade brighter
         const joint = MAT_STYLE[bm] === 2 && (getBack(cx, cy - 1) === bm || getBack(cx, cy + 1) === bm) && (getBack(cx - 1, cy) === bm || getBack(cx + 1, cy) === bm);
@@ -161,6 +162,7 @@ function renderScene(ox, oy, time, drawExtras) {
       Z[k] = raw;
     }
     G[k] = glyph; cR[k] = r; cG[k] = g; cB[k] = b; cL[k] = raw;
+    if (liq) paintLiquid(k, cx, cy, liq, time);
   }
 
   // 3) particles, lit by the same buffers
