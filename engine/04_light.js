@@ -54,7 +54,7 @@ function lightAlloc(rw, rh) {
   LBOX.dI = Math.round(7 * RES); LBOX.dJ = Math.round(8 * RES / ASPECT);
   LMX = Math.max(LBOX.nI, LBOX.dI) + 1; LMY = Math.max(LBOX.nJ, LBOX.dJ) + 1;
   L_RW = rw; L_RH = rh; LOW = rw + 2 * LMX; LOH = rh + 2 * LMY; lampClear();
-  const n = rw * rh;
+  const n = rw * rh; stillAlloc(n);
   LR = new Float32Array(n); LG = new Float32Array(n); LB = new Float32Array(n); LDX = new Float32Array(n); LDY = new Float32Array(n);
   LSURF = new Uint8Array(n); LNX = new Float32Array(n); LNY = new Float32Array(n);
   LSUN = new Uint8Array(n); LAO = new Float32Array(n); LAOD = new Float32Array(n); LSTAMP = new Uint32Array(n);
@@ -101,52 +101,167 @@ function fillOcc(ox, oy) {
   }
 }
 
+// ---------- still frames: keep what the scene made when nothing it depends on has moved ----------
+// computeLighting and the terrain pass of renderScene make about eight passes over every cell of the window every frame. When nothing they
+// depend on has changed since the last frame they would make the same numbers again, so a still frame keeps them, at two levels:
+//   BASE (sun, ambient and occlusion: LR/LG/LB before any lamp, the surface buffers beside them) is kept while the camera is in the same cell,
+//     the sun's and the ambient colours are the same, the moving bodies that cast sun shadows stand in the same cells (a hash of them) and no
+//     chunk under the window or under the sun's sweep has been written to (the revision counter, 01_core.js). The lamps and the flash are added
+//     on top again every frame (the lamp cache makes that cheap), so a flickering or moving lamp does not spoil it.
+//   TERRAIN (every cell shaded, and the light buffers after hot and glowing things have added theirs) is kept while on top of the base the lamps
+//     are the same (position, radius, colour, intensity, cone: a flickering lamp breaks it, the base still holds), the back wall, the exposure,
+//     the materials and the backdrop's settings are the same, no emissive particle is in the window, nothing in it is hot and the music does not
+//     pulse the scene (setBeatPulse).
+// What moves on top (particles, falling chunks, sprites, rings, the HUD) is drawn every frame as before, and crystals and glints, which follow
+// the clock, are shaded again each frame. Exact, like the lamp cache: the same numbers come back, so a frame is bit for bit what it was
+// without it (tests/engine_cache.py compares them). A snapshot is taken once a frame's keys equal the last frame's, so a moving camera costs
+// the comparison of a few numbers. CACHE.still = false turns it off; baseHit and terrainHit say what the last frame did; with CACHE.audit
+// the work is done anyway and compared with the snapshot (CACHE.bad counts mismatches).
+const KB_N = 24, TK_MAX = 12 * 64 + 24;
+const _kbNow = new Float64Array(KB_N), _kbLast = new Float64Array(KB_N), _tkNow = new Float64Array(TK_MAX), _tkLast = new Float64Array(TK_MAX);
+let _tkN = 0, _tkLastN = -1;
+const STILL = { have: false, kb: new Float64Array(KB_N), rev: 0, crev: null, x0: 0, y0: 0, x1: 0, y1: 0, gen: 0, R0: null, G0: null, B0: null,
+  tHave: false, tGen: -1, tk: new Float64Array(TK_MAX), tkN: 0, mats: null, baseReuse: false, snapBase: false, terrain: false, snapTerrain: false };
+const eqF = (a, b, n) => { for (let i = 0; i < n; i++) if (a[i] !== b[i]) return false; return true; };
+function stillAlloc(n) {
+  STILL.R0 = new Float32Array(n); STILL.G0 = new Float32Array(n); STILL.B0 = new Float32Array(n);
+  STILL.have = STILL.tHave = false; _kbLast.fill(NaN); _tkLastN = -1;
+}
+// has any chunk touching cells x0..x1, y0..y1 been written to since revision rev?
+function chunksChangedSince(x0, y0, x1, y1, rev) {
+  const a = Math.max(0, x0) >> 4, b = Math.max(0, y0) >> 4, c = Math.min(W - 1, x1) >> 4, d = Math.min(H - 1, y1) >> 4;
+  for (let cy = b; cy <= d; cy++) for (let cx = a, q = cy * CWn + a; cx <= c; cx++, q++) if (CREV[q] > rev) return true;
+  return false;
+}
+function stillKeys(ox, oy, dynTop) {
+  const k = _kbNow; let i = 0;
+  k[i++] = ox; k[i++] = oy; k[i++] = L_RW; k[i++] = L_RH; k[i++] = RES; k[i++] = SUN_ON ? 1 : 0; k[i++] = SUN_L[0]; k[i++] = SUN_L[1];
+  k[i++] = SUN_C[0]; k[i++] = SUN_C[1]; k[i++] = SUN_C[2]; k[i++] = AMB_C[0]; k[i++] = AMB_C[1]; k[i++] = AMB_C[2]; k[i++] = EDGE_MAT; k[i++] = ASPECT;
+  let h = 0, d = 0;   // the bodies that cast sun shadows: where the sweep stops, and a hash of the cells they cover
+  if (SUN_ON) { d = dynTop; h = dynList.length | 0; for (let q = 0; q < dynList.length; q++) h = Math.imul(h ^ dynList[q], 16777619); }
+  k[i++] = d; k[i++] = h; k[i++] = LMX; k[i++] = LMY;
+  while (i < KB_N) k[i++] = 0;
+}
+// anything in the window that gives light off on its own (the test of renderScene's first step)
+function emissiveIn(ox, oy) {
+  for (let p = 0; p < P.n; p++) {
+    const t = P.t[p], ct = t >= PT_CUSTOM ? PTYPES[t - PT_CUSTOM] : null;
+    if (ct ? !ct.light : t !== PT_GAS && t !== PT_FIRE && t !== PT_SPARK) continue;
+    const i = Math.floor(P.x[p]) - ox, j = Math.floor(P.y[p] / ASPECT) - oy;
+    if (i >= 0 && j >= 0 && i < L_RW && j < L_RH) return true;
+  }
+  return false;
+}
+// nothing in the window is hot enough to change a colour or give light (heat above .02 colours a cell, above .25 it glows)
+function heatCalm(ox, oy) {
+  const x0 = Math.max(0, ox), x1 = Math.min(W, ox + L_RW);
+  for (let j = 0; j < L_RH; j++) { const cy = oy + j; if (cy < 0 || cy >= H) continue; for (let q = cy * W + x0, e = cy * W + x1; q < e; q++) if (heat[q] > .02) return false; }
+  return true;
+}
+// a checksum of the back wall under the window (nothing tells the engine when a game writes backCells)
+function backSig(ox, oy) {
+  let h = 2166136261 | 0; const x0 = Math.max(0, ox), x1 = Math.min(W, ox + L_RW);
+  for (let j = 0; j < L_RH; j++) { const cy = oy + j; if (cy < 0 || cy >= H) continue; for (let q = cy * W + x0, e = cy * W + x1; q < e; q++) h = Math.imul(h ^ backCells[q], 16777619); }
+  return h >>> 0;
+}
+function terrainKeys(lights, ox, oy) {
+  const k = _tkNow; let i = 0; k[i++] = lights.length;
+  for (const L of lights) {
+    k[i++] = L.x; k[i++] = L.y; k[i++] = L.r; k[i++] = L.c[0]; k[i++] = L.c[1]; k[i++] = L.c[2]; k[i++] = L.I; k[i++] = L.shadow ? 1 : 0;
+    k[i++] = L.cos === undefined ? 7 : L.cos; k[i++] = L.dx === undefined ? 0 : L.dx; k[i++] = L.dy === undefined ? 0 : L.dy; k[i++] = L.skip || 1.2;
+  }
+  k[i++] = FX.flash * (CALM ? .3 : 1); k[i++] = FX.flashCol[0]; k[i++] = FX.flashCol[1]; k[i++] = FX.flashCol[2];
+  k[i++] = BACK.dim; k[i++] = BACK.shadow; k[i++] = BACK.dir[0]; k[i++] = BACK.dir[1]; k[i++] = BACK.depth; k[i++] = EYE.e; k[i++] = backSig(ox, oy);
+  _tkN = i;
+}
+function matsSame() {
+  const m = STILL.mats; if (!m || m.length !== MATS.length) return false;
+  for (let i = 0; i < m.length; i++) if (m[i] !== MATS[i]) return false;   // setMaterial puts a new object in MATS
+  return true;
+}
+// decide, for this frame, what can come from the last one (sets STILL.baseReuse, snapBase, terrain, snapTerrain)
+function stillPlan(ox, oy, lights, dynTop) {
+  const S = STILL;
+  S.baseReuse = S.snapBase = S.terrain = S.snapTerrain = false;
+  stillKeys(ox, oy, dynTop);
+  const same = eqF(_kbNow, _kbLast, KB_N); _kbLast.set(_kbNow);
+  let x0 = ox - LMX, y0 = oy - LMY, x1 = ox + L_RW + LMX, y1 = oy + L_RH + LMY;   // the part of the world the base depends on
+  if (SUN_ON) { sunBox(ox, oy, dynTop); x0 = Math.min(x0, _sunX0); y0 = Math.min(y0, _sunY0); x1 = Math.max(x1, _sunX1); y1 = Math.max(y1, _sunY1); }
+  let valid = S.have && S.crev === CREV && eqF(_kbNow, S.kb, KB_N);
+  if (valid) valid = !chunksChangedSince(Math.min(x0, S.x0), Math.min(y0, S.y0), Math.max(x1, S.x1), Math.max(y1, S.y1), S.rev);
+  S.baseReuse = valid;
+  if (!valid) { S.have = false; S.tHave = false; }
+  if (!valid && same) { S.snapBase = true; S.kb.set(_kbNow); S.rev = WREV; S.crev = CREV; S.x0 = x0; S.y0 = y0; S.x1 = x1; S.y1 = y1; S.gen++; }
+  if ((S.baseReuse || S.snapBase) && BEAT_K === 0 && lights.length <= 64 && !emissiveIn(ox, oy) && heatCalm(ox, oy)) {
+    terrainKeys(lights, ox, oy);
+    const tSame = _tkN === _tkLastN && eqF(_tkNow, _tkLast, _tkN);
+    _tkLast.set(_tkNow.subarray(0, _tkN)); _tkLastN = _tkN;
+    if (S.baseReuse && S.tHave && S.tGen === S.gen && S.tkN === _tkN && matsSame() && eqF(_tkNow, S.tk, _tkN)) S.terrain = true;
+    else { S.tHave = false; S.snapTerrain = tSame; }
+  } else { S.tHave = false; _tkLastN = -1; }
+}
+function stillSaveBase() { const S = STILL; S.R0.set(LR); S.G0.set(LG); S.B0.set(LB); S.have = true; }
+function stillSavedTerrain() { const S = STILL; S.tHave = true; S.tGen = S.gen; S.tkN = _tkN; S.tk.set(_tkNow.subarray(0, _tkN)); S.mats = MATS.slice(); }
+function stillCompareBase() {
+  const S = STILL; let same = true;
+  for (let k = 0; same && k < LR.length; k++) same = LR[k] === S.R0[k] && LG[k] === S.G0[k] && LB[k] === S.B0[k];
+  if (!same) { CACHE.bad++; S.have = false; console.warn('the still-frame base was stale: cells[] or backCells[] was written without setC (call worldChanged(), engine/API.md)'); }
+}
+
 let L_NLIGHTS = 0;
 function computeLighting(ox, oy, lights, dynTop) {
   L_OX = ox; L_OY = oy; L_NLIGHTS = lights.length; lampFrame(ox, oy);
-  const RW = L_RW, RH = L_RH, OW = LOW, OH = LOH, B = LBOX;
-  // 1) occupancy + summed-area table
-  fillOcc(ox, oy);
-  const S = LSAT, sw = OW + 1;
-  for (let j = 0; j < OH; j++) { let run = 0; for (let i = 0; i < OW; i++) { run += LOCC[j * OW + i]; S[(j + 1) * sw + i + 1] = S[j * sw + i + 1] + run; } }
-  // 2) sun: sweep columns in the light's direction, tracking which rays are blocked
-  if (SUN_ON) sunSweep(ox, oy, dynTop); else LSUN.fill(0);
-  // sunlit-neighbour table: lets light soak a fixed physical depth into the ground at any detail
-  const SS = LSSAT, ssw = RW + 1;
-  for (let j = 0; j < RH; j++) { let run = 0; for (let i = 0; i < RW; i++) { run += LSUN[j * RW + i]; SS[(j + 1) * ssw + i + 1] = SS[j * ssw + i + 1] + run; } }
-  // 3) sun + ambient shading
-  const aA = (2 * B.aI + 1) * (2 * B.aJ + 1), dA = (2 * B.dI + 1) * (2 * B.dJ + 1);
-  const gX = 1 / (B.nI * (2 * B.nJ + 1) * (B.nI + 1) * .5), gY = 1 / ((2 * B.nI + 1) * B.nJ * (B.nJ + 1) * .5 * ASPECT);
-  for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) {
-    const k = j * RW + i, oi = (j + LMY) * OW + i + LMX;
-    let r, g, b;
-    if (!LOCC[oi]) {
-      LSURF[k] = 0; const s = LSUN[k];
-      r = AMB_C[0] * .7 + s * SUN_C[0]; g = AMB_C[1] * .7 + s * SUN_C[1]; b = AMB_C[2] * .7 + s * SUN_C[2];
-    } else {
-      const ii = i + LMX, jj = j + LMY;
-      const aoS = 1 - satBox(ii - B.aI, jj - B.aJ, ii + B.aI, jj + B.aJ) / aA;
-      const aoD = 1 - satBox(ii - B.dI, jj - B.dJ, ii + B.dI, jj + B.dJ) / dA;
-      LAO[k] = aoS; LAOD[k] = aoD;
-      if (!LOCC[oi - 1] || !LOCC[oi + 1] || !LOCC[oi - OW] || !LOCC[oi + OW]) {
-        LSURF[k] = 2;
-        let nx = (satBox(ii - B.nI, jj - B.nJ, ii - 1, jj + B.nJ) - satBox(ii + 1, jj - B.nJ, ii + B.nI, jj + B.nJ)) * gX;
-        let ny = (satBox(ii - B.nI, jj - B.nJ, ii + B.nI, jj - 1) - satBox(ii - B.nI, jj + 1, ii + B.nI, jj + B.nJ)) * gY;
-        const l = Math.hypot(nx, ny);
-        if (l < 1e-6) { nx = 0; ny = -1; } else { nx /= l; ny /= l; }
-        LNX[k] = nx; LNY[k] = ny;
-        const ndl = Math.max(0, -(nx * SUN_L[0] + ny * SUN_L[1]));
-        const sun = LSUN[k] * (.12 + .88 * ndl), am = .55 + 2 * aoS;
-        r = AMB_C[0] * am + sun * SUN_C[0]; g = AMB_C[1] * am + sun * SUN_C[1]; b = AMB_C[2] * am + sun * SUN_C[2];
+  const RW = L_RW, RH = L_RH, OW = LOW, OH = LOH, B = LBOX, ST = STILL;
+  if (CACHE.still) stillPlan(ox, oy, lights, dynTop); else ST.baseReuse = ST.snapBase = ST.terrain = ST.snapTerrain = false;
+  CACHE.baseHit = +ST.baseReuse; CACHE.terrainHit = +ST.terrain;
+  if (ST.terrain && !CACHE.audit) { for (const e of LAMPS.values()) e.seen = lampTick; return; }   // nothing changed at all: renderScene brings the scene's buffers back whole
+  if (ST.baseReuse && !CACHE.audit) { LR.set(ST.R0); LG.set(ST.G0); LB.set(ST.B0); }   // the sun, ambient and occlusion are as they were (the rest of the buffers still hold them)
+  else {
+    // 1) occupancy + summed-area table
+    fillOcc(ox, oy);
+    const S = LSAT, sw = OW + 1;
+    for (let j = 0; j < OH; j++) { let run = 0; for (let i = 0; i < OW; i++) { run += LOCC[j * OW + i]; S[(j + 1) * sw + i + 1] = S[j * sw + i + 1] + run; } }
+    // 2) sun: sweep columns in the light's direction, tracking which rays are blocked
+    if (SUN_ON) sunSweep(ox, oy, dynTop); else LSUN.fill(0);
+    // sunlit-neighbour table: lets light soak a fixed physical depth into the ground at any detail
+    const SS = LSSAT, ssw = RW + 1;
+    for (let j = 0; j < RH; j++) { let run = 0; for (let i = 0; i < RW; i++) { run += LSUN[j * RW + i]; SS[(j + 1) * ssw + i + 1] = SS[j * ssw + i + 1] + run; } }
+    // 3) sun + ambient shading
+    const aA = (2 * B.aI + 1) * (2 * B.aJ + 1), dA = (2 * B.dI + 1) * (2 * B.dJ + 1);
+    const gX = 1 / (B.nI * (2 * B.nJ + 1) * (B.nI + 1) * .5), gY = 1 / ((2 * B.nI + 1) * B.nJ * (B.nJ + 1) * .5 * ASPECT);
+    for (let j = 0; j < RH; j++) for (let i = 0; i < RW; i++) {
+      const k = j * RW + i, oi = (j + LMY) * OW + i + LMX;
+      let r, g, b;
+      if (!LOCC[oi]) {
+        LSURF[k] = 0; const s = LSUN[k];
+        r = AMB_C[0] * .7 + s * SUN_C[0]; g = AMB_C[1] * .7 + s * SUN_C[1]; b = AMB_C[2] * .7 + s * SUN_C[2];
       } else {
-        LSURF[k] = 1;
-        const i0 = Math.max(0, i - B.aI), i1 = Math.min(RW - 1, i + B.aI), j0 = Math.max(0, j - B.aJ), j1 = Math.min(RH - 1, j + B.aJ);
-        const near = (SS[(j1 + 1) * ssw + i1 + 1] - SS[j0 * ssw + i1 + 1] - SS[(j1 + 1) * ssw + i0] + SS[j0 * ssw + i0]) / ((i1 - i0 + 1) * (j1 - j0 + 1));
-        const sub = aoD * 2.4 + near * .45;
-        r = AMB_C[0] * .4 + sub * .22 * SUN_C[0]; g = AMB_C[1] * .4 + sub * .21 * SUN_C[1]; b = AMB_C[2] * .4 + sub * .2 * SUN_C[2];
+        const ii = i + LMX, jj = j + LMY;
+        const aoS = 1 - satBox(ii - B.aI, jj - B.aJ, ii + B.aI, jj + B.aJ) / aA;
+        const aoD = 1 - satBox(ii - B.dI, jj - B.dJ, ii + B.dI, jj + B.dJ) / dA;
+        LAO[k] = aoS; LAOD[k] = aoD;
+        if (!LOCC[oi - 1] || !LOCC[oi + 1] || !LOCC[oi - OW] || !LOCC[oi + OW]) {
+          LSURF[k] = 2;
+          let nx = (satBox(ii - B.nI, jj - B.nJ, ii - 1, jj + B.nJ) - satBox(ii + 1, jj - B.nJ, ii + B.nI, jj + B.nJ)) * gX;
+          let ny = (satBox(ii - B.nI, jj - B.nJ, ii + B.nI, jj - 1) - satBox(ii - B.nI, jj + 1, ii + B.nI, jj + B.nJ)) * gY;
+          const l = Math.hypot(nx, ny);
+          if (l < 1e-6) { nx = 0; ny = -1; } else { nx /= l; ny /= l; }
+          LNX[k] = nx; LNY[k] = ny;
+          const ndl = Math.max(0, -(nx * SUN_L[0] + ny * SUN_L[1]));
+          const sun = LSUN[k] * (.12 + .88 * ndl), am = .55 + 2 * aoS;
+          r = AMB_C[0] * am + sun * SUN_C[0]; g = AMB_C[1] * am + sun * SUN_C[1]; b = AMB_C[2] * am + sun * SUN_C[2];
+        } else {
+          LSURF[k] = 1;
+          const i0 = Math.max(0, i - B.aI), i1 = Math.min(RW - 1, i + B.aI), j0 = Math.max(0, j - B.aJ), j1 = Math.min(RH - 1, j + B.aJ);
+          const near = (SS[(j1 + 1) * ssw + i1 + 1] - SS[j0 * ssw + i1 + 1] - SS[(j1 + 1) * ssw + i0] + SS[j0 * ssw + i0]) / ((i1 - i0 + 1) * (j1 - j0 + 1));
+          const sub = aoD * 2.4 + near * .45;
+          r = AMB_C[0] * .4 + sub * .22 * SUN_C[0]; g = AMB_C[1] * .4 + sub * .21 * SUN_C[1]; b = AMB_C[2] * .4 + sub * .2 * SUN_C[2];
+        }
       }
+      LR[k] = r; LG[k] = g; LB[k] = b;
     }
-    LR[k] = r; LG[k] = g; LB[k] = b;
+    if (ST.baseReuse) stillCompareBase();   // (audit: what was kept must equal what was just made)
+    if (ST.snapBase) stillSaveBase();
   }
   // 4) point & cone lights, shadowed by voxels
   LDX.fill(0); LDY.fill(0);
@@ -159,16 +274,25 @@ function computeLighting(ox, oy, lights, dynTop) {
 // spacing. Walking columns left→right, a solid cell blocks the rays that cross it, so each
 // cell is tested exactly once. Value 1 = blocked by terrain, 2 = blocked only by a dynamic
 // body (lander/boulder): dynamic cells stay lit behind each other but still cast shadows.
-function sunSweep(ox, oy, dynTop) {
+// the box the sweep works in: columns [x0, x1) from where the rays start (far enough left that they reach the window), rows [y0, y1)
+// from the highest solid cell (everything above is lit) down to the window's bottom
+let _sunX0 = 0, _sunX1 = 0, _sunY0 = 0, _sunY1 = 0;
+function sunBox(ox, oy, dynTop) {
   const RW = L_RW, RH = L_RH, k = SUN_L[1] / SUN_L[0] / ASPECT;
   const yBot = Math.min(H, oy + RH), x1 = Math.min(W, ox + RW);
-  LSUN.fill(0);
   let xs0 = Math.max(0, ox), yTop = yBot;
   for (let pass = 0; pass < 3; pass++) {
     for (let x = xs0; x < x1; x++) if (colTop[x] < yTop) yTop = colTop[x];
     yTop = Math.max(0, Math.min(yTop, dynTop) - 1);
     xs0 = Math.max(0, Math.floor(ox - (yBot - yTop) / k) - 2);
   }
+  _sunX0 = xs0; _sunX1 = x1; _sunY0 = yTop; _sunY1 = yBot;
+}
+function sunSweep(ox, oy, dynTop) {
+  const RW = L_RW, RH = L_RH, k = SUN_L[1] / SUN_L[0] / ASPECT;
+  LSUN.fill(0);
+  sunBox(ox, oy, dynTop);
+  const xs0 = _sunX0, x1 = _sunX1, yTop = _sunY0, yBot = _sunY1;
   for (let j = 0; j < RH; j++) if (oy + j < yTop) LSUN.fill(1, j * RW, j * RW + RW);
   if (yTop >= yBot || x1 <= xs0) return;
   const bMin = yTop - k * (x1 + 1) - 2, bMax = yBot - k * xs0 + 2, NB = Math.ceil((bMax - bMin) * 2) + 4;
@@ -204,7 +328,7 @@ function sunSweep(ox, oy, dynTop) {
 // down for four frames before it is recorded again.
 // CACHE.lamps = false turns it off (a test compares the two); hit / miss / rec count the lamps of the last frame (applied from the cache,
 // cast without recording, cast and recorded); audit = true re-casts every kept lamp that is used and compares (CACHE.bad counts mismatches).
-const CACHE = { lamps: true, still: true, audit: false, hit: 0, miss: 0, rec: 0, bad: 0, bytes: 0, limit: 96 << 20 };
+const CACHE = { lamps: true, still: true, audit: false, hit: 0, miss: 0, rec: 0, baseHit: 0, terrainHit: 0, bad: 0, bytes: 0, limit: 96 << 20 };
 const LAMPS = new Map();
 // the lamps (by hash) lit last frame and this frame, and whether the camera's cell is the same as last frame's
 let _hPrev = new Int32Array(256), _hCur = new Int32Array(256), _hPrevN = 0, _hCurN = 0, _winSame = false, _wOx = 0, _wOy = 0, _wRW = 0, _wRH = 0, _wRes = 0;
