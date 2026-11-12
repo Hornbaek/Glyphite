@@ -29,7 +29,6 @@ function stepCats(dt) {
     }
     k.alert = Math.max(0, k.alert - dt); k.spotT = Math.max(0, k.spotT - dt); k.t += dt;
     c.o.run = (k.alert > 0 ? 30 : 14) * S * TUNE.catSpeed;
-    applyGravityZone(c, 4 * S);
     // walls and ledges: patrolling it turns round, chasing it waits at the edge
     const row = Math.round(c.y / ASPECT), ahead = Math.floor(c.x + k.dir * (c.o.w / 2 + .8));
     const wall = c.solid(ahead, row - 1) && c.solid(ahead, Math.floor((c.y - c.o.h * .6) / ASPECT));

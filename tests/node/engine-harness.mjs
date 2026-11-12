@@ -19,7 +19,7 @@ export function loadEngine({ gameCode = '', version = 'test', audio = null, stor
   const doc = { getElementById: () => el(), querySelector: () => null, createElement: () => el(), addEventListener: noop, body: el(), hidden: false, documentElement: el() };
   const ctx = vm.createContext({ window: win, document: doc, location: win.location, navigator: {}, performance: { now: now || (() => 0) }, console, setInterval: () => 0, clearInterval: noop, AudioBuffer: audio ? audio.AudioBuffer : undefined,
     localStorage: storage ? { getItem: k => storage.has(k) ? storage.get(k) : null, setItem: (k, v) => storage.set(k, String(v)), removeItem: k => storage.delete(k) } : { getItem: () => null, setItem: noop },
-    matchMedia: win.matchMedia, requestAnimationFrame: noop, setTimeout, clearTimeout, ResizeObserver: undefined, Float32Array, Uint8Array, Int32Array, Uint32Array, Uint8ClampedArray, Math });
+    matchMedia: win.matchMedia, requestAnimationFrame: noop, setTimeout, clearTimeout, ResizeObserver: undefined, Float32Array, Uint8Array, Int32Array, Uint32Array, Uint8ClampedArray, Math, structuredClone, Set, Map });
   win.window = win;
   let code = `const ENGINE_VERSION = ${JSON.stringify(version)};\nconst GAME_MANIFEST = { id: 'harness', title: 'harness', tunables: {} };\n`;
   for (const p of manifest.parts) code += `\n// ----- engine/${p} -----\n` + readFileSync(join(ROOT, 'engine', p), 'utf8') + '\n';

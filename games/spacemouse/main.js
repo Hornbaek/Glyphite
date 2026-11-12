@@ -109,7 +109,6 @@ function gameAfterFrame(t) {
 // ---------- HUD ----------
 const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 function gameHud(t) {
-  for (const tx of FX.texts) { const p = worldToHud(tx.x, tx.y - tx.age * 5 * RES, [0, 0]); hudText(p[0] - (tx.text.length >> 1), p[1], tx.text, tx.c); }
   if (state === 'title') {
     msgBox([
       ['S P A C E   M O U S E', HC.gold], ['', HC.txt],

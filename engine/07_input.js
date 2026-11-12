@@ -4,10 +4,12 @@
 // 'Tap' for a click or tap (as it goes down), 'TapUp' for one let go where it began (a tap, not a drag) and 'TapAlt' for a
 // right click (cleared after every step); aim: where the last tap was (0..1 of the canvas) or null; touch: on-screen hold
 // buttons by name. held: a pointer is down on the canvas; drag: how far it moved since the last step (0..1 of the canvas,
-// cleared after every step); pointer: what was used last, 'mouse' or 'touch' (a pen counts as touch).
+// cleared after every step); pointer: what was used last, 'mouse', 'touch' (a pen counts as touch) or 'pad' (a gamepad button was pressed).
+// A second finger makes a pinch: Input.pinch is how much the two fingers' distance changed since the last step, as a share of the canvas
+// width (positive = apart, cleared every step); Input.touches counts the fingers down. A finger held still for 0.45 s adds 'TapHold'.
 const Input = {
   keys: new Set(), fireQueued: false, aim: null, mouseX: 0, mouseY: 0, mouseSeen: 0,
-  touch: {}, pressed: new Set(), held: false, drag: [0, 0],
+  touch: {}, pressed: new Set(), held: false, drag: [0, 0], pinch: 0, touches: 0,
   pointer: window.matchMedia && matchMedia('(hover: none) and (pointer: coarse)').matches ? 'touch' : 'mouse'
 };
 const DRAG_PX = 10;   // a press that moves further than this (CSS pixels) is a drag, and no longer a tap
@@ -28,8 +30,14 @@ function setupInput(canvas, onKey, touchSpec) {
   const toCanvas = e => { const r = canvas.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]; };
   // the one pointer being held (a second finger is ignored): where it went down, where it is, whether it has dragged
   let down = null;
+  const touches = new Map(); let pinchD = 0, holdTimer = 0;
+  const pinchDist = () => { const [a, b] = [...touches.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
   canvas.addEventListener('pointermove', e => {
     if (e.pointerType === 'mouse') { const [x, y] = toCanvas(e); Input.mouseX = x; Input.mouseY = y; Input.mouseSeen = performance.now(); }
+    if (e.pointerType !== 'mouse' && touches.has(e.pointerId)) {
+      const t = touches.get(e.pointerId); t.x = e.clientX; t.y = e.clientY;
+      if (touches.size === 2) { const d = pinchDist(); if (pinchD) Input.pinch += (d - pinchD) / canvas.getBoundingClientRect().width; pinchD = d; if (down) down.moved = true; }
+    }
     if (!down || e.pointerId !== down.id) return;
     const r = canvas.getBoundingClientRect();
     Input.drag[0] += (e.clientX - down.x) / r.width; Input.drag[1] += (e.clientY - down.y) / r.height;
@@ -40,13 +48,16 @@ function setupInput(canvas, onKey, touchSpec) {
     Sfx.init(); if (e.pointerType === 'mouse') canvas.focus({ preventScroll: true });
     Input.pointer = e.pointerType === 'mouse' ? 'mouse' : 'touch';
     const [x, y] = toCanvas(e); Input.mouseX = x; Input.mouseY = y; Input.mouseSeen = performance.now();
+    if (e.pointerType !== 'mouse') { touches.set(e.pointerId, { x: e.clientX, y: e.clientY }); Input.touches = touches.size; if (touches.size === 2) pinchD = pinchDist(); if (touches.size > 1) return; }
     Input.aim = [x, y];
     if (e.button === 2) { Input.pressed.add('TapAlt'); return; }   // right click: cancel, deselect (no browser menu)
     Input.fireQueued = true; Input.pressed.add('Tap');
     if (!down) { down = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, moved: false }; Input.held = true; try { canvas.setPointerCapture(e.pointerId); } catch (_) { } }
     if (e.pointerType !== 'mouse') showTouch();
+    clearTimeout(holdTimer); holdTimer = setTimeout(() => { if (down && !down.moved && touches.size <= 1) Input.pressed.add('TapHold'); }, 450);
   });
   const up = e => {
+    touches.delete(e.pointerId); Input.touches = touches.size; pinchD = 0; clearTimeout(holdTimer);
     if (!down || e.pointerId !== down.id) return;
     if (e.type === 'pointerup' && !down.moved) { Input.aim = toCanvas(e); Input.pressed.add('TapUp'); }
     down = null; Input.held = false;

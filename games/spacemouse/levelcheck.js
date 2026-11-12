@@ -27,10 +27,9 @@ function checkSector(n) {
   const sim = (x, y, dir, dir2, sw, hold, maxN, v0 = 0) => {
     const c = new Character(x, y, opts); c.onGround = true; c.ground = HULL; c.vx = v0;
     for (let i = 0; i < maxN; i++) {
-      applyGravityZone(c, opts.jump);
       c.step(DT, { x: i < sw ? dir : dir2, jump: i < hold });
       visit(c);
-      if (touching(c, m => HAZARD[m]) || c.y > H * ASPECT) return;
+      if (c.hazard || c.y > H * ASPECT) return;
       if (i > 2 && c.onGround) { add(c); return; }
     }
   };

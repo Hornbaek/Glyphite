@@ -121,6 +121,8 @@ function buildSector(n) {
   findGantries(sec);
   sec.decor = buildDecor(sec);
   SEC = sec;
+  // a sector's lowG rectangles (tiles) halve gravity there: an engine gravity zone (a jump's launch speed stays, so it goes twice as high)
+  for (const [x0, y0, x1, y1] of sec.def.lowG || []) addGravityZone({ x0: x0 * tw, y0: y0 * th * ASPECT, x1: (x1 + 1) * tw, y1: (y1 + 1) * th * ASPECT, scale: .5 });
   return sec;
 }
 

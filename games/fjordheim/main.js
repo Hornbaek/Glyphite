@@ -102,8 +102,8 @@ function menuAt(aim) {
 // the panels at the bottom: a tap on one never reaches the map behind it
 const onPanel = aim => PANELS.some(([c0, r0, c1, r1]) => aim[0] * R.hcols >= c0 && aim[0] * R.hcols < c1 && aim[1] * R.hrows >= r0 && aim[1] * R.hrows < r1);
 const onHud = aim => !!menuAt(aim) || onPanel(aim);
-function hudButton(id, c, r, txt, col, act) { hudText(c, r, txt, col); MENU.push({ id, c0: c, c1: c + txt.length, r0: r, r1: r, act }); }
-function hudPanel(c, r, w, h) { hudBox(c, r, w, h, HC.dim, true); PANELS.push([c, r, c + w, r + h]); }
+function fjButton(id, c, r, txt, col, act) { hudText(c, r, txt, col); MENU.push({ id, c0: c, c1: c + txt.length, r0: r, r1: r, act }); }
+function fjPanel(c, r, w, h) { hudBox(c, r, w, h, HC.dim, true); PANELS.push([c, r, c + w, r + h]); }
 
 // what is under the cursor: a person (on their figure, drawn in front of what stands behind them), else a building (on
 // its drawing, which rises far above its footprint; a finger gets some slack), else whatever is on that tile
@@ -342,7 +342,7 @@ function hudIcon(type, c, r, b) {
 // the BUILD button, bottom left, in a frame of its own: it opens and closes the build menu (amber while it or a placing is open)
 function buildButton(bottom, touch) {
   const label = touch ? 'BUILD' : '[B] BUILD', w = label.length + 4, r0 = bottom - 2;
-  hudPanel(0, r0, w, 3); hudText(2, r0 + 1, label, BUILDMENU || SEL ? HC.amber : HC.gold);
+  fjPanel(0, r0, w, 3); hudText(2, r0 + 1, label, BUILDMENU || SEL ? HC.amber : HC.gold);
   MENU.push({ id: 'build', c0: 0, c1: w, r0, r1: bottom, act: toggleMenu });
   return w;
 }
@@ -351,7 +351,7 @@ function buildButton(bottom, touch) {
 function buildMenu(bottom, touch) {
   const ncol = clamp(Math.floor((R.hcols - 1) / (EW + 1)), 1, 3), nrow = Math.ceil(BUILD_ORDER.length / ncol);
   const w = ncol * (EW + 1) + 1, h = nrow * (IH + 1) + 1, r0 = bottom - h + 1;
-  hudPanel(0, r0, w, h);
+  fjPanel(0, r0, w, h);
   BUILD_ORDER.forEach((type, k) => {
     const d = BUILDINGS[type], c = 1 + (k % ncol) * (EW + 1), r = r0 + 1 + Math.floor(k / ncol) * (IH + 1), tx = c + IW + 1;
     hudIcon(type, c, r);
@@ -365,9 +365,9 @@ function buildMenu(bottom, touch) {
 // the building being placed: its picture, cost and use, and whether it fits where it is shown
 function placePanel(bottom, touch) {
   const d = BUILDINGS[SEL], w = Math.min(R.hcols, 66), h = 6, r0 = bottom - h + 1, tx = 3 + IW, tw = w - tx - 2;
-  hudPanel(0, r0, w, h); hudIcon(SEL, 2, r0 + 1);
+  fjPanel(0, r0, w, h); hudIcon(SEL, 2, r0 + 1);
   hudCost(tx + d.name.length + 2, r0 + 1, Object.entries(d.cost), true); hudText(tx, r0 + 1, d.name.toUpperCase(), HC.amber);
-  hudButton('cancel', w - 10, r0 + 1, '[CANCEL]', HC.txt, closeAll);
+  fjButton('cancel', w - 10, r0 + 1, '[CANCEL]', HC.txt, closeAll);
   wrapText(d.help, tw).slice(0, 2).forEach((l, q) => hudText(tx, r0 + 2 + q, l, SOFT));
   const foot = ghostFoot(), why = foot && placeProblem(SEL, ...foot);
   const [msg, col] = why ? [`not here: ${why}`, HC.red] : !foot ? [touch ? 'tap the map where it should stand' : 'point at where it should stand', HC.cyan]
@@ -377,15 +377,15 @@ function placePanel(bottom, touch) {
 // a building's panel: how it is doing, [PAUSE] / [RESUME] for a workplace, [TEAR DOWN] (asks first) and what that gives back
 function pickPanel(bottom) {
   const b = PICK, d = BUILDINGS[b.type], w = Math.min(R.hcols, 66), h = 5, r0 = bottom - h + 1, tx = 3 + IW, tw = w - tx - 2;
-  hudPanel(0, r0, w, h); hudIcon(b.type, 2, r0 + 1, b);
+  fjPanel(0, r0, w, h); hudIcon(b.type, 2, r0 + 1, b);
   hudText(tx, r0 + 1, d.name.toUpperCase(), HC.gold);
   if (b.paused) hudText(tx + d.name.length + 2, r0 + 1, 'PAUSED', HC.amber);
-  hudButton('close', w - 5, r0 + 1, '[X]', HC.txt, closeAll);
+  fjButton('close', w - 5, r0 + 1, '[X]', HC.txt, closeAll);
   hudText(tx, r0 + 2, buildingStatus(b).slice(0, tw), HC.cyan);
   let c = tx;
-  if (canPause(b)) { const s = b.paused ? '[RESUME]' : '[PAUSE]'; hudButton('pause', c, r0 + 3, s, b.paused ? HC.green : HC.txt, () => { togglePause(b); RAZE = null; }); c += s.length + 2; }
+  if (canPause(b)) { const s = b.paused ? '[RESUME]' : '[PAUSE]'; fjButton('pause', c, r0 + 3, s, b.paused ? HC.green : HC.txt, () => { togglePause(b); RAZE = null; }); c += s.length + 2; }
   const word = b.done ? 'TEAR DOWN' : 'CALL OFF', sure = RAZE === b, s = sure ? `[SURE? ${word}]` : `[${word}]`;
-  hudButton('raze', c, r0 + 3, s, sure ? HC.red : HC.txt, razePressed);
+  fjButton('raze', c, r0 + 3, s, sure ? HC.red : HC.txt, razePressed);
   const back = refund(b).filter(([, k]) => k > 0);
   if (back.length) { hudText(c + s.length + 1, r0 + 3, 'back', SOFT); hudCost(c + s.length + 6, r0 + 3, back, false); }
 }
@@ -406,14 +406,13 @@ function gameHud(t) {
     return;
   }
   // over the map: what was just brought in, and a pause mark on the buildings that are paused
-  for (const tx of FX.texts) { const p = worldToHud(tx.x, tx.y - tx.age * 5 * RES, [0, 0]); hudText(p[0] - (tx.text.length >> 1), p[1], tx.text, tx.c); }
   for (const b of HOME.buildings) if (b.paused) { isoToWorld(b.i + b.w / 2, b.j + b.h / 2, _p); const p = worldToHud(_p[0], _p[1] - 4 * RES, [0, 0]); hudText(p[0] - 1, p[1], '||', HC.amber); }
   // top: the season and the time buttons; the stock, an icon and a number each (and the names, when there is room)
   const d = daylight(), clock = d > .5 ? 'DAY' : HOME.tod > .72 ? 'NIGHT' : 'DUSK', wide = R.hcols >= 64, named = R.hcols >= 80;
   if (wide) hudText(1, 0, 'FJORDHEIM', HC.gold);
   hudText(wide ? 12 : 1, 0, `${SEASONS[HOME.season]} ${HOME.day}/${daysPerSeason()}  YEAR ${HOME.year}  ${clock}`, HC.txt);
-  hudButton('fast', R.hcols - 10, 0, '[>>]', FAST > 1 ? HC.amber : HC.txt, toggleFast);
-  hudButton('help', R.hcols - 5, 0, '[?]', HELP ? HC.amber : HC.txt, () => { HELP = !HELP; });
+  fjButton('fast', R.hcols - 10, 0, '[>>]', FAST > 1 ? HC.amber : HC.txt, toggleFast);
+  fjButton('help', R.hcols - 5, 0, '[?]', HELP ? HC.amber : HC.txt, () => { HELP = !HELP; });
   const st = HOME.stock, low = (n, w) => n < w ? HC.red : HC.txt;
   const stats = [[GOODS.wood, st.wood, 'wood', HOME.season === 3 ? low(st.wood, 4) : HC.txt], [GOODS.planks, st.planks, 'planks', HC.txt], [GOODS.stone, st.stone, 'stone', HC.txt],
     [GOODS.food, `${Math.floor(st.food)}/${foodCap()}`, 'food', low(st.food, FOLK.length * 2)], [FOLK_ICON, `${FOLK.length}/${Math.max(beds(), 3)}`, 'folk', HC.txt], forestStat()];

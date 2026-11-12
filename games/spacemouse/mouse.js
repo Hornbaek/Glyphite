@@ -26,7 +26,7 @@ function mouseInput() {
 function stepMouse(dt) {
   const m = MOUSE, c = m.ch, S = RES, inp = mouseInput(), wasGround = c.onGround;
   m.safeT = Math.max(0, m.safeT - dt);
-  m.low = applyGravityZone(c, TUNE.jumpHeight * MOUSE_H * S);
+  m.low = lowGravityAt(c.x, c.y - c.o.h / 2);
   if (m.low) hint('lowg', 'LOW GRAVITY: THE GENERATOR IS FAILING. JUMPS GO TWICE AS HIGH');
   c.step(dt, inp);
   if (c.blocked(c.x, c.y)) c.unstick(6);   // sand (peas, flakes, crumbs) poured onto the mouse: climb out on top
@@ -57,8 +57,7 @@ function stepMouse(dt) {
   if (c.ground === GIRDER) hint('catwalk', 'S / DOWN DROPS THROUGH A CATWALK');
   if (c.wall && TUNE.wallJump) hint('wall', 'JUMP OFF WALLS: PRESS JUMP WHILE SLIDING DOWN ONE');
   // what the mouse touches
-  const hz = touching(c, mm => HAZARD[mm]);
-  if (hz) { killMouse(HAZARD[hz]); return; }
+  if (c.hazard) { killMouse(HAZARD[c.hazardMat]); return; }   // the engine reads the materials' hazard flag
   if (atGoal(c)) { clearSector(); return; }
   if (c.y > H * ASPECT + 4 * S) { killMouse('LOST IN THE DARK'); return; }
   const mx = c.x, my = c.y - c.o.h / 2;

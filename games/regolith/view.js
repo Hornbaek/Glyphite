@@ -131,11 +131,6 @@ function drawWorldLabels() {
     worldToHud(lx, ly, _h);
     const s = `x${p.mult}`; hudText(_h[0] - 1, _h[1], s, [242, 178, 76]);
   }
-  for (const tx of FX.texts) {
-    const u = tx.age / tx.life, f = u < .7 ? 1 : 1 - (u - .7) / .3;
-    worldToHud(tx.x, tx.y - tx.age * 5 * RES, _h);
-    hudText(_h[0] - (tx.text.length >> 1), _h[1], tx.text, [tx.c[0] * f, tx.c[1] * f, tx.c[2] * f]);
-  }
 }
 // is a floodlamp's beam on this point? (the engine's visibility query, with each lamp's own cone and shadows)
 function lampLit(x, y) {
