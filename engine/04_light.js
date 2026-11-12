@@ -53,7 +53,7 @@ function lightAlloc(rw, rh) {
   LBOX.aI = Math.max(1, Math.round(2 * RES)); LBOX.aJ = Math.max(1, Math.round(2 * RES / ASPECT));
   LBOX.dI = Math.round(7 * RES); LBOX.dJ = Math.round(8 * RES / ASPECT);
   LMX = Math.max(LBOX.nI, LBOX.dI) + 1; LMY = Math.max(LBOX.nJ, LBOX.dJ) + 1;
-  L_RW = rw; L_RH = rh; LOW = rw + 2 * LMX; LOH = rh + 2 * LMY;
+  L_RW = rw; L_RH = rh; LOW = rw + 2 * LMX; LOH = rh + 2 * LMY; lampClear();
   const n = rw * rh;
   LR = new Float32Array(n); LG = new Float32Array(n); LB = new Float32Array(n); LDX = new Float32Array(n); LDY = new Float32Array(n);
   LSURF = new Uint8Array(n); LNX = new Float32Array(n); LNY = new Float32Array(n);
@@ -103,7 +103,7 @@ function fillOcc(ox, oy) {
 
 let L_NLIGHTS = 0;
 function computeLighting(ox, oy, lights, dynTop) {
-  L_OX = ox; L_OY = oy; L_NLIGHTS = lights.length;
+  L_OX = ox; L_OY = oy; L_NLIGHTS = lights.length; lampFrame(ox, oy);
   const RW = L_RW, RH = L_RH, OW = LOW, OH = LOH, B = LBOX;
   // 1) occupancy + summed-area table
   fillOcc(ox, oy);
@@ -190,6 +190,109 @@ function sunSweep(ox, oy, dynTop) {
   }
 }
 
+// ---------- lamps: cast every frame, or kept while nothing changes ----------
+// A lamp casts about r / 0.6 · 2π rays of r / 0.6 steps every frame: a quarter of a million cell steps for a 60 · RES lamp at RES 2, and most
+// lamps and most walls do not move. So the outcome of a cast is kept: for every cell the light reached, how much of it (the falloff, the cone
+// and the surface's angle: these depend on the lamp's position, radius and cone and on the surfaces, and on nothing else), and the next frame
+// adds those numbers instead of casting again. The lamp's colour and intensity are applied each time, so a flickering or pulsing lamp stays cached.
+// A kept cast is valid while
+//   - no chunk of the world within the lamp's reach (plus the width of a surface normal) has been written to since: the revision counter, 01_core.js,
+//   - the camera is in the same cell (the window cuts the cast off at its edge, so a lamp partly off screen casts differently from one in view).
+// It is exact: the same numbers are added in the same order (lamp by lamp, one add per cell per lamp), so a frame comes out bit for bit as it
+// did without the cache (tests/engine_cache.py). Lamps are found by their parameters. One is recorded once it has stood still, with the camera
+// still, for two frames (a moving lamp or a moving camera costs nothing extra), and is let go after a change near it, which must then calm
+// down for four frames before it is recorded again.
+// CACHE.lamps = false turns it off (a test compares the two); hit / miss / rec count the lamps of the last frame (applied from the cache,
+// cast without recording, cast and recorded); audit = true re-casts every kept lamp that is used and compares (CACHE.bad counts mismatches).
+const CACHE = { lamps: true, still: true, audit: false, hit: 0, miss: 0, rec: 0, bad: 0, bytes: 0, limit: 96 << 20 };
+const LAMPS = new Map();
+// the lamps (by hash) lit last frame and this frame, and whether the camera's cell is the same as last frame's
+let _hPrev = new Int32Array(256), _hCur = new Int32Array(256), _hPrevN = 0, _hCurN = 0, _winSame = false, _wOx = 0, _wOy = 0, _wRW = 0, _wRH = 0, _wRes = 0;
+function lampFrame(ox, oy) {   // at the start of every lighting pass
+  lampTick++; CACHE.hit = CACHE.miss = CACHE.rec = 0;
+  const t = _hPrev; _hPrev = _hCur; _hCur = t; _hPrevN = _hCurN; _hCurN = 0;
+  _winSame = ox === _wOx && oy === _wOy && L_RW === _wRW && L_RH === _wRH && RES === _wRes; _wOx = ox; _wOy = oy; _wRW = L_RW; _wRH = L_RH; _wRes = RES;
+  if ((lampTick & 127) === 0) lampSweep();
+}
+let lampTick = 0, _rec0 = 0, _rec1 = 0, _recI0 = new Int32Array(0), _recA0 = new Float64Array(0), _recH0 = new Float64Array(0), _recI1 = new Int32Array(0), _recA1 = new Float64Array(0);
+const _bits = new Float64Array(1), _bitsU = new Uint32Array(_bits.buffer);
+function mixBits(h, v) { _bits[0] = v; h = Math.imul(h ^ _bitsU[0], 16777619); return Math.imul(h ^ _bitsU[1], 16777619); }
+function lampDrop(e) { CACHE.bytes -= e.bytes; e.bytes = 0; e.ready = false; e.i0 = e.a0 = e.h0 = e.i1 = e.a1 = null; e.n0 = e.n1 = 0; }
+function lampClear() { LAMPS.clear(); CACHE.bytes = 0; }
+function lampScratch(n) {
+  if (_recI0.length >= n) return;
+  _recI0 = new Int32Array(n); _recA0 = new Float64Array(n); _recH0 = new Float64Array(n); _recI1 = new Int32Array(n); _recA1 = new Float64Array(n);
+}
+// forget lamps not seen for a while, and the oldest kept casts if they add up to too much
+function lampSweep() {
+  for (const [h, e] of LAMPS) if (lampTick - e.seen > 300) { lampDrop(e); LAMPS.delete(h); }
+  if (CACHE.bytes <= CACHE.limit) return;
+  const kept = [...LAMPS.values()].filter(e => e.ready).sort((a, b) => a.seen - b.seen);
+  for (const e of kept) { if (CACHE.bytes <= CACHE.limit * .75) break; lampDrop(e); e.need = 8; }
+}
+// the cache entry for this lamp: ready (use it), to be recorded (cast, then lampKeep), or null (cast without recording)
+function lampFor(L, ox, oy, skip) {
+  const cone = L.cos !== undefined, cs = cone ? L.cos : 7, dx = cone ? L.dx : 0, dy = cone ? L.dy : 0, sh = L.shadow ? 1 : 0;
+  let h = mixBits(mixBits(mixBits(mixBits(mixBits(2166136261 | 0, L.x), L.y), L.r), skip), cs);
+  h = mixBits(mixBits(mixBits(mixBits(h, dx), dy), sh), EDGE_MAT);
+  let again = false;   // the same lamp was lit last frame, with the camera in the same cell: it is standing still
+  for (let t = 0; t < _hPrevN; t++) if (_hPrev[t] === h) { again = _winSame; break; }
+  if (_hCurN < _hCur.length) _hCur[_hCurN++] = h;
+  let e = LAMPS.get(h);
+  if (e && !(e.x === L.x && e.y === L.y && e.r === L.r && e.skip === skip && e.cs === cs && e.dx === dx && e.dy === dy && e.sh === sh && e.edge === EDGE_MAT)) { lampDrop(e); LAMPS.delete(h); e = undefined; }   // another lamp with the same hash
+  if (!e) {
+    if (!again) return null;   // not seen standing still yet: cast it, and look again next frame (a moving lamp never gets an entry)
+    e = { x: L.x, y: L.y, r: L.r, skip, cs, dx, dy, sh, edge: EDGE_MAT, ox, oy, rw: L_RW, rh: L_RH, res: RES, crev: CREV, seen: lampTick, need: 0, ready: false, rev: 0, wrev: 0, cx0: 0, cx1: -1, cy0: 0, cy1: -1, n0: 0, i0: null, a0: null, h0: null, n1: 0, i1: null, a1: null, bytes: 0 };
+    LAMPS.set(h, e);
+  }
+  e.seen = lampTick;
+  if (e.ox !== ox || e.oy !== oy || e.rw !== L_RW || e.rh !== L_RH || e.res !== RES || e.crev !== CREV) {   // the camera moved, or the world is a new one
+    lampDrop(e); e.ox = ox; e.oy = oy; e.rw = L_RW; e.rh = L_RH; e.res = RES; e.crev = CREV; e.need = 1;
+  }
+  if (e.ready && e.wrev !== WREV) {   // something changed somewhere: has it changed under this lamp?
+    let ok = true;
+    for (let cy = e.cy0; ok && cy <= e.cy1; cy++) for (let cx = e.cx0, q = cy * CWn + e.cx0; cx <= e.cx1; cx++, q++) if (CREV[q] > e.rev) { ok = false; break; }
+    if (ok) e.wrev = WREV; else { lampDrop(e); e.need = 4; }
+  }
+  if (e.ready) return e;
+  if (e.need > 0) { e.need--; return null; }
+  // to be recorded: the chunks the cast can depend on are those under the lamp's disc and the width of a surface normal around it
+  const M = Math.max(LBOX.nI, LBOX.nJ) + 2;
+  e.cx0 = Math.max(0, Math.floor(L.x - L.r) - M) >> 4; e.cx1 = Math.min(W - 1, Math.ceil(L.x + L.r) + M) >> 4;
+  e.cy0 = Math.max(0, Math.floor((L.y - L.r) / ASPECT) - M) >> 4; e.cy1 = Math.min(H - 1, Math.ceil((L.y + L.r) / ASPECT) + M) >> 4;
+  return e;
+}
+function lampKeep(e) {
+  e.n0 = _rec0; e.i0 = _recI0.slice(0, _rec0); e.a0 = _recA0.slice(0, _rec0); e.h0 = _recH0.slice(0, _rec0);
+  e.n1 = _rec1; e.i1 = _recI1.slice(0, _rec1); e.a1 = _recA1.slice(0, _rec1);
+  e.bytes = _rec0 * 20 + _rec1 * 12; CACHE.bytes += e.bytes; e.ready = true; e.rev = e.wrev = WREV;
+}
+// add a kept cast: the same numbers, in the same order, that castLamp adds
+function applyLamp(e, L, ox, oy, cr, cg, cb) {
+  const RW = L_RW, sumc = cr + cg + cb, lx = L.x, ly = L.y, I0 = e.i0, A0 = e.a0, H0 = e.h0, I1 = e.i1, A1 = e.a1;
+  for (let t = 0, n = e.n0; t < n; t++) {
+    const kk = I0[t], a = A0[t];
+    LR[kk] += cr * a; LG[kk] += cg * a; LB[kk] += cb * a;
+    const j = (kk / RW) | 0, cx = ox + kk - j * RW, cy = oy + j, ux = lx - cx - .5, uy = ly - (cy + .5) * ASPECT, w = sumc * a / H0[t];
+    LDX[kk] += ux * w; LDY[kk] += uy * w;
+  }
+  for (let t = 0, n = e.n1; t < n; t++) { const kk = I1[t], a = A1[t]; LR[kk] += cr * a; LG[kk] += cg * a; LB[kk] += cb * a; }
+}
+// re-cast a kept lamp into scratch buffers and compare with what is kept (dev builds now and then, tests always)
+let _auditR = null;
+function lampAudit(e, L, ox, oy) {
+  const n = L_RW * L_RH, keep = [LR, LG, LB, LDX, LDY];
+  if (!_auditR || _auditR[0].length !== n) _auditR = [0, 1, 2, 3, 4].map(() => new Float32Array(n));
+  [LR, LG, LB, LDX, LDY] = _auditR; for (const a of _auditR) a.fill(0);
+  const c = L.c, I = L.I, was = [e.n0, e.n1], i0 = e.i0, a0 = e.a0, h0 = e.h0, i1 = e.i1, a1 = e.a1;
+  lampScratch(n); castLamp(L, ox, oy, c[0] * I, c[1] * I, c[2] * I, true);
+  [LR, LG, LB, LDX, LDY] = keep;
+  let same = _rec0 === was[0] && _rec1 === was[1];
+  for (let t = 0; same && t < _rec0; t++) same = _recI0[t] === i0[t] && _recA0[t] === a0[t] && _recH0[t] === h0[t];
+  for (let t = 0; same && t < _rec1; t++) same = _recI1[t] === i1[t] && _recA1[t] === a1[t];
+  if (!same) { CACHE.bad++; lampDrop(e); e.need = 4; const m = 'the lamp cache was stale: cells[] was written without setC (call worldChanged(), engine/API.md)'; console.warn(m); }
+}
+
 // Rays leave the light every ~0.6 units of arc at its edge; each cell is lit once per light
 // (stamped), surfaces take a Lambert term, and a ray that hits the ground soaks a short way in
 // (about 1.3 m), so a lit pool reads as a band of ground rather than a one-character line.
@@ -197,19 +300,36 @@ function addPointLight(L, ox, oy) {
   const RW = L_RW, RH = L_RH, r = L.r, I = L.I;
   if (I <= .01 || r <= 1) return;
   if (L.x + r < ox || L.x - r > ox + RW || (L.y + r) / ASPECT < oy || (L.y - r) / ASPECT > oy + RH) return;
-  const gen = ++stampGen, cr = L.c[0] * I, cg = L.c[1] * I, cb = L.c[2] * I, cone = L.cos !== undefined;
+  const cr = L.c[0] * I, cg = L.c[1] * I, cb = L.c[2] * I;
+  const e = CACHE.lamps && Number.isFinite(L.x + L.y + r) ? lampFor(L, ox, oy, L.skip || 1.2) : null;
+  if (e && e.ready) {
+    CACHE.hit++; applyLamp(e, L, ox, oy, cr, cg, cb);
+    if (CACHE.audit || (DEV && (lampTick & 127) === 0)) lampAudit(e, L, ox, oy);
+    return;
+  }
+  if (e) { CACHE.rec++; lampScratch(RW * RH); } else CACHE.miss++;
+  castLamp(L, ox, oy, cr, cg, cb, !!e);
+  if (e) lampKeep(e);
+}
+// the lamp's own state for lampShade: the falloff at a cell, and the distance it worked out on the way
+let _sL = null, _sCone = false, _sR = 0, _sD = 0;
+function lampShade(kk, cx, cy, s) {
+  const L = _sL, r = _sR, ux = L.x - cx - .5, uy = L.y - (cy + .5) * ASPECT, d = _sD = Math.hypot(ux, uy);
+  if (d >= r) return 0;
+  let att;
+  if (_sCone) { const q = d / r; att = 1 - q * q; att *= att; } else { att = 1 - d / r; att *= att; }
+  if (_sCone && d > .5) { const cd = -(ux * L.dx + uy * L.dy) / d; att = cd <= L.cos ? 0 : att * smooth(Math.min(1, (cd - L.cos) / (1 - L.cos) * 4)); }
+  if (s === 2) { const nd = (LNX[kk] * ux + LNY[kk] * uy) / (d || 1); att *= Math.max(0, nd) * .8 + .2; }
+  return att;
+}
+// cast the lamp's rays into the light buffers; with rec, also write down what was added (into _rec*: the cells, how much, and for the
+// lit ones the distance, which the direction of the light needs)
+function castLamp(L, ox, oy, cr, cg, cb, rec) {
+  const RW = L_RW, RH = L_RH, r = L.r, gen = ++stampGen, cone = L.cos !== undefined, sumc = cr + cg + cb;
   let a0 = 0, span = 6.2832;
   if (cone) { const half = Math.acos(L.cos); a0 = Math.atan2(L.dy, L.dx) - half; span = 2 * half; }
   const nRays = Math.max(12, Math.ceil(r * span / .6)), skip = L.skip || 1.2, step = .6, soakLen = 2.6 * RES;
-  const shade = (kk, cx, cy, s) => {
-    const ux = L.x - cx - .5, uy = L.y - (cy + .5) * ASPECT, d = Math.hypot(ux, uy);
-    if (d >= r) return 0;
-    let att;
-    if (cone) { const q = d / r; att = 1 - q * q; att *= att; } else { att = 1 - d / r; att *= att; }
-    if (cone && d > .5) { const cd = -(ux * L.dx + uy * L.dy) / d; att = cd <= L.cos ? 0 : att * smooth(Math.min(1, (cd - L.cos) / (1 - L.cos) * 4)); }
-    if (s === 2) { const nd = (LNX[kk] * ux + LNY[kk] * uy) / (d || 1); att *= Math.max(0, nd) * .8 + .2; }
-    return att;
-  };
+  _sL = L; _sCone = cone; _sR = r; _rec0 = _rec1 = 0;
   for (let q = 0; q < nRays; q++) {
     const ang = a0 + (q + .5) * span / nRays, dx = Math.cos(ang), dy = Math.sin(ang);
     let depth = -1, entry = 0;
@@ -220,18 +340,22 @@ function addPointLight(L, ox, oy) {
       if (depth >= 0) {                                   // inside the ground: soak, then stop
         if (!solid) break;
         depth += step; if (depth > soakLen) break;
-        if (inWin && s === 1 && LSTAMP[kk] !== gen) { LSTAMP[kk] = gen; const f = 1 - depth / soakLen, a = entry * f * f * .75; LR[kk] += cr * a; LG[kk] += cg * a; LB[kk] += cb * a; }
+        if (inWin && s === 1 && LSTAMP[kk] !== gen) {
+          LSTAMP[kk] = gen; const f = 1 - depth / soakLen, a = entry * f * f * .75; LR[kk] += cr * a; LG[kk] += cg * a; LB[kk] += cb * a;
+          if (rec) { _recI1[_rec1] = kk; _recA1[_rec1++] = a; }
+        }
         continue;
       }
       if (inWin && s !== 1 && LSTAMP[kk] !== gen) {
-        LSTAMP[kk] = gen; const a = shade(kk, cx, cy, s);
+        LSTAMP[kk] = gen; const a = lampShade(kk, cx, cy, s);
         if (a > 0) {
           LR[kk] += cr * a; LG[kk] += cg * a; LB[kk] += cb * a;
-          const ux = L.x - cx - .5, uy = L.y - (cy + .5) * ASPECT, w = (cr + cg + cb) * a / (Math.hypot(ux, uy) || 1);
+          const ux = L.x - cx - .5, uy = L.y - (cy + .5) * ASPECT, hh = _sD || 1, w = sumc * a / hh;
           LDX[kk] += ux * w; LDY[kk] += uy * w;
+          if (rec) { _recI0[_rec0] = kk; _recA0[_rec0] = a; _recH0[_rec0++] = hh; }
         }
       }
-      if (solid && L.shadow && t > skip) { if (!inWin || s === 1) break; depth = 0; entry = shade(kk, cx, cy, s); }
+      if (solid && L.shadow && t > skip) { if (!inWin || s === 1) break; depth = 0; entry = lampShade(kk, cx, cy, s); }
     }
   }
 }

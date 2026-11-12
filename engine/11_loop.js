@@ -270,6 +270,7 @@ const Pixelite = {
   pause(on) { setPaused(on); },
   seed(n) { seedRandom(n); },   // the simulation's random numbers start from n: same seed + same inputs = same world
   get errors() { return ERRORS.slice(); },
+  cache: CACHE,   // the lamp cache and the still-frame reuse: switches and counters (engine/API.md, Performance)
   perf: PERF,   // stage timers in ms (engine/API.md, Performance): step, light, scene, gameDraw, hud, present, draw; mean(), reset(), sync, show
   run(game) {
     GAME = game;
