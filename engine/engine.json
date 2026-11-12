@@ -1,6 +1,6 @@
 {
   "name": "Pixelite",
-  "version": "0.17.1",
+  "version": "0.18.0",
   "shell": "shell.html",
   "parts": [
     "00_dev.js",

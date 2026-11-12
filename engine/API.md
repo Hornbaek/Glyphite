@@ -347,8 +347,10 @@ Lights are pushed each frame from `GAME.lights(t, out)`:
 out.push({ x, y, r: 60 * RES, c: [1, .9, .8], I: 1.5, shadow: true });                          // point light
 out.push({ x, y, r: 70 * RES, c: [.8, .9, 1], I: 2, shadow: true, dx, dy, cos: Math.cos(.5), skip: 3 * RES });   // cone
 ```
-`skip` keeps a light from being shadowed by its own body. `setSun(elevationDegrees, colour?)` (light from the
-left, 1..89°; `setSun(null)` for no sun: caves, indoors), `setAmbient([r, g, b])`. Emissive things: `splatLight(cx, cy,
+`skip` keeps a light from being shadowed by its own body. `setSun(angleDegrees, colour?)`: the sun's angle from the left horizon, so 1..89° is the sun in
+the left half of the sky (light travels right and down, shadows fall to the right), 91..179° the right half (a sun at 145° is the one at 35° seen from the other
+side: shadows fall to the left; 180 − angle is its height, so an atmosphere reddens both the same); 90° is taken as 89°, and the angle is kept in `SUN_EL`.
+A day is `setSun(180 * (hour - 6) / 12)` (see `setTimeOfDay`, Weather). `setSun(null)` is no sun: caves, indoors. `setAmbient([r, g, b])`. Emissive things: `splatLight(cx, cy,
 r, g, b, radiusBaseCells)`; materials with `glow`; heat. `lightAtCell(cx, cy, out)` reads the light at a cell.
 
 **The sun's colour.** `setSun(el, [r, g, b])` pins it. `setSun(el, { kelvin: 5772, intensity?: 1.15 })` sets the base colour
