@@ -144,7 +144,7 @@ function drawPauseMenu() {
   items.push({ label: 'SOUND', value: SETTINGS.mute ? 'OFF' : 'ON', onSelect: () => setSetting('mute', !SETTINGS.mute), onAdjust: () => setSetting('mute', !SETTINGS.mute) });
   if (Sfx.setVolumes) items.push({ label: 'MUSIC', value: Math.round(SETTINGS.music * 10) + '/10', onAdjust: d => setSetting('music', clamp(Math.round((SETTINGS.music + d * .1) * 10) / 10, 0, 1)) },
     { label: 'EFFECTS', value: Math.round(SETTINGS.sfx * 10) + '/10', onAdjust: d => setSetting('sfx', clamp(Math.round((SETTINGS.sfx + d * .1) * 10) / 10, 0, 1)) });
-  if (!(GAME.detail && GAME.detail.locked)) items.push({ label: 'DETAIL', value: detailLabel(), onSelect: () => stepDetail(RES >= DETAIL_LEVELS[DETAIL_LEVELS.length - 1] ? -4 : 1), onAdjust: d => stepDetail(d) });
+  if (levelsOf().length > 1) items.push({ label: 'DETAIL', value: detailLabel(), onSelect: () => stepDetail(RES >= DETAIL_LEVELS[DETAIL_LEVELS.length - 1] ? -4 : 1), onAdjust: d => stepDetail(d) });
   items.push({ label: 'REDUCED MOTION', value: SETTINGS.reducedMotion ? 'ON' : 'OFF', onSelect: () => setSetting('reducedMotion', !SETTINGS.reducedMotion) });
   if (Object.keys(ACTIONS).some(k => !k.startsWith('ui.'))) items.push({ label: 'CONTROLS', onSelect: () => { SHELL_SCREEN = 'controls'; } });
   for (const it of GAME.menu || []) items.push(it);

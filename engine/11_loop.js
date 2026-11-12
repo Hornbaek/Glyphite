@@ -155,6 +155,7 @@ function update(dt) {
   const q = performance.now();
   frameNo++; stateT += dt;
   stepActions(); stepCapture(); stepUi(); stepShell();
+  if (stepRewind()) { updateCamera(dt); return; }   // held rewind: this step puts the world back instead of playing
   if (chunks.length) stepPlatforms(dt);
   if (GAME.update) GAME.update(dt);
   if (STATES && STATES[state] && STATES[state].update) STATES[state].update(dt);
@@ -232,8 +233,11 @@ function frame(now) {
 
 // ---------- detail level: rebuilds the world with more (or fewer) characters per metre ----------
 let resizeNow = () => { };
+// The detail levels this game offers: all five, or the few it lists in Pixelite.run({ detail: { levels: [2] } }) (pixel art has one native size:
+// then the keys and button are gone, and tests and the "same at RES 1-3" rule only cover the declared levels).
+const levelsOf = () => (GAME.detail && GAME.detail.levels) || DETAIL_LEVELS;
 function setDetail(r, announce) {
-  if (!DETAIL_LEVELS.includes(r)) r = 2;
+  const lv = levelsOf(); if (!lv.includes(r)) r = lv.includes(2) ? 2 : lv[0];
   const was = RES;
   setResVars(r);
   particlesAlloc(Math.round((GAME.particles || 9000) * r));
@@ -245,8 +249,8 @@ function setDetail(r, announce) {
   if (announce) say(`DETAIL ${detailLabel()} - ${R.cols} x ${R.rows} PIXELS`);
 }
 function stepDetail(dir) {
-  const i = DETAIL_LEVELS.indexOf(RES), j = clamp(i + dir, 0, DETAIL_LEVELS.length - 1);
-  if (j !== i) setDetail(DETAIL_LEVELS[j], true);
+  const lv = levelsOf(), i = lv.indexOf(RES), j = clamp(i + dir, 0, lv.length - 1);
+  if (j !== i) setDetail(lv[j], true);
 }
 
 // built-in keys first (each can be switched off with GAME.keys), then the game's own
@@ -269,7 +273,7 @@ function boot(data) {
   resizeNow = () => { const r = stage.getBoundingClientRect(); if (r.width > 0 && r.height > 0) renderResize(r.width, r.height); };
   let saved = 0; try { saved = parseFloat(localStorage.getItem(storeKey('detail'))); } catch (e) { }
   const narrow = stage.getBoundingClientRect().width < 640, dd = GAME.detail || {};
-  const r0 = DETAIL_LEVELS.includes(data.detail) ? data.detail : DETAIL_LEVELS.includes(saved) ? saved : narrow ? (dd.narrow ?? 1.5) : (dd.default ?? 2);
+  const lv = levelsOf(), pick0 = narrow ? (dd.narrow ?? 1.5) : (dd.default ?? 2), r0 = lv.includes(data.detail) ? data.detail : lv.includes(saved) ? saved : lv.includes(pick0) ? pick0 : lv.includes(2) ? 2 : lv[0];
   setResVars(r0); particlesAlloc(Math.round((GAME.particles || 9000) * r0));
   resizeNow();
   const onResize = () => { resizeNow(); if (W) updateCamera(0, true); };
@@ -278,7 +282,8 @@ function boot(data) {
   const btn = document.getElementById('detailBtn');
   if (btn) {
     btn.textContent = `[ DETAIL ${detailLabel()} ]`;
-    btn.addEventListener('click', e => { e.stopPropagation(); const i = DETAIL_LEVELS.indexOf(RES); setDetail(DETAIL_LEVELS[(i + 1) % DETAIL_LEVELS.length], true); });
+    btn.hidden = lv.length < 2;
+    btn.addEventListener('click', e => { e.stopPropagation(); const l2 = levelsOf(), i = l2.indexOf(RES); setDetail(l2[(i + 1) % l2.length], true); });
   }
   if (GAME.init) GAME.init(data);
   updateCamera(0, true);
@@ -358,7 +363,7 @@ const Pixelite = {
     probe() {
       return { state, stateT: +stateT.toFixed(2), frame: frameNo, version: Pixelite.version, paused: isPaused(), errors: ERRORS.length, res: RES, renderer: R.mode, cols: R.cols, rows: R.rows,
         world: [W, H], cam: [+cam.x.toFixed(1), +cam.y.toFixed(1)], particles: P.n, chunks: chunks.length, perfMs: +perfAvg.toFixed(1), perf: PERF.avg(),
-        tune: { ...TUNE }, entities: entityCounts(), states: entityStates(), game: GAME.probe ? GAME.probe() : null };
+        tune: { ...TUNE }, levels: levelsOf(), entities: entityCounts(), states: entityStates(), game: GAME.probe ? GAME.probe() : null };
     }
   }
 };

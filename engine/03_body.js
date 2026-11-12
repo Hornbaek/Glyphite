@@ -84,7 +84,7 @@ class Body {
 // It also reads what it touches (materials' climbable, hazard, grip, conveyor and bouncy flags): `contacts` { under, left, right,
 // above, inside } are the materials around it (0 for none), `hazard` the largest damage per second of what it touches or is
 // inside (`hazardMat` which), `climbing` is true while it climbs (up / down while inside a climbable cell, jump to let go) and
-// `carry` the conveyor speed under its feet. On a moving platform (addPlatform) it is carried, by whole cells like the platform.
+// `carry` the conveyor speed under its feet; `step(dt, { rope })` hangs it from a Grapple's rope (`hanging` while taut). On a moving platform (addPlatform) it is carried, by whole cells like the platform.
 // Options are in hero.o (defaults below) and can be changed at any time.
 function charDefaults() {
   const S = RES;
@@ -116,7 +116,7 @@ class Character {
     this.onGround = false; this.ground = 0; this.wall = 0;
     this.coyoteT = 0; this.bufferT = 0; this.lockT = 0; this.dropT = 0; this.rising = false; this.held = false;
     this.jumped = this.wallJumped = this.bumped = this.crushed = false; this.landed = 0; this.bounced = 0;
-    this.climbing = false; this.carry = 0; this.hazard = 0; this.hazardMat = 0; this.platform = null;
+    this.climbing = false; this.hanging = false; this.carry = 0; this.hazard = 0; this.hazardMat = 0; this.platform = null;
     this.contacts = { under: 0, left: 0, right: 0, above: 0, inside: 0 };
     this._cb = [];
   }
@@ -181,11 +181,16 @@ class Character {
     cn.under = this.ground || 0; cn.left = this.solid(c0 - 1, mid); cn.right = this.solid(c1 + 1, mid); cn.above = this.solid(Math.floor(this.x), r0 - 1);
     cn.inside = getC(Math.floor(this.x), mid) || getBack(Math.floor(this.x), mid);
     let hz = 0, hm = 0;
-    const re = o.hazardReach, h0 = Math.floor(this.x - hw - re), h1 = Math.floor(this.x + hw + re), q0 = Math.floor((this.y - o.h - re) / ASPECT), q1 = Math.floor((this.y + re) / ASPECT);
-    for (let cy = q0; cy <= q1; cy++) for (let cx = h0; cx <= h1; cx++) {
-      const m = getC(cx, cy), inBox = cy >= r0 && cy <= r1 && cx >= c0 && cx <= c1;
-      if (MAT_HAZ[m] > hz) { hz = MAT_HAZ[m]; hm = m; }
-      if (inBox) { const b = getBack(cx, cy); if (MAT_HAZ[b] > hz) { hz = MAT_HAZ[b]; hm = b; } }
+    if (ANY_HAZ) {
+      const re = o.hazardReach, h0 = Math.max(0, Math.floor(this.x - hw - re)), h1 = Math.min(W - 1, Math.floor(this.x + hw + re)), q0 = Math.max(0, Math.floor((this.y - o.h - re) / ASPECT)), q1 = Math.min(H - 1, Math.floor((this.y + re) / ASPECT));
+      for (let cy = q0; cy <= q1; cy++) {
+        const row = cy * W, inRow = cy >= r0 && cy <= r1;
+        for (let cx = h0; cx <= h1; cx++) {
+          const m = cells[row + cx];
+          if (m && MAT_HAZ[m] > hz) { hz = MAT_HAZ[m]; hm = m; }
+          if (inRow && cx >= c0 && cx <= c1) { const b = backCells[row + cx]; if (b && MAT_HAZ[b] > hz) { hz = MAT_HAZ[b]; hm = b; } }
+        }
+      }
     }
     this.hazard = hz; this.hazardMat = hm;
     this.carry = this.onGround ? MAT_CONV[this.ground] * RES : 0;
@@ -251,6 +256,17 @@ class Character {
     }
     this.scanContacts();
   }
+  // hanging from a rope { x, y, len } (a Grapple's): beyond its length the character is pulled back onto the circle and loses the outward part of its
+  // velocity, so it swings; `hanging` is true while the rope is taut
+  hang(r) {
+    const o = this.o, cy = this.y - o.h * .6, rx = this.x - r.x, ry = cy - r.y, d = Math.hypot(rx, ry) || 1e-6;
+    this.hanging = d >= r.len - 1;
+    if (d > r.len) {
+      const nx = rx / d, ny = ry / d, vr = this.vx * nx + this.vy * ny;
+      if (vr > 0) { this.vx -= vr * nx; this.vy -= vr * ny; }
+      this.moveX(-nx * (d - r.len), false); this.moveY(-ny * (d - r.len));
+    }
+  }
   step(dt, inp = {}) {
     const o = this.o, gw = o.gravity || G, wasGround = this.onGround, dir = clamp(inp.x || 0, -1, 1), vdir = clamp((inp.down ? 1 : 0) - (inp.up ? 1 : 0), -1, 1);
     this.jumped = this.wallJumped = this.bumped = this.crushed = false; this.landed = 0; this.bounced = 0;
@@ -261,7 +277,7 @@ class Character {
     // carried by the moving platform it stood on (stepPlatforms moved that by whole cells this step); squeezed if that leaves no room
     const pl = this.platform; this.platform = null;
     if (pl && pl.kin && chunks.includes(pl)) { this.x += pl.dx; this.y += pl.dy; }
-    if (this.blocked(this.x, this.y) && !this.unstick(8)) this.crushed = true;
+    if ((pl || this._cb.length) && this.blocked(this.x, this.y) && !this.unstick(8)) this.crushed = true;   // only a platform or a falling chunk can have moved into it
     // the jump button: a press is remembered for `buffer` seconds, the ground for `coyote` seconds after leaving it
     const press = !!inp.jump && !this.held; this.held = !!inp.jump;
     this.bufferT = press ? o.buffer : Math.max(0, this.bufferT - dt);
@@ -270,7 +286,7 @@ class Character {
     if (inp.down && wasGround && MAT_ONEWAY[this.ground]) { this.dropT = .25; this.coyoteT = 0; }
     // climbing: grab a ladder or vine with up (or down, in the air), let go off the top, or with jump
     const onLadder = o.climb > 0 && this.climbCell();
-    if (!this.climbing && onLadder && this.dropT <= 0 && (inp.up || (inp.down && !wasGround && !MAT_ONEWAY[this.ground]))) { this.climbing = true; this.vy = 0; this.rising = false; }
+    if (!this.climbing && onLadder && this.dropT <= 0 && (inp.up || (inp.down && !wasGround && !MAT_ONEWAY[this.ground]))) { this.climbing = true; this.vy = 0; this.rising = false; this.bufferT = 0; }   // grabbing a ladder uses up the press (up and jump may be the same key)
     if (this.climbing && !onLadder) this.climbing = false;
     if (this.climbing) {
       if (this.bufferT > 0) {   // jump off the ladder, away from it if a direction is held
@@ -288,6 +304,7 @@ class Character {
     const target = this.lockT > 0 ? this.vx : dir * o.run;
     let rate = o.run / (target === 0 || (this.vx !== 0 && Math.sign(target) !== Math.sign(this.vx)) ? o.stopT : o.accelT);
     rate *= wasGround ? MAT_GRIP[this.ground] : o.air;
+    if (inp.rope && !wasGround && dir === 0) rate = 0;   // swinging on a rope with no input: nothing brakes it
     this.vx += clamp(target - this.vx, -rate * dt, rate * dt);
     if (dir) this.facing = dir > 0 ? 1 : -1;
     // jump from the ground (or just after leaving it), else off a wall
@@ -301,6 +318,7 @@ class Character {
     this.vy += g * (this.vy > 0 ? o.fallMul : 1) * dt;
     if (o.wallSlide > 0 && this.wall && dir === this.wall && this.vy > o.wallSlide) this.vy = o.wallSlide;
     if (this.vy > o.fallMax) this.vy = o.fallMax;
+    this.hanging = false; if (inp.rope) this.hang(inp.rope);
     // move: across (stepping up bumps, also when falling onto a ledge's corner), down stairs, then up or down
     this.moveX(this.vx * dt, (wasGround && !this.jumped) || this.vy >= 0);
     if (wasGround && !this.jumped && this.vy >= 0) this.snapDown();

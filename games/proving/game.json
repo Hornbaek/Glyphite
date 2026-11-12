@@ -1,0 +1,44 @@
+{
+  "id": "proving",
+  "title": "Proving Ground",
+  "tagline": "A test level: one station for every platformer feature of the engine",
+  "description": "Walk, jump (coyote time, jump buffer, variable height), climb ladders, drop through catwalks, slide on ice, ride conveyor belts and moving platforms, bounce on springs, avoid spikes, float in a low-gravity room, stomp or shoot patrolling slimes, dig through dirt, and blast a brick tower down. Every station is a feature of the Pixelite engine, and the level is checked with the engine's reach search.",
+  "order": 90,
+  "listed": false,
+  "status": "draft",
+  "parts": ["world.js", "play.js", "main.js"],
+  "engine": [],
+  "controls": [
+    ["A D / Left Right", "run"],
+    ["Space / W / Up", "jump (hold for height)"],
+    ["Up / Down", "climb a ladder, drop through a catwalk"],
+    ["J / X / tap", "throw a pebble"],
+    ["K / C", "throw a bomb (it blasts rock and bricks)"],
+    ["L / Z", "dig dirt in front of you"],
+    ["E", "grappling hook: shoots toward the mouse, or up and forward; again lets go"],
+    ["R (hold)", "rewind time (the last 8 seconds)"],
+    ["P / Esc", "pause, settings, rebind keys"],
+    ["Gamepad", "stick or d-pad, A jump, X pebble, B bomb, Y dig, RB hook, LB rewind"]
+  ],
+  "actions": {
+    "left": ["ArrowLeft", "KeyA", "pad:left", "touch:left"],
+    "right": ["ArrowRight", "KeyD", "pad:right", "touch:right"],
+    "up": ["ArrowUp", "KeyW", "pad:up", "touch:jump"],
+    "down": ["ArrowDown", "KeyS", "pad:down", "touch:down"],
+    "jump": ["Space", "ArrowUp", "KeyW", "pad:a", "touch:jump"],
+    "fire": ["KeyJ", "KeyX", "pad:x", "touch:fire"],
+    "bomb": ["KeyK", "KeyC", "pad:b", "touch:bomb"],
+    "dig": ["KeyL", "KeyZ", "pad:y", "touch:dig"],
+    "grapple": ["KeyE", "pad:rb"],
+    "rewind": ["KeyR", "pad:lb"]
+  },
+  "tunables": {
+    "gravity": { "label": "Gravity", "unit": "m/s²", "value": 9.8, "min": 2, "max": 25, "step": 0.1, "live": true, "help": "How hard everything falls. The low-gravity room halves it." },
+    "runSpeed": { "label": "Run speed", "unit": "base units/s", "value": 16, "min": 6, "max": 30, "step": 0.5, "live": true, "help": "Top speed of the hero on the ground (a base unit is half a metre)." },
+    "jumpHeight": { "label": "Jump height", "unit": "base units", "value": 14, "min": 6, "max": 24, "step": 0.5, "live": true, "help": "How high a full jump goes (hold the button; let go early for a short hop)." },
+    "coyote": { "label": "Coyote time", "unit": "s", "value": 0.1, "min": 0, "max": 0.3, "step": 0.01, "live": true, "help": "How long after running off a ledge a jump still counts." },
+    "buffer": { "label": "Jump buffer", "unit": "s", "value": 0.12, "min": 0, "max": 0.3, "step": 0.01, "live": true, "help": "How long before landing a jump press is remembered." },
+    "wallJump": { "label": "Wall jump", "unit": "0 / 1", "value": 0, "min": 0, "max": 1, "step": 1, "live": true, "help": "1: slide down walls and jump off them." }
+  },
+  "smoke": { "keys": ["ArrowRight", "Space", "KeyJ"] }
+}

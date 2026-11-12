@@ -53,6 +53,7 @@ const MAT_SHINY = new Float32Array(MAT_MAX), MAT_FRIC = new Float32Array(MAT_MAX
 const MAT_BRITTLE = new Uint8Array(MAT_MAX), MAT_ANCHOR = new Uint8Array(MAT_MAX), MAT_STYLE = new Uint8Array(MAT_MAX), MAT_SHADES = new Uint8Array(MAT_MAX);
 const MAT_DEBRIS = new Uint8Array(MAT_MAX), MAT_SUBL = new Float32Array(MAT_MAX), MAT_VAPOR = new Uint8Array(MAT_MAX);
 const MAT_FUSE = new Uint8Array(MAT_MAX), MAT_FUSEP = new Float32Array(MAT_MAX), MAT_EJECT = new Uint8Array(MAT_MAX), MAT_ONEWAY = new Uint8Array(MAT_MAX);
+let ANY_HAZ = 0;   // 1 once any material has a hazard: Character skips scanning for hazards until then
 const MAT_CLIMB = new Uint8Array(MAT_MAX), MAT_HAZ = new Float32Array(MAT_MAX), MAT_GRIP = new Float32Array(MAT_MAX).fill(1), MAT_CONV = new Float32Array(MAT_MAX), MAT_BOUNCY = new Float32Array(MAT_MAX);
 const STYLE = { terrain: 0, deck: 1, mast: 2, crystal: 3, flat: 4 };
 const MAT_DEFAULTS = {
@@ -107,7 +108,7 @@ function applyMaterial(m) {
   MAT_PAL[id] = m.palette ? m.palette.map(c => c.map(v => -Math.log(1 - Math.min(.97, v / 255)) / 1.7)) : null;
   MAT_GRAN[id] = m.granular ? 1 : 0; MAT_CREEP[id] = m.creep ? 1 : 0; MAT_TOUGH[id] = m.tough; MAT_SHINY[id] = m.shiny;
   MAT_FRIC[id] = m.friction; MAT_DENS[id] = m.density; MAT_BRITTLE[id] = m.brittle ? 1 : 0; MAT_ANCHOR[id] = m.anchor ? 1 : 0; MAT_ONEWAY[id] = m.oneWay ? 1 : 0;
-  MAT_CLIMB[id] = m.climbable ? 1 : 0; MAT_HAZ[id] = m.hazard || 0; MAT_GRIP[id] = m.grip ?? 1; MAT_CONV[id] = m.conveyor || 0; MAT_BOUNCY[id] = m.bouncy || 0;
+  MAT_CLIMB[id] = m.climbable ? 1 : 0; MAT_HAZ[id] = m.hazard || 0; if (m.hazard) ANY_HAZ = 1; MAT_GRIP[id] = m.grip ?? 1; MAT_CONV[id] = m.conveyor || 0; MAT_BOUNCY[id] = m.bouncy || 0;
   MAT_STYLE[id] = STYLE[m.style]; MAT_DEBRIS[id] = m.debris ? 1 : 0; MAT_SUBL[id] = m.sublimate; MAT_VAPOR[id] = m.vaporize ? 1 : 0;
   MAT_FUSE[id] = m.fuseTo; MAT_FUSEP[id] = m.fuseChance; MAT_EJECT[id] = m.ejecta || (m.granular ? id : 0);
 }

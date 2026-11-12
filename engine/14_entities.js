@@ -107,7 +107,7 @@ function markEntitiesDyn() {
   let top = 1e9;
   for (const e of entities) {
     if (e.dead || e.asleep || !entityOnScreen(e)) continue;
-    const spr = e.def.draw ? null : entitySprite(e); if (!spr) continue;
+    const spr = entitySprite(e); if (!spr) continue;   // an entity with a sprite or anim casts a shadow even if it draws itself
     top = Math.min(top, markSpriteDyn(spr, e.x, e.def.anchor === 'feet' ? e.y : e.y - e.h / 2, 0, entityDrawOpts(e)));
   }
   return top;

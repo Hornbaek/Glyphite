@@ -13,7 +13,7 @@ from playwright import async_api, sync_api
 for mod in (async_api, sync_api):
     orig = mod.BrowserType.launch
     def launch(self, *a, _orig=orig, **kw):
-        kw.setdefault('channel', channel)
+        if not kw.get('channel'): kw['channel'] = channel
         return _orig(self, *a, **kw)
     mod.BrowserType.launch = launch
 if len(sys.argv) < 2: sys.exit(__doc__)

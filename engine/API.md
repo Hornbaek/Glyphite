@@ -55,6 +55,12 @@ Pixelite.run({
   skyBegin(ox, oy, t) {}, sky(i, j, out) {},   // paint planets etc. on the sky layer (see Sky)
   onTune(key, value) {},  // a tunable changed live (the web editor)
   start() {},             // leave the title screen (tests call it; default: the Enter key)
+  shell: true,            // the engine's title screen, pause menu and controls screen (see The standard shell)
+  menu: [{ label: 'HELP', onSelect() {} }], restart() {}, quit() {},   // the pause menu's extra entries, RESTART and QUIT TO TITLE
+  detail: { levels: [2] },// offer only these detail levels (default: all five); no keys or button for one
+  cameraEase: 3.2,        // how fast the camera catches up (per second); setCamera() has its own
+  floatText: false,       // do not draw addText() labels (default: the engine draws them)
+  saveVersion: 1, migrate(oldVersion, data) {},   // Pixelite.save / load (see Settings and saves)
   levels: { play(i, tile) {}, check(i) { return {}; } },   // the web editor's LEVELS tab (see Levels in the web editor)
   snapshot() { return {}; },   // state to keep across a hot reload
   probe() { return {}; }       // small JSON summary of the game, for tests and AI sessions
@@ -62,19 +68,20 @@ Pixelite.run({
 ```
 
 **One step** (`update(dt)`, a global the frame loop calls up to 3 times per frame):
-`frameNo++`, `stateT += dt` → `GAME.update(dt)` → `Input.pressed` cleared → `stepWorld(dt)` (falling chunks,
-particles, sand, heat, effects) → camera.
+`frameNo++`, `stateT += dt` → actions read, HUD taps and menu keys handled, the shell's title start → moving platforms →
+`GAME.update(dt)` → the state's `update` → entities, timers and triggers → `Input.pressed` cleared → `stepWorld(dt)` (falling
+chunks, particles, sand, heat, effects) → camera.
 
-**One frame** (`draw(t)`): skyline → dynamic marks (chunks, then `GAME.markDyn`) → lighting (`GAME.lights` + effect
-lights) → scene (terrain, particles, chunks, then `GAME.draw`, then shock rings) → HUD (`GAME.hud`, then the toast) →
-present → `GAME.afterFrame`.
+**One frame** (`draw(t)`): skyline → dynamic marks (chunks, then `GAME.markDyn`) → lighting (`GAME.lights` + entities' lights +
+effect lights) → scene (terrain, particles, chunks, then props, entities, the state's `draw`, `GAME.draw`, then shock rings) →
+HUD (`GAME.hud`, the state's `hud`, floating texts, the shell, the message feed) → present → `GAME.afterFrame`.
 
 **State**: the globals `state` (string) and `stateT` (seconds in it). `setState('play')` switches and resets `stateT`.
 The engine knows three names: `'title'` shows the page's `#titleBar` buttons, `'paused'` stops time (P/Esc toggles
 `play` ⇄ `paused`), `'play'` is where the slow-frame hint can appear. Use any other names you like.
 
 Other runtime functions: `setDetail(res, announce)`, `stepDetail(±1)`, `updateCamera(dt, snap)` (call with
-`(0, true)` after teleporting), `say(text)` (a toast), `perfAvg` (smoothed ms per frame), `cam` (`{x, y}`, the view's
+`(0, true)` after teleporting), `say(text, { time, colour })` (a line in the message feed), `perfAvg` (smoothed ms per frame), `cam` (`{x, y}`, the view's
 top-left in units), `detailLabel()`.
 
 ## Tunables (`TUNE`)
@@ -110,8 +117,13 @@ Returns the id (1..255; `EMPTY = 0` is built in). Define materials at load time,
 | `brittle` | true | Chips apart on hard impacts (false: bends and bounces, like steel). |
 | `anchor` | false | Never falls; supports any structure touching it (bedrock, pad metal). |
 | `oneWay` | false | A `Character` lands on it from above, jumps up through it and drops down through it (catwalks, ledges). To everything else (sand, particles, light, chunks) it is solid. |
+| `climbable` | false | A `Character` climbs it (ladders, vines, ropes): not solid to a `Character`, and inside it up / down climb. Works in the world grid and in the back wall (`setBack`): a ladder painted on the wall behind a room. |
+| `hazard` | 0 | Damage per second to a `Character` touching it or inside it (spikes, lava, a live cable): `hero.hazard` / `hero.hazardMat`. |
+| `grip` | 1 | 0..1, how well a `Character`'s feet hold on it: scales its acceleration and braking (ice: `.08`). |
+| `conveyor` | 0 | Base units/s along the surface (negative = left): carries a `Character`, a `Body` and sand standing on it. |
+| `bouncy` | 0 | > 0: a `Character` landing on it is thrown back up at that share of its impact speed (at least `bounceMin`; holding jump adds a third); a `Body` bounces on it with that restitution (springs, rubber pads, trampolines). |
 | `style` | `'terrain'` | `'terrain'` (bright top edges, dark undersides), `'flat'` (no edges), `'deck'` (like terrain: a bright top), `'mast'` (girders: joints one shade brighter; buried parts look like the ground), `'crystal'` (twinkling facets with a colour `pulse`). |
-| `grainGlyphs` | `".,'`:"` | Codes of its flying grains (their brightness, see Cell codes); `debris: true` makes them heavier, bouncier debris. |
+| `grainGlyphs` / `grains` | `".,'`:"` | Codes of its flying grains (their brightness, see Cell codes); `debris: true` makes them heavier, bouncier debris. |
 | `sublimate` | 0 | Chance per exhaust-gas hit to turn into vapour. `vaporize: true`: blasts turn it into vapour. |
 | `fuseTo`, `fuseChance` | 0 | Blast rims sometimes turn it into another material (regolith → glass). |
 | `ejecta` | itself if granular, else the world's rubble | What a blast throws. |
@@ -206,6 +218,16 @@ Also: `hero.solid(cx, cy)` (is that cell solid to it), `hero.blocked(x, y)` (wou
 (push it out of whatever it overlaps, e.g. sand poured onto it). Enemies can walk on Characters too: give them `input.x` and
 turn them round at `hero.solid(ahead, row)`. See `games/spacemouse/` (the mouse and the cat-bots).
 
+### Character: what it touches, climbs and rides
+
+`hero.step(dt, { x, jump, down, up })`: `up` grabs a ladder (a `climbable` cell in the world grid or back wall in the middle of the box; `down` grabs one
+in the air); while `hero.climbing` up / down move it at `o.climb` units/s, left / right slowly, and it lets go with jump (a hop away from the ladder) or
+at the top or bottom. After a step: `hero.contacts` `{ under, left, right, above, inside }` (materials, 0 for none), `hero.hazard` (the worst `hazard`
+among the cells it overlaps or is within `o.hazardReach` units of, default .4) with `hero.hazardMat`, `hero.carry` (conveyor speed under the feet),
+`hero.bounced` (the bouncy material that threw it up), `hero.crushed` (a platform or chunk left it nowhere to stand), `hero.platform` (the moving
+platform it stands on). Ice (`grip`) slows its acceleration and braking, a conveyor carries it, a platform carries it by whole cells.
+Gravity zones (`addGravityZone`) change its fall; a jump's launch speed uses the world's gravity, so a jump in a low-gravity zone goes higher.
+
 ## Breakable structures
 
 After every `explode()` the engine checks support around the blast. Solid regions that lost their connection
@@ -219,6 +241,20 @@ and freeze back into the grid when they rest. `STRUCTURES = false` turns this of
 | `chunkVsBody(ch, body, onHit)` | From `GAME.chunkStep(ch)`: pushes your body out of the chunk. `onHit(v, hullPoint)` → return true to stop (body destroyed). |
 | `checkSupport(x, y, R, delay = 0)` | A structure lost its support without a blast (the game removed a bracket, a pillar, a pin): check around (x, y) within about R units now, or `delay` seconds from now; whatever no longer connects breaks off as chunks. |
 | `addMount(obj)` | Fix a game object to a cell (`obj.mount = y * W + x`) so it rides the chunk that cell breaks into. Handlers on `obj` (this = obj): `onRide(ch)`, `onMove(ch)`, `onImpact(ch, vb, x, y)`, `onLand(ch, placedCells)`, `onLost(ch)`. `obj.chunk` is the chunk while riding; set `obj.dead` to stop. See `games/regolith/lamps.js`. |
+
+### Moving platforms
+
+```js
+const lift = addPlatform({ x: 40, y: 80, cols: 12, rows: 2, mat: STEEL,          // top-left cell, size in cells, material (or grid: a Uint8Array)
+  path: [[40, 80], [40, 40]], speed: 14, mode: 'pingpong', wait: 1 });            // top-left cells to visit; units/s; seconds to wait at each
+lift.go(1)         // travel to path point 1 and stay (mode 'manual' starts like this)
+lift.pause(true);  lift.arrived;  removePlatform(lift)
+```
+A platform is a chunk that follows its path (`mode`: `'pingpong'`, `'loop'`, `'once'`, `'manual'`) instead of falling. It moves by whole cells, like
+pixel art, so a `Character` standing on it (carried by `dx`, `dy`) keeps its feet on a row boundary. Solid to a `Character`; drawn, lit and
+shadow-casting like any chunk; sand and particles pass through it. A blast that bites or shoves it turns it into an ordinary falling chunk. A `Character`
+squeezed between it and a wall gets `crushed`. A structure that loses its support and is too big to fall as a chunk (more than 2600 x RES² cells)
+sinks as a slab until it rests, instead of hanging in the air.
 
 ## Particles, blasts and effects
 
@@ -326,7 +362,70 @@ frames are simply several sprites from rows that differ (see `games/spacemouse/a
 costs nothing. `cache: true` for a still sprite (angle 0, no `shift`): its cells are worked out once per detail level and
 flip, then only lit each frame, so hundreds of trees and houses stay cheap (`games/fjordheim/main.js`).
 
-## Isometric maps
+### Sprite options and animation
+
+`drawSprite(spr, x, y, a, o)` also takes `o.tint` `[r, g, b]` (multipliers), `o.flash` 0..1 (mix toward white, unlit: a hit flash) and `o.palette`
+`[[r, g, b], ...]` (bytes; replaces the sprite's palette entry for entry: a team colour, a poisoned state). Animation:
+`defineAnim(sprites, { fps: 10, loop: true, tags: { run: [0, 5], jump: [6, 7] } })`, `animFrame(anim, t, tag)` → the sprite at t seconds,
+`drawAnim(anim, x, y, a, o)` (o.tag, o.t; default the simulation clock, so it stops in pause), `animFromAsset(PIPE_ART.hero, { order, tags })` makes one from
+an art pipeline asset that holds frames.
+
+## Entities and projectiles
+
+```js
+defineEntity('slime', {
+  size: [6, 4],                         // w, h in base units (x RES at spawn); x is the middle, y the feet
+  sprite: SLIME_SPR,                    // a sprite, or e => sprite; anchor: 'feet' | 'centre' (default 'centre'); anim: e => sprite
+  character: { run: 12, jump: 10 },     // optional: a Character (sizes in base units); set e.input = { x, jump, up, down } in update
+  props: { hp: 3 },                     // default fields (copied) of every one spawned
+  touches: ['player'],                  // types whose overlap calls onTouch(e, other) every step
+  always: true,                         // update off screen too (default: more than 2 screens away it sleeps; sleep: 3 changes that)
+  init(e) {}, update(e, dt) {}, draw(e, t) {}, lights(e, t, out) {}, onTouch(e, other) {}, onLeave(e) {}
+});
+const e = spawn('slime', x, y, { hp: 5 });      // e.dead = true removes it at the end of the step
+```
+The engine steps entities after the game's `update`, draws them (sprite, flipped when `e.facing < 0`, with `e.tint` / `e.flash` / `e.palette`) before the
+game's `draw`, marks them as shadow casters and collects their lights. `near(x, y, r, type?)` and `overlapping(e, type?)` use a uniform hash;
+`entities` is the list; `clearEntities()`; `entityCounts()` and `entityStates()` are in `probe()` (`entities`, `states`). `worldInit` clears them.
+Names of entity types are strings: `spawn('slim')` says "did you mean 'slime'".
+
+`fireProjectile({ x, y, vx, vy, gravity: 1, drag: 0, bounce: 0, maxBounces: 3, life: 4, color: [255, 220, 120], size: 1, light: { r, c, I }, hits: ['enemy'],
+owner, onStep(p, dt), onHit(p, hit) })` spawns a projectile (an entity of type `'projectile'`). It moves by rays, so it cannot pass through a one-cell wall;
+on a hit `onHit` runs (return `false` to keep flying), then it dies, or bounces off terrain `bounce` times when `bounce > 0`.
+
+**Timers and tweens** run on the step clock (pause stops them, replays repeat them): `after(2, fn)`, `every(.5, fn)` (both return `{ cancel() }`),
+`tween(obj, { x: 100 }, 1.5, 'inout', done)` (ease: `linear in out inout back bounce` or a function). **State machines**:
+`e.fsm = fsm({ idle: { enter(e), update(e, dt, f), exit(e), to: { chase: e => e.sees } }, chase: {...} }, 'idle')`, then `e.fsm.update(e, dt)`; `f.state`,
+`f.t`; the states of entities with an `fsm` are in `probe().states`. **The game's states**: `useStates({ title: { enter(prev), update(dt), hud(t), draw(t),
+exit(next) }, play: {...} })` makes `setState` call them. **Steering**: `seek(e, tx, ty, accel, dt, max)`, `flee(...)`, `wander(e, accel, dt)`.
+**Path finding**: `findTilePath(w, h, passable(i, j), si, sj, goal, { cost, max, diag })` (A*, eight ways, no corner cutting; goal `[i, j]` or `(i, j) => bool`)
+→ the tiles from the start (excluded) to the goal, or null.
+
+## World tools
+
+- `raycast(x0, y0, dx, dy, max, { entities: true | ['type'], ignore, through })` → `{ x, y, dist, nx, ny, cell, material, chunk, entity }` or null.
+- **Triggers**: `addTrigger({ x, y, w, h }, { onEnter(actor), onLeave(actor), who: ['type'] | fn, once })` (units; x, w in cells). Actors are entities and anything
+  given to `watchActor(obj)` (a `Character`: its box is x ± o.w/2, y − o.h .. y).
+- **Tile maps**: `loadTileMap(rows, legend, { tile: 4, margin: 0 })`: `legend` maps a character to `{ mat, back, prop (sprite), entity: 'name' | ['name', props],
+  spawn: 'tag', trigger: 'tag' }` (a bare number is `{ mat }`). A tile is `tile` base units × RES cells. It calls `worldInit`, fills the cells, spawns entities with
+  their feet at the middle of the tile's bottom, draws props (culled to the view), records spawn points and makes triggers (touching tiles with one tag are one
+  trigger). Returns `{ cols, rows, tc, w, h, spawns: { tag: [x, y] }, triggers: { tag: [t] }, on(tag, { onEnter, onLeave }), at(x, y) → character }`.
+- **Digging**: `carve(x, y, R, { power: 1, eject: true, heat: 0, support: true })` removes the solid cells within R units (tough ≥ 4 × power or indestructible stay),
+  throws grains, wakes the sand and checks that nothing floats; `fill(x, y, R, mat)`. No fire, shake or sound: that is `explode()`.
+- **Gravity**: `setGravity(mps2, sideways)` (sideways pulls bodies and particles); `addGravityZone({ x0, y0, x1, y1, scale: .5 | g: [gx, gy] m/s² })` changes it
+  inside a rectangle for bodies and characters; `gravityAt(x, y)` → `[gx, gy]` units/s²; `body.gs` scales one body's gravity; `clearGravityZones()`.
+- **Bodies touching bodies**: `bodyVsBody(a, b, onHit, { e: .2, reach: .9, push: [.6, .2] })` for a `Body` or a circle `{ x, y, vx, vy, w, m, r }`; set
+  `CHUNK_CONTACTS = true` to let falling chunks collide with each other.
+- **Where can a character get to?** `reachSearch({ x, y, opts, visit(c), bad(c), onStep(c), max })` explores the standing spots a `Character` with `opts`
+  can reach with its real controller (walks, jumps of three heights and lengths, steering, running jumps) → `{ spots, edges, count, ms }`; `navNearest(g, x, y)`,
+  `navPath(g, from, to)` (the edges to follow) and `navInput(edge, i)` (the inputs of step i) turn it into a navigation mesh for enemies or a bot; `jumpArc(x, y,
+  opts, { dir, hold, run })` → dots along a jump (for an editor overlay). The world must be set up as in the game.
+- **Detail levels**: a game with no `regenerate()` is resampled by `rescaleWorld(k)` when the detail changes (cells, back wall, heat, entities, props, triggers,
+  platforms, zones; falling chunks freeze first, particles are dropped).
+
+## Input and actions
+
+
 
 `engine/12_iso.js` (`"iso"` in game.json's `"engine"` list), for games seen from above at an angle (`games/fjordheim/`). The ground is a grid of `ni × nj` tiles
 drawn as 2:1 diamonds into the back wall (never solid, lit and shaded by the scene like any material); the world
@@ -368,8 +467,6 @@ across cells, 255 the background (a box's inside).
 `setBackground(r, g, b)` (bytes) sets the colour behind everything: empty space without sky, code-32 cells and the HUD's
 boxes. Default `[5, 7, 12]`, near black.
 
-## Input
-
 `keyDown('ArrowUp', 'KeyW')` (held now), `Input.pressed` (codes pressed since the last step, plus `'Tap'` for a
 click or tap as it goes down, `'TapUp'` for one let go where it began (a tap, not a drag) and `'TapAlt'` for a right click,
 which opens no browser menu), `Input.aim` (where the tap was, 0..1 of the canvas) and `Input.fireQueued`, `Input.held`
@@ -378,14 +475,86 @@ canvas: drag to pan, as Fjordheim does), `Input.pointer` (`'mouse'` or `'touch'`
 `'touch'` on a phone), `mouseAim()` (the cursor, 0..1 of the canvas, for 6 s after it moved; null before the
 mouse first moves over the canvas and once it leaves), `Input.mouseX`/`mouseY` with `Input.mouseSeen` (0 while the mouse
 is off the canvas: for a cursor that may rest, like edge scrolling), `Input.touch.<name>` (on-screen hold buttons from
-`GAME.touch`), `touchShown()`. Aim → world: `[cam.x + a[0] * R.cols, cam.y + a[1] * R.rows * ASPECT]`.
+`GAME.touch`), `touchShown()`. Aim → world: `[cam.x + a[0] * R.cols, cam.y + a[1] * R.rows * ASPECT]`. `Input.pointer` is also `'pad'` after a gamepad
+button; a second finger makes `Input.pinch` (change of the fingers' distance since the last step, as a share of the canvas width, positive = apart) and
+`Input.touches` counts fingers; a finger held still for .45 s adds `'TapHold'` to `Input.pressed`.
+
+**Actions** (keys, gamepad and touch under one name). In `game.json`: `"actions": { "left": ["ArrowLeft", "KeyA", "pad:left", "touch:left"], "jump": ["Space",
+"KeyW", "pad:a", "touch:jump"] }`; a token is a key code, `pad:<a b x y lb rb lt rt select start l3 r3 up down left right>` (`left right up down` are also the left
+stick, analog) or `touch:<name>`. In code: `action('jump')` (0..1), `actionPressed('jump')` (a press shorter than a step counts), `actionReleased('jump')`,
+`axis('left', 'right')` (-1..1), `actionLabel('jump')` (what to show: `SPACE`, or `PAD A` after a pad press). All are read once at the start of a step. A game with
+`left` and `right` actions and no `GAME.touch` gets touch buttons made from them. Menus and the title use `ui.up/down/left/right/ok`. Players rebind in the pause
+menu (CONTROLS); `bindAction(name, token)`, `resetActions()`.
+
+## Camera
+
+`setCamera({ follow, lead: .3, deadzone: [.2, .3], ease: 3.2, bounds: [x0, y0, x1, y1], rooms: { w, h }, offset: [0, -4] })`: `follow` is anything with x, y (a
+`Character`, an entity: its middle is aimed at, its `vx`, `vy` give the look-ahead) or `() => [x, y]`; `lead` seconds of its velocity to look ahead; `deadzone` the
+share of the view [w, h] it moves in before the camera follows (it is on the camera's real position, so a long fall does not leave it trailing); `rooms` jumps
+screen by screen (w, h in units; default the view); `bounds` the most the camera may show. `GAME.camera()` still overrides. `setCamera(null)` removes the rig.
+`cameraShake(n)` adds trauma to `FX.shake`.
+
+## HUD kit, messages and the standard shell
+
+On the HUD grid (`HC.*` colours): `hudButton(c, r, label, { onClick, id, disabled })` (a 3-row button: true on the frame after a click or tap; a tap on a button is
+not a tap on the world; `onClick` runs in the game's step), `hudPanel(c, r, w, h, title)`, `hudBar(c, r, w, value, max, col, label)`, `hudWrap(text, width)` → lines,
+`hudMenu(id, items, { title })` (`items: [{ label, value, onSelect(item), onAdjust(dir, item), disabled }]`: arrows / W S / d-pad move, Enter / Space / A / a tap choose,
+left / right adjust; returns the chosen index), `hudPointer()` → `[c, r]`, `hudTitle(c, r, text, col)` (big letters, 6 × 5 cells each).
+`say(text, { time, colour })` adds a line to the feed (up to four stack); `addText(x, y, text, colour, life)` labels are drawn by the engine, rising and fading.
+**The shell** (`shell: true` in `Pixelite.run`, or `{ title, pause, result }`): a title screen from `game.json` (title, tagline, controls, a blinking prompt) that starts
+the game on Enter / Space / tap / pad A (`GAME.start()`, else `setState('play')`), and a pause menu on P or Esc (RESUME, RESTART, SOUND, MUSIC and EFFECTS volume,
+DETAIL, REDUCED MOTION, CONTROLS, `GAME.menu` entries, FULL SCREEN, QUIT TO TITLE). `screenResult({ title, lines, prompt })` draws a result box for the game's own end
+state. Not done: a per-cell background colour on the HUD (boxes hide what is behind them instead).
+
+## Settings and saves
+
+`Pixelite.settings` `{ music, sfx, mute, bloom, reducedMotion, keys }` and `Pixelite.setSetting(key, value)` (kept in localStorage under the game's id; mute and bloom apply
+at once, volumes to `Sfx.setVolumes` when it exists). `Pixelite.save('slot', data)` / `load('slot')` (JSON under the game's id, with `GAME.saveVersion`; a different version
+loads through `GAME.migrate(oldVersion, data)` or as null), `Pixelite.saves()`, `Pixelite.erase(slot)`. `worldSave()` / `worldLoad(s)` keep a whole world as JSON (cells and
+back wall run-length packed, entities by their plain fields; at the same detail level; heat, particles and chunks are not kept).
+
 
 ## Sound
 
 `Sfx` (procedural, starts on the first input): `Sfx.engine(throttle 0..1)` (a looping thrust hum), `boom(power)`,
-`launch()`, `thud(v)`, `pickup()`, `alarm()`, `win()`, `tone(freq, dur, vol, type, delay)`, `burst(...)`, `heard(x, y)`, `toggle()`,
-`buzz(level 0..1)` (a looping mains hum for dying lamps and live wires: set it every frame, e.g. from `flickerAt()` times how
-near the lamp is).
+`launch()`, `thud(v)`, `pickup()`, `alarm()`, `win()`, `tone(freq, dur, vol, type, delay, at, slideTo)`, `burst(dur, f0, f1, vol, type, q, at)`,
+`heard(x, y)`, `place(x, y)`, `play(name, opts)`, `toggle()`, `buzz(level 0..1)` (a looping mains hum for dying lamps and live
+wires: set it every frame, e.g. from `flickerAt()` times how near the lamp is). `at` (the last argument of `tone`, `burst`, `boom`) is
+where the sound is heard from: `Sfx.heard(x, y)` or `Sfx.place(x, y)`, below.
+
+**Sounds as data, placed in the world.** `defineSound(name, recipe)` once (in `init`), then `Sfx.play(name, { x, y, pitch, vol })` from
+anywhere, with no x and y for a sound that is simply here. A recipe is `{ vol, spread, limit, gap, layers }`, or just the list of layers,
+or one layer; a layer is one of
+- `{ tone: Hz, dur, vol, type: 'square', slide: Hz to slide to, delay }`: an oscillator that fades out;
+- `{ burst: dur, from: Hz, to: Hz, vol, filter: 'lowpass', q, delay }`: filtered noise sweeping from one frequency to another;
+- `{ note: 72, instrument: 'bell', dur, vel, rate, release, vol, delay }`: one note of a Sampler instrument (`Sampler.note`), so a
+  sound effect can be a bell or a pluck; its instrument is made between frames when the sound is defined, and until it is that layer
+  is silent (the rest of the sound plays) rather than a stall.
+`vol` scales the whole sound, `spread: .05` detunes every play by up to 5% so repeats do not sound alike, `limit: 2` lets at most two of
+it sound at once, `gap: .1` keeps it from playing again within 0.1 s. `pitch` in `play` is a frequency multiplier (2 = an octave up).
+`Sfx.play` returns true when it played. `pickup`, `alarm`, `win` and `launch` are defined this way (so `Sfx.play('pickup')` works, and
+`defineSound('pickup', ...)` replaces the engine's); a misspelt name in the dev build says what you may have meant.
+```js
+defineSound('door', { vol: .8, spread: .08, gap: .1, layers: [{ burst: .25, from: 600, to: 120, vol: .4 }, { tone: 140, slide: 70, dur: .2, type: 'triangle', vol: .2 }] });
+defineSound('chime', { note: 84, instrument: 'bell', dur: .3 });
+Sfx.play('door', { x: door.x, y: door.y });                 // left of the camera: heard from the left, and quieter the farther it is
+```
+**Where a sound is.** `Sfx.place(x, y)` is `heard(x, y)` with a pan added: `{ delay, gain, muffle, m, pan }`. `pan` is -1..1 by how far left
+or right of the listener the sound is (a sound at the edge of the screen is 85% to that side); `gain` is `heard()`'s own with an
+atmosphere, and in a vacuum, where `heard()` says full volume everywhere, it still fades with distance (full beside the listener, half
+at 1.5 half-screens, a fifth at 4.5). `Sfx.play` uses it when you give `x`; your own `burst` / `tone` / `boom` calls can pass it as their
+last argument and get the pan too. (The engine's own blasts, `explode()`, still pass `heard()`: no pan yet.)
+
+**Voices.** At most `Sfx.maxVoices` (24) effect voices sound at once: a new one takes the place of the quietest, or is dropped when it
+is quieter than all of them, so a collapsing wall's hundred thuds cannot stack up as audio nodes. `Sfx.stats` counts `played`,
+`dropped` and `stolen`. Sounds too quiet to hear (below .003) make no nodes at all.
+
+**Volumes and mute.** Everything goes through two buses, effects and music (the Chip and the Sampler), into one master that is a
+constant .5 (headroom). `Sfx.setVolumes({ music, sfx })` sets either (0..1, 1 = as made) and returns `Sfx.getVolumes()`
+(`{ music, sfx, muted }`); `Sfx.setMuted(on)`, `toggle()` and the `Sfx.muted` field (assign it to mute at once) do the mute. They are
+kept in localStorage under the game's id (`storeKey('sound')`) and come back at the next visit; they also set `Pixelite.settings`
+(`music`, `sfx`, `mute`) and are saved there, which is what the pause menu and the M key change, so the two never disagree. Set them
+before the first input and they are applied when the sound starts.
 
 The Chip, the Sampler and the isometric ground are **optional engine parts** (see Performance, Smaller pages): a game names the ones it plays with in `game.json`'s `"engine"` list.
 
@@ -401,15 +570,28 @@ sends to the master's SNES echo (a delay fed back through its 8-tap FIR filter) 
 compressor. `song.snes` keeps only what the console had: 8 voices and the echo. Songs are plain data, made in the SOUND
 STUDIO (`/studio/`, which runs this same file) and kept in a game as `music/<id>.song.json`; `node tools/song.mjs <game>`
 writes them into the game's `songs.js` as `SONGS['<id>']`.
-- `Sampler.prepare(song)`: makes its instruments a few frames apart (~30-100 ms each); do it at load, so the music starts
-  smoothly. `Sampler.play(song, { from = 0, loop = true, fadeIn, onEnd })`: plays from tick `from` (`Sampler.PPQ` = 96 per
-  beat), looping the song's loop region (or the whole song); called before the first input, it starts with the sound.
+- `Sampler.prepare(songOrList, { first })`: makes a song's instruments (or a list: `['bell', { instrument: 'strings', rate: 16000 }]`)
+  in the browser's idle time, a few milliseconds at a time (`Sampler.build.sliceMs`), so no frame stalls; a promise, and `first` puts it
+  ahead of whatever else is waiting. Do it at load (`Music.preload()` does). `Sampler.ready(songOrList)` says whether it is all made.
+  (A drum kit used to be one 130 ms stall; the longest stretch is now a few ms, `Sampler.build` has the numbers: `slices`,
+  `longest`, `work`.) `Sampler.play(song, { from = 0, loop = true, fadeIn, onEnd, crossfade, wait, layers })`: plays from tick `from`
+  (`Sampler.PPQ` = 96 per beat), looping the song's loop region (or the whole song); called before the first input, it starts with the
+  sound. A plain `play` makes any instrument that is missing on the spot (the old stall); with `wait: true` it waits for them between
+  frames and starts when they are, the song playing now going on until then. `crossfade: 1.5` lets the song playing now fade out over
+  that many seconds, in a deck of its own, while this one (give it a `fadeIn` too) fades in. `layers: { 'Drums': 0 }` (or a function of
+  the song) starts the song with those tracks already out.
 - `Sampler.stop(fade)`, `Sampler.setVolume(v)` (`Sampler.vol`), `Sampler.playing`, `Sampler.position()` (the tick heard now).
 - `Sampler.track(nameOrIndex, { volume, fade })`: brings a track in or out, for music that follows the game (drums when the
   danger starts, a melody in the safe room).
 - `Sampler.meter()`: `{ beat, drum, tracks: [level 0..1] }`; `Beat` follows the Sampler's song when one plays (kick and
   snare hits fire `Beat.v`), else the Chip's.
 - Live notes (a MIDI keyboard): `Sampler.noteOn(track, note, vel)` returns a voice for `noteOff(voice)`, `bend(voice, semis)`.
+- `Sampler.note(instrument, note, { vel, dur, rate, pitch, gain, pan, delay, release, dest })`: one note of a built-in instrument on its
+  own, with no song or mixer, into `dest` (default: the Sampler's output); returns the voice (`cut(at)` stops it) or null. It is what a
+  `{ note }` layer of a sound plays. Make the instrument first (`prepare([id])`) or the first call makes it on the spot.
+- **Decks.** `Sampler.deck()` is another player on the same output (null before the first input): its own song, mixer and volume,
+  for something that plays over the music; `deck.dispose()` when it is done. `Sampler.duck(level, { fade })` turns a deck's output down
+  (and back up with 1) apart from `setVolume`. `Music.stinger` uses both.
 - `Sampler.render(song, { from, seconds, sampleRate, loop })` → an `AudioBuffer`, rendered offline (exports, tests).
 - `Sampler.check(song)` fills in a song's defaults and keeps only valid notes (`[tick, length, note, velocity]`).
 - **A song's own samples** (loaded in the studio): `song.samples[id] = { name, rate, root, loop, brr }`: real SNES BRR bytes in
@@ -423,8 +605,8 @@ writes them into the game's `songs.js` as `SONGS['<id>']`.
   (`instrument: 'multi:<id>'`): a note plays the zone whose notes (`lo`..`hi`, MIDI) hold it (the nearest zone when none does), pitched
   from that sample's own `root`; each zone is made as loud as the others. Only in the song when there is one.
 - **Where it plays:** `song.places = { title, levels: [level indices], note }`, set in the studio's WHERE IT PLAYS.
-  `tools/song.mjs` collects them into `SONG_AT` beside `SONGS` (`SONG_AT.title`, `SONG_AT.levels[i]`, `SONG_AT.other`): play
-  `SONG_AT.levels[level]` when a level starts (Space Mouse: `stationMusic()` in `main.js`).
+  `tools/song.mjs` collects them into `SONG_AT` beside `SONGS` (`SONG_AT.title`, `SONG_AT.levels[i]`, `SONG_AT.other`): the music
+  director plays them (`Music.place(...)` below; Space Mouse calls it every frame in `afterFrame`).
 - **Automation:** `track.auto = { volume, pan, filter }`, each a list of `[tick, value]` points (volume 0..1 on top of the fader,
   pan -1..1 in place of the track's own, filter 0..1 = 40 Hz..16 kHz, which turns a track's filter on as a low-pass): straight
   lines between points, level before the first and after the last. A third number on a point bends the segment that arrives at it
@@ -439,10 +621,30 @@ writes them into the game's `songs.js` as `SONGS['<id>']`.
 - **Glide:** `track.sound.glide` (seconds, 0 = off): the track plays one note at a time, and a note that starts while the last
   is still held slides to its pitch from that one (a lead line).
 - `Sampler.force(song | null)`: play this song and nothing else (the game's own `play` calls and the Chip keep quiet) until
-  `force(null)`. A page embedding the game sends `{ type: 'pixelite:music', song }` for it: the studio's preview.
+  `force(null)`, which also lets the music director play the song the game last asked for. A page embedding the game sends
+  `{ type: 'pixelite:music', song }` for it: the studio's preview.
 
-**Sound through air.** In a vacuum (`setAtmosphere(0)`, the default) every sound is heard at once at full volume, as if felt
-through the ground, exactly as before. With an atmosphere, `Sfx.heard(x, y)` says how a sound at that point (body
+**The music director.** `Music` plays the song for where the game is, crossfades between songs, brings tracks in and out as the mood
+changes, and plays stingers over the music. It works on the game's `SONGS` and `SONG_AT` (written by `tools/song.mjs`) and on the
+Sampler's own deck, so `Beat`, `Sampler.meter()`, `Sampler.track` and the studio's preview work as before. They are plain calls: a
+hook, a state change or a trigger can make them. (A game that plays MIDI through the Chip, Regolith, keeps its own director; the
+name `Music` belongs to the engine, so that one is `RegolithMusic`.)
+- `Music.preload(ids?)`: makes the instruments of the songs (default: every song) between frames; call it in `init`. A song whose
+  instruments are not made when it is asked for starts when they are, never stalling a frame.
+- `Music.place('title')`, `Music.place(levelIndex)`, `Music.place('<id>')`: the song `SONG_AT` names for that place (a level with no song
+  of its own gets the title's; `'<id>'` is a song placed only by a note, `SONG_AT.other`). Asking again for the place it is in does
+  nothing, so it can be called every frame. `Music.songAt(where)` says which song that is.
+- `Music.play(id, { fade = 1.5, from, loop, restart })`: this song, the one playing fading out over `fade` seconds as it fades in.
+  `Music.stop({ fade })`. `Music.current` is the song asked for. `Music.define(id, song)` adds a song of your own beside `SONGS`.
+- `Music.layer(name, on, { volume, fade = .5 })`: brings the track called `name` in or out (`Music.layers({ danger: ['Drums', 'Bass'] })
+  names a layer of several). Only a change does anything, and the level carries over to the next song: drums that are out stay out
+  when the level changes. Write each track so it is harmonically complete alone.
+- `Music.stinger(id, { duck = .35, fade = .15, volume })`: a song of one pass (a fanfare, a death) on a second deck over the music, which
+  ducks while it plays and comes back up after. Preload it (`Music.preload([id])`) so it is ready when the event happens.
+- While the studio previews a song in the game (`Sampler.force`) the director keeps quiet, and takes over again when it ends.
+
+**Sound through air.** In a vacuum (`setAtmosphere(0)`, the default) `Sfx.heard` says every sound is heard at once at full volume, as
+if felt through the ground, exactly as before. With an atmosphere, `Sfx.heard(x, y)` says how a sound at that point (body
 coordinates) reaches the listener: `{ delay: distance / 343 m/s in seconds, gain, muffle, m: metres }`, quieter and duller
 (a lower filter) the farther it is. `explode()` already uses it, so a blast is a flash and then, after the delay, the boom;
 a far one (over 100 m) adds a long low rumble, thunder. Your own one-shots can pass it as the last argument:
@@ -457,6 +659,24 @@ centre unless the game gives a `listener: () => [x, y] | null` hook (Regolith: t
 - `setBeatPulse(strength 0..1)` (0 = off, the default) turns the pulse on: it scales every material's `beatGlow` (the
   material flashes in its own colour and its light grows) and swells the bloom (lower threshold, more gain).
   `Beat.pulse()` returns the scaled value for the game's own lights, e.g. `I: .9 * (1 + .8 * Beat.pulse())`.
+
+## Ropes, a grappling hook, ghosts and rewind
+
+- `drawLine(x0, y0, x1, y1, r, g, b)`: the cells between two world points, in light units (like `putEmit`).
+- **Ropes** (`engine/18_toys.js`): `const rope = new Rope(ax, ay, bx, by, 14, { slack: .05, pinA: true, pinB: true, maxTension: 2.5, collide: true, gravity: 1, onSnap(i) {} })`;
+  `rope.a` / `rope.b` (a point, `() => [x, y]` or an object with x, y) are what the pinned ends follow; `rope.step(dt)` every step, `rope.draw(r, g, b)` in `GAME.draw`, `rope.cut(i)`.
+  Verlet point masses with distance constraints; they collide with the grid (not chunks). A link stretched past `maxTension` times its length snaps (`rope.snapped`).
+  For rope bridges, chains, tow cables, pendulums.
+- **Grappling hook**: `const hook = new Grapple(hero, { range, rip, reel })`; `hook.fire(dx, dy)` → true if it caught a solid cell; pass `hook.rope` to `hero.step(dt, { rope: hook.rope })`
+  while attached: beyond its length the character is pulled back onto the circle and loses the outward velocity, so it swings (`hero.hanging` while taut; left / right pump the
+  swing, nothing brakes it); `hook.reel(-1 | 1, dt)`, `hook.release()`, `hook.update()` every step before the character's (lets go when the anchor cell is gone; with `rip: n` a
+  material tougher than 0 but weaker than n is torn out of the wall by a hard pull), `hook.draw()`.
+- **Ghosts and echoes**: `const rec = new GhostRecorder(hero)`, `rec.step(tag)` every step, `rec.frames`; `spawnGhost(rec.frames, { anim: e => sprite, tint, loop, onEnd })` replays them as an
+  entity (a ghost racer: keep the frames with `Pixelite.save`); `spawnEcho(hero, 10, { anim, tint, touches: ['hero'], onTouch })` plays your own path 10 seconds behind you (call `echo.rec.step()` every step).
+- **Rewind**: `Rewind.start({ seconds: 10, every: 6, action: 'rewind' })` keeps a snapshot of the world every 6 steps (cells, back wall, entities with their plain fields and
+  `Character`s, moving platforms, falling chunks); while the action is held (or `Rewind.hold(true)`) each step puts back one snapshot, about six game seconds per second, then play goes
+  on from there (`Rewind.rewinding`). It copies the grid whole (350 KB for a 900 x 200 world), not as changes. Heat, particles, timers and the game's own variables are not kept: put them in entity
+  fields or in `Rewind.keep = { save() → state, load(state) }`. `Rewind.stop()`.
 
 ## Levels in the web editor
 
@@ -516,7 +736,10 @@ presses made while paused are dropped, not saved up for the first step after res
 one line on the HUD for a player; `Pixelite.errors` lists them and `probe().errors` counts them. With `?dev` (or in the editor) the engine
 also warns, with the nearest valid name, about an unknown option to `defineMaterial`, `new Character` or `Pixelite.run`, and about a NaN in a
 body, a character, a particle or a light. The build refuses a game that repeats a key in its `Pixelite.run({...})` hooks or has an unknown
-`game.json` key (`tools/authorcheck.mjs`), and warns about `Math.random` in game code.
+`game.json` key (`tools/authorcheck.mjs`), and warns about `Math.random` in game code, about a call to an engine function with more arguments than it takes
+and about a call to an undefined name one or two letters from an engine function (`tools/apicheck.mjs`, which also writes `engine/api.json`, every top-level
+name of the engine with its kind and parameters: run `node tools/apicheck.mjs --write` after changing the engine; a unit test fails if it is stale or if a new
+name is neither in this file nor listed in `engine/internal.json`).
 
 `tests/smoke.py <id>` uses exactly this for any game. URL hash `#2d` / `#gl` forces a renderer.
 

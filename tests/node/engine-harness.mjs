@@ -2,7 +2,9 @@
 //   const E = loadEngine();           // E.run('expr') evaluates in the engine's own scope (all parts share one script scope)
 //   E.run('worldInit(64, 64)')
 // The shim is only enough for the parts to load; nothing here draws.
-import { readFileSync } from 'node:fs';
+// Options: audio (from audio-mock.mjs: a recording Web Audio, so Sfx / Sampler / Music run), storage (a Map standing in for localStorage),
+// now (a function for performance.now; default: stands still at 0), game (see below), tune (tunable overrides for a game).
+import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
@@ -10,16 +12,19 @@ import { enginePartsFor } from '../../tools/assemble.mjs';
 import { minifyScript } from '../../tools/minify.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-//   loadEngine({ engine: [] })        // as a game whose game.json says "engine": [] gets it: the optional parts replaced by their stand-ins
-//   loadEngine({ minify: true })      // every part through tools/minify.mjs first
-export function loadEngine({ gameCode = '', version = 'test', engine, minify = false } = {}) {
+// opts.game: a game id (games/<id> or templates/<id>): its parts are loaded after the engine with Pixelite.run replaced by a recorder, so the
+// game's functions and globals can be called without a page (E.run('newLevel()')); E.hooks is the object the game passed to Pixelite.run.
+// opts.engine: as a game whose game.json says "engine": [] gets it: the optional parts replaced by their stand-ins (default: all of them);
+// opts.minify: every engine part through tools/minify.mjs first.
+export function loadEngine({ gameCode = '', version = 'test', game = '', tune = {}, audio = null, storage = null, now = null, engine, minify = false } = {}) {
   const manifest = JSON.parse(readFileSync(join(ROOT, 'engine/engine.json'), 'utf8'));
   const noop = () => { };
   const el = () => new Proxy(function () { }, { get: (t, k) => k === 'style' ? {} : k === 'classList' ? { add: noop, remove: noop } : k === 'getBoundingClientRect' ? () => ({ width: 640, height: 400, left: 0, top: 0 }) : k === 'getContext' ? () => null : noop, set: () => true, apply: () => el() });
-  const win = { matchMedia: () => ({ matches: false }), addEventListener: noop, removeEventListener: noop, parent: null, location: { search: '' }, requestAnimationFrame: noop, AudioContext: undefined, claude: undefined };
+  const win = { matchMedia: () => ({ matches: false }), addEventListener: noop, removeEventListener: noop, parent: null, location: { search: '' }, requestAnimationFrame: noop, AudioContext: audio ? audio.AudioContext : undefined, claude: undefined };
   win.parent = win;
   const doc = { getElementById: () => el(), querySelector: () => null, createElement: () => el(), addEventListener: noop, body: el(), hidden: false, documentElement: el() };
-  const ctx = vm.createContext({ window: win, document: doc, location: win.location, navigator: {}, performance: { now: () => 0 }, console, localStorage: { getItem: () => null, setItem: noop },
+  const ctx = vm.createContext({ window: win, document: doc, location: win.location, navigator: {}, performance: { now: now || (() => 0) }, console, setInterval: () => 0, clearInterval: noop, AudioBuffer: audio ? audio.AudioBuffer : undefined,
+    localStorage: storage ? { getItem: k => storage.has(k) ? storage.get(k) : null, setItem: (k, v) => storage.set(k, String(v)), removeItem: k => storage.delete(k) } : { getItem: () => null, setItem: noop },
     matchMedia: win.matchMedia, requestAnimationFrame: noop, setTimeout, clearTimeout, ResizeObserver: undefined, Float32Array, Uint8Array, Int32Array, Uint32Array, Uint8ClampedArray, Math, structuredClone, Set, Map });
   win.window = win;
   let code = `const ENGINE_VERSION = ${JSON.stringify(version)};\nconst GAME_MANIFEST = { id: 'harness', title: 'harness', tunables: {} };\n`;
@@ -28,5 +33,15 @@ export function loadEngine({ gameCode = '', version = 'test', engine, minify = f
   for (const p of enginePartsFor({ parts: manifest.parts.map(name => ({ name, code: read(name) })), optional: manifest.optional, stubs }, { engine })) code += `\n// ----- engine/${p.name} -----\n` + (minify ? minifyScript(p.code) : p.code) + '\n';
   code += '\n' + gameCode + '\n;globalThis.__eval = s => eval(s);';
   vm.runInContext(code, ctx, { filename: 'engine' });
-  return { run: expr => ctx.__eval(expr), ctx };
+  const E = { run: expr => ctx.__eval(expr), ctx, hooks: null };
+  if (game) {
+    const dir = ['games', 'templates'].map(d => join(ROOT, d, game)).find(d => existsSync(join(d, 'game.json')));
+    const m = JSON.parse(readFileSync(join(dir, 'game.json'), 'utf8'));
+    ctx.__rec = h => { E.hooks = h; };
+    const tun = { ...Object.fromEntries(Object.entries(m.tunables || {}).map(([k, v]) => [k, v.value])), ...tune };
+    vm.runInContext(`Pixelite.run = __rec; for (const k in TUNE) delete TUNE[k]; Object.assign(TUNE, ${JSON.stringify(tun)}); Object.assign(GAME_MANIFEST, { actions: ${JSON.stringify(m.actions || {})} }); loadActions(GAME_MANIFEST);`, ctx);
+    let gcode = ''; for (const p of m.parts) gcode += `\n// ----- games/${game}/${p} -----\n` + readFileSync(join(dir, p), 'utf8').replace(/\r\n/g, '\n') + '\n';
+    vm.runInContext(gcode, ctx, { filename: 'game' });
+  }
+  return E;
 }

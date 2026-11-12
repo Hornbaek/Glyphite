@@ -47,9 +47,14 @@ Done: the engine's 16-bit Sampler, the studio at /studio/, songs saved on the si
   pan that move are lanes, a tempo ramp is a ramp, a file with several instruments asks which to open, and a song's own samples
   travel inside the file (a pad or a marimba to other programs). Next: the filter, the sends and the echo as CC events (74, 91, 93), time
   signature changes.
-- **Making instruments off the main thread** (a Worker): a game's first song costs ~0.3 s of blocked frames on its title.
-- **Music that follows the game**: a director helper over `Sampler.track` (layers by state), and songs for Regolith and
-  Fjordheim (Regolith's MIDI can now be turned into Sampler songs to re-voice: `node tools/midi.mjs import games/regolith/music/<name>.mid`).
+- ~~**Making instruments off the main thread**~~ (HISTORY 54, plan F4): built in slices between frames, the longest stretch 133 ms -> 6 ms.
+  Next, if it ever matters: the reverb impulse (`reverbIR`, a few ms when a context first plays a song) could be made in the same queue.
+- ~~**Music that follows the game**~~ (HISTORY 54, plan F1 and F3): `Music` (place, play with a crossfade, layers, stingers) and
+  `defineSound` / `Sfx.play` with pan, distance and a voice cap, effects and music volumes kept per game. Next: songs for Regolith
+  and Fjordheim (Regolith's MIDI can now be turned into Sampler songs to re-voice: `node tools/midi.mjs import games/regolith/music/<name>.mid`,
+  and then its `RegolithMusic` can go), `explode()` and the structure thuds placed with `Sfx.place` (they pass `heard()`, so no pan yet),
+  a Chip song as a `Music` source, musical transitions (wait for the bar line before a crossfade), a music change inside a level by
+  trigger (D8: `Music.layer` / `Music.play` are plain calls a trigger can make).
 
 ## Art pipeline (HISTORY 41; docs/ART_PIPELINE.md)
 
@@ -68,6 +73,19 @@ From the owner's brainstorm: generate art through an image API, snap it to the g
 6. Optional: approve / iterate / reject buttons on the site (D1 table, modelled on `worker/songs.js`).
 Later: the animation asset exists (HISTORY 49); next is a game using one (Pip's own frames) (the legs are solved by drawing characters at twice the size: HISTORY 50), moving Space Mouse's other art (Pip, cat-bots, objects) into the pipeline, the stray one-pixel
 column on the lockers' right edge (a cut artefact the gallery will make visible).
+
+## The engine plan (docs/ENGINE_PLAN.md, HISTORY 53-55): what is done, what is open
+
+Done on `feature/a-foundations`: **A1-A8** (Windows build, one version, pause as a flag, author checks, errors shown, structures, fast bodies), **B1-B4** (seeded random,
+simulation clock, record and replay, the Node engine test bench), **C1-C10** (detail levels a game chooses, resampling a world, entities, animation, actions with gamepad and
+touch, camera rigs, HUD kit, messages, the shell, settings and saves), **D1, D3-D10** (material flags, moving platforms, bodies, gravity, carve and fill, rays and projectiles,
+tile maps and triggers, path finding, timers and state machines), **F1, F3, F4** (sound as data, a music director, instruments off the main thread), **G2** (07 split).
+Open, in the plan's order: **D2** liquids (a pool, swimming, water + lava, flammables, heat conduction: the next station for the Proving Ground), **E1** the sun from either
+side, **E3** emissive sprite pixels, **E5** layers in front and far behind, **E4** per-light back-wall shadows, **E6** a screen palette and post effects, **E7** zoom, **E8**
+weather and time of day, **C11** the generated `api.json` and a lint of game code against it, **C12** starters per genre (the Proving Ground is the platformer one), **B5** golden
+screenshots and budgets in CI, **F2** key remapping is in the shell (the colour-blind HUD set and hold-to-toggle are not), **G1** the roadmap as "open work only". The speed
+packages (P1-P6, E2) are on the branch `worktree-agent-ac4b8929a6f13b2d3` until merged. Ideas from the bank that the toolkit now makes small: ropes and a grapple (verlet
+ropes are not built), a boss as a breakable structure with mounts, time rewind from grid deltas, an echo enemy (replay of the player's inputs), ghost racers (the replay exists).
 
 ## Principles to keep
 
@@ -217,6 +235,6 @@ Each new game should need no engine edits. Every engine edit it forces goes on t
 - **The lander sprite at RES 1** has about 13×7 cells, too coarse to show detail.
 - **The legacy tests** `test.py` to `test13.py` were written against earlier versions (the old
   lander shape, the pause overlay). They may need updating before use as regressions.
-- **Music:** more pieces and per-site themes. The music director could crossfade.
+- **Music:** more pieces and per-site themes. (The engine's music director crossfades now: HISTORY 54.)
 - **Gameplay:** fuel pickups, more pad types, a campaign or score table, and a lander damage model
   where one leg breaks and the lander tips instead of crashing.

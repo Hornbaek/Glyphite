@@ -240,22 +240,22 @@ function stepChunkContacts() {
 // ---------- where can a character get to? ----------
 // reachSearch({ x, y, opts, visit(c), bad(c), onStep(c), max }) explores the standing spots a Character with these options can
 // reach from (x, y), with its real controller (walking, jumps of three heights and lengths, steering in the air, running jumps), as
-// Space Mouse's level check did, and returns { spots: [{ x, y, id }], edges: [{ a, b, dir, dir2, sw, hold, n, v0 }], count, ms }.
-// visit(c) is called every step of every try (collect pickups, note the goal); bad(c) → true ends a try that died (a hazard, a pit);
+// Space Mouse's level check did (and, if opts.climb, up a ladder: walk to it and hold up), and returns { spots: [{ x, y, id }], edges: [{ a, b, dir, dir2, sw, hold, n, v0, up }], count, ms }.
+// `grid` (units, default 2) is how finely standing spots are told apart. visit(c) is called every step of every try (collect pickups, note the goal); bad(c) → true ends a try that died (a hazard, a pit);
 // onStep(c) runs before each step (zones, tunables). The graph is also a navigation mesh: navPath(graph, from, to) →
 // the edges to follow, navNearest(graph, x, y) → the closest spot. Characters need the world to be set up as in the game.
-function reachSearch({ x, y, opts = {}, visit, bad, onStep, max = 40000 }) {
+function reachSearch({ x, y, opts = {}, visit, bad, onStep, max = 40000, grid = 2 }) {
   const seen = new Map(), spots = [], edges = [], queue = [];
-  const key = (cx, cy) => Math.round(cx / 2) + ',' + Math.round(cy / 2);   // states on a 2-unit grid
+  const key = (cx, cy) => Math.round(cx / grid) + ',' + Math.round(cy / grid);   // states on a `grid`-unit grid (2 by default: a coarser one is faster and may miss narrow ledges)
   const add = (c, from, e) => { const k = key(c.x, c.y); if (seen.has(k)) { if (from !== undefined) edges.push({ ...e, a: from, b: seen.get(k) }); return; } const id = spots.length; seen.set(k, id); spots.push({ x: c.x, y: c.y, id }); queue.push(id); if (from !== undefined) edges.push({ ...e, a: from, b: id }); };
-  const sim = (id, dir, dir2, sw, hold, n, v0 = 0) => {
+  const sim = (id, dir, dir2, sw, hold, n, v0 = 0, up = false) => {
     const sp = spots[id], c = new Character(sp.x, sp.y, opts); c.onGround = true; c.ground = 1; c.vx = v0;
     for (let i = 0; i < n; i++) {
       if (onStep) onStep(c);
-      c.step(DT, { x: i < sw ? dir : dir2, jump: i < hold });
+      c.step(DT, { x: i < sw ? dir : dir2, jump: i < hold, up });
       if (visit) visit(c);
       if ((bad && bad(c)) || c.y > H * ASPECT) return;
-      if (i > 2 && c.onGround) { add(c, id, { dir, dir2, sw, hold, n: i + 1, v0 }); return; }
+      if (i > 2 && c.onGround) { add(c, id, { dir, dir2, sw, hold, n: i + 1, v0, up }); return; }
     }
   };
   const t0 = performance.now(), start = new Character(x, y, opts);
@@ -266,6 +266,7 @@ function reachSearch({ x, y, opts = {}, visit, bad, onStep, max = 40000 }) {
   while (queue.length && n0 < max) {
     const id = queue.shift(); n0++;
     for (const d of [-1, 1]) { sim(id, d, d, 99, 0, 8); sim(id, d, d, 99, 0, 40); }
+    if (opts.climb) for (const d of [-1, 0, 1]) for (const sw of d ? [10, 24, 48] : [0]) sim(id, d, 0, sw, 0, 260, 0, true);   // up a ladder or vine: walk to it, then hold up
     for (const d of [-1, 0, 1]) for (const hold of [6, 14, 40]) {
       sim(id, d, d, 999, hold, 150);
       if (d) { sim(id, d, 0, 12, hold, 150); sim(id, d, -d, 18, hold, 150); sim(id, 0, d, 14, hold, 150); sim(id, d, d, 999, hold, 150, d * (opts.run || 0)); }
@@ -290,7 +291,7 @@ function navPath(g, from, to) {
   return null;
 }
 // the inputs of an edge on step i of its try (what a bot or an enemy feeds Character.step to make that jump)
-const navInput = (e, i) => ({ x: i < e.sw ? e.dir : e.dir2, jump: i < e.hold });
+const navInput = (e, i) => ({ x: i < e.sw ? e.dir : e.dir2, jump: i < e.hold, up: !!e.up });
 // dots along the arc of a jump from (x, y): for the editor's overlay and for deciding whether a gap can be crossed; { dir, hold, run }
 function jumpArc(x, y, opts, o = {}) {
   const c = new Character(x, y, opts), pts = [[c.x, c.y]]; c.onGround = true; c.ground = 1; if (o.run) c.vx = (o.dir || 1) * (opts.run || 0);

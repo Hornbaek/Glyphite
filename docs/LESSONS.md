@@ -209,6 +209,24 @@ way.
 - **Music leaks into beat tests.** Once a test starts the audio, the game's music plays, and `Beat.step` fires on its real
   drum hits between the frames being compared. Set `Chip.playing = false` while measuring anything beat-driven.
 
+- **A later part's global may not be read while the parts load.** `const DEV` (part 11) is in its temporal dead zone when `07_sound.js` runs,
+  so the built-in sounds are set up with `soundOf()` directly, not `defineSound()` (which calls `devKeys`, which reads `DEV`).
+- **A game cannot reuse an engine name.** `Music` became an engine global, and Regolith's own `const Music` (a Chip director) made the
+  build refuse the game; it is `RegolithMusic` now. Check `node tools/pixelite.mjs build` after adding any top-level name to a part.
+- **A yield inside a hot loop is almost free; a long loop without one is the stall.** Turning the instrument recipes into generators
+  (`yield` every 8192 samples, every 128 BRR blocks, every 4 harmonics) cost nothing measurable (717 ms against 778 ms of work) and
+  cut the longest stretch from 133 ms to 6 ms. Time a step's cost as the fastest of several fresh runs: on a busy machine any one
+  stretch can be stolen, and `threadCpuUsage` has a 15 ms resolution on Windows.
+- **A timer waits 15 ms on Windows.** `setTimeout(f, 0)` between 1000 small slices made a 1 s job take 3 s in Node; the queue's
+  `build.later` hook lets a test run the slices back to back (`queueMicrotask`).
+- **A playing deck that is replaced must be told to stop everything.** A crossfade hands the old mixer to a deck that fades out;
+  the strips' `lfo` and `pitch` oscillators run until stopped, so `disposeMix` stops them, or every song change would leak a mixer.
+- **The settings system and Sfx both keep the volumes.** `SETTINGS` (part 16) calls `Sfx.setVolumes` and assigns `Sfx.muted`; Sfx copies
+  what it is given into `SETTINGS` and saves both, and an assignment to `muted` counts as having loaded, or the later lazy `load()`
+  would put the old saved mute over the new one.
+- **`git status` shows every text file modified on this Windows checkout** (`core.autocrlf=true` against `* text=auto eol=lf`) and a plain
+  `git merge` refuses. Rewrite the CRLF files with LF once, and use `git -c core.autocrlf=false merge`.
+
 ## Image APIs (the art pipeline)
 
 - **Model names move.** `gpt-image-2` makes no transparent background; `gpt-image-1.5` does but draws worse; the newest one that does and draws well in November 2026 was
