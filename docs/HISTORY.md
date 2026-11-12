@@ -1044,7 +1044,7 @@ a design of its own), MIDI files, and the rest. MIDI files first: import and exp
   where the cat is captured, a cow with character, the robot reset to a farm job, the farm on the cow's planet, planting the cat's
   friends), the cover against the story, names, and Act I as the first playable.
 - **Version 2** (`STORY_V2.md`), after the owner agreed to every suggestion and named the cast (Pip, Tinka, MEGA-MJAU,
-  Stellamoo): the story rewritten with all of them in, and what changed listed at its end. `COVER_PROMPT.md` updates the cover
+  Stellamoo; Tinka became Miss Clou, a he, and Pip a she, the same day): the story rewritten with all of them in, and what changed listed at its end. `COVER_PROMPT.md` updates the cover
   (space suits, real cats in mind-control helmets); `CHAPTER_COVERS.md` has a style block and one prompt per chapter.
 - **The cover** (`ref/cover_star_whiskers.png`) is kept as reference art; `tools/art.py` lists a picture nothing is cut from
   (its `use`), so `ref.json` stays generated.

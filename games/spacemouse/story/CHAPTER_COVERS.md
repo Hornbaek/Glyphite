@@ -20,11 +20,11 @@ guard turns into a robot), say so and ask for a redo with the cast block again. 
 > never scary.
 >
 > The cast, the same on every card:
-> - **Pip**, a small brown mouse with big round pink-lined ears and a determined face. A home-made space suit, slightly
->   baggy, patched and held together with silver duct tape, a small orange air tank on the back, a round glass bubble
->   helmet with the ears inside, and a red scarf around the neck. Out of the suit (only where I say) Pip wears the red
+> - **Pip**, a small brown girl mouse (she) with big round pink-lined ears and a determined face. A home-made space suit, slightly
+>   baggy, patched and held together with silver duct tape, a small orange air tank on her back, a round glass bubble
+>   helmet with the ears inside, and a red scarf around the neck. Out of the suit (only where I say) she wears the red
 >   scarf and a simple brown tunic.
-> - **Tinka**, an orange tabby cat with green eyes and a calm, slightly smug look. A sleek dark blue space suit with brass
+> - **Miss Clou**, an orange tabby tomcat (he) with green eyes and a calm, slightly smug look. A sleek dark blue space suit with brass
 >   fittings, a small glowing gauge on the chest, a tool belt, a round glass helmet and a blue cape.
 > - **MEGA-MJAU**, a gigantic mechanical cat, dark steel with glowing red eyes, part cat, part factory, part castle. A
 >   red banner with a paw symbol is its emblem. Comically imposing, never horrifying.
@@ -54,21 +54,21 @@ guard turns into a robot), say so and ask for a redo with the cast block again. 
 
 ## Chapter 2: The Cat at the Edge of Town
 > **CHAPTER 2 — THE CAT AT THE EDGE OF TOWN.** Evening, at the edge of the mouse town: a crooked shed made of scrap metal,
-> glowing warm inside, piled with machine parts, maps and gadgets. Tinka, out of the suit and helmet but in the blue cape,
+> glowing warm inside, piled with machine parts, maps and gadgets. Miss Clou, out of the suit and helmet but in the blue cape,
 > sits at a cluttered workbench, sliding a rolled-up blueprint across the table. Pip, in the red scarf and tunic, stands in
 > the doorway, tail bristling, ready to run. On the shed wall, a framed photo of a group of cats in workshop overalls.
 
 ## Chapter 3: The Bottle Rocket
 > **CHAPTER 3 — THE BOTTLE ROCKET.** A sunny back yard in the mouse town. Pip, now in the space suit, stands proudly in
 > front of a home-made rocket: a clear plastic bottle as the body, a tin can as the cockpit, three small mismatched rocket
-> motors, loose wires and lots of silver duct tape, a huge roll of tape on the ground. Tinka leans on a fence with a
+> motors, loose wires and lots of silver duct tape, a huge roll of tape on the ground. Miss Clou leans on a fence with a
 > spanner, pretending not to care. Little mice watch from behind a wall. A few sparks, a wobbly puff of exhaust.
 
 ## Chapter 4: The False Cheese Moon
 > **CHAPTER 4 — THE FALSE CHEESE MOON.** A small moon of dry, cracked, pale yellow cheese with craters, under a black sky
 > where the Milky Way is very thin. The bottle rocket has landed a little crooked. Pip, in the suit, kneels beside withered
 > grey cheese plants, holding an old logbook, lit by the helmet lamp. Behind, a small abandoned research dome with a
-> flickering window. Far off, at the rocket, Tinka's silhouette waits with folded arms.
+> flickering window. Far off, at the rocket, Miss Clou's silhouette waits with folded arms.
 
 ## Chapter 5: The Station Nobody Cleaned
 > **CHAPTER 5 — THE STATION NOBODY CLEANED.** A dim corridor of an abandoned cat space station: stacked boxes, broken robot
@@ -78,65 +78,65 @@ guard turns into a robot), say so and ask for a redo with the cast block again. 
 
 ## Chapter 6: The Ice Planet
 > **CHAPTER 6 — THE ICE PLANET.** A frozen cave of blue and turquoise ice with an old mine and glowing orange heaters. Pip
-> and Tinka, in their suits, stand before a cracked archive screen. On it, a grainy recording: the giant silhouette of
-> MEGA-MJAU carrying a shielded container with a golden glow leaking out. Tinka's face, lit by the screen, looks shocked
+> and Miss Clou, in their suits, stand before a cracked archive screen. On it, a grainy recording: the giant silhouette of
+> MEGA-MJAU carrying a shielded container with a golden glow leaking out. Miss Clou's face, lit by the screen, looks shocked
 > and guilty. Behind them, freed cats without helmets peek out from behind an icy gate.
 
-## Chapter 7: Tinka Tells the Truth
+## Chapter 7: Miss Clou Tells the Truth
 > **CHAPTER 7 — TINKA TELLS THE TRUTH.** Inside the cramped cockpit of the bottle rocket, drifting in space, the faint
-> Milky Way outside the window. Pip, arms crossed and ears back, turns away, angry. Tinka sits with ears down, holding the
+> Milky Way outside the window. Pip, arms crossed and ears back, turns away, angry. Miss Clou sits with ears down, holding the
 > old crew photo, looking sorry for the first time. A warm dashboard light between them, and a roll of silver tape on the
 > console. Quiet and emotional, a little funny (a sock stuck to the ceiling).
 
 ## Chapter 8: The Abandoned Cat Fleet
 > **CHAPTER 8 — THE ABANDONED CAT FLEET.** A huge shipyard on an asteroid, full of old scrapped cat spaceships with cat-ear
 > shapes and paw emblems, cranes and workshop lights. Pip, in the suit, clambers over a pile of engines, wings and fuel
-> tanks; Tinka studies blueprints spread out on a crate. From behind a hangar door, a small group of free cats, scruffy
+> tanks; Miss Clou studies blueprints spread out on a crate. From behind a hangar door, a small group of free cats, scruffy
 > and wary, watch them. One of them points at a far star.
 
 ## Chapter 9: Worlds Out of Balance
 > **CHAPTER 9 — WORLDS OUT OF BALANCE.** A card split into four scenes in a 2×2 grid, each framed: the Cheese Forest (giant
 > cheese trees with dried fruit on the ground), the Bubbling Moon (milk lakes drying into cracked white flats), the Scrap
 > Belt (drifting wrecks and spare parts in space), and the Sleeping Station (empty corridors where little robots keep
-> sweeping). Pip and Tinka, in their suits, appear in each, and in one, Pip is taping a patch onto Tinka's suit.
+> sweeping). Pip and Miss Clou, in their suits, appear in each, and in one, Pip is taping a patch onto Miss Clou's suit.
 
 ## Chapter 10: MEGA-MJAU's Plan
 > **CHAPTER 10 — MEGA-MJAU'S PLAN.** Inside the new ship's cabin, a big clue board on the wall with pinned notes, photos,
-> maps and string connecting them, all pointing to a drawing of MEGA-MJAU's fortress. Pip and Tinka stand in front of it.
-> Tinka holds up a small laser pointer with a red dot on the wall and a sly grin. Through the window, the Milky Way is
+> maps and string connecting them, all pointing to a drawing of MEGA-MJAU's fortress. Pip and Miss Clou stand in front of it.
+> Miss Clou holds up a small laser pointer with a red dot on the wall and a sly grin. Through the window, the Milky Way is
 > very thin.
 
 ## Chapter 11: The Last Ship
 > **CHAPTER 11 — THE LAST SHIP.** A ship built only from junk flies through MEGA-MJAU's space defences: bottles, tins,
 > pipes, an umbrella, a teapot, motors and enormous amounts of silver tape. Red scanner beams from defence towers sweep
-> across it and see nothing; a tower's screen shows only a cloud of rubbish. Pip pilots, grinning, Tinka beside, both in
+> across it and see nothing; a tower's screen shows only a cloud of rubbish. Pip pilots, grinning, Miss Clou beside, both in
 > suits. Ahead, MEGA-MJAU's planet glows red.
 
 ## Chapter 12: The Cat Empire
 > **CHAPTER 12 — THE CAT EMPIRE.** MEGA-MJAU's planet: a vast industrial castle with huge milk pipes, conveyor belts and
-> robot arms, the giant cat-head castle towering behind. In the foreground, controlled cats carry Tinka away, a helmet with
-> a red light being lowered onto Tinka's head. Pip, in the suit, peers out from a small air vent, eyes wide, alone. Tense,
+> robot arms, the giant cat-head castle towering behind. In the foreground, controlled cats carry Miss Clou away, a helmet with
+> a red light being lowered onto Miss Clou's head. Pip, in the suit, peers out from a small air vent, eyes wide, alone. Tense,
 > but not frightening.
 
 ## Chapter 13: Free the Cats
-> **CHAPTER 13 — FREE THE CATS.** The control centre: a big room of screens and a huge switch. Tinka, helmet cracked and
+> **CHAPTER 13 — FREE THE CATS.** The control centre: a big room of screens and a huge switch. Miss Clou, helmet cracked and
 > falling off, eyes clear again, pulls the switch. Pip stands beside, out of breath. All around, dozens of cats of every
 > colour see their helmets go dark and fall off, blinking in surprise. In front, a group of cats in workshop overalls, the
-> ones from the photo, face Tinka. Tinka bows in apology.
+> ones from the photo, face Miss Clou. Miss Clou bows in apology.
 
 ## Chapter 14: MEGA-MJAU
 > **CHAPTER 14 — MEGA-MJAU.** The throne room inside the castle's giant cat head: red light, gears, a huge window shaped
-> like an eye. MEGA-MJAU towers over the tiny Pip and Tinka, arms wide as if showing off. Behind it, Stellamoo stands calmly
+> like an eye. MEGA-MJAU towers over the tiny Pip and Miss Clou, arms wide as if showing off. Behind it, Stellamoo stands calmly
 > in a great glass tank, unbothered, chewing. Funny-epic, like the start of a boss fight.
 
 ## Chapter 15: The Final Battle
 > **CHAPTER 15 — THE FINAL BATTLE.** MEGA-MJAU's giant paw slams down after a red laser dot onto its own machines, sparks
-> flying. Pip leaps between floating platforms over electric beams, Tinka aims the laser pointer from a mechanical arm. At
+> flying. Pip leaps between floating platforms over electric beams, Miss Clou aims the laser pointer from a mechanical arm. At
 > the edge of the scene, a crowd of freed cats of every colour pours in through a door, every one of them turning their
 > backs on MEGA-MJAU, whose eyes are flickering in confusion.
 
 ## Chapter 16: The Cow Returns
-> **CHAPTER 16 — THE COW RETURNS.** Escape from the collapsing fortress: Pip, Tinka and Stellamoo run across a crumbling
+> **CHAPTER 16 — THE COW RETURNS.** Escape from the collapsing fortress: Pip, Miss Clou and Stellamoo run across a crumbling
 > walkway, and wherever drops of glowing milk fall from Stellamoo, cheese platforms and green shoots grow instantly ahead
 > of them. Then, in the background, her green home planet with old temples and cheese trees, and above it the Milky Way
 > blazing bright again.
@@ -144,10 +144,10 @@ guard turns into a robot), say so and ask for a redo with the cast block again. 
 ## Chapter 17: The Shared Farm
 > **CHAPTER 17 — THE SHARED FARM.** A sunny farm on Stellamoo's green planet, with old temple ruins nearby. Stellamoo
 > grazes with her halo glowing. Mice and cats work side by side picking cheese fruit. MEGA-MJAU, now gentle and covered
-> in flowerpots, pulls a plough in perfectly straight rows. Pip and Tinka, out of their suits (scarf and cape), share a
+> in flowerpots, pulls a plough in perfectly straight rows. Pip and Miss Clou, out of their suits (scarf and cape), share a
 > picnic of cheese and milk. On the temple wall behind them, an ancient mural shows a cow, a mouse and a cat together.
 
 ## Epilogue: A Bigger Ship
-> **EPILOGUE — A BIGGER SHIP.** Night on a grassy hill under a brilliant Milky Way. Pip and Tinka sit side by side from
-> behind, Tinka holding a cup of milk. An old radio between them crackles with little sound waves. Far off in the sky, a
+> **EPILOGUE — A BIGGER SHIP.** Night on a grassy hill under a brilliant Milky Way. Pip and Miss Clou sit side by side from
+> behind, Miss Clou holding a cup of milk. An old radio between them crackles with little sound waves. Far off in the sky, a
 > huge, mysterious cheese moon glows. Stellamoo grazes nearby. Peaceful, warm, a hint of the next adventure.

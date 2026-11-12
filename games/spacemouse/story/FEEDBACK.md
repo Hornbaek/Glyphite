@@ -122,16 +122,10 @@ cat goes quiet. In Ch. 13 the player recognises the faces.
 
 | Who | Name |
 |---|---|
-| The mouse | **Pip** |
-| The inventor cat | **Tinka** |
+| The mouse | **Pip** (she) |
+| The inventor cat | **Miss Clou** (he; first named Tinka) |
 | The great robot cat | **MEGA-MJAU** |
 | The Holy Cow | **Stellamoo** |
-
----|---|
-| The mouse | **Pip** (players of the current game already know it), Nibbles, Tejpa ("Tapey", for the silver tape) |
-| The inventor cat | **Professor Purrsival**, Tinka, Nova |
-| The great robot cat | **MEGA-MJAU** (a nod to the Swedish), the Grand Mewchanic, OVERCAT 9000 |
-| The Holy Cow | **Mjölka / Milka-Way**, Old Mother Moo, Stellamoo |
 
 ---
 

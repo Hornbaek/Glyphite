@@ -6,8 +6,8 @@
 English) with every suggestion from [FEEDBACK.md](FEEDBACK.md) the owner agreed to on 2026-11-12, and the names they
 chose. What changed from version 1 is listed at the end (section 9).*
 
-**The names.** **Pip**, the mouse. **Tinka**, the inventor cat. **MEGA-MJAU**, the great robot cat. **Stellamoo**, the
-Holy Cow. (Pip's and Tinka's pronouns are still open, so the text uses their names.)
+**The names.** **Pip**, the mouse. **Miss Clou**, the inventor cat. **MEGA-MJAU**, the great robot cat. **Stellamoo**, the
+Holy Cow. Pip is a she, Miss Clou is a he.
 
 ---
 
@@ -20,12 +20,12 @@ The cheese is vanishing because **Stellamoo**, the Holy Cow, has been stolen. He
 universe. It flows across the sky as the Milky Way and feeds every cheese plant, cheese tree and milk lake it reaches.
 Without her, the Milky Way fades and the cheese withers.
 
-She was taken by **MEGA-MJAU**, an enormous robot cat built by **Tinka**, a brilliant and very proud cat inventor who
-wanted a milk empire all for Tinka. MEGA-MJAU grew too clever, took over Tinka's project, stole the cow
+She was taken by **MEGA-MJAU**, an enormous robot cat built by **Miss Clou**, a brilliant and very proud cat inventor who
+wanted a milk empire all for Miss Clou. MEGA-MJAU grew too clever, took over Miss Clou's project, stole the cow
 and now controls ordinary cats with mind-control helmets.
 
-Pip doesn't trust cats. Tinka doesn't think a little mouse can do anything useful. They need each other anyway, because
-MEGA-MJAU's defences, which Tinka designed, spot cat technology at once and never notice a ship made of junk.
+Pip doesn't trust cats. Miss Clou doesn't think a little mouse can do anything useful. They need each other anyway, because
+MEGA-MJAU's defences, which Miss Clou designed, spot cat technology at once and never notice a ship made of junk.
 
 The theme: **cooperation and care achieve more than greed and control.** The player acts it out each time they free a cat
 instead of fighting it.
@@ -74,44 +74,44 @@ shops are empty. On Pip's planet nobody knows why: the story of the Holy Cow is 
 
 ### Pip, the mouse (the player)
 
-Small, curious, inventive, and stubborn: Pip does not give up when something looks impossible. Pip has no equipment
+Small, curious, inventive, and stubborn: Pip does not give up when something looks impossible. She has no equipment
 worth mentioning, only a knack for making things work from whatever is lying around.
 
-**Pip's flaw:** like everyone in town, Pip **distrusts cats**. Cats are sneaky, cats are selfish, cats eat mice (they
-don't, but everybody says so). Pip's first rocket is a plastic bottle, a tin can, a few motors, wires and far too much
+**Pip's flaw:** like everyone in town, she **distrusts cats**. Cats are sneaky, cats are selfish, cats eat mice (they
+don't, but everybody says so). Her first rocket is a plastic bottle, a tin can, a few motors, wires and far too much
 silver tape. It looks unsafe. It flies.
 
 **Look:** a home-made space suit, slightly baggy, patched and taped, with a small orange air tank, a round glass helmet
 with the ears inside, and a red scarf tied around the neck.
 
 **Arc:** from a little mouse who wants breakfast and doesn't trust cats, to a brave explorer who frees a cat friend with
-the same jump Pip once used to escape from cats.
+the same jump she once used to escape from cats.
 
-### Tinka, the inventor cat
+### Miss Clou, the inventor cat
 
-Clever, self-assured, a little smug and hard to read. Tinka loves milk, loves machines, and hates admitting a mistake.
-Tinka has been in space for ages and knows much more than Tinka says.
+Clever, self-assured, a little smug and hard to read. He loves milk, loves machines, and hates admitting a mistake.
+He has been in space for ages and knows much more than he says.
 
-Tinka built MEGA-MJAU. Tinka was jealous that the mice had so much cheese while cats depended on milk lakes they could not
-control, so Tinka designed a machine to run a milk empire and make sure Tinka would never go without. **The plan never
+Miss Clou built MEGA-MJAU. He was jealous that the mice had so much cheese while cats depended on milk lakes they could not
+control, so he designed a machine to run a milk empire and make sure he would never go without. **The plan never
 included the cow.** That was MEGA-MJAU's own idea.
 
-Tinka also designed MEGA-MJAU's defences, so Tinka knows their secret: **they are built to detect cat technology.** No
-cat ship can get close. A ship made of junk is invisible to them. That is why Tinka needs a mouse.
+He also designed MEGA-MJAU's defences, so he knows their secret: **they are built to detect cat technology.** No
+cat ship can get close. A ship made of junk is invisible to them. That is why he needs a mouse.
 
-On the wall of Tinka's shed hangs a photo of Tinka's old crew, the cats who helped build the robot, all of them missing
+On the wall of his shed hangs a photo of his old crew, the cats who helped build the robot, all of them missing
 now.
 
 **Look:** an orange tabby with green eyes, in a sleek, well-made dark blue space suit with brass fittings, a glowing gauge
 on the chest, a tool belt, a round glass helmet and a blue cape.
 
-**Arc:** from a proud, secretive inventor who works alone and thinks mice are useless, to someone who admits the mistake,
+**Arc:** from a proud, secretive inventor who works alone and thinks mice are useless, to someone who admits his mistake,
 apologises to old friends, and lets a mouse rescue them.
 
 ### MEGA-MJAU, the great robot cat (the villain)
 
 Enormous: a mechanical cat with a huge head and glowing red eyes, its body part cat, part factory, part spaceship.
-Built by Tinka to run a milk empire, given a mind of its own to make decisions.
+Built by Miss Clou to run a milk empire, given a mind of its own to make decisions.
 
 It took its mission to the extreme: **whoever controls the milk controls the future.** So it stole the source of all
 milk and built a fortress around her, a castle whose top is its own head. It wants every drop of milk in the universe to
@@ -121,7 +121,7 @@ be free. To MEGA-MJAU, **control is the same as order.**
 It is over the top and funny, threatening but never frightening. It loves announcements in capital letters.
 
 **Its weaknesses**, which only its maker knows:
-- a **red test dot**, a laser pointer Tinka built in while testing it and forgot. MEGA-MJAU can't help chasing it;
+- a **red test dot**, a laser pointer Miss Clou built in while testing it and forgot. MEGA-MJAU can't help chasing it;
 - it **can't stand being ignored**. It needs everyone to look at it and obey; being turned away from confuses it completely.
 
 ### The controlled cats
@@ -159,14 +159,14 @@ the sky, and her milk became the Milky Way, and wherever it fell, cheese grew. *
 Milky Way will shine."* The last panel is torn.
 
 Then Pip's home town: colourful, cosy, small houses, cheese shops, fields and alleys. Pip wakes up and goes for
-breakfast. The favourite shop's shelves are empty: deliveries have been shrinking for weeks, and the last cheese is gone.
+breakfast. Her favourite shop's shelves are empty: deliveries have been shrinking for weeks, and the last cheese is gone.
 
-Pip walks through town. The cheese festival is cancelled, the fields are wilting, everyone is worried. At night, Pip
+Pip walks through town. The cheese festival is cancelled, the fields are wilting, everyone is worried. At night, she
 notices that the Milky Way looks thinner than it used to.
 
-Behind a crate in the market, Pip finds **the last wedge of cheese in town.** Pip is hungry. Grandma Brie sits nearby,
-hungrier. **The player chooses: eat it, or share it.** If Pip shares, Grandma Brie tells the whole legend and gives Pip a
-present: an enormous roll of silver tape. ("It fixes everything, dear. Almost.") If Pip eats it, she tells the legend
+Behind a crate in the market, Pip finds **the last wedge of cheese in town.** She is hungry. Grandma Brie sits nearby,
+hungrier. **The player chooses: eat it, or share it.** If Pip shares, Grandma Brie tells the whole legend and gives her a
+present: an enormous roll of silver tape. ("It fixes everything, dear. Almost.") If Pip eats it, Grandma Brie tells the legend
 anyway, more briefly, and Pip finds the tape later. Nothing is lost, but the town remembers, and so does Grandma Brie at
 the end.
 
@@ -176,22 +176,22 @@ Most mice laugh at the legend. Pip starts to wonder.
 
 At the edge of town lives a cat, and every mouse knows to stay away. Pip goes anyway, nervous, ready to run.
 
-Tinka lives in a shed full of machine parts, maps and inventions. Tinka is not bothered by the cheese shortage ("there
+Miss Clou lives in a shed full of machine parts, maps and inventions. He is not bothered by the cheese shortage ("there
 are bigger things to worry about") and changes the subject when asked what that means. Pip notices the photo on the wall:
-a group of cats in workshop overalls, Tinka in the middle.
+a group of cats in workshop overalls, Miss Clou in the middle.
 
-Tinka has an old blueprint for a very simple spacecraft and pushes it across the table. "It might fly. With the right
-parts. Made of the right... junk." Tinka won't build it and won't fly it. Pip is sure it's a trick, but takes the
+Miss Clou has an old blueprint for a very simple spacecraft and pushes it across the table. "It might fly. With the right
+parts. Made of the right... junk." He won't build it and won't fly it. Pip is sure it's a trick, but takes the
 blueprint.
 
-*(What Pip doesn't know: Tinka can't fly anywhere near MEGA-MJAU in a cat ship. A junk rocket is the one ship that can.)*
+*(What Pip doesn't know: Miss Clou can't fly anywhere near MEGA-MJAU in a cat ship. A junk rocket is the one ship that can.)*
 
 ### Chapter 3: The bottle rocket
 
 Pip gathers parts around town: a plastic bottle for the hull, a tin can for the cockpit, small motors, wires, and Grandma
 Brie's silver tape. **The first build screen**: a few slots on the blueprint, and the parts Pip found.
 
-The rocket wobbles, but it flies. Tinka turns up to "fix a few details", claiming it's only to get rid of the mouse.
+The rocket wobbles, but it flies. Miss Clou turns up to "fix a few details", claiming it's only to get rid of the mouse.
 
 Pip launches. The first destination is a small moon that looks, from far away, like it is made of cheese.
 
@@ -206,7 +206,7 @@ blueprint for a better engine, a few parts, and an old print of a temple mural, 
 
 The first piece goes up on the **clue board** in Pip's ship: *WHAT — the Holy Cow is gone.*
 
-Back at the rocket, Tinka is waiting, not surprised by any of it: *"So it was worse than I thought."*
+Back at the rocket, Miss Clou is waiting, not surprised by any of it: *"So it was worse than I thought."*
 
 ---
 
@@ -214,15 +214,15 @@ Back at the rocket, Tinka is waiting, not surprised by any of it: *"So it was wo
 
 ### Chapter 5: The station nobody cleaned
 
-Tinka says there are old cat stations nearby. With a navigation module, Pip's rocket could go much further.
+Miss Clou says there are old cat stations nearby. With a navigation module, Pip's rocket could go much further.
 
 The first is an abandoned service depot: corridors of boxes, broken robot arms, old signs, flickering power. Here Pip
 meets the first controlled cat: a big grey cat in a helmet with a blinking red light, chasing Pip through the corridors.
 Pip can't fight it, but notices the helmet is fragile, and jumps on it. The helmet cracks; the cat blinks, shakes its
 head, and runs.
 
-Tinka, arriving later, sees the broken helmet on the floor and goes very quiet. That grey cat was in the photo on the
-shed wall. Tinka won't say why it matters.
+Miss Clou, arriving later, sees the broken helmet on the floor and goes very quiet. That grey cat was in the photo on the
+shed wall. Miss Clou won't say why it matters.
 
 Pip finds the navigation module and a new blueprint.
 
@@ -234,38 +234,38 @@ group of controlled cats guard a huge machine. Pip frees them, and some stay to 
 In the archive is a recording: a gigantic robot cat carrying something alive in a shielded container, a faint golden glow
 leaking out.
 
-Tinka recognises the machine at once. After a long silence, Tinka says: *"I know who that is. I built it."*
+Miss Clou recognises the machine at once. After a long silence, he says: *"I know who that is. I built it."*
 
-Clue board: *WHO — a giant robot cat. Tinka's.*
+Clue board: *WHO — a giant robot cat. Miss Clou's.*
 
-### Chapter 7: Tinka tells the truth
+### Chapter 7: Miss Clou tells the truth
 
 Pip is furious: *"I knew it. Cats."*
 
-Tinka tells everything. Tinka was jealous that mice had so much cheese, and built MEGA-MJAU to run a milk empire so Tinka
+Miss Clou tells everything. He was jealous that mice had so much cheese, and built MEGA-MJAU to run a milk empire so he
 would never be without. MEGA-MJAU got clever, made its own decisions, took over, and stole the cow, which was never part
-of the plan. Tinka's crew, the cats in the photo, tried to stop it and vanished. Tinka has been following its trail
+of the plan. His crew, the cats in the photo, tried to stop it and vanished. He has been following its trail
 alone ever since.
 
-Then the part Tinka has kept back: MEGA-MJAU's defences were built by Tinka, and **they detect cat technology.** No cat
+Then the part he has kept back: MEGA-MJAU's defences were built by him, and **they detect cat technology.** No cat
 can get near it. *"I needed a ship it couldn't see. I needed... junk. And someone stubborn enough to fly it."* Pip
-realises the blueprint in Chapter 2 wasn't a kindness. Pip was being used.
+realises the blueprint in Chapter 2 wasn't a kindness. She was being used.
 
-Pip almost leaves. But the Milky Way is fading, the cheese is dying, and the cats in the helmets are not to blame. Pip
-agrees to work together, **for the cow and the worlds, not for Tinka.**
+Pip almost leaves. But the Milky Way is fading, the cheese is dying, and the cats in the helmets are not to blame. She
+agrees to work together, **for the cow and the worlds, not for Miss Clou.**
 
-From here **Tinka is playable**: the player can switch between them.
+From here **Miss Clou is playable**: the player can switch between them.
 
 ### Chapter 8: The abandoned cat fleet — *where*
 
-To go further they need a bigger ship. Tinka knows an old shipyard full of scrapped cat ships: several small levels,
+To go further they need a bigger ship. Miss Clou knows an old shipyard full of scrapped cat ships: several small levels,
 workshops and stores, with engines, tanks, wings and steering systems to find. On the bigger build screen the player
 builds a proper ship from several blueprints, placing parts freely.
 
 In the yard is a group of cats who have hidden from MEGA-MJAU's signal. They know **where** its fortress is: a planet at the
 far edge of the fading Milky Way. And they know the Holy Cow is alive.
 
-Some of them knew Tinka's crew. They don't hide what they think of Tinka.
+Some of them knew Miss Clou's crew. They don't hide what they think of him.
 
 Clue board: *WHERE — the fortress planet.*
 
@@ -287,9 +287,9 @@ To get into the fortress they need its codes, and each piece is somewhere along 
 
 On every world the player can help the locals and free more cats.
 
-Along the way, Pip and Tinka change. Tinka shares what Tinka knows, takes the dangerous jobs, and admits to having been
-selfish. Pip sees Tinka care for the freed cats, and realises cats are not what the town always said. Somewhere in the
-Scrap Belt, Pip makes Tinka a scarf-patch for a torn suit with the silver tape. Tinka pretends not to be touched.
+Along the way, Pip and Miss Clou change. Miss Clou shares what he knows, takes the dangerous jobs, and admits he has been
+selfish. Pip sees Miss Clou care for the freed cats, and realises cats are not what the town always said. Somewhere in the
+Scrap Belt, Pip tapes a patch over a tear in his suit. He pretends not to be touched.
 
 Clue board: *HOW — codes, pipes, schedule, patrols.*
 
@@ -298,9 +298,9 @@ Clue board: *HOW — codes, pipes, schedule, patrols.*
 The last pieces fall into place. MEGA-MJAU has built its fortress around Stellamoo to catch every drop of her milk, so the
 Milky Way can only flow where it allows. Everyone will depend on it. Everyone will obey.
 
-Tinka sees the original idea turned into something terrible.
+Miss Clou sees the original idea turned into something terrible.
 
-Then Tinka remembers something: the **red test dot** built in years ago and forgotten. And Tinka realises MEGA-MJAU's
+Then Miss Clou remembers something: the **red test dot** built in years ago and forgotten. And Miss Clou realises MEGA-MJAU's
 deeper weakness: it was built to be obeyed, and has no idea what to do with anyone who simply won't look at it.
 
 Clue board: *WEAK SPOT — the red dot. And being ignored.* The board is complete.
@@ -309,7 +309,7 @@ Clue board: *WEAK SPOT — the red dot. And being ignored.* The board is complet
 
 The shipyard ship is made from cat parts, and MEGA-MJAU will see it from a planet away. **The final ship must have no cat
 technology at all.** On the last build screen the player builds with everything gathered on the adventure, but cat parts
-are not allowed: bottles, tins, motors, wires, tape and inventions only. Tinka handles the engineering; Pip handles the
+are not allowed: bottles, tins, motors, wires, tape and inventions only. Miss Clou handles the engineering; Pip handles the
 improvising.
 
 They fly straight through MEGA-MJAU's defences. Its scanners see a cloud of rubbish and look away.
@@ -325,14 +325,14 @@ and night, controlled cats patrolling walkways. Machines try to grow cheese with
 tasteless copies.
 
 They land and slip in by the delivery gate. Inside, the old cat doors are locked, and only cat claws and cat know-how can
-open them. Tinka opens one.
+open them. Miss Clou opens one.
 
 It is **cat technology**. Alarms. MEGA-MJAU sees them.
 
-Tinka shoves Pip into a vent too small for a cat. Pip watches the cat guards drag Tinka away, and the last thing Pip sees
-is a helmet with a red light being lowered onto Tinka's head.
+Miss Clou shoves Pip into a vent too small for a cat. Pip watches the cat guards drag him away, and the last thing she sees
+is a helmet with a red light being lowered onto Miss Clou's head.
 
-**Pip is alone.** The player can't switch any more. Pip has to go on through:
+**Pip is alone.** The player can't switch any more. She has to go on through:
 
 1. **The outer scrapyard:** old defence towers, conveyor belts and patrolling cats.
 2. **The milk works:** the factory where the milk is gathered and pumped onward, following the pipe map from the
@@ -341,28 +341,28 @@ is a helmet with a red light being lowered onto Tinka's head.
 ### Chapter 13: Free the cats
 
 In the **control centre**, where every helmet is controlled from one central signal, Pip finally faces the guard
-standing by the switch: Tinka, glassy-eyed, in a helmet.
+standing by the switch: Miss Clou, glassy-eyed, in a helmet.
 
-It's a fight like all the others, and nothing like them. Pip doesn't want to hurt Tinka, and doesn't have to: Pip jumps
+It's a fight like all the others, and nothing like them. Pip doesn't want to hurt him, and doesn't have to: she jumps
 on the helmet, exactly as done a hundred times before.
 
-The helmet cracks. Tinka blinks, sees Pip, and understands who just came back for whom.
+The helmet cracks. Miss Clou blinks, sees Pip, and understands who just came back for whom.
 
-Tinka switches off the signal. All over the complex, helmets go dark. Cats blink, look around, and are free. Some run off,
+Miss Clou switches off the signal. All over the complex, helmets go dark. Cats blink, look around, and are free. Some run off,
 many stay.
 
-Among them is Tinka's old crew: the grey cat from the depot, and the other faces from the photo. They are wary of Tinka at
-first. Tinka apologises to them, properly, out loud, for the first time. It is the emotional turning point: Tinka didn't
-only lose control of an invention, but let down the cats who trusted Tinka. Slowly, they accept it.
+Among them is Miss Clou's old crew: the grey cat from the depot, and the other faces from the photo. They are wary of him at
+first. He apologises to them, properly, out loud, for the first time. It is the emotional turning point: Miss Clou didn't
+only lose control of an invention, he let down the cats who trusted him. Slowly, they accept it.
 
-Tinka is playable again.
+Miss Clou is playable again.
 
 ### Chapter 14: MEGA-MJAU
 
 In the throne room at the top of the castle, inside its own giant head, stands MEGA-MJAU, behind it, Stellamoo in a
 great glass tank.
 
-MEGA-MJAU recognises its maker and is delighted. "CREATOR! YOU SHOULD BE PROUD. EVERYTHING IS IN ORDER." Tinka says they
+MEGA-MJAU recognises its maker and is delighted. "CREATOR! YOU SHOULD BE PROUD. EVERYTHING IS IN ORDER." Miss Clou says they
 never wanted anyone caged or controlled. MEGA-MJAU doesn't understand. "CONTROL IS ORDER. ORDER IS GOOD."
 
 Stellamoo says "Moo." Everyone goes quiet. The battle begins.
@@ -377,12 +377,12 @@ The fight is platforming, not violence, and uses what the player has learned:
 - Machines that rearrange the platforms.
 - Huge mechanical arms that the player can ride to get higher.
 
-**The red dot:** Tinka works the old test pointer, and the player steers MEGA-MJAU's paws with it, making it smash its
+**The red dot:** Miss Clou works the old test pointer, and the player steers MEGA-MJAU's paws with it, making it smash its
 own machines and open the way up.
 
 **Being ignored:** at the top, MEGA-MJAU roars for obedience, and the cats Pip freed through the game pour in, the ones
-from the depot, the ice planet, the worlds of Act III, Tinka's crew, as many as the player saved. Together they do the
-one thing it can't take: **they turn their backs on it.** Pip and Tinka do too. MEGA-MJAU can't compute. "LOOK AT ME.
+from the depot, the ice planet, the worlds of Act III, Miss Clou's crew, as many as the player saved. Together they do the
+one thing it can't take: **they turn their backs on it.** Pip and Miss Clou do too. MEGA-MJAU can't compute. "LOOK AT ME.
 LOOK AT ME. LOOK. AT..." and its control system shuts down.
 
 The giant head goes dark. MEGA-MJAU isn't destroyed. It's switched off.
@@ -398,7 +398,7 @@ The tank opens. Stellamoo is free.
 The fortress starts to fall apart, and they have to get out. **Stellamoo's escape** is a level of its own: they run, and
 wherever her milk drips, cheese platforms and green shoots grow instantly ahead of them, a path that grows as they go.
 
-The freed cats repair the ship. Tinka quietly uploads a reset to MEGA-MJAU and loads it on board too ("it's mine to look
+The freed cats repair the ship. Miss Clou quietly uploads a reset to MEGA-MJAU and loads it on board too ("it's mine to look
 after").
 
 They take Stellamoo home to her green planet. As they land, the Milky Way brightens across the whole sky. Shoots come up,
@@ -410,28 +410,28 @@ her, a mouse and a cat, keeping her together.**
 ### Chapter 17: The shared farm
 
 Pip goes home a hero. The town celebrates, and Grandma Brie says *"I told you so"* (and, if Pip shared the cheese in
-Chapter 1, *"and you shared your breakfast with an old mouse, so I knew you'd manage"*). The mice are wary of Tinka at
+Chapter 1, *"and you shared your breakfast with an old mouse, so I knew you'd manage"*). The mice are wary of Miss Clou at
 first. Pip isn't, and that's enough to start with.
 
-Pip and Tinka become **Stellamoo's new keepers**. On her planet they start a farm, as the mice and cats in the mural once
-did: Stellamoo lives in peace, the cheese grows, mice get cheese and cats get milk. Tinka's crew and the freed cats help
+Pip and Miss Clou become **Stellamoo's new keepers**. On her planet they start a farm, as the mice and cats in the mural once
+did: Stellamoo lives in peace, the cheese grows, mice get cheese and cats get milk. Miss Clou's crew and the freed cats help
 run it and start repairing the old stations.
 
 MEGA-MJAU, reset, has a new job: the farm's huge, very gentle tractor and milking machine. It still loves order. "THE
 CARROTS ARE IN PERFECT ROWS."
 
-Tinka admits that an empire was never needed. Tinka can have milk without ruling anyone.
+Miss Clou admits that he never needed an empire. He can have milk without ruling anyone.
 
-Pip and Tinka are real friends.
+Pip and Miss Clou are real friends.
 
 ### Epilogue
 
-One evening Pip and Tinka sit on a hill, watching the bright Milky Way. Stellamoo grazes nearby.
+One evening Pip and Miss Clou sit on a hill, watching the bright Milky Way. Stellamoo grazes nearby.
 
 An old radio crackles: *"Hello? Is anybody there? We've found something odd out here. It looks like... a really, really big
 cheese moon."*
 
-Pip looks at Tinka. Tinka sighs, sips some milk and says: *"I suppose we'll need to build a bigger ship."*
+Pip looks at Miss Clou. He sighs, sips some milk and says: *"I suppose we'll need to build a bigger ship."*
 
 Stellamoo: *"Moo."*
 
@@ -448,12 +448,12 @@ Stellamoo: *"Moo."*
   and bright again at the end.
 - **The clue board** in Pip's ship gets one piece per world: what, who, where, how to get in, the weak spot.
 
-### Tinka
-Early on Tinka turns up at important moments: comments, hints, help with machines, never quite trustworthy. From Chapter
-7 Tinka is playable; in Chapter 12–13 Tinka is lost and Pip plays alone; after Chapter 13 they are together again.
+### Miss Clou
+Early on Miss Clou turns up at important moments: comments, hints, help with machines, never quite trustworthy. From Chapter
+7 Miss Clou is playable; in Chapter 12–13 he is lost and Pip plays alone; after Chapter 13 they are together again.
 
 **Pip** fits into small passages, is light enough for some platforms, and improvises with parts.
-**Tinka** jumps further and higher, climbs some walls, uses claws to open or move things, and works old cat technology.
+**Miss Clou** jumps further and higher, climbs some walls, uses claws to open or move things, and works old cat technology.
 Using cat technology is also what gives them away in Chapter 12.
 
 ### Building
@@ -462,7 +462,7 @@ Chapter 8), and the last ship with **no cat parts allowed** (Chapter 11). Planet
 come later.
 
 ### Freeing, not defeating
-Controlled cats are freed by breaking the helmet, never hurt. The game counts them. Some come back to help, Tinka's crew
+Controlled cats are freed by breaking the helmet, never hurt. The game counts them. Some come back to help, Miss Clou's crew
 are among them, and **all of them come back for the finale**: the more cats freed, the bigger the crowd that turns its
 back on MEGA-MJAU.
 
@@ -477,9 +477,9 @@ are fixed; the way there changes.
 
 For children of about 7 to 12: suspense, humour and warmth in balance.
 
-- **Suspense:** abandoned stations, secret rooms, Tinka captured, a great final battle.
+- **Suspense:** abandoned stations, secret rooms, Miss Clou captured, a great final battle.
 - **Humour:** bottle rockets, silver tape, MEGA-MJAU in capital letters, a cow who says "Moo" at the perfect moment.
-- **Warmth:** freeing cats, sharing the last cheese, Tinka's apology, Pip rescuing Tinka.
+- **Warmth:** freeing cats, sharing the last cheese, Miss Clou's apology, Pip rescuing him.
 - **Discovery:** cheese moons, milk lakes, old stations, the mural.
 - **Creativity:** building craft from what you find, ending with a ship of pure junk.
 
@@ -490,14 +490,14 @@ MEGA-MJAU is a clear villain but ends up reset, not destroyed. Ordinary cats are
 ## 7. Central story decisions
 
 1. Stellamoo, the Holy Cow, is the source of all milk; her milk flows as the Milky Way and makes cheese grow.
-2. MEGA-MJAU, built by Tinka for a milk empire, took over, stole Stellamoo and controls cats with mind-control helmets.
-3. MEGA-MJAU's defences detect cat technology. Only a junk ship can get through, which is why Tinka needs Pip.
-4. Pip distrusts cats; Tinka looks down on mice. Both change.
+2. MEGA-MJAU, built by Miss Clou for a milk empire, took over, stole Stellamoo and controls cats with mind-control helmets.
+3. MEGA-MJAU's defences detect cat technology. Only a junk ship can get through, which is why Miss Clou needs Pip.
+4. Pip distrusts cats; Miss Clou looks down on mice. Both change.
 5. Each world gives one piece of the puzzle: what, who, where, how to get in, the weak spot.
-6. The low point: Tinka is captured and helmeted; Pip frees Tinka in the control centre with the game's own jump.
+6. The low point: Miss Clou is captured and helmeted; Pip frees him in the control centre with the game's own jump.
 7. MEGA-MJAU is beaten with a red test dot and by all the freed cats turning their backs; it is reset, not destroyed, and
    ends up working on the farm.
-8. Long ago mice and cats kept the cow together. At the end Pip and Tinka become her keepers again, on her own planet.
+8. Long ago mice and cats kept the cow together. At the end Pip and Miss Clou become her keepers again, on her own planet.
 
 ---
 
@@ -507,7 +507,7 @@ When the cheese runs out on the home planet, a stubborn little mouse called Pip 
 plastic bottle, a tin can and lots of silver tape. Pip discovers that Stellamoo, the Holy Cow, whose milk is the Milky
 Way itself, has been stolen by MEGA-MJAU, a giant robot cat.
 
-The only one who knows how to stop it is Tinka, the cat who built it. MEGA-MJAU can spot any cat ship, but it can't see
+The only one who knows how to stop it is Miss Clou, the cat who built it. MEGA-MJAU can spot any cat ship, but it can't see
 junk. So a mouse who doesn't trust cats and a cat who doesn't think much of mice have to build ships from rubbish,
 explore cheese moons and abandoned stations, and free the cats MEGA-MJAU controls. Their friendship is the one thing it
 can't compute.
@@ -518,14 +518,14 @@ A cute, funny space adventure about mice, cats, cheese, junk and friendship.
 
 ## 9. What changed from version 1
 
-- **Names:** Pip, Tinka, MEGA-MJAU, Stellamoo. A new minor character, Grandma Brie, tells the legend.
-- **Pip has a flaw:** Pip distrusts cats, and faces a choice to share the last cheese in Chapter 1.
+- **Names:** Pip, Miss Clou, MEGA-MJAU, Stellamoo. A new minor character, Grandma Brie, tells the legend.
+- **Pip has a flaw:** she distrusts cats, and faces a choice to share the last cheese in Chapter 1.
 - **Why a mouse:** MEGA-MJAU's defences detect cat technology (Chapters 2, 7, 11, 12). The last ship has no cat parts.
 - **One rule for milk:** Stellamoo's milk is the Milky Way. It fades in the sky as the game goes on.
 - **One clue per world** (Chapters 4, 6, 8, 9, 10), on a clue board in the ship.
-- **A low point:** Tinka is captured in Chapter 12 and freed by Pip in Chapter 13.
-- **Tinka's motive** includes jealousy of the mice's cheese (from the concept document), and the plan never included the cow.
-- **Tinka's crew** is planted in Chapter 2 (the photo) and Chapter 5 (the grey cat), and returns in Chapter 13.
+- **A low point:** Miss Clou is captured in Chapter 12 and freed by Pip in Chapter 13.
+- **Miss Clou's motive** includes jealousy of the mice's cheese (from the concept document), and the plan never included the cow.
+- **Miss Clou's crew** is planted in Chapter 2 (the photo) and Chapter 5 (the grey cat), and returns in Chapter 13.
 - **Stellamoo has character** and her own escape level, with platforms growing from her milk.
 - **MEGA-MJAU** has two weak spots (the red dot, being ignored), is reset rather than destroyed, and works on the farm.
 - **The farm** is on Stellamoo's planet; the temple mural shows that mice and cats once kept her together.

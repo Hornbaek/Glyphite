@@ -10,7 +10,7 @@ translated in full; the concept's own material (how the game plays, what is stil
 Nothing has been added or changed here; the cover above carries the working title *Star Whiskers*. Feedback and
 suggestions are in [FEEDBACK.md](FEEDBACK.md).
 
-**Names (decided 2026-11-12):** the mouse is **Pip**, the inventor cat is **Tinka**, the great robot cat is
+**Names (decided 2026-11-12):** the mouse is **Pip**, the inventor cat is **Miss Clou**, the great robot cat is
 **MEGA-MJAU** and the Holy Cow is **Stellamoo**. The text below still says "the mouse", "the cat" and so on, as the
 original does.
 
