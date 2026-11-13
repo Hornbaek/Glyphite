@@ -172,7 +172,9 @@ const Sampler = (() => {
   // (song.kits[id]: pads, each a note with a sample of the song or one of these sounds, its tune in semitones, level, pan and choke group)
   const DRUM_KINDS = ['kick', 'snare', 'hat', 'open', 'tom', 'crash', 'ride', 'rim', 'clap', 'shaker'];
   const isKit = id => id === 'kit' || id.startsWith('drums:');
-  const kitOf = (id, song) => id.startsWith('drums:') && song && song.kits ? song.kits[id.slice(6)] : null;
+  // a song's samples, multisamples, kits and patterns are plain objects keyed by id: only an id the song itself holds counts ('constructor' is no sample)
+  const own = (o, k) => o && typeof k === 'string' && Object.prototype.hasOwnProperty.call(o, k) ? o[k] : undefined;
+  const kitOf = (id, song) => id.startsWith('drums:') && song ? own(song.kits, id.slice(6)) : null;
   const padOf = (song, id, note) => { const ki = kitOf(id, song); return ki ? ki.pads.find(p => p.note === note) : undefined; };
   // a new kit's 16 pads: the built-in kit's most played sounds on their General MIDI notes
   const newKit = (name = 'Drum kit') => ({ name, pads: [36, 38, 37, 39, 42, 46, 41, 45, 48, 49, 51, 70, 54, 35, 40, 44].map(note => {
@@ -215,21 +217,22 @@ const Sampler = (() => {
   // made on first use, then kept: one entry per instrument and sample rate (AudioBuffers work in any audio context)
   const made = new Map();
   // a song's own sample (song.samples[id]): what it is, so a changed sample makes a new instrument
-  const sampleOf = (id, song) => id.startsWith('sample:') && song && song.samples ? song.samples[id.slice(7)] : null;
+  const sampleOf = (id, song) => id.startsWith('sample:') && song ? own(song.samples, id.slice(7)) : null;
   // several samples as one instrument (song.multis[id]): each plays over its own range of notes
-  const multiOf = (id, song) => id.startsWith('multi:') && song && song.multis ? song.multis[id.slice(6)] : null;
+  const multiOf = (id, song) => id.startsWith('multi:') && song ? own(song.multis, id.slice(6)) : null;
   const hashStr = s => { let h = 5381; for (let i = 0; i < s.length; i += 7) h = (Math.imul(h, 33) ^ s.charCodeAt(i)) >>> 0; return h.toString(36) + s.length; };
   const sampleKey = (sm, loop = sm.loop) => `${hashStr(sm.brr)}:${sm.rate}:${sm.root}:${loop}:${sm.loopEnd || 0}:${sm.xfade || 0}`;
   // where a pad's sound comes from: a sample of the song (played once), or a built-in drum sound at the track's grit; null when the sample is gone
   const padSource = (p, song, rate) => {
-    if (p.sample) { const sm = song.samples && song.samples[p.sample]; return sm ? { key: `pad:${sampleKey(sm, -1)}`, sm } : null; }
+    if (p.sample) { const sm = own(song.samples, p.sample); return sm ? { key: `pad:${sampleKey(sm, -1)}`, sm } : null; }
     return { key: `pad:${p.sound}@${rate}`, sm: null };
   };
+  const keyOfPads = (id, pads) => `${id}:${pads.map(p => `${p.note}=${p.q.key}`).join('|')}`;
   // only what makes the pads' buffers is in a kit's key: tune, level, pan and choke are read when a note starts, so turning them
   // makes nothing again
   const keyOf = (id, rate, song) => {
     const sm = sampleOf(id, song), mu = multiOf(id, song), ki = kitOf(id, song);
-    if (ki) return `${id}:${ki.pads.map(p => { const q = padSource(p, song, rate); return q ? `${p.note}=${q.key}` : ''; }).join('|')}`;
+    if (ki) return keyOfPads(id, ki.pads.map(p => ({ note: p.note, q: padSource(p, song, rate) })).filter(p => p.q));
     return mu ? `${id}:${mu.zones.map(z => `${z.lo}-${z.hi}=${sampleKey(song.samples[z.sample])}`).join('|')}` : sm ? `${id}:${sampleKey(sm)}` : id + '@' + rate;
   };
   const SAMPLE_ENV = { a: .002, d: .1, s: 1, sd: 0, r: .2 };
@@ -256,6 +259,7 @@ const Sampler = (() => {
   // An instrument is made in steps (and put in `made` when it is done); instrument() below finishes one at once.
   const jobs = new Map();   // key → the steps of an instrument being made, so whoever needs it first carries on from where it got to
   function* instrumentSteps(key, id, rate, song) {
+    const jobKey = key;
     try {
       const sm = sampleOf(id, song), mu = multiOf(id, song);
       if (sm) {
@@ -270,22 +274,24 @@ const Sampler = (() => {
         made.set(key, { zones, level: 1, env: SAMPLE_ENV, vib: [0, 5, .3], gain: 1 });
         return;
       }
-      const def = DEFS[id] || DEFS.piano, buf = z => { const b = new AudioBuffer({ length: z.data.length, sampleRate: z.rate, numberOfChannels: 1 }); b.copyToChannel(z.data, 0); return b; };
+      const def = DEFS[isKit(id) ? 'kit' : id] || DEFS.piano, buf = z => { const b = new AudioBuffer({ length: z.data.length, sampleRate: z.rate, numberOfChannels: 1 }); b.copyToChannel(z.data, 0); return b; };
       let inst;
       const ki = kitOf(id, song);
       if (ki) {   // a pad's sound is made once whoever uses it (the same sample on two pads, or in two songs, is one buffer)
+        // The pads are read once, now: the studio can change one while this is being made, and what is made must be what it is filed under
+        const pads = ki.pads.map(p => ({ note: p.note, sound: p.sound, q: padSource(p, song, rate) })).filter(p => p.q);
+        key = keyOfPads(id, pads);
         const kit = {};
-        for (const p of ki.pads) {
-          const q = padSource(p, song, rate); if (!q) continue;
+        for (const { note, sound, q } of pads) {
           if (!made.has(q.key)) {
             if (q.sm) {
               yield;
               const z = sampleZone(q.sm, -1), d = z.buffer.getChannelData(0); let pk = 0;
               for (let i = 0; i < d.length; i++) pk = Math.max(pk, Math.abs(d[i]));
               made.set(q.key, { buffer: z.buffer, norm: pk > 0 ? Math.min(4, .9 / pk) : 1 });   // as loud as the built-in sounds before the pad's level
-            } else made.set(q.key, { buffer: buf(yield* drum(rate, p.sound)), norm: 1 });
+            } else made.set(q.key, { buffer: buf(yield* drum(rate, sound)), norm: 1 });
           }
-          const b = made.get(q.key); kit[p.note] = { buffer: b.buffer, norm: b.norm, pitch: 1, choke: 0, pad: true };
+          const b = made.get(q.key); kit[note] = { buffer: b.buffer, norm: b.norm, pitch: 1, choke: 0, pad: true };
         }
         inst = { kit, level: 1 };
       } else if (id === 'kit') {
@@ -302,7 +308,7 @@ const Sampler = (() => {
       }
       inst.env = def[3]; inst.vib = def[4] || [0, 5, .3]; inst.gain = (def[5] || 1) * inst.level;
       made.set(key, inst);
-    } finally { jobs.delete(key); }
+    } finally { jobs.delete(jobKey); }
   }
   const jobOf = (key, id, rate, song) => { let g = jobs.get(key); if (!g) jobs.set(key, g = instrumentSteps(key, id, rate, song)); return g; };
   function instrument(id, rate, song) {
@@ -489,7 +495,7 @@ const Sampler = (() => {
     out.multis = {};
     for (const [id, mu] of Object.entries(s.multis && typeof s.multis === 'object' ? s.multis : {})) {
       if (!/^[a-z0-9][a-z0-9-]{0,31}$/.test(id) || !mu || !Array.isArray(mu.zones)) continue;
-      const zones = mu.zones.filter(z => z && out.samples[z.sample] && Number.isFinite(z.lo) && Number.isFinite(z.hi)).slice(0, 16)
+      const zones = mu.zones.filter(z => z && own(out.samples, z.sample) && Number.isFinite(z.lo) && Number.isFinite(z.hi)).slice(0, 16)
         .map(z => ({ sample: z.sample, lo: cl(Math.round(Math.min(z.lo, z.hi)), 0, 127), hi: cl(Math.round(Math.max(z.lo, z.hi)), 0, 127) }));
       if (zones.length) out.multis[id] = { name: String(mu.name || id).slice(0, 40), zones };
     }
@@ -502,7 +508,9 @@ const Sampler = (() => {
       const seen = new Set(), pads = [];
       for (const p of ki.pads) {
         if (!p || !Number.isFinite(p.note) || pads.length >= 32) continue;
-        const note = cl(Math.round(p.note), 0, 127), sample = typeof p.sample === 'string' && out.samples[p.sample] ? p.sample : null;
+        // a pad names a sample of the song (kept even when the song has no such sample just now: it is silent until it has, and deleting
+        // a sample does not quietly empty a kit) or, failing that, a built-in sound
+        const note = cl(Math.round(p.note), 0, 127), sample = typeof p.sample === 'string' && ID_RE.test(p.sample) && (own(out.samples, p.sample) || !DRUM_KINDS.includes(p.sound)) ? p.sample : null;
         if (seen.has(note) || !sample && !DRUM_KINDS.includes(p.sound)) continue;
         seen.add(note);
         pads.push({ note, ...(sample ? { sample } : { sound: p.sound }), tune: round2(cl(+p.tune || 0, -24, 24)), level: round2(cl(p.level == null ? 1 : +p.level || 0, 0, 2)), pan: round2(cl(+p.pan || 0, -1, 1)), choke: cl(Math.round(+p.choke || 0), 0, 8) });
@@ -512,21 +520,23 @@ const Sampler = (() => {
     if (!Object.keys(out.kits).length) delete out.kits;
     // patterns: a run of notes of its own length that clips play over and over (up to 256), with a swing that delays the off-beat
     // 16ths; only there when the song has one. Notes start inside the pattern and end at its end at the latest.
-    out.patterns = {};
+    out.patterns = {}; let nPat = 0, budget = 50000;   // budget: the notes all clips may play in all, when written out (a clip of a short pattern is many)
     for (const [id, pt] of Object.entries(s.patterns && typeof s.patterns === 'object' ? s.patterns : {})) {
-      if (!ID_RE.test(id) || !pt || Object.keys(out.patterns).length >= 256) continue;
-      const len = cl(Math.round(+pt.len) || 4 * PPQ, 1, 64 * 4 * PPQ), o = { name: String(pt.name || id).slice(0, 40), len };
-      o.notes = normNotes(pt.notes).filter(n => n[0] < len).map(([at, l, note, vel]) => [at, Math.min(l, len - at), note, vel]);
+      if (!ID_RE.test(id) || !pt) continue;
+      if (++nPat > 256) break;
+      const len = cl(Math.round(+pt.len) || 4 * PPQ, 24, 64 * 4 * PPQ), o = { name: String(pt.name || id).slice(0, 40), len };   // at least a 16th
+      o.notes = normNotes(pt.notes).filter(n => n[0] < len).slice(0, 2048).map(([at, l, note, vel]) => [at, Math.min(l, len - at), note, vel]);
       if (+pt.swing > 0) o.swing = round2(cl(+pt.swing, 0, .75));
       if (typeof pt.color === 'string' && /^#[0-9a-f]{6}$/i.test(pt.color)) o.color = pt.color.toLowerCase();
       out.patterns[id] = o;
     }
     if (!Object.keys(out.patterns).length) delete out.patterns;
     out.bpm = cl(+out.bpm || 120, 30, 300); out.beatsPerBar = cl(Math.round(out.beatsPerBar) || 4, 1, 12); out.bars = cl(Math.round(out.bars) || 8, 1, 512);
+    const songLen = out.bars * out.beatsPerBar * PPQ;
     out.tracks = (Array.isArray(s.tracks) ? s.tracks : []).slice(0, 32).map(t => {
       const tr = merge(TRACK(), t);
-      if (tr.instrument.startsWith('drums:') && !(out.kits && out.kits[tr.instrument.slice(6)])) tr.instrument = 'kit';   // a kit that is not there plays as the built-in one
-      if (!DEFS[tr.instrument] && !tr.instrument.startsWith('drums:') && !(tr.instrument.startsWith('sample:') && out.samples[tr.instrument.slice(7)]) && !(tr.instrument.startsWith('multi:') && out.multis && out.multis[tr.instrument.slice(6)])) tr.instrument = 'piano';
+      if (tr.instrument.startsWith('drums:') && !own(out.kits, tr.instrument.slice(6))) tr.instrument = 'kit';   // a kit that is not there plays as the built-in one
+      if (!DEFS[tr.instrument] && !tr.instrument.startsWith('drums:') && !(tr.instrument.startsWith('sample:') && own(out.samples, tr.instrument.slice(7))) && !(tr.instrument.startsWith('multi:') && own(out.multis, tr.instrument.slice(6)))) tr.instrument = 'piano';
       if (!RATES.includes(tr.sound.rate)) tr.sound.rate = 32000;
       tr.sound.glide = cl(+tr.sound.glide || 0, 0, 2);
       const A = t.auto && typeof t.auto === 'object' ? t.auto : {};
@@ -537,9 +547,14 @@ const Sampler = (() => {
       tr.notes = normNotes(t.notes);
       // clips (only when there are any): where this track plays a pattern. at: the tick it starts, len: the ticks it runs (longer than the
       // pattern: it repeats), off: where in the pattern it starts (a trimmed start). They play together with the loose notes above.
-      const clips = (Array.isArray(t.clips) ? t.clips : []).filter(c => c && out.patterns && out.patterns[c.p] && Number.isFinite(c.at) && Number.isFinite(c.len)).slice(0, 1024)
+      const clips = (Array.isArray(t.clips) ? t.clips : []).filter(c => c && typeof c.p === 'string' && own(out.patterns, c.p) && Number.isFinite(c.at) && Number.isFinite(c.len)).slice(0, 1024)
         .map(c => ({ at: Math.max(0, Math.round(c.at)), p: c.p, len: cl(Math.round(c.len), 1, MAX_CLIP), off: cl(Math.round(+c.off || 0), 0, out.patterns[c.p].len - 1) }))
-        .sort((a, b) => a.at - b.at || (a.p < b.p ? -1 : a.p > b.p ? 1 : 0));
+        .sort((a, b) => a.at - b.at || (a.p < b.p ? -1 : a.p > b.p ? 1 : 0))
+        .filter(c => {   // what the clip plays within the song, written out, comes out of the song's budget; a clip past it is dropped
+          const P = out.patterns[c.p], cost = P.notes.length * (Math.ceil(Math.max(0, Math.min(c.at + c.len, songLen) - c.at) / P.len) + 1);
+          if (cost > budget) return false;
+          budget -= cost; return true;
+        });
       if (clips.length) tr.clips = clips;
       return tr;
     });
@@ -548,24 +563,28 @@ const Sampler = (() => {
   const newSong = () => check({ format: 'pixelite-song', title: 'New song', tracks: [{ name: 'Piano' }] });
   const newTrack = (instrument = 'piano') => merge(TRACK(), { name: DEFS[instrument] ? DEFS[instrument][0] : 'Track', instrument });
   const songEnd = s => s.bars * s.beatsPerBar * PPQ;
-  // The notes a track's clips play that start in [a, b) ticks, handed to fn(tick, length, note, velocity) in song time. A clip plays its pattern
-  // from `off`, again and again, and ends where the clip does (a note running past it is cut); a pattern's swing delays its notes on the off-beat
-  // 16ths. A note that began before a trimmed start is not played.
+  // The notes a track's clips play that start in [a, b) ticks, handed to fn(tick, length, note, velocity) in song time (for a song that has been
+  // through check()). A clip plays its pattern from `off`, again and again, and ends where the clip does (a note running past it is cut); a
+  // pattern's swing delays its notes on the off-beat 16ths of the pattern (so a pattern that is not a whole number of beats long swings differently
+  // each time round). A note that began before a trimmed start is not played, swung or not. Nothing is played past the song's end.
   function clipNotes(song, tr, a, b, fn) {
+    const limit = songEnd(song);
     for (const c of tr.clips || []) {
-      const P = song.patterns && song.patterns[c.p], end = c.at + c.len;
-      if (!P || c.at >= b || end <= a) continue;
-      const delay = P.swing ? Math.round(P.swing * 24) : 0, lo = Math.max(c.at, a), hi = Math.min(end, b);
+      const P = own(song.patterns, c.p), end = c.at + c.len;
+      if (!P || !P.notes.length || c.at >= b || end <= a) continue;
+      const delay = P.swing ? Math.round(P.swing * 24) : 0, hi = Math.min(end, b, limit);   // (nothing is played past the song's end)
       for (let k = Math.max(0, Math.floor((a - c.at + c.off) / P.len) - 1); c.at - c.off + k * P.len < hi; k++) {
         const base = c.at - c.off + k * P.len;
         for (const [at, len, note, vel] of P.notes) {
+          if (base + at < c.at) continue;   // began before a trimmed start (judged before swing moves it)
           const x = base + at + (delay && at % 48 === 24 ? delay : 0);
-          if (x >= lo && x < hi) fn(x, Math.min(len, end - x), note, vel);
+          if (x >= a && x < hi) fn(x, Math.min(len, end - x), note, vel);
         }
       }
     }
   }
-  // all the notes of a track in song time, in order: its loose notes and what its clips play (for a view of the song, an export, a check)
+  // all the notes of a track in song time, in order: its loose notes and what its clips play (for a view of the song, an export, a check); with no
+  // clips it is the track's own list, which a caller must not change
   function notesOf(song, tr) {
     if (!tr.clips || !tr.clips.length) return tr.notes;
     const out = tr.notes.slice();
@@ -709,13 +728,14 @@ const Sampler = (() => {
   function startVoice(M, song, ti, note, vel, t, dur, bend = 0, loopPos = null) {
     const tr = song.tracks[ti], S = M.strips[ti]; if (!tr || !S) return null;
     const inst = instrument(tr.instrument, tr.sound.rate, song), c = M.ctx;
-    let buffer, rateMul, loop = false, loopStart = 0, loopEnd = 0, choke = 0, kit = !!inst.kit, zgain = 1, pan = 0;
+    let buffer, rateMul, loop = false, loopStart = 0, loopEnd = 0, choke = 0, kit = !!inst.kit, zgain = 1, pan = 0, panned = false;
     if (kit) {
       const k = inst.kit[note]; if (!k) return null;
       buffer = k.buffer; rateMul = k.pitch; choke = k.choke;
       if (k.pad) {   // a pad of the song's own kit: its tune, level, pan and choke group as they are now (the buffer only depends on the sound)
         const p = padOf(song, tr.instrument, note) || {};
         rateMul = Math.pow(2, (p.tune || 0) / 12); choke = p.choke | 0; zgain = k.norm * (p.level == null ? 1 : p.level); pan = p.pan || 0;
+        panned = true;   // every voice of a kit track goes through a panner, centred or not: mono and stereo voices meeting in one input would not be as loud as each other
       }
     } else {
       const n = note + 12 * tr.sound.octave + tr.sound.fine / 100;
@@ -749,7 +769,7 @@ const Sampler = (() => {
     else src.playbackRate.value = rateMul;
     if (loop) { src.loop = true; src.loopStart = loopStart; src.loopEnd = loopEnd; }
     src.connect(gn);
-    if (pan && c.createStereoPanner) { const sp = c.createStereoPanner(); sp.pan.value = cl(pan, -1, 1); gn.connect(sp); sp.connect(S.in); } else gn.connect(S.in);
+    if ((pan || panned) && c.createStereoPanner) { const sp = c.createStereoPanner(); sp.pan.value = cl(pan, -1, 1); gn.connect(sp); sp.connect(S.in); } else gn.connect(S.in);
     if (!kit && laneOf(tr, 'pitch').length) { S.pitch.connect(src.detune); src.onended = () => { try { S.pitch.disconnect(src.detune); } catch (e) { } }; }
     // drums ignore note-offs
     const p = gn.gain, off = kit || dur == null ? Infinity : Math.max(.005, dur);
@@ -812,8 +832,11 @@ const Sampler = (() => {
         const v = startVoice(M, song, ti, note, vel, tickTime(at), dur(at, len), 0, loopLane.length ? laneAt(loopLane, at) : null);
         if (v && isKit(tr.instrument) && note >= 35 && note <= 40 && M.hits) M.hits.push([tickTime(at), vel / 127]);
       };
-      for (let i = lo; i < N.length && N[i][0] < b; i++) play(...N[i]);
-      clipNotes(song, tr, a, b, play);
+      if (tr.clips && tr.clips.length) {   // one list in time order, so a note that cuts another (a choke group) starts after it, whichever it came from
+        const all = []; for (let i = lo; i < N.length && N[i][0] < b; i++) all.push(N[i]);
+        clipNotes(song, tr, a, b, (at, len, note, vel) => all.push([at, len, note, vel]));
+        for (const n of all.sort((x, y) => x[0] - y[0] || x[2] - y[2])) play(...n);
+      } else for (let i = lo; i < N.length && N[i][0] < b; i++) play(...N[i]);
     });
     if (clicks) for (let k = Math.ceil(a / PPQ) * PPQ; k < b; k += PPQ) clicks(tickTime(k), Math.round(k / PPQ) % song.beatsPerBar === 0);
   }

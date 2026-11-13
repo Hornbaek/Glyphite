@@ -95,7 +95,7 @@ export function lint(s, S = null) {   // S: the Sampler (tools/song.mjs exports 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (process.argv[2] !== 'lint' || !process.argv[3]) { console.error('usage: node songkit.mjs lint <song.json>'); process.exit(2); }
   const { Sampler } = await import('../../../tools/song.mjs');   // (only the command line needs the engine: the kit itself does not)
-  const warnings = lint(JSON.parse(readFileSync(process.argv[3], 'utf8')), Sampler);
+  const warnings = lint(Sampler.check(JSON.parse(readFileSync(process.argv[3], 'utf8'))), Sampler);   // checked first: a clip written by hand has no `off` until it is
   console.log(warnings.length ? warnings.join('\n') : 'lint: no warnings');
   process.exit(warnings.length ? 1 : 0);
 }

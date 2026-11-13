@@ -1313,6 +1313,19 @@ changes; "make unique" splits one off), and the arranger sits above the editor w
 - **MIDI**: a song of clips is written as the notes they play; a kit travels in the file (its pads, and the samples on them) like a
   sample or a multisample does, on channel 10, and comes back as itself.
 - Every new field is only in a song when it has some: the shipped songs check to exactly what they were (a test).
+- **Reviewed before merging** (a second model, read-only, at high effort, against the diff), then each finding checked by hand:
+  - *Must-fix, both reproduced:* an id like `constructor` or `toString` counted as a kit, sample or pattern (the song's maps are plain objects), kept by
+    `check()` and then throwing in `ready()`: lookups are by own key now, in the engine and the MIDI reader (which uses maps without a prototype). And
+    a pattern one tick long with one maximum clip wrote out 590 000 notes in a 4-bar song (ten clips: 5.9 million, 668 MB): a pattern is at least a 16th
+    and holds at most 2048 notes, nothing a clip plays starts past the song's end, and all clips share a budget of 50 000 written-out notes.
+  - *Fixed:* in a render (one big window) a closed hat from a clip did not choke an open hat from loose notes (the window's notes are one list in time
+    order now); a panned pad made the track's other voices 3 dB louder (every kit voice has a panner); a kit being made while a pad changed was filed
+    under the wrong key (its pads are read once, when the job starts); the lint's command line did not `check()` a hand-written clip; a swung note
+    could pass a trimmed start that the unswung one could not; a pad whose sample is gone is kept, silent; the MIDI export said a kit plays as a
+    "pad or a marimba" in other programs, but it is drums by note number.
+  - *Left:* a kit's key hashes every pad's sample on every note (about 0.4 ms for 32 sample pads); `drums:` instruments in the studio need the studio changes
+    of steps 2 to 4 (until then clips are invisible there and a kit track's menu shows blank, though nothing breaks or is lost).
+  - Every one of these has a test that fails on the code as it was reviewed (8 of them, checked) and passes now.
 - **Tests** (`tests/node/patterns.test.mjs`, 13, and two more in `midi.test.mjs`): what `check()` keeps and drops, the clip arithmetic
   (looping, trimming, cutting, swing, overlapping clips), a random test that asking for the notes of a song window by window gives
   exactly the notes of the whole, a song with clips scheduled on the recording Web Audio exactly like the same song written out as

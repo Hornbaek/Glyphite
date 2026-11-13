@@ -289,7 +289,7 @@ test('a drum kit of the song\'s own travels in the file: its pads, their samples
     tracks: [{ name: 'Pads', instrument: 'drums:mine', volume: .6, notes: [[0, 24, 60, 100], [48, 24, 61, 90], [96, 24, 60, 70]] },
     { name: 'Bass', instrument: 'fingerbass', notes: [[0, 96, 36, 100]] }] });
   const { bytes, warnings } = midiFromSong(song, S);
-  assert.ok(warnings.some(w => /own samples/.test(w)), warnings);
+  assert.ok(warnings.some(w => /drum kit of the song's own/.test(w)) && !warnings.some(w => /pad \(looping\) or a marimba/.test(w)), warnings);
   const trackBytes = readMidi(bytes).tracks[1];
   assert.ok(trackBytes.events.every(e => e.ch === 9), 'on channel 10, where other programs put drums');
   const back = read1(bytes).song;

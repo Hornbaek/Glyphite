@@ -8,6 +8,7 @@ import { Sampler as S } from '../../tools/song.mjs';
 import { loadEngine } from './engine-harness.mjs';
 import { makeAudio } from './audio-mock.mjs';
 
+const tick = (ms = 0) => new Promise(r => setTimeout(r, ms));
 const song = (o = {}) => S.check({ format: 'pixelite-song', bpm: 120, bars: 8, ...o });
 const PAT = (o = {}) => ({ name: 'Beat', len: 96, notes: [[0, 24, 36, 100], [48, 24, 38, 100]], ...o });
 const notes = (s, i = 0) => S.notesOf(s, s.tracks[i]).map(n => n.slice(0, 3));
@@ -46,8 +47,9 @@ test('check(): patterns, clips and kits are made sane, and what cannot work is d
   assert.deepEqual(s.tracks[0].clips, [{ at: 0, p: 'b', len: 48, off: 0 }, { at: 5, p: 'a', len: 1, off: 0 }, { at: 10, p: 'a', len: 512 * 12 * 96, off: 95 }],
     'sorted, whole numbers, a clip of a pattern that is not there dropped, the offset inside the pattern, a clip no longer than the longest song');
   assert.deepEqual(s.kits.k.pads, [
-    { note: 36, sound: 'kick', tune: 24, level: 2, pan: -1, choke: 8 }, { note: 38, sample: 'thump', tune: 0, level: 1, pan: 0, choke: 0 }, { note: 127, sound: 'tom', tune: 0, level: 1, pan: 0, choke: 0 }],
-    'a note once, a sample that is there or a sound that is real; a note out of range is brought into it, as a track\'s notes are');
+    { note: 36, sound: 'kick', tune: 24, level: 2, pan: -1, choke: 8 }, { note: 38, sample: 'thump', tune: 0, level: 1, pan: 0, choke: 0 },
+    { note: 40, sample: 'gone', tune: 0, level: 1, pan: 0, choke: 0 }, { note: 127, sound: 'tom', tune: 0, level: 1, pan: 0, choke: 0 }],
+    'a note once, a sample or a sound that is real; a pad whose sample is not in the song (just now) stays, silent; a note out of range is brought into it');
   assert.deepEqual(Object.keys(s.kits), ['k']);
   assert.deepEqual(s.tracks.map(t => t.instrument), ['kit', 'drums:k', 'kit', 'kit'], 'a track on a kit that is not there plays the built-in one');
   assert.deepEqual(S.check(JSON.parse(JSON.stringify(s))), s, 'checking again changes nothing');
@@ -104,19 +106,21 @@ const boot = () => {
   return { E, audio, ctx: audio.ctx, run: E.run };
 };
 // play a song to its end by hand (the page's timer is stubbed): every note's start (s), pitch (a frequency multiplier) and loudness
-function schedule(s) {
+// step: seconds the clock moves between pumps (the page pumps in small windows; Sampler.render is one window for the whole song)
+function schedule(s, step = .1) {
   const { E, audio, ctx, run } = boot();
   E.ctx.__song = s; run('Sampler.prepare(__song)'); run('Sampler.play(__song, { loop: false })');
-  for (let i = 0; i < 400 && run('Sampler.playing'); i++) { ctx.currentTime += .1; run('Sampler.pump()'); }
+  for (let i = 0; i < 400 && run('Sampler.playing'); i++) { ctx.currentTime += step; run('Sampler.pump()'); }
   const voices = audio.of('buffersource').filter(n => n.started !== undefined).map(n => {
     const g = n.out[0], peak = g.gain.events.find(e => e[0] === 'lin');
-    return { t: n.started, rate: n.playbackRate.value, peak: peak ? peak[1] : 0, src: n, g, buffer: n.buffer, pan: g.out[0] && g.out[0].kind === 'stereopanner' ? g.out[0].pan.value : 0 };
+    const sp = g.out[0] && g.out[0].kind === 'stereopanner' ? g.out[0] : null;
+    return { t: n.started, rate: n.playbackRate.value, peak: peak ? peak[1] : 0, src: n, g, buffer: n.buffer, panner: !!sp, pan: sp ? sp.pan.value : 0 };
   });
   const t0 = Math.min(...voices.map(v => v.t));   // the scheduler starts a song a little ahead of the clock
   for (const v of voices) { v.t -= t0; v.stop = v.src.stopped - t0; }
   return { voices: voices.sort((a, b) => a.t - b.t || a.rate - b.rate || a.peak - b.peak), run, audio, ctx, E };
 }
-const key = v => `${v.t.toFixed(4)} ${v.rate.toFixed(5)} ${v.peak.toFixed(5)}`;
+const key = v => `${v.t.toFixed(4)} ${v.rate.toFixed(5)} ${v.peak.toFixed(5)} ${v.stop.toFixed(4)}`;
 
 test('a song with clips is scheduled exactly like the same song written out as notes', () => {
   const patterns = { beat: { len: 192, swing: .25, notes: [[0, 24, 36, 120], [48, 24, 42, 70], [96, 24, 38, 110], [120, 24, 42, 70], [168, 24, 46, 90]] },
@@ -126,9 +130,11 @@ test('a song with clips is scheduled exactly like the same song written out as n
     { instrument: 'square', clips: [{ at: 96, p: 'riff', len: 300, off: 0 }] }] });
   const b = song({ bars: 4, tracks: a.tracks.map(t => ({ instrument: t.instrument, notes: S.notesOf(a, t) })) });
   assert.ok(!b.patterns && b.tracks.every(t => !t.clips));
-  const A = schedule(a).voices, B = schedule(b).voices;
-  assert.ok(A.length > 12, `${A.length} voices`);
-  assert.deepEqual(A.map(key), B.map(key));
+  for (const step of [.1, 30]) {   // the page's small windows, and one window for the whole song, as Sampler.render has
+    const A = schedule(a, step).voices, B = schedule(b, step).voices;
+    assert.ok(A.length > 12, `${A.length} voices`);
+    assert.deepEqual(A.map(key), B.map(key), `window of ${step} s: the same starts, pitches, loudness and stops`);
+  }
 });
 
 // ---- a kit of the song's own sounds ----
@@ -144,8 +150,10 @@ test('a pad plays its sample, tuned, as loud as it is set, and panned', () => {
   assert.ok(Math.abs(half.peak / full.peak - .5) < 1e-9, `level .5 is half the loudness (${half.peak / full.peak})`);
   const d = full.buffer.getChannelData(0); let mx = 0; for (const v of d) mx = Math.max(mx, Math.abs(v));
   assert.ok(Math.abs(mx * full.peak / (Math.pow(100 / 127, 1.5) * 1.2) - .9) < .01, 'a pad\'s sample is brought to the loudness of the built-in sounds before its level');
-  assert.equal(full.pan, 0); assert.equal(half.pan, -.5, 'a panner of its own');
-  assert.ok(half.src.buffer === full.src.buffer || half.buffer.length === full.buffer.length);
+  assert.ok(full.panner && full.pan === 0, 'a centred pad has a panner too: mono and stereo voices meeting in one input would differ by 3 dB');
+  assert.equal(half.pan, -.5, 'a panner of its own');
+  const plain = schedule(song({ bars: 1, tracks: [{ instrument: 'kit', notes: [[0, 24, 36, 100]] }] })).voices[0];
+  assert.ok(!plain.panner, 'the built-in kit\'s voices are as they were');
 });
 
 test('a built-in sound on a pad, the beat pulse, and a missing sample that makes no sound and no error', () => {
@@ -188,4 +196,71 @@ test('a new kit has 16 pads on General MIDI notes that all sound, and the kit of
   assert.deepEqual(S.check({ format: 'pixelite-song', kits: { m: k }, tracks: [{ instrument: 'drums:m' }] }).kits.m.pads, k.pads, 'check() keeps a new kit whole');
   assert.ok(S.isKit('kit') && S.isKit('drums:x') && !S.isKit('piano') && !S.isKit('sample:x'));
   assert.deepEqual(S.DRUM_KINDS.slice().sort(), ['clap', 'crash', 'hat', 'kick', 'open', 'ride', 'rim', 'shaker', 'snare', 'tom']);
+});
+
+// ---- what a reviewer found ----
+test('an id that is a property of every object is no id: check() makes nothing of it, and nothing that passed it throws', async () => {
+  const s = S.check(JSON.parse(`{"format":"pixelite-song",
+    "kits":{"k":{"name":"K","pads":[{"note":38,"sample":"constructor"},{"note":36,"sound":"kick"}]},"__proto__":{"pads":[{"note":1,"sound":"kick"}]}},
+    "patterns":{"a":{"len":96,"notes":[[0,24,36,100]]},"__proto__":{"len":96,"notes":[]}},
+    "samples":{"__proto__":{"rate":16000,"root":60,"loop":-1,"brr":"AAAAAAAAAAAA"}},
+    "tracks":[{"instrument":"drums:constructor"},{"instrument":"drums:toString"},{"instrument":"sample:constructor"},{"instrument":"multi:hasOwnProperty"},
+      {"instrument":"drums:k","clips":[{"at":0,"p":"constructor","len":96},{"at":0,"p":"toString","len":96},{"at":0,"p":"__proto__","len":96},{"at":96,"p":"a","len":96}]}]}`));
+  assert.deepEqual(s.tracks.map(t => t.instrument), ['kit', 'kit', 'piano', 'piano', 'drums:k']);
+  assert.deepEqual(s.tracks[4].clips, [{ at: 96, p: 'a', len: 96, off: 0 }], 'a clip of a pattern the song does not hold, whatever its name');
+  assert.deepEqual(Object.keys(s.kits), ['k']); assert.equal(Object.getPrototypeOf(s.kits), Object.prototype); assert.equal({}.pads, undefined);
+  const { E, run } = boot(); E.ctx.__song = s;
+  assert.doesNotThrow(() => run('Sampler.ready(__song)'));
+  await run('Sampler.prepare(__song)'); run('Sampler.play(__song, { loop: false })');
+});
+
+test('what a song can make of its clips is bounded: a pattern is at least a 16th, its notes are capped, nothing plays past the song, and written out they fit a budget', () => {
+  const p = S.check({ format: 'pixelite-song', patterns: { a: { len: 1, notes: Array.from({ length: 5000 }, () => [0, 1, 36, 100]) } } }).patterns.a;
+  assert.equal(p.len, 24, 'a pattern one tick long would make a clip of it half a million notes'); assert.equal(p.notes.length, 2048);
+  const one = song({ bars: 1, patterns: { a: PAT({ notes: [[0, 24, 36, 100]] }) }, tracks: [{ clips: [{ at: 0, p: 'a', len: 100000, off: 0 }] }] });
+  assert.equal(S.notesOf(one, one.tracks[0]).length, 4, 'a bar is four beats: the clip runs on, the notes do not (and an export does not write them)');
+  const t0 = Date.now(), attack = song({ bars: 512, patterns: { a: { len: 24, notes: Array.from({ length: 2048 }, () => [0, 1, 36, 100]) } },
+    tracks: [{ instrument: 'kit', clips: [{ at: 0, p: 'a', len: 589824, off: 0 }] }] });
+  assert.ok(!attack.tracks[0].clips, 'a clip that would play 16 million notes is dropped'); assert.ok(Date.now() - t0 < 1000);
+  const real = song({ bars: 512, patterns: { a: { len: 384, notes: Array.from({ length: 16 }, (_, i) => [i * 24, 12, 36, 100]) } }, tracks: [{ clips: [{ at: 0, p: 'a', len: 512 * 384, off: 0 }] }] });
+  assert.equal(real.tracks[0].clips.length, 1, 'a 512 bar song of a busy beat is far inside the budget'); assert.equal(S.notesOf(real, real.tracks[0]).length, 16 * 512);
+  const two = song({ bars: 64, patterns: { a: PAT({ notes: Array.from({ length: 100 }, () => [0, 24, 36, 100]) }) }, tracks: [{ clips: [{ at: 0, p: 'a', len: 64 * 384, off: 0 }, { at: 0, p: 'a', len: 64 * 384, off: 0 }] }] });
+  assert.equal(two.tracks[0].clips.length, 1, 'the budget is shared: the second clip does not fit');
+});
+
+test('a note that began before a trimmed start is not played even when swing would move it past the start', () => {
+  const s = song({ patterns: { b: { len: 96, notes: [[0, 12, 42, 100], [24, 12, 42, 100]], swing: .5 } }, tracks: [{ instrument: 'kit', clips: [{ at: 100, p: 'b', len: 120, off: 30 }] }] });
+  assert.deepEqual(notes(s).map(n => n[0]), [166, 202], 'the note at 24 of the first round (before the start at 30) is not played, though swing would put it at 106; the next round plays: 0 at 166, 24 swung to 202');
+});
+
+test('choke groups work across loose notes and clips, in the page\'s small windows and in one big window (a render)', () => {
+  const hat = (note, sound, choke) => ({ note, sound, tune: 0, level: 1, pan: 0, choke });
+  const s = song({ bars: 1, kits: { k: { name: 'K', pads: [hat(42, 'hat', 1), hat(46, 'open', 1)] } }, patterns: { c: { len: 96, notes: [[48, 12, 42, 100]] } },
+    tracks: [{ instrument: 'drums:k', notes: [[0, 12, 46, 100], [96, 12, 46, 100], [192, 12, 46, 100]], clips: [{ at: 0, p: 'c', len: 288, off: 0 }] }] });
+  const flat = song({ bars: 1, kits: s.kits, tracks: [{ instrument: 'drums:k', notes: S.notesOf(s, s.tracks[0]) }] });
+  for (const step of [.1, 30]) {
+    const A = schedule(s, step).voices.filter(v => v.buffer.duration > .3), B = schedule(flat, step).voices.filter(v => v.buffer.duration > .3);   // the open hats
+    assert.equal(A.length, 3);
+    assert.deepEqual(A.map(v => v.stop.toFixed(4)), B.map(v => v.stop.toFixed(4)), `window of ${step} s`);
+    assert.ok(A.every(v => v.stop < v.t + .3), `each open hat is cut by the closed hat a quarter second later (${A.map(v => v.stop - v.t)})`);
+  }
+});
+
+test('a kit that changes while it is being made is filed under what it was made of', async () => {
+  const { E, audio, ctx, run } = boot(), q = [];
+  E.ctx.__q2 = f => q.push(f); run('Sampler.build.later = __q2; Sampler.build.sliceMs = 0');   // one step a slice, and the test says when
+  const pad = (note, sound) => ({ note, sound, tune: 0, level: 1, pan: 0, choke: 0 });
+  const s = song({ bars: 1, kits: { k: { name: 'K', pads: [pad(36, 'kick'), pad(38, 'crash')] } }, tracks: [{ instrument: 'drums:k', notes: [[0, 12, 38, 100]] }] });
+  E.ctx.__song = s;
+  const done = run('Sampler.prepare(__song)');
+  q.shift()();                                   // the first step: the kit job starts and reads its pads
+  s.kits.k.pads[1].sound = 'rim';                // the studio changes a pad while it goes on
+  for (let i = 0; i < 300; i++) { while (q.length) q.shift()(); await tick(); }
+  await done;
+  s.kits.k.pads[1].sound = 'crash';              // and back (an undo)
+  assert.equal(run('Sampler.ready(__song)'), true);
+  run('Sampler.play(__song, { loop: false })'); ctx.currentTime += 1; run('Sampler.pump()');
+  const v = audio.of('buffersource').filter(n => n.started !== undefined);
+  assert.equal(v.length, 1);
+  assert.ok(v[0].buffer.duration > 1.5, `pad 38 plays a ${v[0].buffer.duration.toFixed(2)} s sound: the crash, not the rim it was briefly`);
 });

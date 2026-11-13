@@ -158,7 +158,7 @@ export function songFromMidi(input, S, opts = {}) {
   const m = readMidi(input), warnings = [...m.warnings], k = S.PPQ / m.div, T = t => Math.round(t * k);
   const ids = new Set(S.INSTRUMENTS.map(i => i.id)), nameOf = Object.fromEntries(S.INSTRUMENTS.map(i => [i.id, i.name]));
   // the song's own sounds that a file written here carries
-  const samples = {}, multis = {}, kits = {};
+  const samples = Object.create(null), multis = Object.create(null), kits = Object.create(null);   // (no prototype: a file's id can be 'constructor')
   for (const x of m.extras) {
     if (x.pixelite === 'sample' && typeof x.id === 'string' && x.brr) samples[x.id] = { name: x.name, rate: x.rate, root: x.root, loop: x.loop, loopEnd: x.loopEnd, xfade: x.xfade, brr: x.brr };
     else if (x.pixelite === 'multi' && typeof x.id === 'string' && Array.isArray(x.zones)) multis[x.id] = { name: x.name, zones: x.zones };
@@ -286,7 +286,7 @@ export function songFromMidi(input, S, opts = {}) {
   // opts.title wins; else the sequence name (the first track's name, when it holds no notes); else opts.name (the file's name)
   const title = (opts.title || (first && first.name && !first.events.some(e => e.k === 'on') ? first.name : opts.name) || 'Imported MIDI').slice(0, 60);
   // the samples the kept tracks play (and the ones a multisample of theirs is made of)
-  const useSamples = {}, useMultis = {}, useKits = {};
+  const useSamples = Object.create(null), useMultis = Object.create(null), useKits = Object.create(null);
   for (const t of tracks) {
     if (t.instrument.startsWith('drums:') && kits[t.instrument.slice(6)]) { const id = t.instrument.slice(6); useKits[id] = kits[id]; for (const p of kits[id].pads || []) if (p && samples[p.sample]) useSamples[p.sample] = samples[p.sample]; }
     if (t.instrument.startsWith('multi:') && multis[t.instrument.slice(6)]) { const id = t.instrument.slice(6); useMultis[id] = multis[id]; for (const z of multis[id].zones || []) if (samples[z.sample]) useSamples[z.sample] = samples[z.sample]; }
@@ -334,7 +334,7 @@ export function midiFromSong(song, S) {
     const ki = t.instrument.startsWith('drums:') ? (song.kits || {})[t.instrument.slice(6)] : null;
     if (ki) {   // a kit of the song's own: its pads travel (and the samples on them); other programs play the drums by note number
       for (const p of ki.pads) if (p.sample && song.samples && song.samples[p.sample]) carry('sample', p.sample, song.samples[p.sample]);
-      carry('kit', t.instrument.slice(6), ki); return ki.pads.some(p => p.sample) ? 0 : null;
+      carry('kit', t.instrument.slice(6), ki); kitTracks++; return 0;
     }
     const sm = t.instrument.startsWith('sample:') ? (song.samples || {})[t.instrument.slice(7)] : null, mu = t.instrument.startsWith('multi:') ? (song.multis || {})[t.instrument.slice(6)] : null;
     if (sm) { carry('sample', t.instrument.slice(7), sm); return sampleProgram(sm); }
@@ -356,7 +356,7 @@ export function midiFromSong(song, S) {
 
   const channels = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15]; let next = 0, shared = false;
   const trackChunks = [];
-  let missing = false, lanesLeft = false, customs = 0;
+  let missing = false, lanesLeft = false, customs = 0, kitTracks = 0;
   for (const t of song.tracks) {
     const drums = S.isKit(t.instrument), ch = drums ? 9 : channels[next++ % channels.length];
     const notes = S.notesOf(song, t);   // a track's clips as the notes they play
@@ -364,7 +364,7 @@ export function midiFromSong(song, S) {
     const A = t.auto || {};
     const mine = ownProgram(t);
     const known = t.instrument in INSTRUMENT_TO_GM || drums || mine !== null;
-    if (mine !== null) customs++;
+    if (mine !== null && !drums) customs++;   // (a kit is counted apart: it is not a pad or a marimba elsewhere, it is drums)
     const e = [ev(0, 0, meta(0x03, str(t.name)))];
     if (known) e.push(ev(0, 0, meta(0x01, str(TAG + t.instrument))));
     e.push(ev(0, 0, [0xB0 | ch, 7, Math.round(clamp(t.volume, 0, 1) * 127)]));
@@ -384,6 +384,7 @@ export function midiFromSong(song, S) {
   }
   // the conductor is written last, once the sounds the tracks carry are in it
   const chunks = [chunk(conductor, endTick), ...trackChunks];
+  if (kitTracks) warnings.push(`${kitTracks} track(s) play a drum kit of the song's own: the kit and its samples are in the file for Pixelite, and other programs play those notes as General MIDI drums`);
   if (customs) warnings.push(`${customs} track(s) play the song's own samples: they are in the file for Pixelite, and other programs play them as a pad (looping) or a marimba`);
   if (missing) warnings.push('a track plays a sample the song does not hold: it is written as a piano');
   if (lanesLeft) warnings.push('filter, echo, reverb and loop-point lanes are not in a MIDI file');
