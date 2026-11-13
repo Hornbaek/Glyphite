@@ -1362,6 +1362,24 @@ The second step of the plan in HISTORY 60: the studio itself can now make a patt
   (now it keeps the beat); changing the beat's length, or adding, moving, duplicating or deleting a track, stops a playing beat (its copy of the song would be out of date);
   a new beat's default name is never one another beat has.
 
+## 62. The studio's beat machine, step 3: the arranger with clips (Claude Code, 2026-11-13)
+
+- **Clips as blocks** in the overview's lanes (now 26 px tall): in their beat's colour, named, a notch where the beat comes round again, the selected ones outlined,
+  the track's loose notes drawn over them. Gestures: drag a beat from the list onto a lane (a clip on the bar under the pointer), drag the body to move (`Alt`: copy),
+  the right edge to loop, the left edge to trim (the end stays, the beat is shown from further in; going earlier wraps round), `Shift` for the grid instead of the
+  bar, `Shift`-click for several, `Ctrl+E` to cut at the start mark or the playhead, `Ctrl+D` to duplicate, `Del`, and a right-click menu (open, rename the beat,
+  split, duplicate, loop to the end, make unique, select every clip of the beat, turn into notes, delete). Each gesture is one undo step. The arranger has the keys
+  while a clip is what was last clicked; the roll has them after a click in it.
+- **The pure part** (`beats-core.mjs`, `tests/node/beats.test.mjs`): `repeatsOf`, `splitClip` (the second part's `off` follows on, so the two sound what the one did),
+  `trimStart`, `makeUnique` (clips given play the copy, the others stay linked), `flattenClip` (the track sounds the same, now with its own notes).
+- Checked in the browser with the mouse (`tests/studio.py`): loop by the edge, move, Alt-copy, trim, cut, duplicate, delete, the menu, make unique, turn into notes,
+  a beat dragged from the list.
+- **Review fixes** (reproduced first): clips of a deleted track stayed selected and threw in "Turn into notes" and Alt-copy (the selection is now cleaned after every change);
+  an Alt-drag that ended where it began left an exact duplicate clip on top (no copy, no undo step now; a move that changes nothing makes no undo step either); a clip
+  shorter than its step jumped a whole bar when an edge was nudged (short clips move their edges by the grid); a right-click on the overview moved the start mark (only the
+  left button does now); Ctrl+E cuts from either editor; "Make unique" opens the copy only if that beat was the open one; a beat opens from its own start (the roll could be
+  scrolled far past a one-bar beat); a long message in the header no longer wraps it and pushes the whole studio down (it is cut short, its tooltip has all of it). A trim test that could not fail (the clip was too short to trim) was found and rebuilt on a longer clip.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

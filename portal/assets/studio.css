@@ -3,7 +3,7 @@ html,body.studio{height:100%}
 body.studio{display:flex;flex-direction:column;overflow:hidden}
 .ebar .title{font:700 14px var(--mono);color:var(--bright);background:transparent;border:1px solid transparent;border-radius:2px;padding:4px 6px;min-width:8em;max-width:26em}
 .ebar .title:hover,.ebar .title:focus{border-color:var(--rim2);background:var(--void)}
-.ebar .saved{font-size:12px}
+.ebar .saved{font-size:12px;max-width:14em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}   /* a long message must not wrap the header and push the whole studio down */
 .ebar select,.transport input,.transport select{font:12px var(--mono);color:var(--phosphor);background:var(--void);border:1px solid var(--rim2);border-radius:2px;padding:5px 6px}
 .ebar{position:relative}
 .menu{position:absolute;right:90px;top:46px;z-index:5;display:flex;flex-direction:column;background:var(--panel2);border:1px solid var(--rim2);border-radius:2px;min-width:300px;box-shadow:0 8px 24px #000a}
@@ -170,3 +170,6 @@ dialog .row{display:flex;gap:10px;align-items:center}
 .pickrow { display: flex; gap: 8px; align-items: baseline; padding: 3px 4px; cursor: pointer; }
 .pickrow:hover { background: #0f1520; }
 .recmeter { width: 100%; max-width: 360px; background: #05070c; display: block; margin: 8px 0; }
+.menu hr{border:0;border-top:1px solid var(--rim);margin:3px 0;width:100%}
+.menu button:disabled{opacity:.4;cursor:not-allowed}
+#ctx{z-index:20}

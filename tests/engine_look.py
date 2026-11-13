@@ -33,6 +33,7 @@ HELPERS = """() => {
     rock: null,
     bare(w = 360, h = 160, opts = {}) {
       Pixelite.test.start(); Pixelite.test.freeze();
+      say = () => {}; FEED.length = 0;   // (the feed's message box lives on the wall clock, 1.6 s: on a slow machine it was in some of a test's pictures and not in others)
       for (const k of ['update', 'camera', 'draw', 'lights', 'markDyn', 'hud', 'chunkStep', 'onBlast', 'sky', 'skyBegin', 'drawFront']) GAME[k] = null;
       GAME.stars = 0; setCamera(null);
       if (!LT.rock) LT.rock = defineMaterial('lt-rock', { albedo: [.6, .56, .5], shades: 6 });

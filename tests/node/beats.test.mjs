@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Sampler as S } from '../../tools/song.mjs';
-import { addBeat, newBeatId, usesOf, removeBeat, tidyBeat, setLength, stepVel, setStep, nextAccent, accentOf, ACCENTS, rowsOf, MAIN_ROWS, addClip, beatFromNotes, beatsOf } from '../../portal/assets/beats-core.mjs';
+import { addBeat, newBeatId, usesOf, removeBeat, tidyBeat, setLength, stepVel, setStep, nextAccent, accentOf, ACCENTS, rowsOf, MAIN_ROWS, addClip, beatFromNotes, beatsOf, sortClips, clipEnd, repeatsOf, splitClip, trimStart, makeUnique, flattenClip } from '../../portal/assets/beats-core.mjs';
 
 const song = (o = {}) => S.check({ format: 'pixelite-song', bpm: 120, bars: 8, tracks: [{ name: 'Drums', instrument: 'kit' }, { name: 'Lead', instrument: 'square' }], ...o });
 const sound = s => JSON.stringify(S.notesOf(s, s.tracks[0]));
@@ -90,4 +90,56 @@ test('clips are kept in time order and the beats are listed', () => {
   assert.deepEqual(s.tracks[0].clips.map(c => [c.at, c.p, c.len, c.off]), [[0, a, 96, 24], [0, b, 384, 0], [768, a, 384, 0]]);
   assert.deepEqual(beatsOf(s).map(([id]) => id), [a, b]);
   assert.deepEqual(S.check(s).tracks[0].clips, s.tracks[0].clips);
+});
+
+// what the arranger does to clips: each must leave the track sounding as it says
+const clipSong = () => {
+  const s = song(), id = addBeat(s, { len: 384, notes: [[0, 24, 36, 100], [96, 24, 38, 90], [192, 24, 36, 100], [288, 24, 42, 80]] });
+  const c = addClip(s.tracks[0], { at: 384, p: id, len: 1152 });   // three times round
+  return { s, id, c, t: s.tracks[0] };
+};
+const at = (s, t) => S.notesOf(s, t).map(n => n[0] + ':' + n[2]).join(' ');
+
+test('repeats: the notches where a looped clip comes round again', () => {
+  const { s, c } = clipSong();
+  assert.deepEqual(repeatsOf(s, c), [768, 1152]);
+  assert.deepEqual(repeatsOf(s, { at: 400, p: c.p, len: 700, off: 100 }), [684, 1068], 'a trimmed start: the beat comes round 284 ticks in');
+});
+
+test('split: two clips of the same beat that sound exactly what the one did', () => {
+  const { s, c, t } = clipSong(), before = at(s, t);
+  const [a, b] = splitClip(s, t, c, 960);
+  assert.deepEqual([a.at, a.len, a.off, b.at, b.len, b.off, b.p], [384, 576, 0, 960, 576, 192, c.p]);
+  assert.equal(at(s, t), before, 'no note crosses the cut here, so nothing changes');
+  assert.equal(splitClip(s, t, a, 384), null, 'not at the very start'); assert.equal(splitClip(s, t, a, 960), null, 'not at its end');
+  assert.deepEqual(S.check(s).tracks[0].clips, t.clips);
+});
+
+test('trim the start: the end stays, the beat is shown from further in; earlier wraps round', () => {
+  const { s, c, t } = clipSong();
+  assert.equal(trimStart(s, c, 480), true);
+  assert.deepEqual([c.at, c.len, c.off], [480, 1056, 96]);
+  assert.equal(at(s, t).split(' ')[0], '480:38', 'the kick at the old start is not heard any more');
+  assert.equal(trimStart(s, c, 384), true); assert.deepEqual([c.at, c.len, c.off], [384, 1152, 0], 'trimmed back: as it was');
+  assert.equal(trimStart(s, c, 300), true); assert.deepEqual([c.at, c.len, c.off], [300, 1236, 300], 'earlier than the start: the beat from before it');
+  assert.equal(trimStart(s, c, 1536), false, 'not past the end'); assert.deepEqual(S.check(s).tracks[0].clips, t.clips);
+});
+
+test('make unique: a copy of its own; the others stay linked', () => {
+  const { s, id, c, t } = clipSong(), d = addClip(t, { at: 2000, p: id, len: 384 });
+  const nid = makeUnique(s, id, [d]);
+  assert.notEqual(nid, id); assert.equal(d.p, nid); assert.equal(c.p, id);
+  s.patterns[nid].notes.push([48, 24, 49, 100]);
+  assert.equal(s.patterns[id].notes.length, 4, 'the old beat is untouched'); assert.equal(s.patterns[nid].name, 'Beat 1 copy');
+  assert.equal(usesOf(s, id).length, 1);
+});
+
+test('flatten: a clip becomes the track\'s own notes and the track sounds the same', () => {
+  const { s, c, t } = clipSong(), other = addClip(t, { at: 2000, p: c.p, len: 384 }), before = at(s, t);
+  t.notes.push([5, 10, 60, 100]); const before2 = at(s, t);
+  flattenClip(S, s, t, c);
+  assert.equal(t.clips.length, 1); assert.equal(t.clips[0], other);
+  assert.equal(at(s, t), before2, 'the same notes at the same ticks'); assert.notEqual(before, before2);
+  flattenClip(S, s, t, other); assert.ok(!('clips' in t), 'the field goes with the last clip');
+  assert.equal(at(s, t), before2); assert.deepEqual(S.check(s).tracks[0].notes, t.notes);
 });
