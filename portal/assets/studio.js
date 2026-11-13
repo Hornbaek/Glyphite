@@ -73,6 +73,7 @@ function changed({ rebuild = false } = {}) {
   for (const tr of st.song.tracks) tr.notes.sort((a, b) => a[0] - b[0] || a[2] - b[2]);
   for (const P of Object.values(st.song.patterns || {})) B.tidyBeat(P);   // a beat's notes stay inside it
   st.rev++;
+  if (st.cs.size) st.cs = new Set([...st.cs].filter(c => st.song.tracks.some(t => (t.clips || []).includes(c))));   // (a deleted track's clips are no longer there to be chosen)
   if (S.ctx) { S.use(playSong()); S.sync(); }
   if (rebuild) renderAll(); else { drawArr(); drawRoll(); }
   clearTimeout(changed.t); changed.t = setTimeout(saveDraft, 600);
@@ -97,7 +98,8 @@ function undo() { if (!st.undo.length) return; st.redo.push(snap()); restore(st.
 function redo() { if (!st.redo.length) return; st.undo.push(snap()); restore(st.redo.pop()); }
 function saveDraft() { try { localStorage.setItem(DRAFT, JSON.stringify({ song: st.song, meta: st.meta, dirty: st.dirty })); } catch { } }
 function showSaved(text) {
-  $('#saved').textContent = text ?? (st.dirty ? (st.meta.id ? 'changed since saved' : 'not saved yet') : st.meta.id ? 'saved' : '');
+  const msg = text ?? (st.dirty ? (st.meta.id ? 'changed since saved' : 'not saved yet') : st.meta.id ? 'saved' : '');
+  $('#saved').textContent = msg; $('#saved').title = msg;   // (the line is cut short in the header: the whole message is its tooltip)
 }
 function load(s, meta = { id: null, updated_at: null, game: GAME_ID }, dirty = false) {
   if (S.playing) stopAll();
@@ -330,6 +332,7 @@ function drawArr() {
   if (p >= 0) { x.fillStyle = '#eef3f9'; x.fillRect(p * k, 0, 1.5, H); }
 }
 A.cv.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;   // (a right-click is for the menu, not for the start mark or a loop)
   audio();
   const r = A.cv.getBoundingClientRect(), k = (r.width - 2) / end(), bar = st.song.beatsPerBar * PPQ;
   const tickAt = ev => Math.max(0, Math.min(end(), (ev.clientX - r.left) / k));
@@ -385,7 +388,7 @@ function clipDrag(e, h, r, k) {
     const dx = (ev.clientX - r.left) / k - t0;
     if (!moved && Math.abs(dx) * k < 4) return;
     if (!moved) { moved = true; if (e.altKey && zone === 'body') { copied = true; for (const g of group) { const n = B.addClip(g.t, { at: g.c.at, p: g.c.p, len: g.c.len, off: g.c.off }); g.c = n; } st.cs = new Set(group.map(g => g.c)); } }
-    const u = clipUnit(c, ev.shiftKey), E = end();
+    const u0 = clipUnit(c, ev.shiftKey), u = zone !== 'body' && orig.len < u0 ? Math.min(st.grid, orig.len) : u0, E = end();   // (a clip shorter than the step moves its edges by the grid)
     if (zone === 'body') {
       const d = Math.max(-Math.min(...group.map(g => g.at)), snapTo(group[0].at + dx, u) - group[0].at);
       for (const g of group) g.c.at = Math.max(0, Math.min(E - 24, g.at + d));
@@ -398,6 +401,12 @@ function clipDrag(e, h, r, k) {
   const up = () => {
     removeEventListener('pointermove', mv); removeEventListener('pointerup', up);
     if (!moved) return;
+    if (copied && group.every(g => g.c.at === g.at)) {   // a copy dragged back to where it started: no copy
+      for (const g of group) g.t.clips = g.t.clips.filter(x => x !== g.c);
+      st.cs = new Set(); drawArr(); return;
+    }
+    const same = copied ? false : zone === 'body' ? group.every(g => g.c.at === g.at) : c.at === orig.at && c.len === orig.len && c.off === orig.off;
+    if (same) { drawArr(); return; }   // nothing moved: no undo step
     for (const tr of st.song.tracks) B.sortClips(tr);
     st.undo.push(before); st.redo = []; changed({ rebuild: true });
   };
@@ -456,7 +465,7 @@ A.cv.addEventListener('contextmenu', e => {
     { label: 'Duplicate (Ctrl+D)', run: dupClips },
     { label: 'Loop to the end of the song', run: () => edit(() => { for (const x of here) x.len = Math.max(1, end() - x.at); }, { rebuild: true }) },
     null,
-    { label: n > 1 ? `Make unique (a copy of the beat; ${n - 1} other clip${n > 2 ? 's stay' : ' stays'} linked)` : 'Make unique (a copy of the beat)', title: 'Edit this clip\'s beat without changing the others', run: () => { let id; edit(() => { id = B.makeUnique(st.song, c.p, here.filter(x => x.p === c.p)); }, { rebuild: true }); if (st.open) openBeat(id); } },
+    { label: n > 1 ? `Make unique (a copy of the beat; ${n - 1} other clip${n > 2 ? 's stay' : ' stays'} linked)` : 'Make unique (a copy of the beat)', title: 'Edit this clip\'s beat without changing the others', run: () => { let id; const was = c.p; edit(() => { id = B.makeUnique(st.song, was, here.filter(x => x.p === was)); }, { rebuild: true }); if (st.open && st.open.p === was) openBeat(id); } },
     { label: 'Select every clip of this beat', run: () => { st.cs = new Set(st.song.tracks.flatMap(t => (t.clips || []).filter(x => x.p === c.p))); drawArr(); } },
     { label: 'Turn into notes (no longer linked)', run: () => edit(() => { for (const x of here) { const t = st.song.tracks.find(t => (t.clips || []).includes(x)); B.flattenClip(S, st.song, t, x); } st.cs.clear(); }, { rebuild: true }) },
     null,
@@ -762,6 +771,7 @@ function openBeat(id, view) {
   if (!st.song.patterns || !st.song.patterns[id]) return;
   if (st.beat) stopAll();
   st.open = { p: id }; st.openView = view || (kitTrack(track()) ? 'grid' : 'roll'); st.picked.clear();
+  st.view.x = 0;   // (a beat is shown from its own start, wherever the song's view was)
   renderBeats(); renderPat(); drawArr(); sizeRoll(); drawRoll();
 }
 function closeBeat() {
@@ -1025,8 +1035,8 @@ addEventListener('keydown', e => {
     if (e.code in QWERTY) { e.preventDefault(); if (!e.repeat) liveOn((st.octave + 1) * 12 + QWERTY[e.code], 100, e.code); return; }
     if (e.code === 'KeyZ' || e.code === 'KeyX') { st.octave = Math.max(0, Math.min(8, st.octave + (e.code === 'KeyX' ? 1 : -1))); $('#keysBtn').textContent = `KEYS C${st.octave}`; return; }
   }
-  if (st.focus === 'arr' && (st.cs.size || (ctrl && e.code === 'KeyE'))) {   // the arranger has the keys while its clips are what was last clicked
-    if (ctrl && e.code === 'KeyE') { e.preventDefault(); splitClips(); return; }
+  if (ctrl && e.code === 'KeyE') { e.preventDefault(); splitClips(); return; }   // (from either editor: the browser's own Ctrl+E is not wanted)
+  if (st.focus === 'arr' && st.cs.size) {   // the arranger has the keys while its clips are what was last clicked
     if (ctrl && e.code === 'KeyD') { e.preventDefault(); dupClips(); return; }
     if (e.code === 'Delete' || e.code === 'Backspace') { e.preventDefault(); deleteClips(); return; }
     if (e.code === 'Escape') { st.cs.clear(); drawArr(); return; }

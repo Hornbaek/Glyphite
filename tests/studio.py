@@ -371,7 +371,21 @@ with sync_playwright() as p:
     before = st3('JSON.stringify(Sampler.notesOf(st.song, st.song.tracks[3]))')
     pg3.mouse.click(ax(900), ay(3), button='right'); pg3.click('#ctx button:has-text("Turn into notes")')
     check('Turn into notes: the clip is gone, the track plays the same notes, now its own', st3('st.song.tracks[3].clips.length') == 1 and st3('JSON.stringify(Sampler.notesOf(st.song, st.song.tracks[3]))') == before and st3('st.song.tracks[3].notes.length') == per_bar, st3('st.song.tracks[3].notes.length'))
-    # a beat dragged from the list onto a lane
+    # review fixes: a copy dragged back, a short clip's edge, a right-click, a deleted track's clips
+    st3('(st.song.tracks[3].clips = [{ at: 0, p: "beat-1", len: 384, off: 0 }], st.song.tracks[3].notes = [], st.cs.clear(), st.rev++, 0)'); pg3.mouse.click(ax(3000), ay(0))
+    n_u = st3('st.undo.length'); pg3.keyboard.down('Alt'); pg3.mouse.move(ax(100), ay(3)); pg3.mouse.down(); pg3.mouse.move(ax(100 + 768), ay(3), steps=6); pg3.mouse.move(ax(100), ay(3), steps=6); pg3.mouse.up(); pg3.keyboard.up('Alt')
+    check('an Alt-drag that ends where it started makes no copy and no undo step', clips() == [[0, 384, 0]] and st3('st.undo.length') == n_u, [clips(), st3('st.undo.length'), n_u])
+    st3('(st.song.tracks[3].clips = [{ at: 768, p: "beat-1", len: 96, off: 0 }], st.cs.clear(), st.rev++, 0)'); pg3.mouse.click(ax(3000), ay(0))
+    drag(ax(768) + 2, ay(3), ax(768 + 24) + 2, ay(3))
+    check('the start of a clip shorter than a bar moves by the grid, not by a jump of a bar', clips() == [[792, 72, 24]], clips())
+    st3('(st.start = 0, 0)'); pg3.mouse.click(ax(2000), ay(2), button='right'); pg3.keyboard.press('Escape')
+    check('a right-click on a lane does not move the start mark', st3('st.start') == 0)
+    pg3.keyboard.press('Escape')
+    pg3.mouse.click(ax(800), ay(3)); n3 = st3('st.song.tracks.length')
+    pg3.click('#strip [data-a="del"]')
+    check('clips of a deleted track are no longer selected', st3('st.song.tracks.length') == n3 - 1 and st3('st.cs.size') == 0, st3('st.cs.size'))
+    pg3.keyboard.press('Control+z')
+    # a beat dragged from the list
     pg3.drag_and_drop('#beatList .beat:first-child .bopen', '#arr', target_position={'x': ax(1536) - abox['x'], 'y': 18 + 1 * 26 + 13})
     check('a beat dragged from the list onto a lane makes a clip there, on the bar', st3('st.song.tracks[1].clips') == [{'at': 1536, 'p': 'beat-1', 'len': 384, 'off': 0}], st3('st.song.tracks[1].clips'))
     pg3.keyboard.press('Control+z'); pg3.keyboard.press('Control+z'); pg3.keyboard.press('Control+z'); pg3.keyboard.press('Control+z')

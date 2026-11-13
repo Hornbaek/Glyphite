@@ -1373,7 +1373,12 @@ The second step of the plan in HISTORY 60: the studio itself can now make a patt
 - **The pure part** (`beats-core.mjs`, `tests/node/beats.test.mjs`): `repeatsOf`, `splitClip` (the second part's `off` follows on, so the two sound what the one did),
   `trimStart`, `makeUnique` (clips given play the copy, the others stay linked), `flattenClip` (the track sounds the same, now with its own notes).
 - Checked in the browser with the mouse (`tests/studio.py`): loop by the edge, move, Alt-copy, trim, cut, duplicate, delete, the menu, make unique, turn into notes,
-  a beat dragged from the list. A trim test that could not fail (the clip was too short to trim) was found and rebuilt on a longer clip.
+  a beat dragged from the list.
+- **Review fixes** (reproduced first): clips of a deleted track stayed selected and threw in "Turn into notes" and Alt-copy (the selection is now cleaned after every change);
+  an Alt-drag that ended where it began left an exact duplicate clip on top (no copy, no undo step now; a move that changes nothing makes no undo step either); a clip
+  shorter than its step jumped a whole bar when an edge was nudged (short clips move their edges by the grid); a right-click on the overview moved the start mark (only the
+  left button does now); Ctrl+E cuts from either editor; "Make unique" opens the copy only if that beat was the open one; a beat opens from its own start (the roll could be
+  scrolled far past a one-bar beat); a long message in the header no longer wraps it and pushes the whole studio down (it is cut short, its tooltip has all of it). A trim test that could not fail (the clip was too short to trim) was found and rebuilt on a longer clip.
 
 ## Published versions (claude.ai artifact "Regolith Lander")
 
