@@ -1394,6 +1394,9 @@ The second step of the plan in HISTORY 60: the studio itself can now make a patt
 - Checked in the browser with real drops (`tests/studio.py`): a pad filled from a file, the sample played at its own pitch (440 Hz) and tuned an octave up (880 Hz), several
   files placed by name, one undo step, the inspector, a kit in the beat grid, the size warning, a sample removed, the kit deleted. The first run of the pitch check was
   wrong in the test (the tuned sample was over inside the measuring window), not in the engine.
+- **Review fixes** (reproduced first): only a sample this session made for a pad is removed when no pad plays it any more (a sample loaded for a track was being deleted when a
+  pad picked it and then dropped it); one file that is not a sound no longer fails a whole drop; a file whose name says nothing goes to a pad without a sample, never over one;
+  a pad's sample keeps its 1.5 s when its grit is changed; opening another song forgets the sounds as loaded (an id like `kick` could be re-made from the old song's audio).
 
 ## Published versions (claude.ai artifact "Regolith Lander")
 

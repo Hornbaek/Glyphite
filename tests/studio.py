@@ -463,6 +463,15 @@ with sync_playwright() as p:
     pg4.click('#trackList .trk:nth-child(1)'); pg4.click(f'#trackList .trk:nth-child({n4})')
     check('a kit over 300 KB warns that the song travels inside every game page', pg4.locator('#strip .meta.warn').count() == 1, pg4.locator('#strip .meta').all_text_contents())
     st4('(st.song.samples["big-thump"].brr = studio.S.toB64(studio.S.brrEncode(new Float32Array(1600))), 0)')
+    # review fixes: a sample you loaded yourself is not thrown away when a pad stops using it; one bad file does not spoil a drop
+    st4('(st.song.samples.mine = { name: "Mine", rate: 16000, root: 60, loop: -1, brr: studio.S.toB64(studio.S.brrEncode(new Float32Array(1600))) }, 0)')
+    pg4.click('#strip .pad[data-note="37"]')
+    pg4.select_option('#strip .ctl:has(span:text-is("Sound")) select', 's:mine'); pg4.select_option('#strip .ctl:has(span:text-is("Sound")) select', 'd:rim')
+    check('a sample you loaded yourself stays when a pad that played it takes another sound', 'mine' in st4('Object.keys(st.song.samples)'), st4('Object.keys(st.song.samples)'))
+    st4('(delete st.song.samples.mine, 0)')
+    drop('#strip .pads', [tone('Good snare.wav', 300), {'name': 'notes.wav', 'b64': base64.b64encode(b'this is not a sound').decode()}])
+    pg4.wait_for_function("Object.keys(studio.st.song.samples).includes('good-snare')", timeout=15000)
+    check('a file that is not a sound is left out and the others still fill their pads', st4('st.song.kits.kit.pads.find(p => p.note === 38).sample') == 'good-snare', st4('Object.keys(st.song.samples)'))
     pg4.select_option('#addIns', 'strings'); pg4.click('#addTrack'); n5 = st4('st.song.tracks.length')   # a sample taken out of the song: its pad goes back to a built-in sound
     pg4.select_option(f'#trackList .trk:nth-child({n5}) .tins', 'sample:big-thump')
     pg4.click('#strip [data-a="remove"]')

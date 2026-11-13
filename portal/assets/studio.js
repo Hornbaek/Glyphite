@@ -103,7 +103,7 @@ function showSaved(text) {
 }
 function load(s, meta = { id: null, updated_at: null, game: GAME_ID }, dirty = false) {
   if (S.playing) stopAll();
-  st.open = null; st.beat = null; st.rev++; st.cs.clear();
+  st.open = null; st.beat = null; st.rev++; st.cs.clear(); sources.clear(); padOwned.clear();   // (another song's sounds are not this one's)
   st.song = S.check(s); st.meta = { ...meta }; st.sel = 0; st.picked.clear(); st.undo = []; st.redo = []; st.dirty = dirty; st.start = 0;
   st.view.x = 0; st.view.top = S.isKit(st.song.tracks[0]?.instrument || '') ? 60 : 84;
   if (S.ctx) S.use(st.song);
@@ -1312,13 +1312,14 @@ function openRecorder() {
 const PAD_WORDS = [['open', 46], ['hat', 42], ['hihat', 42], ['kick', 36], ['bass drum', 36], ['snare', 38], ['rim', 37], ['clap', 39], ['tom', 45], ['crash', 49], ['ride', 51], ['shaker', 70]];
 const fallbackSound = note => (S.newKit().pads.find(p => p.note === note) || { sound: 'kick' }).sound;
 const KIT_WARN_KB = 300;
+const padOwned = new Set();   // the samples this session made for a pad: only those go when nothing plays them (a sample you loaded for a track is yours to keep)
 function newSampleId(name) { let id = slug(name).slice(0, 24) || 'sample'; for (let k = 2; st.song.samples[id]; k++) id = `${slug(name).slice(0, 20)}-${k}`; return id; }
 // a sample no track, multisample or pad plays any more goes (it was the pad's own)
 function pruneSample(id) {
   const s = st.song;
-  if (!s.samples[id] || s.tracks.some(t => t.instrument === `sample:${id}`) || Object.values(s.multis || {}).some(m => m.zones.some(z => z.sample === id))
+  if (!padOwned.has(id) || !s.samples[id] || s.tracks.some(t => t.instrument === `sample:${id}`) || Object.values(s.multis || {}).some(m => m.zones.some(z => z.sample === id))
     || Object.values(s.kits || {}).some(k => k.pads.some(p => p.sample === id))) return;
-  delete s.samples[id]; sources.delete(id);
+  delete s.samples[id]; sources.delete(id); padOwned.delete(id);
 }
 function newKitFor(i) {
   let id = 'kit'; for (let k = 2; st.song.kits?.[id]; k++) id = `kit-${k}`;
@@ -1340,15 +1341,14 @@ async function fillPads(kitId, items, note) {
   made.forEach((m, k) => {
     let pad = k === 0 && note !== undefined ? ki.pads.find(p => p.note === note) : null;
     if (!pad) { const low = m.name.toLowerCase(); for (const [w, n] of PAD_WORDS) if (low.includes(w)) { const c = ki.pads.find(p => p.note === n && !taken.has(p)); if (c) { pad = c; break; } } }
-    if (!pad) pad = ki.pads.find(p => !taken.has(p) && !p.sample);
-    if (!pad) pad = ki.pads.find(p => !taken.has(p));
+    if (!pad) pad = ki.pads.find(p => !taken.has(p) && !p.sample);   // (a file that says nothing goes to a pad with no sample of its own, never over one)
     if (pad) { taken.add(pad); place.push([pad, m]); }
   });
   edit(() => {
     for (const [pad, m] of place) {
       const id = newSampleId(m.name); sources.set(id, m.src);
       const was = pad.sample;
-      st.song.samples[id] = { name: m.name, rate: 16000, root: 60, loop: -1, brr: S.toB64(S.brrEncode(m.data)) };
+      st.song.samples[id] = { name: m.name, rate: 16000, root: 60, loop: -1, secs: 1.5, brr: S.toB64(S.brrEncode(m.data)) }; padOwned.add(id);   // (secs: a change of grit keeps it that short)
       delete pad.sound; pad.sample = id; if (was) pruneSample(was);
     }
   }, { rebuild: true });
@@ -1356,11 +1356,19 @@ async function fillPads(kitId, items, note) {
   S.prepare(st.song).then(() => renderStrip());
   showSaved(`${place.length} pad${place.length === 1 ? '' : 's'} filled${made.length > place.length ? `, ${made.length - place.length} had no pad left` : ''}`);
 }
+// decode dropped or chosen files: the ones that are sounds; one that is not does not spoil the others
+async function decodeAll(files) {
+  const r = await Promise.allSettled(files.map(async f => ({ src: await decodeFile(f), name: f.name.replace(/\.[a-z0-9]+$/i, '').slice(0, 40) || 'sample' })));
+  const items = r.filter(x => x.status === 'fulfilled').map(x => x.value), bad = r.length - items.length;
+  if (!items.length) throw new Error(r[0] && r[0].reason && r[0].reason.message ? r[0].reason.message : 'not a sound');
+  if (bad) showSaved(`${bad} file${bad > 1 ? 's' : ''} could not be read and ${bad > 1 ? 'were' : 'was'} left out`);
+  return items;
+}
 let padFile = null;   // the kit and pad a file chosen with the pad's button is for
 $('#padFile').onchange = async e => {
   const files = [...e.target.files]; if (!files.length || !padFile) return;
   audio(); showSaved('loading the sound…');
-  try { await fillPads(padFile.kit, await Promise.all(files.map(async f => ({ src: await decodeFile(f), name: f.name.replace(/\.[a-z0-9]+$/i, '').slice(0, 40) || 'sample' }))), padFile.note); }
+  try { await fillPads(padFile.kit, await decodeAll(files), padFile.note); }
   catch (err) { showSaved(`could not use that sound: ${err.message || err}`); }
 };
 function kitSection(id) {
@@ -1377,7 +1385,7 @@ function kitSection(id) {
   const grid = document.createElement('div'); grid.className = 'pads';
   const dropFiles = async (files, note) => {
     audio(); showSaved('loading the sounds…');
-    try { await fillPads(id, await Promise.all(files.map(async f => ({ src: await decodeFile(f), name: f.name.replace(/\.[a-z0-9]+$/i, '').slice(0, 40) || 'sample' }))), note); }
+    try { await fillPads(id, await decodeAll(files), note); }
     catch (err) { showSaved(`could not use that sound: ${err.message || err}`); }
   };
   const hear = note => { audio(); S.prepare(st.song).then(() => { const v = S.noteOn(st.sel, note, 100); if (v) setTimeout(() => S.noteOff(v), 600); }); };
