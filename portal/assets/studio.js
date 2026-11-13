@@ -64,7 +64,7 @@ function template() {
 function audio() {
   if (!S.ctx) S.init(new AudioContext({ latencyHint: 'interactive' }));
   if (S.ctx.state === 'suspended') S.ctx.resume();
-  S.use(st.song);
+  S.use(st.beat || st.song);   // (every click calls this: it must not hand the Sampler the song while a beat plays on its own)
 }
 
 // ---------- changes, undo, the draft ----------
@@ -74,6 +74,7 @@ function changed({ rebuild = false } = {}) {
   for (const tr of st.song.tracks) tr.notes.sort((a, b) => a[0] - b[0] || a[2] - b[2]);
   for (const P of Object.values(st.song.patterns || {})) B.tidyBeat(P);   // a beat's notes stay inside it
   st.rev++;
+  if (st.cs.size) st.cs = new Set([...st.cs].filter(c => st.song.tracks.some(t => (t.clips || []).includes(c))));   // (a deleted track's clips are no longer there to be chosen)
   if (S.ctx) { S.use(playSong()); S.sync(); }
   if (rebuild) renderAll(); else { drawArr(); drawRoll(); }
   clearTimeout(changed.t); changed.t = setTimeout(saveDraft, 600);
@@ -98,11 +99,12 @@ function undo() { if (!st.undo.length) return; st.redo.push(snap()); restore(st.
 function redo() { if (!st.redo.length) return; st.undo.push(snap()); restore(st.redo.pop()); }
 function saveDraft() { try { localStorage.setItem(DRAFT, JSON.stringify({ song: st.song, meta: st.meta, dirty: st.dirty })); } catch { } }
 function showSaved(text) {
-  $('#saved').textContent = text ?? (st.dirty ? (st.meta.id ? 'changed since saved' : 'not saved yet') : st.meta.id ? 'saved' : '');
+  const msg = text ?? (st.dirty ? (st.meta.id ? 'changed since saved' : 'not saved yet') : st.meta.id ? 'saved' : '');
+  $('#saved').textContent = msg; $('#saved').title = msg;   // (the line is cut short in the header: the whole message is its tooltip)
 }
 function load(s, meta = { id: null, updated_at: null, game: GAME_ID }, dirty = false) {
   if (S.playing) stopAll();
-  st.open = null; st.beat = null; st.rev++; st.cs.clear();
+  st.open = null; st.beat = null; st.rev++; st.cs.clear(); sources.clear(); padOwned.clear();   // (another song's sounds are not this one's)
   st.song = S.check(s); st.meta = { ...meta }; st.sel = 0; st.picked.clear(); st.undo = []; st.redo = []; st.dirty = dirty; st.start = 0;
   st.view.x = 0; st.view.top = S.isKit(st.song.tracks[0]?.instrument || '') ? 60 : 84;
   if (S.ctx) S.use(st.song);
@@ -111,6 +113,8 @@ function load(s, meta = { id: null, updated_at: null, game: GAME_ID }, dirty = f
 }
 
 // ---------- the track list ----------
+// show which track is selected without rebuilding the list
+function markSel() { $('#trackList').querySelectorAll('.trk').forEach((x, k) => x.classList.toggle('sel', k === st.sel)); }
 function renderTracks() {
   const opts = insOptions(true);
   $('#trackList').innerHTML = st.song.tracks.map((t, i) => `
@@ -126,13 +130,13 @@ function renderTracks() {
   $('#trackList').querySelectorAll('.trk').forEach((li, i) => {
     const t = st.song.tracks[i];
     li.querySelector('.tins').value = t.instrument;
-    li.addEventListener('pointerdown', e => { if (st.sel !== i) { closeBeat(); st.sel = i; st.picked.clear(); focusTrack(); renderTracks(); renderStrip(); drawArr(); drawRoll(); } });
+    li.addEventListener('pointerdown', e => { if (st.sel !== i) { closeBeat(); st.sel = i; st.picked.clear(); focusTrack(); markSel(); renderStrip(); drawArr(); drawRoll(); } });   // (the list is not rebuilt: a click on the colour box or the name must reach it)
     li.querySelector('.tcol').onchange = e => { if (e.target.value !== trackColor(i)) edit(() => { t.color = e.target.value; }, { rebuild: true }); };
     li.querySelector('.tname').onchange = e => edit(() => { t.name = e.target.value.slice(0, 40) || 'Track'; }, { rebuild: true });
     li.querySelector('.tins').onchange = e => setInstrument(i, e.target.value);
     li.querySelectorAll('[data-k]').forEach(b => b.onclick = () => edit(() => { t[b.dataset.k] = !t[b.dataset.k]; }, { rebuild: true }));
     const vol = li.querySelector('.tvol'), pan = li.querySelector('.tpan');
-    vol.oninput = () => tweak(() => { t.volume = +vol.value; }); vol.onchange = settle;
+    vol.oninput = () => tweak(() => { t.volume = +vol.value; }); vol.onchange = () => { settle(); if (!$('#mixer').hidden) renderMixer(); };
     pan.oninput = () => tweak(() => { t.pan = +pan.value; }); pan.onchange = settle;
     pan.ondblclick = () => edit(() => { t.pan = 0; }, { rebuild: true });
   });
@@ -258,6 +262,7 @@ function renderStrip() {
 }
 function trackAction(a) {
   const T = st.song.tracks, i = st.sel;
+  if (st.beat) stopAll();   // a beat playing on its own holds a copy of the song's tracks: it would play the old ones
   if (a === 'del') { const nn = S.notesOf(st.song, T[i]).length; if (T.length < 2 || (nn && !confirm(`Delete the track "${T[i].name}" and its ${nn} notes?`))) return; edit(() => { T.splice(i, 1); st.sel = Math.max(0, i - 1); }, { rebuild: true }); }
   if (a === 'dup' && T.length < 32) edit(() => { const c = JSON.parse(JSON.stringify(T[i])); c.name += ' 2'; T.splice(i + 1, 0, c); st.sel = i + 1; }, { rebuild: true });
   if (a === 'up' && i > 0) edit(() => { [T[i - 1], T[i]] = [T[i], T[i - 1]]; st.sel = i - 1; }, { rebuild: true });
@@ -330,11 +335,12 @@ function drawArr() {
   x.strokeStyle = 'rgba(238,243,249,.35)'; x.strokeRect(st.view.x * k + .5, A.RULER + st.sel * A.TH + .5, vis * k, A.TH - 1);
   x.fillStyle = '#8ceb96'; x.beginPath(); x.moveTo(st.start * k - 5, A.MK); x.lineTo(st.start * k + 5, A.MK); x.lineTo(st.start * k, A.MK + 7); x.fill();
   x.font = '9px JetBrains Mono, monospace'; x.textBaseline = 'top';
-  for (const m of st.song.markers || []) { x.fillStyle = '#c79bff'; x.fillRect(m.at * k, 0, 1.5, A.RULER - 4); x.fillText(m.name, m.at * k + 4, 1); }
+  for (const m of st.song.markers || []) { if (m.at > E) continue; x.fillStyle = '#c79bff'; x.fillRect(m.at * k, 0, 1.5, A.RULER - 4); x.fillText(m.name, m.at * k + 4, 1); }
   const p = S.playing && !st.beat ? S.position() : -1;   // (a beat playing on its own is not a place in the song)
   if (p >= 0) { x.fillStyle = '#eef3f9'; x.fillRect(p * k, 0, 1.5, H); }
 }
 A.cv.addEventListener('pointerdown', e => {
+  if (e.button !== 0) return;   // (a right-click is for the menu, not for the start mark or a loop)
   audio();
   const r = A.cv.getBoundingClientRect(), k = (r.width - 2) / end(), bar = st.song.beatsPerBar * PPQ;
   const tickAt = ev => Math.max(0, Math.min(end(), (ev.clientX - r.left) / k));
@@ -393,7 +399,7 @@ function clipDrag(e, h, r, k) {
     const dx = (ev.clientX - r.left) / k - t0;
     if (!moved && Math.abs(dx) * k < 4) return;
     if (!moved) { moved = true; if (e.altKey && zone === 'body') { copied = true; for (const g of group) { const n = B.addClip(g.t, { at: g.c.at, p: g.c.p, len: g.c.len, off: g.c.off }); g.c = n; } st.cs = new Set(group.map(g => g.c)); } }
-    const u = clipUnit(c, ev.shiftKey), E = end();
+    const u0 = clipUnit(c, ev.shiftKey), u = zone !== 'body' && orig.len < u0 ? Math.min(st.grid, orig.len) : u0, E = end();   // (a clip shorter than the step moves its edges by the grid)
     if (zone === 'body') {
       const d = Math.max(-Math.min(...group.map(g => g.at)), snapTo(group[0].at + dx, u) - group[0].at);
       for (const g of group) g.c.at = Math.max(0, Math.min(E - 24, g.at + d));
@@ -406,6 +412,12 @@ function clipDrag(e, h, r, k) {
   const up = () => {
     removeEventListener('pointermove', mv); removeEventListener('pointerup', up);
     if (!moved) return;
+    if (copied && group.every(g => g.c.at === g.at)) {   // a copy dragged back to where it started: no copy
+      for (const g of group) g.t.clips = g.t.clips.filter(x => x !== g.c);
+      st.cs = new Set(); drawArr(); return;
+    }
+    const same = copied ? false : zone === 'body' ? group.every(g => g.c.at === g.at) : c.at === orig.at && c.len === orig.len && c.off === orig.off;
+    if (same) { drawArr(); return; }   // nothing moved: no undo step
     for (const tr of st.song.tracks) B.sortClips(tr);
     st.undo.push(before); st.redo = []; changed({ rebuild: true });
   };
@@ -455,7 +467,8 @@ function showMenu(x, y, items) {
 // a section marker near the pointer (its flag and name), if any
 function markerAt(ev) {
   const r = A.cv.getBoundingClientRect(), k = (r.width - 2) / end(), px = ev.clientX - r.left;
-  return (st.song.markers || []).find(m => px >= m.at * k - 3 && px <= m.at * k + 6 + m.name.length * 5.4);
+  const hit = (st.song.markers || []).filter(m => m.at <= end() && px >= m.at * k - 3 && px <= m.at * k + 6 + m.name.length * 5.4);
+  return hit.sort((a, b) => Math.abs(px - a.at * k) - Math.abs(px - b.at * k))[0];   // (with names that overlap, the flag nearest the pointer)
 }
 A.cv.addEventListener('contextmenu', e => {
   const r = A.cv.getBoundingClientRect();
@@ -467,7 +480,7 @@ A.cv.addEventListener('contextmenu', e => {
       { label: `Add a marker at bar ${at / bar + 1}…`, run: () => { const v = prompt('Name of the marker', 'Section'); if (v === null) return; edit(() => { st.song.markers = (st.song.markers || []).filter(x => x.at !== at).concat({ at, name: v.trim().slice(0, 24) || 'Marker' }).sort((a, b) => a.at - b.at); }, { rebuild: true }); } },
       ...(m ? [
         { label: `Rename “${m.name}”…`, run: () => { const v = prompt('Name of the marker', m.name); if (v !== null && v.trim()) edit(() => { m.name = v.trim().slice(0, 24); }, { rebuild: true }); } },
-        { label: 'Loop this section', title: 'Loop from this marker to the next one (or the song\'s end)', run: () => { edit(() => { st.song.loop = { on: true, start: m.at, end: next ? next.at : end() }; }, { rebuild: true }); } },
+        { label: 'Loop this section', title: 'Loop from this marker to the next one (or the song\'s end)', run: () => { edit(() => { st.song.loop = { on: true, start: m.at, end: next ? Math.min(next.at, end()) : end() }; }, { rebuild: true }); } },
         { label: 'Delete the marker', run: () => edit(() => { st.song.markers = st.song.markers.filter(x => x !== m); if (!st.song.markers.length) delete st.song.markers; }, { rebuild: true }) }] : [])
     ]);
     return;
@@ -484,7 +497,7 @@ A.cv.addEventListener('contextmenu', e => {
     { label: 'Duplicate (Ctrl+D)', run: dupClips },
     { label: 'Loop to the end of the song', run: () => edit(() => { for (const x of here) x.len = Math.max(1, end() - x.at); }, { rebuild: true }) },
     null,
-    { label: n > 1 ? `Make unique (a copy of the beat; ${n - 1} other clip${n > 2 ? 's stay' : ' stays'} linked)` : 'Make unique (a copy of the beat)', title: 'Edit this clip\'s beat without changing the others', run: () => { let id; edit(() => { id = B.makeUnique(st.song, c.p, here.filter(x => x.p === c.p)); }, { rebuild: true }); if (st.open) openBeat(id); } },
+    { label: n > 1 ? `Make unique (a copy of the beat; ${n - 1} other clip${n > 2 ? 's stay' : ' stays'} linked)` : 'Make unique (a copy of the beat)', title: 'Edit this clip\'s beat without changing the others', run: () => { let id; const was = c.p; edit(() => { id = B.makeUnique(st.song, was, here.filter(x => x.p === was)); }, { rebuild: true }); if (st.open && st.open.p === was) openBeat(id); } },
     { label: 'Select every clip of this beat', run: () => { st.cs = new Set(st.song.tracks.flatMap(t => (t.clips || []).filter(x => x.p === c.p))); drawArr(); } },
     { label: 'Turn into notes (no longer linked)', run: () => edit(() => { for (const x of here) { const t = st.song.tracks.find(t => (t.clips || []).includes(x)); B.flattenClip(S, st.song, t, x); } st.cs.clear(); }, { rebuild: true }) },
     null,
@@ -633,7 +646,7 @@ R.cv.addEventListener('pointermove', e => {
   if (drag.mode === 'key') { const n = nOf(py); if (n !== drag.audition) { S.noteOff(drag.v); drag.audition = n; drag.v = S.noteOn(st.sel, n, 100); drawRoll(); } return; }
   if (drag.mode === 'move') {
     const dt = snapAt(tick - drag.t0), dp = nOf(py) - drag.p0;
-    const minAt = Math.min(...[...drag.orig.values()].map(o => o[0])), dtc = Math.max(-minAt, dt);
+    const starts = [...drag.orig.values()].map(o => o[0]), minAt = Math.min(...starts), dtc = Math.max(-minAt, Math.min(lastStart() - Math.max(...starts), dt));
     for (const [n, o] of drag.orig) { n[0] = o[0] + dtc; n[2] = Math.max(0, Math.min(127, o[2] + dp)); }
     const lead = [...drag.orig.keys()][0];
     if (lead && lead[2] !== drag.audition) { S.noteOff(drag.v); drag.audition = lead[2]; drag.v = S.noteOn(st.sel, lead[2], lead[3]); }
@@ -757,16 +770,20 @@ R.cv.addEventListener('wheel', e => {
 
 // ---------- editing commands ----------
 function picked() { return target().notes.filter(n => st.picked.has(n)); }
+// the last tick a note may start on in what is being edited: the beat's end, or no end (a beat's notes never go past it, so a move that would take one is not made)
+const lastStart = () => (st.open && pattern() ? pattern().len - 1 : Infinity);
 function moveSel(dt, dp) {
   const P = picked(); if (!P.length) return;
   if (dt < 0 && Math.min(...P.map(n => n[0])) + dt < 0) return;
+  if (dt > 0 && Math.max(...P.map(n => n[0])) + dt > lastStart()) return;
   edit(() => { for (const n of P) { n[0] += dt; n[2] = Math.max(0, Math.min(127, n[2] + dp)); } });
   if (dp && P.length === 1) { const v = S.noteOn(st.sel, P[0][2], P[0][3]); setTimeout(() => S.noteOff(v), 180); }
 }
 function copySel() { const P = picked(); if (!P.length) return; const a = Math.min(...P.map(n => n[0])); st.clip = P.map(([at, l, p, v]) => [at - a, l, p, v]); }
 function pasteAt(at) {
   if (!st.clip) return;
-  const t = target(), add = st.clip.map(([o, l, p, v]) => [at + o, l, p, v]);
+  const t = target(), add = st.clip.map(([o, l, p, v]) => [at + o, l, p, v]).filter(n => n[0] <= lastStart());   // (not past the end of an open beat)
+  if (!add.length) return showSaved('no room for it there: the beat ends first');
   edit(() => { t.notes.push(...add); st.picked = new Set(add); });
 }
 function duplicateSel() {
@@ -774,7 +791,7 @@ function duplicateSel() {
   const a = Math.min(...P.map(n => n[0])), b = Math.max(...P.map(n => n[0] + n[1])), span = Math.ceil((b - a) / st.grid) * st.grid;
   copySel(); pasteAt(a + span);
 }
-function quantizeSel() { const P = picked(); if (!P.length) return; edit(() => { for (const n of P) { n[0] = snapAt(n[0]); n[1] = Math.max(st.grid, snapAt(n[1])); } }); }
+function quantizeSel() { const P = picked(); if (!P.length) return; edit(() => { for (const n of P) { n[0] = Math.min(snapAt(n[0]), Math.floor(lastStart() / st.grid) * st.grid); n[1] = Math.max(st.grid, snapAt(n[1])); } }); }
 function deleteSel() { const P = picked(); if (!P.length) return; const t = target(); edit(() => { t.notes = t.notes.filter(n => !st.picked.has(n)); st.picked.clear(); }); }
 
 
@@ -786,6 +803,7 @@ function openBeat(id, view) {
   if (!st.song.patterns || !st.song.patterns[id]) return;
   if (st.beat) stopAll();
   st.open = { p: id }; st.openView = view || (kitTrack(track()) ? 'grid' : 'roll'); st.picked.clear();
+  st.view.x = 0;   // (a beat is shown from its own start, wherever the song's view was)
   renderBeats(); renderPat(); drawArr(); sizeRoll(); drawRoll();
 }
 function closeBeat() {
@@ -850,7 +868,7 @@ function renderPat() {
   const q = sel => bar.querySelector(sel);
   // (a field that re-draws the bar loses focus and may say 'change' once more: the same value is no new edit)
   q('.pname').onchange = e => { const v = e.target.value.slice(0, 40) || 'Beat'; if (v !== P.name) edit(() => { P.name = v; }, { rebuild: true }); };
-  q('.plen').onchange = e => { const len = Math.max(24, Math.round(+e.target.value * barTicks())); if (len !== P.len) edit(() => B.setLength(P, len), { rebuild: true }); };
+  q('.plen').onchange = e => { const len = Math.max(24, Math.round(+e.target.value * barTicks())); if (len !== P.len) { if (st.beat) stopAll(); } if (len !== P.len) edit(() => B.setLength(P, len), { rebuild: true }); };
   q('.pswing').oninput = e => tweak(() => { if (+e.target.value > 0) P.swing = +e.target.value; else delete P.swing; });
   q('.pswing').onchange = settle;
   q('.pcolor').onchange = e => { if (e.target.value !== beatColor(st.open.p)) edit(() => { P.color = e.target.value; }, { rebuild: true }); };
@@ -870,8 +888,8 @@ function playBeat() {
   if (S.playing) { const was = !!st.beat; stopAll(); if (was) return; }
   const t = track(), sc = Object.create(st.song);
   Object.defineProperties(sc, {
-    bars: { value: Math.max(1, Math.ceil(P.len / barTicks())) }, loop: { value: { on: true, start: 0, end: P.len } },
-    tracks: { value: st.song.tracks.map(o => Object.create(o, { notes: { value: [] }, clips: { value: o === t ? [{ at: 0, p: st.open.p, len: P.len, off: 0 }] : [] }, mute: { value: false }, solo: { value: false } })) }
+    bars: { value: Math.max(1, Math.ceil(P.len / barTicks())) }, loop: { value: { on: true, start: 0, end: P.len } }, tempo: { value: [] }, auto: { value: { echo: [], feedback: [] } },   // (the song's own tempo changes and lanes are for the song, not for a beat)
+    tracks: { value: st.song.tracks.map(o => Object.create(o, { notes: { value: [] }, clips: { value: o === t ? [{ at: 0, p: st.open.p, len: P.len, off: 0 }] : [] }, mute: { value: false }, solo: { value: false }, auto: { value: { volume: [], pan: [], filter: [] } } })) }
   });
   st.beat = sc; S.metronome = st.click;
   S.play(sc, { from: 0, loop: true, onEnd: () => stopAll() });
@@ -1053,8 +1071,8 @@ addEventListener('keydown', e => {
     if (e.code in QWERTY) { e.preventDefault(); if (!e.repeat) liveOn((st.octave + 1) * 12 + QWERTY[e.code], 100, e.code); return; }
     if (e.code === 'KeyZ' || e.code === 'KeyX') { st.octave = Math.max(0, Math.min(8, st.octave + (e.code === 'KeyX' ? 1 : -1))); $('#keysBtn').textContent = `KEYS C${st.octave}`; return; }
   }
-  if (st.focus === 'arr' && (st.cs.size || (ctrl && e.code === 'KeyE'))) {   // the arranger has the keys while its clips are what was last clicked
-    if (ctrl && e.code === 'KeyE') { e.preventDefault(); splitClips(); return; }
+  if (ctrl && e.code === 'KeyE') { e.preventDefault(); splitClips(); return; }   // (from either editor: the browser's own Ctrl+E is not wanted)
+  if (st.focus === 'arr' && st.cs.size) {   // the arranger has the keys while its clips are what was last clicked
     if (ctrl && e.code === 'KeyD') { e.preventDefault(); dupClips(); return; }
     if (e.code === 'Delete' || e.code === 'Backspace') { e.preventDefault(); deleteClips(); return; }
     if (e.code === 'Escape') { st.cs.clear(); drawArr(); return; }
@@ -1064,7 +1082,7 @@ addEventListener('keydown', e => {
   else if (ctrl && e.code === 'KeyY') { e.preventDefault(); redo(); }
   else if (ctrl && e.code === 'KeyS') { e.preventDefault(); save(); }
   else if (ctrl && e.code === 'KeyC') copySel();
-  else if (ctrl && e.code === 'KeyV') { e.preventDefault(); pasteAt(st.start); }
+  else if (ctrl && e.code === 'KeyV') { e.preventDefault(); pasteAt(st.open ? 0 : st.start); }   // (an open beat has no start mark: its own start)
   else if (ctrl && e.code === 'KeyD') { e.preventDefault(); duplicateSel(); }
   else if (ctrl && e.code === 'KeyA') { e.preventDefault(); st.picked = new Set(target().notes); drawRoll(); }
   else if (!ctrl && e.code === 'KeyR') record();
@@ -1328,13 +1346,14 @@ function openRecorder() {
 const PAD_WORDS = [['open', 46], ['hat', 42], ['hihat', 42], ['kick', 36], ['bass drum', 36], ['snare', 38], ['rim', 37], ['clap', 39], ['tom', 45], ['crash', 49], ['ride', 51], ['shaker', 70]];
 const fallbackSound = note => (S.newKit().pads.find(p => p.note === note) || { sound: 'kick' }).sound;
 const KIT_WARN_KB = 300;
+const padOwned = new Set();   // the samples this session made for a pad: only those go when nothing plays them (a sample you loaded for a track is yours to keep)
 function newSampleId(name) { let id = slug(name).slice(0, 24) || 'sample'; for (let k = 2; st.song.samples[id]; k++) id = `${slug(name).slice(0, 20)}-${k}`; return id; }
 // a sample no track, multisample or pad plays any more goes (it was the pad's own)
 function pruneSample(id) {
   const s = st.song;
-  if (!s.samples[id] || s.tracks.some(t => t.instrument === `sample:${id}`) || Object.values(s.multis || {}).some(m => m.zones.some(z => z.sample === id))
+  if (!padOwned.has(id) || !s.samples[id] || s.tracks.some(t => t.instrument === `sample:${id}`) || Object.values(s.multis || {}).some(m => m.zones.some(z => z.sample === id))
     || Object.values(s.kits || {}).some(k => k.pads.some(p => p.sample === id))) return;
-  delete s.samples[id]; sources.delete(id);
+  delete s.samples[id]; sources.delete(id); padOwned.delete(id);
 }
 function newKitFor(i) {
   let id = 'kit'; for (let k = 2; st.song.kits?.[id]; k++) id = `kit-${k}`;
@@ -1356,15 +1375,14 @@ async function fillPads(kitId, items, note) {
   made.forEach((m, k) => {
     let pad = k === 0 && note !== undefined ? ki.pads.find(p => p.note === note) : null;
     if (!pad) { const low = m.name.toLowerCase(); for (const [w, n] of PAD_WORDS) if (low.includes(w)) { const c = ki.pads.find(p => p.note === n && !taken.has(p)); if (c) { pad = c; break; } } }
-    if (!pad) pad = ki.pads.find(p => !taken.has(p) && !p.sample);
-    if (!pad) pad = ki.pads.find(p => !taken.has(p));
+    if (!pad) pad = ki.pads.find(p => !taken.has(p) && !p.sample);   // (a file that says nothing goes to a pad with no sample of its own, never over one)
     if (pad) { taken.add(pad); place.push([pad, m]); }
   });
   edit(() => {
     for (const [pad, m] of place) {
       const id = newSampleId(m.name); sources.set(id, m.src);
       const was = pad.sample;
-      st.song.samples[id] = { name: m.name, rate: 16000, root: 60, loop: -1, brr: S.toB64(S.brrEncode(m.data)) };
+      st.song.samples[id] = { name: m.name, rate: 16000, root: 60, loop: -1, secs: 1.5, brr: S.toB64(S.brrEncode(m.data)) }; padOwned.add(id);   // (secs: a change of grit keeps it that short)
       delete pad.sound; pad.sample = id; if (was) pruneSample(was);
     }
   }, { rebuild: true });
@@ -1372,11 +1390,19 @@ async function fillPads(kitId, items, note) {
   S.prepare(st.song).then(() => renderStrip());
   showSaved(`${place.length} pad${place.length === 1 ? '' : 's'} filled${made.length > place.length ? `, ${made.length - place.length} had no pad left` : ''}`);
 }
+// decode dropped or chosen files: the ones that are sounds; one that is not does not spoil the others
+async function decodeAll(files) {
+  const r = await Promise.allSettled(files.map(async f => ({ src: await decodeFile(f), name: f.name.replace(/\.[a-z0-9]+$/i, '').slice(0, 40) || 'sample' })));
+  const items = r.filter(x => x.status === 'fulfilled').map(x => x.value), bad = r.length - items.length;
+  if (!items.length) throw new Error(r[0] && r[0].reason && r[0].reason.message ? r[0].reason.message : 'not a sound');
+  if (bad) showSaved(`${bad} file${bad > 1 ? 's' : ''} could not be read and ${bad > 1 ? 'were' : 'was'} left out`);
+  return items;
+}
 let padFile = null;   // the kit and pad a file chosen with the pad's button is for
 $('#padFile').onchange = async e => {
   const files = [...e.target.files]; if (!files.length || !padFile) return;
   audio(); showSaved('loading the sound…');
-  try { await fillPads(padFile.kit, await Promise.all(files.map(async f => ({ src: await decodeFile(f), name: f.name.replace(/\.[a-z0-9]+$/i, '').slice(0, 40) || 'sample' }))), padFile.note); }
+  try { await fillPads(padFile.kit, await decodeAll(files), padFile.note); }
   catch (err) { showSaved(`could not use that sound: ${err.message || err}`); }
 };
 function kitSection(id) {
@@ -1393,7 +1419,7 @@ function kitSection(id) {
   const grid = document.createElement('div'); grid.className = 'pads';
   const dropFiles = async (files, note) => {
     audio(); showSaved('loading the sounds…');
-    try { await fillPads(id, await Promise.all(files.map(async f => ({ src: await decodeFile(f), name: f.name.replace(/\.[a-z0-9]+$/i, '').slice(0, 40) || 'sample' }))), note); }
+    try { await fillPads(id, await decodeAll(files), note); }
     catch (err) { showSaved(`could not use that sound: ${err.message || err}`); }
   };
   const hear = note => { audio(); S.prepare(st.song).then(() => { const v = S.noteOn(st.sel, note, 100); if (v) setTimeout(() => S.noteOff(v), 600); }); };
@@ -1692,7 +1718,7 @@ function renderMixer() {
     el.innerHTML = `<input type="range" min="${min}" max="${max}" step="${step}" value="${get()}" aria-label="${esc(label)}"><output>${fmt(get())}</output><span>${esc(label)}</span>`;
     const inp = el.querySelector('input'), out = el.querySelector('output');
     inp.oninput = () => { tweak(() => set(+inp.value)); out.textContent = fmt(get()); };
-    inp.onchange = settle;
+    inp.onchange = () => { settle(); renderTracks(); };   // (the track list's own sliders show the same numbers)
     return el;
   };
   T.forEach((t, i) => {
@@ -1706,7 +1732,7 @@ function renderMixer() {
       fader('Pan', () => t.pan, v => { t.pan = v; }, { min: -1, max: 1, step: .05, fmt: v => (v < -.02 ? `L${Math.round(-v * 100)}` : v > .02 ? `R${Math.round(v * 100)}` : 'C') }),
       fader('Echo', () => t.sends.echo, v => { t.sends.echo = v; }), fader('Reverb', () => t.sends.reverb, v => { t.sends.reverb = v; }));
     c.querySelectorAll('[data-k]').forEach(b => b.onclick = e => { e.stopPropagation(); edit(() => { t[b.dataset.k] = !t[b.dataset.k]; }, { rebuild: true }); });
-    c.addEventListener('pointerdown', () => { if (st.sel !== i) { closeBeat(); st.sel = i; st.picked.clear(); renderTracks(); renderStrip(); box.querySelectorAll('.chan').forEach((x, k) => x.classList.toggle('sel', k === i)); } });
+    c.addEventListener('pointerdown', () => { if (st.sel !== i) { closeBeat(); st.sel = i; st.picked.clear(); markSel(); renderStrip(); box.querySelectorAll('.chan').forEach((x, k) => x.classList.toggle('sel', k === i)); } });
     box.append(c);
   });
   const mc = document.createElement('section'); mc.className = 'chan master'; mc.innerHTML = '<header><b>Master</b><span class="muted">all tracks</span></header>';
@@ -1751,7 +1777,7 @@ $('#playBtn').onclick = play; $('#recBtn').onclick = record; $('#stopBtn').oncli
 $('#midiBtn').onclick = connectMidi;
 $('#helpBtn').onclick = () => $('#help').showModal();
 function renderAddIns() { const v = $('#addIns').value || 'strings'; $('#addIns').innerHTML = insOptions(false); $('#addIns').value = v; if (!$('#addIns').value) $('#addIns').value = 'strings'; }
-$('#addTrack').onclick = () => { if (st.song.tracks.length >= 32) return; const id = $('#addIns').value; edit(() => { st.song.tracks.push(Object.assign(S.newTrack(id), { name: insName(id) || 'Track' })); st.sel = st.song.tracks.length - 1; }, { rebuild: true }); focusTrack(); drawRoll(); S.prepare(st.song); };
+$('#addTrack').onclick = () => { if (st.song.tracks.length >= 32) return; if (st.beat) stopAll(); const id = $('#addIns').value; edit(() => { st.song.tracks.push(Object.assign(S.newTrack(id), { name: insName(id) || 'Track' })); st.sel = st.song.tracks.length - 1; }, { rebuild: true }); focusTrack(); drawRoll(); S.prepare(st.song); };
 $('#newBtn').onclick = () => { if (st.dirty && !confirm('Start a new song? This one has changes that are not saved to the site.')) return; load(template()); };
 $('#saveBtn').onclick = () => save();
 const menu = $('#more');

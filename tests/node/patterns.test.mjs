@@ -266,9 +266,9 @@ test('a kit that changes while it is being made is filed under what it was made 
 });
 
 test('markers and track colours: kept when valid, tidied, and absent when there are none', () => {
-  const s = S.check({ format: 'pixelite-song', bars: 2, markers: [{ at: 384, name: 'Chorus' }, { at: 0, name: 'x'.repeat(40) }, { at: 99999, name: 'past the end' }, { at: -1, name: 'no' }, { name: 'no tick' }, null],
+  const s = S.check({ format: 'pixelite-song', bars: 2, markers: [{ at: 384, name: 'Chorus' }, { at: 0, name: 'x'.repeat(40) }, { at: 99999, name: 'past the end' }, { at: -1, name: 'no' }, { at: 1e9, name: 'absurd' }, { name: 'no tick' }, null],
     tracks: [{ color: '#FFB340' }, { color: 'red' }, {}] });
-  assert.deepEqual(s.markers, [{ at: 0, name: 'x'.repeat(24) }, { at: 384, name: 'Chorus' }], 'sorted, names cut, only places inside the song');
+  assert.deepEqual(s.markers, [{ at: 0, name: 'x'.repeat(24) }, { at: 384, name: 'Chorus' }, { at: 99999, name: 'past the end' }], 'sorted, names cut; a marker past the end is kept (the song may be made longer again), a negative one is not');
   assert.deepEqual(s.tracks.map(t => t.color), ['#ffb340', undefined, undefined]);
   const plain = S.check({ format: 'pixelite-song', tracks: [{}] });
   assert.ok(!('markers' in plain) && !('color' in plain.tracks[0]), 'a song made without them reads as before');

@@ -534,7 +534,7 @@ const Sampler = (() => {
     out.bpm = cl(+out.bpm || 120, 30, 300); out.beatsPerBar = cl(Math.round(out.beatsPerBar) || 4, 1, 12); out.bars = cl(Math.round(out.bars) || 8, 1, 512);
     const songLen = out.bars * out.beatsPerBar * PPQ;
     // named places in the song (a studio's section markers: Intro, Chorus, Boss): only there when there are some; nothing the engine plays
-    const marks = (Array.isArray(s.markers) ? s.markers : []).filter(m => m && Number.isFinite(m.at) && m.at >= 0 && m.at <= songLen).slice(0, 64)
+    const marks = (Array.isArray(s.markers) ? s.markers : []).filter(m => m && Number.isFinite(m.at) && m.at >= 0 && m.at <= 512 * 12 * PPQ).slice(0, 64)   // (kept past the song's end, like its notes: a shorter song may be made longer again)
       .map(m => ({ at: Math.round(m.at), name: String(m.name || 'Marker').slice(0, 24) })).sort((a, b) => a.at - b.at);
     if (marks.length) out.markers = marks;
     out.tracks = (Array.isArray(s.tracks) ? s.tracks : []).slice(0, 32).map(t => {

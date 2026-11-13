@@ -1356,6 +1356,11 @@ The second step of the plan in HISTORY 60: the studio itself can now make a patt
   edit; the beat's name, length and colour now ignore a change that changes nothing.
 - Checked: `tests/studio.py` drives all of it with the mouse (the grid, accents, painting, fills, the beat playing alone with live edits, length, undo, the roll,
   a beat from selected notes, a note clicked into an open beat going to the beat and not to the track).
+- **Review fixes** (an independent read-only review of steps 2 to 5, each finding reproduced before it was fixed): an open beat never loses notes off its end (moves,
+  arrow keys, quantize, paste and duplicate stay inside it; paste goes to the beat's own start, not the song's start mark); a beat plays without the song's tempo
+  changes and volume/pan/filter lanes (a fade-in intro had made it silent); `audio()`, called by every click, handed the Sampler the song while a beat played on its own
+  (now it keeps the beat); changing the beat's length, or adding, moving, duplicating or deleting a track, stops a playing beat (its copy of the song would be out of date);
+  a new beat's default name is never one another beat has.
 
 ## 62. The studio's beat machine, step 3: the arranger with clips (Claude Code, 2026-11-13)
 
@@ -1368,7 +1373,12 @@ The second step of the plan in HISTORY 60: the studio itself can now make a patt
 - **The pure part** (`beats-core.mjs`, `tests/node/beats.test.mjs`): `repeatsOf`, `splitClip` (the second part's `off` follows on, so the two sound what the one did),
   `trimStart`, `makeUnique` (clips given play the copy, the others stay linked), `flattenClip` (the track sounds the same, now with its own notes).
 - Checked in the browser with the mouse (`tests/studio.py`): loop by the edge, move, Alt-copy, trim, cut, duplicate, delete, the menu, make unique, turn into notes,
-  a beat dragged from the list. A trim test that could not fail (the clip was too short to trim) was found and rebuilt on a longer clip.
+  a beat dragged from the list.
+- **Review fixes** (reproduced first): clips of a deleted track stayed selected and threw in "Turn into notes" and Alt-copy (the selection is now cleaned after every change);
+  an Alt-drag that ended where it began left an exact duplicate clip on top (no copy, no undo step now; a move that changes nothing makes no undo step either); a clip
+  shorter than its step jumped a whole bar when an edge was nudged (short clips move their edges by the grid); a right-click on the overview moved the start mark (only the
+  left button does now); Ctrl+E cuts from either editor; "Make unique" opens the copy only if that beat was the open one; a beat opens from its own start (the roll could be
+  scrolled far past a one-bar beat); a long message in the header no longer wraps it and pushes the whole studio down (it is cut short, its tooltip has all of it). A trim test that could not fail (the clip was too short to trim) was found and rebuilt on a longer clip.
 
 ## 63. The studio's beat machine, step 4: drum kits from your own samples (Claude Code, 2026-11-13)
 
@@ -1384,6 +1394,9 @@ The second step of the plan in HISTORY 60: the studio itself can now make a patt
 - Checked in the browser with real drops (`tests/studio.py`): a pad filled from a file, the sample played at its own pitch (440 Hz) and tuned an octave up (880 Hz), several
   files placed by name, one undo step, the inspector, a kit in the beat grid, the size warning, a sample removed, the kit deleted. The first run of the pitch check was
   wrong in the test (the tuned sample was over inside the measuring window), not in the engine.
+- **Review fixes** (reproduced first): only a sample this session made for a pad is removed when no pad plays it any more (a sample loaded for a track was being deleted when a
+  pad picked it and then dropped it); one file that is not a sound no longer fails a whole drop; a file whose name says nothing goes to a pad without a sample, never over one;
+  a pad's sample keeps its 1.5 s when its grit is changed; opening another song forgets the sounds as loaded (an id like `kick` could be re-made from the old song's audio).
 
 ## 64. The studio's beat machine, step 5: polish (Claude Code, 2026-11-13)
 
@@ -1394,6 +1407,9 @@ The second step of the plan in HISTORY 60: the studio itself can now make a patt
   Moving between NOTES, MIXER and WHERE IT PLAYS now hides and brings back the beat bar and grid properly (before, an open beat's bar stayed over the other tabs).
 - The track list already had a level meter in each header (since the studio began); it stays.
 - The help dialog covers the beats, the grid, the clips, the kits, the mixer and the markers.
+- **Review fixes** (reproduced first): `check()` dropped a marker past the song's end, so making the song shorter lost it for good through undo, save or a draft (it is now kept,
+  like the notes, and not drawn); the mixer's faders and the track list's sliders showed different volumes (they follow each other); picking a track rebuilt its list, so the first
+  click on a colour box or name of another track was lost (the list is no longer rebuilt, only the selection is marked); with overlapping labels the marker nearest the pointer is hit.
 - **Left for later** (ROADMAP): step probability and ratchets, a melodic step sequencer, exact velocity by dragging in a step, a mute per row in a beat, moving a whole section by
   dragging its marker.
 
