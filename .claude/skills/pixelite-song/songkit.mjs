@@ -63,16 +63,18 @@ export const song = ({ title, bpm, bars, tracks, loop = [0, bars], places = {}, 
 export const writeSong = (path, s) => { writeFileSync(path, JSON.stringify(s)); console.log(`${s.title}: ${s.tracks.map(t => `${t.name} ${t.notes.length}`).join(', ')}`); };
 
 // ----- checks the playbook's rules can be tested with (returns warnings; an empty list is a pass) -----
-export function lint(s) {
-  const out = [], end = s.bars * BAR, voiced = s.tracks.filter(t => t.instrument !== 'kit' && !t.mute);
+export function lint(s, S = null) {   // S: the Sampler (tools/song.mjs exports it), so a track's clips count as the notes they play
+  const out = [], end = s.bars * BAR, drums = t => t.instrument === 'kit' || t.instrument.startsWith('drums:'), voiced = s.tracks.filter(t => !drums(t) && !t.mute);
+  const notesOf = t => (S && t.clips && t.clips.length ? S.notesOf(s, t) : t.notes);
   for (const t of s.tracks) {
-    if (!t.notes.length) { out.push(`${t.name}: no notes`); continue; }
-    const pitched = t.instrument !== 'kit', late = t.notes.filter(([tick, len]) => tick + len > end + 1).length;
+    const N = notesOf(t);
+    if (!N.length) { out.push(`${t.name}: no notes`); continue; }
+    const pitched = !drums(t), late = N.filter(([tick, len]) => tick + len > end + 1).length;
     if (late) out.push(`${t.name}: ${late} note(s) run past the end of the song (${s.bars} bars)`);
-    if (pitched) { const lo = Math.min(...t.notes.map(x => x[2])), hi = Math.max(...t.notes.map(x => x[2])); if (hi - lo > 48) out.push(`${t.name}: range of ${hi - lo} semitones, is that right?`); }
+    if (pitched) { const lo = Math.min(...N.map(x => x[2])), hi = Math.max(...N.map(x => x[2])); if (hi - lo > 48) out.push(`${t.name}: range of ${hi - lo} semitones, is that right?`); }
   }
   // mud: anything sounding below C3 (48) together should be octaves, fifths or fourths of each other (the playbook's anti-mud rule)
-  const flat = voiced.flatMap(t => t.notes.map(([tick, len, nt]) => ({ tick, end: tick + len, nt, tr: t.name })));
+  const flat = voiced.flatMap(t => notesOf(t).map(([tick, len, nt]) => ({ tick, end: tick + len, nt, tr: t.name })));
   const muddy = new Set();
   for (const a of flat) {
     if (a.nt >= 48) continue;
@@ -86,13 +88,14 @@ export function lint(s) {
   // loop region
   if (s.loop.on && (s.loop.end > end || s.loop.start >= s.loop.end)) out.push('loop region is outside the song');
   // a bar with nothing in it (inside the song)
-  for (let b = 0; b < s.bars; b++) if (!s.tracks.some(t => t.notes.some(([tick]) => tick >= b * BAR && tick < (b + 1) * BAR))) out.push(`bar ${b + 1} is empty`);
+  for (let b = 0; b < s.bars; b++) if (!s.tracks.some(t => notesOf(t).some(([tick]) => tick >= b * BAR && tick < (b + 1) * BAR))) out.push(`bar ${b + 1} is empty`);
   return out;
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (process.argv[2] !== 'lint' || !process.argv[3]) { console.error('usage: node songkit.mjs lint <song.json>'); process.exit(2); }
-  const warnings = lint(JSON.parse(readFileSync(process.argv[3], 'utf8')));
+  const { Sampler } = await import('../../../tools/song.mjs');   // (only the command line needs the engine: the kit itself does not)
+  const warnings = lint(JSON.parse(readFileSync(process.argv[3], 'utf8')), Sampler);
   console.log(warnings.length ? warnings.join('\n') : 'lint: no warnings');
   process.exit(warnings.length ? 1 : 0);
 }

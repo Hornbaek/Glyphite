@@ -66,6 +66,10 @@ claim a song "sounds" a certain way: say what you wrote and measured. Send them 
   each track so it is harmonically complete alone, if a game is going to mute it. `Music.layer(name, on)` does that by name, and a stinger is a short
   non-looping song the game plays over the music with `Music.stinger(id)` (it ducks the music; preload it with `Music.preload([id])`);
   songs change between places with a crossfade (`Music.place`, `engine/API.md`, "The music director"), not yet on the bar line.
+- **Patterns, clips and kits** (engine/API.md): a pattern is a run of notes a track's clips play again and again (`song.patterns`, `track.clips`), a kit
+  is pads of built-in sounds or the song's own samples on notes (`song.kits`, `instrument: 'drums:<id>'`). A beat written once and played
+  in eight places is a pattern and eight clips, not eight copies of the notes. `songkit.mjs` has no helpers for them yet (write the objects by hand);
+  `lint(song, Sampler)` counts what clips play.
 - **MIDI in and out:** `node tools/midi.mjs import <file.mid>` makes a song from a MIDI file (a starting point to re-voice: check the
   instruments, volumes and the loop, then run it through `levels.py`); `export` writes a song as a .mid for other programs. Effects,
   automation and the song's own samples are not in a MIDI file.

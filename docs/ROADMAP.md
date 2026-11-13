@@ -42,7 +42,8 @@ Done: the engine's 16-bit Sampler, the studio at /studio/, songs saved on the si
   the echo's level and feedback, a lane for a sample's loop point, tempo ramps. Next: curves for the tempo ramp, a lane for the chorus
   and the EQ, a loop lane that moves while a note holds (Web Audio's loop points are not parameters: it would take two crossfaded
   sources).
-- **Patterns**: SNES composers worked in short patterns; clips that repeat would make long songs quicker to write.
+- **Patterns, a beat machine, kits and an arranger** (HISTORY 60, in steps): the engine's data is in (patterns, clips, drum kits of the song's own);
+  next the BEAT grid, the arranger with clips (drag, loop, trim, split, link), kits made of your own samples, then polish (a mixer view, markers).
 - ~~**MIDI files**~~ (HISTORY 51, 52): import a .mid into tracks, export the song as .mid (`tools/midi.mjs` too); pitch bend and the volume and
   pan that move are lanes, a tempo ramp is a ramp, a file with several instruments asks which to open, and a song's own samples
   travel inside the file (a pad or a marimba to other programs). Next: the filter, the sends and the echo as CC events (74, 91, 93), time

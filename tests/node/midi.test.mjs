@@ -271,3 +271,34 @@ test('the song\'s own samples and multisamples travel inside the MIDI file; othe
   const parseMidi = new Function(`${read('engine/08_chip.js')}; return parseMidi;`)();
   assert.equal(parseMidi(bytes.buffer).notes, 4, 'the NES chip\'s reader skips the sample events and reads the notes');
 });
+
+// ---- patterns, clips and drum kits (the song's own) ----
+test('a song built of clips is written as the notes they play', () => {
+  const song = S.check({ format: 'pixelite-song', title: 'Clips', bars: 4, patterns: { beat: { len: 192, notes: [[0, 24, 36, 120], [96, 24, 38, 100]] } },
+    tracks: [{ name: 'Drums', instrument: 'kit', notes: [[0, 24, 49, 127]], clips: [{ at: 0, p: 'beat', len: 576, off: 0 }] }] });
+  const back = read1(midiFromSong(song, S).bytes).song;
+  assert.deepEqual(back.tracks[0].notes, S.notesOf(song, song.tracks[0]), 'the file holds what the clips play');
+  assert.ok(!back.patterns && !back.tracks[0].clips, 'and nothing else of them: a MIDI file has no clips');
+  assert.equal(back.tracks[0].notes.length, 7);
+});
+
+test('a drum kit of the song\'s own travels in the file: its pads, their samples and the notes they sit on', () => {
+  const brr = S.toB64(S.brrEncode(Float32Array.from({ length: 800 }, (_, i) => Math.sin(i * .2) * Math.exp(-i / 300) * .6)));
+  const song = S.check({ format: 'pixelite-song', title: 'Kit', bars: 2, samples: { boing: { name: 'Boing', rate: 16000, root: 60, loop: -1, brr } },
+    kits: { mine: { name: 'Mine', pads: [{ note: 60, sample: 'boing', tune: 3, level: 1.5, pan: -.4, choke: 2 }, { note: 61, sound: 'snare', tune: -2, level: .8, pan: .3, choke: 0 }] } },
+    tracks: [{ name: 'Pads', instrument: 'drums:mine', volume: .6, notes: [[0, 24, 60, 100], [48, 24, 61, 90], [96, 24, 60, 70]] },
+    { name: 'Bass', instrument: 'fingerbass', notes: [[0, 96, 36, 100]] }] });
+  const { bytes, warnings } = midiFromSong(song, S);
+  assert.ok(warnings.some(w => /own samples/.test(w)), warnings);
+  const trackBytes = readMidi(bytes).tracks[1];
+  assert.ok(trackBytes.events.every(e => e.ch === 9), 'on channel 10, where other programs put drums');
+  const back = read1(bytes).song;
+  assert.equal(back.tracks[0].instrument, 'drums:mine'); assert.equal(back.tracks[0].name, 'Pads');
+  assert.deepEqual(back.tracks[0].notes, song.tracks[0].notes, 'pad notes are not mapped onto General MIDI drums: they stay where they were');
+  assert.deepEqual(back.kits, song.kits); assert.deepEqual(back.samples, song.samples);
+  const without = read1(bytes, { only: [1] }).song;
+  assert.ok(!without.kits, 'a song opened without the track that plays a kit does not hold it');
+  const plain = S.check({ format: 'pixelite-song', kits: { k: S.newKit() }, tracks: [{ instrument: 'drums:k', notes: [[0, 24, 36, 100]] }] });
+  assert.ok(!midiFromSong(plain, S).warnings.some(w => /own samples/.test(w)), 'a kit of built-in sounds holds no samples to warn about');
+  assert.deepEqual(read1(midiFromSong(plain, S).bytes).song.kits, plain.kits);
+});

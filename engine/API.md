@@ -768,6 +768,20 @@ writes them into the game's `songs.js` as `SONGS['<id>']`.
 - **Multisamples:** `song.multis[id] = { name, zones: [{ sample, lo, hi }] }` plays several of the song's samples as one instrument
   (`instrument: 'multi:<id>'`): a note plays the zone whose notes (`lo`..`hi`, MIDI) hold it (the nearest zone when none does), pitched
   from that sample's own `root`; each zone is made as loud as the others. Only in the song when there is one.
+- **Drum kits of the song's own:** `song.kits[id] = { name, pads: [{ note, sample | sound, tune, level, pan, choke }] }`, up to 32 pads, played
+  by a track with `instrument: 'drums:<id>'` (a track whose kit is not there plays the built-in `'kit'`). A pad sits on a note (once), and
+  is one of the song's samples (played once, brought to the loudness of the built-in sounds) or a built-in sound (`Sampler.DRUM_KINDS`:
+  kick, snare, hat, open, tom, crash, ride, rim, clap, shaker); `tune` is in semitones (-24..24), `level` 0..2, `pan` -1..1 and `choke` 0..8 (a pad
+  cuts the sounding pads of its group, in its track: a closed hat ends an open one). They are read when a note starts, so a game or the
+  studio can change them live; only the sound itself is made (and kept, per sound) when the kit is prepared. `Sampler.newKit(name)` is a kit of 16
+  pads on General MIDI notes made of the built-in sounds; `Sampler.isKit(id)` is true for `'kit'` and `'drums:<id>'`.
+- **Patterns and clips:** `song.patterns[id] = { name, len, notes, swing?, color? }` is a run of notes (`[tick, length, note, velocity]`, ticks
+  from the pattern's start) that is `len` ticks long (up to 64 bars); `track.clips = [{ at, p, len, off }]` plays pattern `p` in that track from
+  tick `at` for `len` ticks, starting `off` ticks into the pattern and coming round again when the pattern ends, the last note cut where the clip
+  does. Every clip of a pattern plays the same notes (edit the pattern and all of them change). `swing` (0..0.75) delays the notes on the off-beat 16ths
+  by that share of a 16th. A track's own `notes` and its clips play together. `Sampler.notesOf(song, track)` is all of a track's notes in time order,
+  `Sampler.clipNotes(song, track, a, b, fn)` calls `fn(tick, length, note, velocity)` for the clips' notes that start in `[a, b)`. Both fields are
+  only in a song when it has some, so songs made without them read as before.
 - **Where it plays:** `song.places = { title, levels: [level indices], note }`, set in the studio's WHERE IT PLAYS.
   `tools/song.mjs` collects them into `SONG_AT` beside `SONGS` (`SONG_AT.title`, `SONG_AT.levels[i]`, `SONG_AT.other`): the music
   director plays them (`Music.place(...)` below; Space Mouse calls it every frame in `afterFrame`).
