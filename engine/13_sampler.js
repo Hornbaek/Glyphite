@@ -533,6 +533,10 @@ const Sampler = (() => {
     if (!Object.keys(out.patterns).length) delete out.patterns;
     out.bpm = cl(+out.bpm || 120, 30, 300); out.beatsPerBar = cl(Math.round(out.beatsPerBar) || 4, 1, 12); out.bars = cl(Math.round(out.bars) || 8, 1, 512);
     const songLen = out.bars * out.beatsPerBar * PPQ;
+    // named places in the song (a studio's section markers: Intro, Chorus, Boss): only there when there are some; nothing the engine plays
+    const marks = (Array.isArray(s.markers) ? s.markers : []).filter(m => m && Number.isFinite(m.at) && m.at >= 0 && m.at <= songLen).slice(0, 64)
+      .map(m => ({ at: Math.round(m.at), name: String(m.name || 'Marker').slice(0, 24) })).sort((a, b) => a.at - b.at);
+    if (marks.length) out.markers = marks;
     out.tracks = (Array.isArray(s.tracks) ? s.tracks : []).slice(0, 32).map(t => {
       const tr = merge(TRACK(), t);
       if (tr.instrument.startsWith('drums:') && !own(out.kits, tr.instrument.slice(6))) tr.instrument = 'kit';   // a kit that is not there plays as the built-in one
@@ -556,6 +560,7 @@ const Sampler = (() => {
           budget -= cost; return true;
         });
       if (clips.length) tr.clips = clips;
+      if (typeof t.color === 'string' && /^#[0-9a-f]{6}$/i.test(t.color)) tr.color = t.color.toLowerCase();   // the studio's colour for the track (only when it was chosen)
       return tr;
     });
     return out;

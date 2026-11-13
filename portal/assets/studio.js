@@ -21,7 +21,7 @@ const st = {
   song: null, meta: { id: null, updated_at: null, game: '' }, sel: 0, picked: new Set(), grid: 24, len: 96, start: 0,
   dirty: false, undo: [], redo: [], lane: 'vel', pending: null, clip: null, rec: null, click: false, countIn: true, quant: true,
   keys: false, octave: 4, view: { x: 0, zoom: .7, top: 84 }, live: new Map(), pedal: false, bend: 0, follow: true,
-  cs: new Set(), focus: 'roll', pad: null, open: null, openView: 'grid', patStep: B.STEP, beat: null, rev: 0   // a beat open to edit ({ p }), how, its step in ticks, the beat playing on its own, a count that moves with every change
+  cs: new Set(), focus: 'roll', pad: null, tab: 'notes', open: null, openView: 'grid', patStep: B.STEP, beat: null, rev: 0   // a beat open to edit ({ p }), how, its step in ticks, the beat playing on its own, a count that moves with every change
 };
 let project = { id: '', title: '' };   // the game this studio is working for (from /games.json)
 const song = () => st.song, track = () => st.song.tracks[st.sel];
@@ -40,6 +40,7 @@ function target() {
 const rollEnd = () => { const P = pattern(); return P ? P.len : end(); };
 const playSong = () => st.beat || st.song;   // the song the Sampler is playing: a beat on its own, or the song
 const beatColor = id => { const P = st.song.patterns && st.song.patterns[id]; if (P && P.color) return P.color; return COLORS[Math.max(0, Object.keys(st.song.patterns || {}).indexOf(id)) % COLORS.length]; };
+const trackColor = i => (st.song.tracks[i] && st.song.tracks[i].color) || COLORS[i % COLORS.length];
 const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; };
 // the names of a drum track's rows in the roll: the built-in kit's, or the pads' of a kit of the song's own
 function kitNamesOf(t) {
@@ -113,8 +114,8 @@ function load(s, meta = { id: null, updated_at: null, game: GAME_ID }, dirty = f
 function renderTracks() {
   const opts = insOptions(true);
   $('#trackList').innerHTML = st.song.tracks.map((t, i) => `
-    <li class="trk${i === st.sel ? ' sel' : ''}" data-i="${i}" style="--c:${COLORS[i % COLORS.length]}">
-      <div class="r1"><input class="tname" value="${esc(t.name)}" aria-label="Track name" spellcheck="false">
+    <li class="trk${i === st.sel ? ' sel' : ''}" data-i="${i}" style="--c:${trackColor(i)}">
+      <div class="r1"><input type="color" class="tcol" value="${trackColor(i)}" aria-label="Track colour" title="The track's colour"><input class="tname" value="${esc(t.name)}" aria-label="Track name" spellcheck="false">
         <button class="mbtn${t.mute ? ' on' : ''}" data-k="mute" title="Mute" aria-pressed="${t.mute}">M</button>
         <button class="sbtn${t.solo ? ' on' : ''}" data-k="solo" title="Solo" aria-pressed="${t.solo}">S</button></div>
       <select class="tins" aria-label="Instrument">${opts}</select>
@@ -126,6 +127,7 @@ function renderTracks() {
     const t = st.song.tracks[i];
     li.querySelector('.tins').value = t.instrument;
     li.addEventListener('pointerdown', e => { if (st.sel !== i) { closeBeat(); st.sel = i; st.picked.clear(); focusTrack(); renderTracks(); renderStrip(); drawArr(); drawRoll(); } });
+    li.querySelector('.tcol').onchange = e => { if (e.target.value !== trackColor(i)) edit(() => { t.color = e.target.value; }, { rebuild: true }); };
     li.querySelector('.tname').onchange = e => edit(() => { t.name = e.target.value.slice(0, 40) || 'Track'; }, { rebuild: true });
     li.querySelector('.tins').onchange = e => setInstrument(i, e.target.value);
     li.querySelectorAll('[data-k]').forEach(b => b.onclick = () => edit(() => { t[b.dataset.k] = !t[b.dataset.k]; }, { rebuild: true }));
@@ -195,7 +197,7 @@ function renderStrip() {
     const d = S.defaults(t.instrument), s = t.sound, kit = kitTrack(t);
     const env = (k, dk) => () => s[k] ?? d.env[dk];
     const head = document.createElement('div'); head.className = 'shead';
-    head.innerHTML = `<b style="color:${COLORS[st.sel % COLORS.length]}">${esc(t.name)}</b><span class="spacer"></span>
+    head.innerHTML = `<b style="color:${trackColor(st.sel)}">${esc(t.name)}</b><span class="spacer"></span>
       <button class="btn small" data-a="up" title="Move up">▲</button><button class="btn small" data-a="down" title="Move down">▼</button>
       <button class="btn small" data-a="dup" title="Duplicate the track">DUP</button><button class="btn small" data-a="del" title="Delete the track">DEL</button>`;
     head.querySelectorAll('[data-a]').forEach(b => b.onclick = () => trackAction(b.dataset.a));
@@ -282,7 +284,7 @@ function drawEq() {
 }
 
 // ---------- the song overview: bar ruler, loop, start mark, every track's notes ----------
-const A = { cv: $('#arr'), RULER: 18, TH: 26 };
+const A = { cv: $('#arr'), MK: 12, RULER: 30, TH: 26 };   // MK: the strip of section markers; RULER: where the lanes start
 // every note a track plays, its clips' too, kept until the song changes (the overview is drawn every frame while it plays)
 const arrCache = { rev: -1, per: [] };
 function arrNotes(i) {
@@ -297,18 +299,18 @@ function drawArr() {
   const x = cv.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
   const E = end(), k = (W - 2) / E, bar = st.song.beatsPerBar * PPQ, lp = st.song.loop;
   x.fillStyle = '#0b0f17'; x.fillRect(0, 0, W, H);
-  x.fillStyle = lp.on ? 'rgba(255,179,64,.35)' : 'rgba(93,107,128,.25)'; x.fillRect(lp.start * k, 0, (lp.end - lp.start) * k, A.RULER - 4);
+  x.fillStyle = lp.on ? 'rgba(255,179,64,.35)' : 'rgba(93,107,128,.25)'; x.fillRect(lp.start * k, A.MK, (lp.end - lp.start) * k, A.RULER - A.MK - 4);
   x.font = '10px JetBrains Mono, monospace'; x.textBaseline = 'top';
   const every = Math.max(1, Math.ceil(28 / (bar * k)));
   for (let b = 0; b <= st.song.bars; b++) {
     const X = Math.round(b * bar * k) + .5;
     x.fillStyle = b % every ? '#1d2634' : '#2a3546'; x.fillRect(X, A.RULER - 4, 1, H);
-    if (b % every === 0 && b < st.song.bars) { x.fillStyle = '#5d6b80'; x.fillText(String(b + 1), X + 3, 2); }
+    if (b % every === 0 && b < st.song.bars) { x.fillStyle = '#5d6b80'; x.fillText(String(b + 1), X + 3, A.MK + 2); }
   }
   T.forEach((t, i) => {
     const y = A.RULER + i * A.TH;
     if (i === st.sel) { x.fillStyle = 'rgba(120,220,255,.08)'; x.fillRect(0, y, W, A.TH); }
-    x.fillStyle = t.mute ? '#2a3546' : COLORS[i % COLORS.length];
+    x.fillStyle = t.mute ? '#2a3546' : trackColor(i);
     for (const c of t.clips || []) {   // a clip: a block in its beat's colour, its start marked
       if (!st.song.patterns || !st.song.patterns[c.p]) continue;
       const col = beatColor(c.p), on = st.open && st.open.p === c.p;
@@ -319,14 +321,16 @@ function drawArr() {
       if (st.cs.has(c)) { x.strokeStyle = '#eef3f9'; x.lineWidth = 1.5; x.strokeRect(c.at * k + .5, y + 1.5, cw - 1, A.TH - 3); x.lineWidth = 1; }
       if (cw > 34) { x.save(); x.beginPath(); x.rect(c.at * k + 4, y + 1, cw - 6, A.TH - 2); x.clip(); x.fillStyle = '#eef3f9'; x.font = '9px JetBrains Mono, monospace'; x.textBaseline = 'top'; x.fillText(st.song.patterns[c.p].name, c.at * k + 5, y + 3); x.restore(); }
     }
-    x.fillStyle = t.mute ? '#2a3546' : COLORS[i % COLORS.length];
+    x.fillStyle = t.mute ? '#2a3546' : trackColor(i);
     for (const [at, len, note] of arrNotes(i)) x.fillRect(at * k, y + 4 + (1 - note / 127) * (A.TH - 8), Math.max(1, len * k), 2);
   });
   if (arrDrop) { x.fillStyle = hexA(beatColor(arrDrop.p), .5); x.fillRect(arrDrop.at * k, A.RULER + arrDrop.i * A.TH + 1, Math.max(2, arrDrop.len * k), A.TH - 2); }
   // the piano roll's window, the start mark and the playhead
   const vis = (R.w - R.KEYW) / st.view.zoom;
   x.strokeStyle = 'rgba(238,243,249,.35)'; x.strokeRect(st.view.x * k + .5, A.RULER + st.sel * A.TH + .5, vis * k, A.TH - 1);
-  x.fillStyle = '#8ceb96'; x.beginPath(); x.moveTo(st.start * k - 5, 0); x.lineTo(st.start * k + 5, 0); x.lineTo(st.start * k, 7); x.fill();
+  x.fillStyle = '#8ceb96'; x.beginPath(); x.moveTo(st.start * k - 5, A.MK); x.lineTo(st.start * k + 5, A.MK); x.lineTo(st.start * k, A.MK + 7); x.fill();
+  x.font = '9px JetBrains Mono, monospace'; x.textBaseline = 'top';
+  for (const m of st.song.markers || []) { x.fillStyle = '#c79bff'; x.fillRect(m.at * k, 0, 1.5, A.RULER - 4); x.fillText(m.name, m.at * k + 4, 1); }
   const p = S.playing && !st.beat ? S.position() : -1;   // (a beat playing on its own is not a place in the song)
   if (p >= 0) { x.fillStyle = '#eef3f9'; x.fillRect(p * k, 0, 1.5, H); }
 }
@@ -335,6 +339,9 @@ A.cv.addEventListener('pointerdown', e => {
   const r = A.cv.getBoundingClientRect(), k = (r.width - 2) / end(), bar = st.song.beatsPerBar * PPQ;
   const tickAt = ev => Math.max(0, Math.min(end(), (ev.clientX - r.left) / k));
   const y = e.clientY - r.top;
+  if (y < A.MK) {   // a marker: click puts the start mark there
+    const m = markerAt(e); if (m) { st.start = m.at; drawArr(); drawRoll(); showPos(); return; }
+  }
   if (y < A.RULER) {   // click: the start mark; drag: the loop
     const t0 = tickAt(e); let moved = false, before = snap();
     const mv = ev => { const t1 = tickAt(ev); if (Math.abs(t1 - t0) * k > 4) moved = true; if (!moved) return;
@@ -406,6 +413,7 @@ function clipDrag(e, h, r, k) {
 }
 A.cv.addEventListener('pointermove', e => {
   if (e.buttons) return;
+  if (e.clientY - A.cv.getBoundingClientRect().top < A.MK) { A.cv.style.cursor = markerAt(e) ? 'pointer' : 'cell'; return; }
   const h = clipHit(e); A.cv.style.cursor = h && h.c ? (h.zone === 'body' ? 'grab' : 'ew-resize') : 'pointer';
 });
 A.cv.addEventListener('dblclick', e => {   // a clip opens in the editor below
@@ -444,7 +452,26 @@ function showMenu(x, y, items) {
   const away = ev => { if (!m.contains(ev.target)) { m.remove(); removeEventListener('pointerdown', away, true); } };
   setTimeout(() => addEventListener('pointerdown', away, true));
 }
+// a section marker near the pointer (its flag and name), if any
+function markerAt(ev) {
+  const r = A.cv.getBoundingClientRect(), k = (r.width - 2) / end(), px = ev.clientX - r.left;
+  return (st.song.markers || []).find(m => px >= m.at * k - 3 && px <= m.at * k + 6 + m.name.length * 5.4);
+}
 A.cv.addEventListener('contextmenu', e => {
+  const r = A.cv.getBoundingClientRect();
+  if (e.clientY - r.top < A.RULER) {   // the ruler: section markers
+    e.preventDefault();
+    const k = (r.width - 2) / end(), bar = barTicks(), at = Math.max(0, Math.min(end() - bar, Math.floor((e.clientX - r.left) / k / bar) * bar)), m = markerAt(e), list = st.song.markers || [];
+    const next = m ? list.find(x => x.at > m.at) : null;
+    showMenu(e.clientX, e.clientY, [
+      { label: `Add a marker at bar ${at / bar + 1}…`, run: () => { const v = prompt('Name of the marker', 'Section'); if (v === null) return; edit(() => { st.song.markers = (st.song.markers || []).filter(x => x.at !== at).concat({ at, name: v.trim().slice(0, 24) || 'Marker' }).sort((a, b) => a.at - b.at); }, { rebuild: true }); } },
+      ...(m ? [
+        { label: `Rename “${m.name}”…`, run: () => { const v = prompt('Name of the marker', m.name); if (v !== null && v.trim()) edit(() => { m.name = v.trim().slice(0, 24); }, { rebuild: true }); } },
+        { label: 'Loop this section', title: 'Loop from this marker to the next one (or the song\'s end)', run: () => { edit(() => { st.song.loop = { on: true, start: m.at, end: next ? next.at : end() }; }, { rebuild: true }); } },
+        { label: 'Delete the marker', run: () => edit(() => { st.song.markers = st.song.markers.filter(x => x !== m); if (!st.song.markers.length) delete st.song.markers; }, { rebuild: true }) }] : [])
+    ]);
+    return;
+  }
   const h = clipHit(e); if (!h || !h.c) return;
   e.preventDefault(); st.focus = 'arr';
   if (!st.cs.has(h.c)) { st.cs = new Set([h.c]); drawArr(); }
@@ -531,7 +558,7 @@ function drawRoll() {
     for (const [at, len, n] of o.notes) { const X = xOf(at); if (X > W || X + len * st.view.zoom < R.KEYW) continue; x.fillRect(X, yOf(n) + 3, len * st.view.zoom, R.RH - 7); }
   });
   // the track's notes
-  const col = COLORS[st.sel % COLORS.length];
+  const col = trackColor(st.sel);
   const drawNote = (n, fill, stroke) => {
     const [at, len, p, v] = n, X = xOf(at), Y = yOf(p), w = Math.max(3, len * st.view.zoom - 1);
     if (X > W || X + w < R.KEYW || Y < R.RULER - R.RH || Y > gB) return;
@@ -805,6 +832,7 @@ function renderBeats() {
   });
 }
 function renderPat() {
+  if (st.tab !== 'notes') return;   // (the other tabs have the editor's place)
   const bar = $('#patBar'), P = pattern();
   if (!P) { st.open = null; bar.hidden = true; $('#beatGrid').hidden = true; $('.rollWrap').hidden = false; $('#hint').hidden = false; return; }
   const drums = kitTrack(track()), grid = drums && st.openView === 'grid';
@@ -969,7 +997,10 @@ function frame() {
     markStep(st.beat && !$('#beatGrid').hidden ? Math.floor(S.position() / st.patStep) : -1);
   } else if (markedStep !== -1) markStep(-1);
   const m = S.meter();
-  if (m) $('#trackList').querySelectorAll('.trk .meter i').forEach((el, i) => { el.style.width = `${Math.round(100 * Math.min(1, (m.tracks[i] || 0) * 1.2))}%`; });
+  if (m) {
+    $('#trackList').querySelectorAll('.trk .meter i').forEach((el, i) => { el.style.width = `${Math.round(100 * Math.min(1, (m.tracks[i] || 0) * 1.2))}%`; });
+    if (!$('#mixer').hidden) $('#mixer').querySelectorAll('.chan .vmeter i').forEach((el, i) => { el.style.height = `${Math.round(100 * Math.min(1, (m.tracks[i] || 0) * 1.2))}%`; });
+  }
   requestAnimationFrame(frame);
 }
 
@@ -1651,14 +1682,49 @@ addEventListener('message', e => {
   if (!f || e.source !== f.contentWindow || !e.data || e.data.type !== 'pixelite:ready') return;
   preview.ready = true; if (preview.go) { const g = preview.go; preview.go = null; g(); }
 });
-function showTab(where) {
-  $('#where').hidden = !where; $('#arr').hidden = where; $('.rollWrap').hidden = where; $('#hint').hidden = where;
-  $('#tabWhere').classList.toggle('on', where); $('#tabNotes').classList.toggle('on', !where);
-  $('#tabWhere').setAttribute('aria-selected', String(where)); $('#tabNotes').setAttribute('aria-selected', String(!where));
-  if (where) renderWhere(); else { send({ type: 'pixelite:music', song: null }); const f = $('#pvFrame'); if (f) f.src = 'about:blank'; drawArr(); drawRoll(); }
+
+// ---------- the mixer: every track's fader, pan and sends side by side, with its level ----------
+function renderMixer() {
+  const box = $('#mixer'), T = st.song.tracks, M = st.song.master;
+  box.textContent = '';
+  const fader = (label, get, set, { min = 0, max = 1, step = .01, fmt = pct, v = false, title = '' } = {}) => {
+    const el = document.createElement('label'); el.className = `mx${v ? ' v' : ''}`; if (title) el.title = title;
+    el.innerHTML = `<input type="range" min="${min}" max="${max}" step="${step}" value="${get()}" aria-label="${esc(label)}"><output>${fmt(get())}</output><span>${esc(label)}</span>`;
+    const inp = el.querySelector('input'), out = el.querySelector('output');
+    inp.oninput = () => { tweak(() => set(+inp.value)); out.textContent = fmt(get()); };
+    inp.onchange = settle;
+    return el;
+  };
+  T.forEach((t, i) => {
+    const c = document.createElement('section'); c.className = `chan${i === st.sel ? ' sel' : ''}${t.mute ? ' muted' : ''}`; c.style.setProperty('--c', trackColor(i));
+    c.innerHTML = `<header><b title="${esc(t.name)}">${esc(t.name)}</b><span class="muted">${esc(insName(t.instrument) || t.instrument)}</span></header>
+      <div class="ms"><button class="mbtn${t.mute ? ' on' : ''}" data-k="mute" aria-pressed="${t.mute}">M</button><button class="sbtn${t.solo ? ' on' : ''}" data-k="solo" aria-pressed="${t.solo}">S</button></div>`;
+    const faders = document.createElement('div'); faders.className = 'faders';
+    const vm = document.createElement('span'); vm.className = 'vmeter'; vm.innerHTML = '<i></i>';
+    faders.append(vm, fader('Volume', () => t.volume, v => { t.volume = v; }, { v: true }));
+    c.append(faders,
+      fader('Pan', () => t.pan, v => { t.pan = v; }, { min: -1, max: 1, step: .05, fmt: v => (v < -.02 ? `L${Math.round(-v * 100)}` : v > .02 ? `R${Math.round(v * 100)}` : 'C') }),
+      fader('Echo', () => t.sends.echo, v => { t.sends.echo = v; }), fader('Reverb', () => t.sends.reverb, v => { t.sends.reverb = v; }));
+    c.querySelectorAll('[data-k]').forEach(b => b.onclick = e => { e.stopPropagation(); edit(() => { t[b.dataset.k] = !t[b.dataset.k]; }, { rebuild: true }); });
+    c.addEventListener('pointerdown', () => { if (st.sel !== i) { closeBeat(); st.sel = i; st.picked.clear(); renderTracks(); renderStrip(); box.querySelectorAll('.chan').forEach((x, k) => x.classList.toggle('sel', k === i)); } });
+    box.append(c);
+  });
+  const mc = document.createElement('section'); mc.className = 'chan master'; mc.innerHTML = '<header><b>Master</b><span class="muted">all tracks</span></header>';
+  const mf = document.createElement('div'); mf.className = 'faders'; mf.append(fader('Volume', () => M.volume, v => { M.volume = v; }, { v: true }));
+  mc.append(mf, fader('Echo', () => M.echo.volume, v => { M.echo.volume = v; }), fader('Reverb', () => M.reverb.volume, v => { M.reverb.volume = v; }));
+  box.append(mc);
 }
-$('#tabNotes').onclick = () => showTab(false);
-$('#tabWhere').onclick = () => showTab(true);
+function showTab(mode) {   // 'notes', 'where' or 'mixer'
+  const where = mode === 'where', mixer = mode === 'mixer', notes = mode === 'notes'; st.tab = mode;
+  $('#where').hidden = !where; $('#mixer').hidden = !mixer; $('#arr').hidden = !notes; $('.rollWrap').hidden = !notes; $('#hint').hidden = !notes;
+  for (const [id, on] of [['tabNotes', notes], ['tabWhere', where], ['tabMixer', mixer]]) { $('#' + id).classList.toggle('on', on); $('#' + id).setAttribute('aria-selected', String(on)); }
+  if (!notes) { $('#patBar').hidden = true; $('#beatGrid').hidden = true; }
+  if (where) renderWhere(); else { send({ type: 'pixelite:music', song: null }); const f = $('#pvFrame'); if (f) f.src = 'about:blank'; }
+  if (mixer) renderMixer(); if (notes) { renderPat(); sizeRoll(); drawArr(); drawRoll(); }
+}
+$('#tabNotes').onclick = () => showTab('notes');
+$('#tabWhere').onclick = () => showTab('where');
+$('#tabMixer').onclick = () => showTab('mixer');
 
 // ---------- the transport bar ----------
 function syncTransport() {
@@ -1668,7 +1734,7 @@ function syncTransport() {
   tog('#loopBtn', s.loop.on); tog('#clickBtn', st.click); tog('#countBtn', st.countIn); tog('#quantBtn', st.quant); tog('#snesBtn', s.snes); tog('#keysBtn', st.keys);
   $('#grid').value = String(st.grid);
 }
-function renderAll() { syncTransport(); renderTracks(); renderAddIns(); renderStrip(); renderBeats(); renderPat(); drawArr(); sizeRoll(); drawRoll(); showPos(); if (!$('#where').hidden) renderWhere(); }
+function renderAll() { syncTransport(); renderTracks(); renderAddIns(); renderStrip(); renderBeats(); renderPat(); drawArr(); sizeRoll(); drawRoll(); showPos(); if (!$('#where').hidden) renderWhere(); if (!$('#mixer').hidden) renderMixer(); }
 $('#title').onchange = e => edit(() => { st.song.title = e.target.value.slice(0, 80) || 'Untitled'; });
 $('#bpm').onchange = e => edit(() => { st.song.bpm = Math.max(30, Math.min(300, +e.target.value || 120)); }, { rebuild: true });
 $('#bars').onchange = e => edit(() => { const s = st.song; s.bars = Math.max(1, Math.min(512, Math.round(+e.target.value) || 8)); const E = S.songEnd(s); s.loop.end = Math.min(s.loop.end, E); s.loop.start = Math.min(s.loop.start, s.loop.end - PPQ); }, { rebuild: true });

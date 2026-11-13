@@ -318,13 +318,13 @@ with sync_playwright() as p:
     pg3.keyboard.press('Escape')
     check('Escape closes the beat', st3('st.open') is None and pg3.is_hidden('#patBar') and pg3.is_visible('.rollWrap'))
     check('the beat list says what plays it, and a beat a clip plays cannot be deleted', pg3.locator('#beatList .beat').count() == 1 and pg3.locator('#beatList .bdel').is_disabled() and '×1' in pg3.text_content('#beatList .beat'))
-    pg3.dblclick('#arr', position={'x': 30, 'y': 18 + 3 * 26 + 13})
+    pg3.dblclick('#arr', position={'x': 30, 'y': 30 + 3 * 26 + 13})
     check('double-clicking a clip in the overview opens its beat', st3('st.open && st.open.p') == 'beat-1' and st3('st.sel') == 3)
     pg3.keyboard.press('Escape'); pg3.keyboard.press('Escape')
     check('Escape clears the clip selection first, then closes the beat', st3('st.cs.size') == 0 and st3('st.open') is None)
     # the arranger: clips as blocks in the lanes
     abox = pg3.locator('#arr').bounding_box(); kk = (abox['width'] - 2) / st3('Sampler.songEnd(st.song)')
-    ax = lambda t: abox['x'] + t * kk; ay = lambda i: abox['y'] + 18 + i * 26 + 13
+    ax = lambda t: abox['x'] + t * kk; ay = lambda i: abox['y'] + 30 + i * 26 + 13
     def drag(x0, y0, x1, y1, mods=()):
         for m in mods: pg3.keyboard.down(m)
         pg3.mouse.move(x0, y0); pg3.mouse.down(); pg3.mouse.move(x1, y1, steps=8); pg3.mouse.up()
@@ -361,7 +361,7 @@ with sync_playwright() as p:
     pg3.mouse.click(ax(900), ay(3), button='right'); pg3.click('#ctx button:has-text("Turn into notes")')
     check('Turn into notes: the clip is gone, the track plays the same notes, now its own', st3('st.song.tracks[3].clips.length') == 1 and st3('JSON.stringify(Sampler.notesOf(st.song, st.song.tracks[3]))') == before and st3('st.song.tracks[3].notes.length') == per_bar, st3('st.song.tracks[3].notes.length'))
     # a beat dragged from the list onto a lane
-    pg3.drag_and_drop('#beatList .beat:first-child .bopen', '#arr', target_position={'x': ax(1536) - abox['x'], 'y': 18 + 1 * 26 + 13})
+    pg3.drag_and_drop('#beatList .beat:first-child .bopen', '#arr', target_position={'x': ax(1536) - abox['x'], 'y': 30 + 1 * 26 + 13})
     check('a beat dragged from the list onto a lane makes a clip there, on the bar', st3('st.song.tracks[1].clips') == [{'at': 1536, 'p': 'beat-1', 'len': 384, 'off': 0}], st3('st.song.tracks[1].clips'))
     pg3.keyboard.press('Control+z'); pg3.keyboard.press('Control+z'); pg3.keyboard.press('Control+z'); pg3.keyboard.press('Control+z')
     # a beat out of selected notes
@@ -447,6 +447,44 @@ with sync_playwright() as p:
     check('DELETE KIT: the track plays the built-in kit, and the samples only the kit played go', st4('st.song.kits') is None and st4('st.song.tracks[st.sel].instrument') == 'kit' and st4('Object.keys(st.song.samples).length') == 0, st4('Object.keys(st.song.samples)'))
     check('no page errors in the kit studio', not errs4, errs4)
     ctx4.close()
+
+    # ---- polish: track colours, section markers on the ruler, the mixer ----
+    ctx5 = b.new_context(viewport={'width': 1440, 'height': 900}); pg5 = ctx5.new_page(); errs5 = []
+    pg5.on('pageerror', lambda e: errs5.append(str(e))); pg5.on('dialog', lambda d: d.accept())
+    pg5.route('**/api/songs**', api); pg5.route('**/fonts.g*/**', lambda r: r.abort())
+    pg5.goto(f'{BASE}/studio/?game=spacemouse'); pg5.wait_for_function('window.studio && studio.st.song')
+    st5 = lambda js: pg5.evaluate(f'(() => {{ const st = studio.st; return {js}; }})()')
+    pg5.locator('#trackList .trk:nth-child(2) .tcol').fill('#ff0000')
+    check('a track\'s colour is chosen in its header and kept in the song', st5('st.song.tracks[1].color') == '#ff0000' and 'color' not in st5('st.song.tracks[0]'), st5('st.song.tracks.map(t => t.color)'))
+    pg5.keyboard.press('Control+z')
+    check('and undoes', st5('st.song.tracks[1].color') is None)
+    pbox = pg5.locator('#arr').bounding_box(); pk = (pbox['width'] - 2) / st5('Sampler.songEnd(st.song)')
+    pg5.mouse.click(pbox['x'] + 768 * pk + 20, pbox['y'] + 5, button='right')
+    pg5.click('#ctx button:has-text("Add a marker at bar 3")')
+    pg5.mouse.click(pbox['x'] + 1920 * pk + 20, pbox['y'] + 5, button='right'); pg5.click('#ctx button:has-text("Add a marker at bar 6")')
+    check('right-click on the marker strip adds a named marker on the bar', st5('st.song.markers') == [{'at': 768, 'name': 'Marker'}, {'at': 1920, 'name': 'Marker'}], st5('st.song.markers'))
+    pg5.mouse.click(pbox['x'] + 768 * pk + 8, pbox['y'] + 5)
+    check('clicking a marker puts the start mark there', st5('st.start') == 768)
+    pg5.mouse.click(pbox['x'] + 768 * pk + 8, pbox['y'] + 5, button='right'); pg5.click('#ctx button:has-text("Loop this section")')
+    check('Loop this section: from the marker to the next one', st5('[st.song.loop.on, st.song.loop.start, st.song.loop.end]') == [True, 768, 1920], st5('st.song.loop'))
+    pg5.mouse.click(pbox['x'] + 1920 * pk + 8, pbox['y'] + 5, button='right'); pg5.click('#ctx button:has-text("Delete the marker")')
+    check('a marker is deleted from its menu', st5('st.song.markers.length') == 1)
+    pg5.click('#tabMixer')
+    check('MIXER: a channel for each track and the master, the editor hidden', pg5.locator('#mixer .chan').count() == 5 and pg5.is_hidden('#roll') and pg5.is_hidden('#arr'), pg5.locator('#mixer .chan').count())
+    pg5.locator('#mixer .chan:nth-child(2) .mx.v input').fill('0.3')
+    check('a fader sets the track\'s volume', abs(st5('st.song.tracks[1].volume') - .3) < .001, st5('st.song.tracks[1].volume'))
+    pg5.locator('#mixer .chan:nth-child(3) .mx:has(span:text-is("Echo")) input').fill('0.6')
+    check('the sends are there too', abs(st5('st.song.tracks[2].sends.echo') - .6) < .001)
+    pg5.locator('#mixer .chan:nth-child(1) .mbtn').click()
+    check('mute from the mixer', st5('st.song.tracks[0].mute') is True and pg5.locator('#mixer .chan.muted').count() == 1)
+    pg5.keyboard.press('Control+z'); pg5.keyboard.press('Control+z'); pg5.keyboard.press('Control+z')
+    check('mixer moves undo, a fader drag as one step each', st5('st.song.tracks[0].mute') is False and st5('st.song.tracks[2].sends.echo') != .6 and abs(st5('st.song.tracks[1].volume') - .3) > .01, st5('st.song.tracks.map(t => [t.mute, t.volume, t.sends.echo])'))
+    pg5.click('#trackList .trk:nth-child(4)'); pg5.click('#addBeat'); pg5.click('#tabMixer')
+    check('a tab away from the notes takes the beat\'s bar and grid with it, and back they come', pg5.is_hidden('#patBar') and pg5.is_hidden('#beatGrid'))
+    pg5.click('#tabNotes')
+    check('back on NOTES: the open beat is as it was', pg5.is_visible('#patBar') and pg5.is_visible('#beatGrid') and st5('!!st.open'))
+    check('no page errors in the polish', not errs5, errs5)
+    ctx5.close()
 
     # ---- automation: tempo changes, lanes, glide ----
     auto = pg.evaluate('''async () => {

@@ -184,3 +184,27 @@ dialog .row{display:flex;gap:10px;align-items:center}
 .pad:hover,.pad.over{border-color:var(--phosphor);background:#1b2638}
 .btnrow{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
 .meta.warn{color:var(--red);margin:6px 0 0}
+
+/* the mixer tab, markers, track colours */
+.mixer{flex:1;min-height:0;overflow:auto;display:flex;gap:6px;padding:10px;align-items:stretch;background:#05070c}
+.chan{flex:none;width:96px;display:flex;flex-direction:column;gap:6px;padding:8px 6px;background:var(--panel);border:1px solid var(--rim);border-top:3px solid var(--c,var(--rim2));border-radius:3px}
+.chan.sel{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
+.chan.muted .faders{opacity:.45}
+.chan.master{--c:var(--phosphor);margin-left:auto}
+.chan header{display:flex;flex-direction:column;gap:1px;min-width:0}
+.chan header b{font:700 11px var(--mono);color:var(--bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chan header span{font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chan .ms{display:flex;gap:4px}
+.chan .ms button{flex:1;height:22px;font:700 11px var(--mono);border:1px solid var(--rim2);background:var(--void);color:var(--dim);border-radius:2px;cursor:pointer}
+.chan .ms .mbtn.on{background:var(--red);color:var(--void);border-color:var(--red)}
+.chan .ms .sbtn.on{background:var(--gold);color:var(--void);border-color:var(--gold)}
+.chan .faders{display:flex;gap:6px;justify-content:center;align-items:stretch;flex:1;min-height:150px}
+.mx{display:flex;flex-direction:column;align-items:center;gap:2px;font:10px var(--mono);color:var(--dim)}
+.mx input{width:100%;accent-color:var(--c,var(--gold))}
+.mx output{color:var(--phosphor)}
+.mx.v{flex:1}
+.mx.v input{writing-mode:vertical-lr;direction:rtl;width:22px;flex:1;min-height:110px}
+.vmeter{display:flex;align-items:flex-end;width:6px;background:var(--void);border-radius:2px;overflow:hidden}
+.vmeter i{display:block;width:100%;height:0;background:var(--c,var(--green))}
+.trk .tcol{width:18px;height:18px;padding:0;border:0;background:none;cursor:pointer;flex:none}
+.trk .tcol::-webkit-color-swatch-wrapper{padding:0}.trk .tcol::-webkit-color-swatch{border:1px solid var(--rim2);border-radius:2px}

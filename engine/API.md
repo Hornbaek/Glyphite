@@ -789,6 +789,8 @@ writes them into the game's `songs.js` as `SONGS['<id>']`.
   hold is dropped. `Sampler.notesOf(song, track)` is all of a track's notes in time order (with no clips it is the track's own list: do not change it),
   `Sampler.clipNotes(song, track, a, b, fn)` calls `fn(tick, length, note, velocity)` for the clips' notes that start in `[a, b)`; both expect a song that
   has been through `check()`. The fields are only in a song when it has some, so songs made without them read as before.
+- **Markers and track colours:** `song.markers = [{ at, name }]` (up to 64 named places in the song, sorted; the studio's Intro, Chorus, Boss) and `track.color` (`#rrggbb`, the
+  studio's colour for the track) are only in a song that has them, and nothing plays differently for either.
 - **Where it plays:** `song.places = { title, levels: [level indices], note }`, set in the studio's WHERE IT PLAYS.
   `tools/song.mjs` collects them into `SONG_AT` beside `SONGS` (`SONG_AT.title`, `SONG_AT.levels[i]`, `SONG_AT.other`): the music
   director plays them (`Music.place(...)` below; Space Mouse calls it every frame in `afterFrame`).
