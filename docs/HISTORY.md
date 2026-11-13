@@ -1356,6 +1356,11 @@ The second step of the plan in HISTORY 60: the studio itself can now make a patt
   edit; the beat's name, length and colour now ignore a change that changes nothing.
 - Checked: `tests/studio.py` drives all of it with the mouse (the grid, accents, painting, fills, the beat playing alone with live edits, length, undo, the roll,
   a beat from selected notes, a note clicked into an open beat going to the beat and not to the track).
+- **Review fixes** (an independent read-only review of steps 2 to 5, each finding reproduced before it was fixed): an open beat never loses notes off its end (moves,
+  arrow keys, quantize, paste and duplicate stay inside it; paste goes to the beat's own start, not the song's start mark); a beat plays without the song's tempo
+  changes and volume/pan/filter lanes (a fade-in intro had made it silent); `audio()`, called by every click, handed the Sampler the song while a beat played on its own
+  (now it keeps the beat); changing the beat's length, or adding, moving, duplicating or deleting a track, stops a playing beat (its copy of the song would be out of date);
+  a new beat's default name is never one another beat has.
 
 ## 62. The studio's beat machine, step 3: the arranger with clips (Claude Code, 2026-11-13)
 

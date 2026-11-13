@@ -20,6 +20,13 @@ test('a new beat has an id nothing else has, a name, a bar, and may be removed o
   assert.equal(addBeat(s, { len: 1 }) && s.patterns['beat-1'].len, 24, 'a beat is at least a 16th long');
 });
 
+test('a new beat\'s default name is not one another beat already has', () => {
+  const s = song(), a = addBeat(s), b = addBeat(s);
+  removeBeat(s, a);
+  const c = addBeat(s);
+  assert.deepEqual([s.patterns[b].name, s.patterns[c].name], ['Beat 2', 'Beat 3']);
+});
+
 test('tidyBeat keeps a beat\'s notes inside it, in time order', () => {
   const P = { len: 96, notes: [[48, 24, 38, 100], [90, 24, 36, 100], [96, 24, 42, 100], [200, 24, 42, 100], [0, 24, 36, 100]] };
   tidyBeat(P);
