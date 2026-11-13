@@ -411,3 +411,5 @@ way.
 - **Measure after the layout settles.** The studio's roll is resized a frame after its surroundings change (a `ResizeObserver`), and the hint under it changes with the lane: where the font is wider (CI has no JetBrains Mono)
   the hint wraps to a second line, the roll shrinks 17 px and a click aimed with a box measured a moment before lands on another value (`TEMPO lane: a tempo change` got 239 BPM for a click meant for 165). `pt()` in `tests/studio.py`
   now waits two animation frames before it measures.
+- **A test that draws at a random time compares different pictures.** `stars: back to normal when the light is gone` drew the sky at `performance.now() / 1000 + Math.random()`, and a star beside one of the level's pulsing beacons was
+  113 in one picture and 120 in the next (the tolerance had already been widened once, 3% to 5%). It draws at one fixed moment now, so the pictures differ only by what the test changes.
