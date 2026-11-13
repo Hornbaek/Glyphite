@@ -26,7 +26,7 @@ body.studio{display:flex;flex-direction:column;overflow:hidden}
 .btn.on{border-color:var(--green);color:var(--green)}
 .midi{max-width:22em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-.desk{flex:1;min-height:0;display:grid;grid-template-columns:230px minmax(0,1fr) 300px}
+.desk{flex:1;min-height:0;display:grid;grid-template-columns:var(--wL,230px) 5px minmax(0,1fr) 5px var(--wR,300px)}
 .tracks{border-right:1px solid var(--rim);background:var(--panel);overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column}
 .tracks ol{list-style:none;margin:0;padding:0}
 .trk{position:relative;padding:8px 10px 10px 14px;border-bottom:1px solid var(--rim);cursor:pointer}
@@ -47,8 +47,9 @@ body.studio{display:flex;flex-direction:column;overflow:hidden}
 .trackAdd select{flex:1;min-width:0;font:12px var(--mono);color:var(--phosphor);background:var(--void);border:1px solid var(--rim2);border-radius:2px;padding:4px}
 
 .editor{display:flex;flex-direction:column;min-width:0;min-height:0}
-.arr{display:block;width:100%;border-bottom:1px solid var(--rim);cursor:pointer;flex:none}
-.rollWrap{flex:1;min-height:0;position:relative}
+.arrWrap{flex:none;overflow-x:hidden;overflow-y:auto;max-height:var(--arrH,none);min-height:0}
+.arr{display:block;width:100%;cursor:pointer}
+.rollWrap{flex:1;min-height:0;position:relative;overflow:hidden}
 .roll{display:block;position:absolute;inset:0;outline:none;touch-action:none}
 .hint{margin:0;padding:5px 12px;font-size:11px;border-top:1px solid var(--rim)}
 
@@ -114,10 +115,13 @@ dialog h2{margin:0 0 10px;color:var(--bright);font-size:17px}
 .prompt{white-space:pre-wrap;background:var(--void);border:1px solid var(--rim);border-radius:2px;padding:10px;font-size:12px;margin:10px 0;overflow-wrap:anywhere}
 dialog .row{display:flex;gap:10px;align-items:center}
 
-@media (max-width:1000px){
+@media (max-width:1000px){   /* a narrow window: the panels stack and the page scrolls (a grid squeezed into the window left the track list 1 px tall under the editor) */
+  html,body.studio{height:auto;min-height:100%}
   body.studio{overflow:auto}
-  .desk{grid-template-columns:1fr;grid-template-rows:auto 520px auto}
-  .tracks,.strip{border:0;border-bottom:1px solid var(--rim)}
+  .desk{display:flex;flex-direction:column;flex:none;min-height:0}
+  .tracks,.strip{overflow:visible;border:0;border-bottom:1px solid var(--rim);flex:none}
+  .editor{height:max(620px,82vh);flex:none;order:-1}   /* the editor first: the tracks are in its overview too */
+  .vsplit{display:none}
 }
 
 /* the project picker: shown when the studio is opened without a project */
@@ -208,3 +212,8 @@ dialog .row{display:flex;gap:10px;align-items:center}
 .vmeter i{display:block;width:100%;height:0;background:var(--c,var(--green))}
 .trk .tcol{width:18px;height:18px;padding:0;border:0;background:none;cursor:pointer;flex:none}
 .trk .tcol::-webkit-color-swatch-wrapper{padding:0}.trk .tcol::-webkit-color-swatch{border:1px solid var(--rim2);border-radius:2px}
+
+/* the thin bars between the panels: drag to resize */
+.vsplit{cursor:col-resize;background:var(--rim);touch-action:none}
+.hsplit{cursor:row-resize;background:var(--rim);height:6px;flex:none;touch-action:none}
+.vsplit:hover,.hsplit:hover,.vsplit.on,.hsplit.on{background:var(--gold)}

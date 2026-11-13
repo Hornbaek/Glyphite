@@ -323,6 +323,7 @@ function drawArr() {
       x.fillStyle = hexA(col, t.mute ? .1 : on ? .45 : .28); x.fillRect(c.at * k, y + 1, cw, A.TH - 2);
       x.fillStyle = hexA(col, .95); x.fillRect(c.at * k, y + 1, 2, A.TH - 2);
       x.fillStyle = hexA(col, .6); for (const r of B.repeatsOf(st.song, c)) x.fillRect(r * k, y + 3, 1, A.TH - 6);   // where the beat comes round again
+      x.fillStyle = hexA(col, .9); x.fillRect(c.at * k + cw - 3, y + 5, 2, A.TH - 10);   // (a grip at the end: that edge drags to loop)
       if (st.cs.has(c)) { x.strokeStyle = '#eef3f9'; x.lineWidth = 1.5; x.strokeRect(c.at * k + .5, y + 1.5, cw - 1, A.TH - 3); x.lineWidth = 1; }
       if (cw > 34) { x.save(); x.beginPath(); x.rect(c.at * k + 4, y + 1, cw - 6, A.TH - 2); x.clip(); x.fillStyle = '#eef3f9'; x.font = '9px JetBrains Mono, monospace'; x.textBaseline = 'top'; x.fillText(st.song.patterns[c.p].name, c.at * k + 5, y + 3); x.restore(); }
     }
@@ -379,7 +380,7 @@ function clipHit(ev) {
     const c = t.clips[n]; if (!st.song.patterns || !st.song.patterns[c.p]) continue;
     const x0 = c.at * k, x1 = (c.at + c.len) * k;
     if (px < x0 - 2 || px > x1 + 2) continue;
-    const edge = Math.min(8, (x1 - x0) / 3);
+    const edge = Math.min(10, (x1 - x0) / 3);
     return { i, t, c, zone: px > x1 - edge ? 'end' : px < x0 + edge ? 'start' : 'body' };
   }
   return { i, t, c: null };
@@ -530,7 +531,7 @@ const xOf = t => R.KEYW + (t - st.view.x) * st.view.zoom, tOf = x => st.view.x +
 const yOf = n => R.RULER + (st.view.top - n) * R.RH, nOf = y => st.view.top - Math.floor((y - R.RULER) / R.RH);
 function sizeRoll() {
   const dpr = devicePixelRatio || 1, wrap = R.cv.parentElement;
-  R.w = wrap.clientWidth; R.h = Math.max(220, wrap.clientHeight);
+  R.w = wrap.clientWidth; R.h = Math.max(150, wrap.clientHeight);
   R.cv.width = Math.round(R.w * dpr); R.cv.height = Math.round(R.h * dpr); R.cv.style.width = R.w + 'px'; R.cv.style.height = R.h + 'px';
 }
 function drawRoll() {
@@ -1797,6 +1798,30 @@ $('#delSongBtn').onclick = async () => {
 $('#songs').onchange = e => openSong(e.target.value);
 // the roll fills whatever room the window and the overview above it leave
 new ResizeObserver(() => { sizeRoll(); drawRoll(); }).observe(R.cv.parentElement);
+new ResizeObserver(() => drawArr()).observe($('#arrWrap'));
+// ---------- the panels' sizes are yours to change: the bars between them drag, and double-click puts them back ----------
+const LAYOUT_KEY = 'pixelite.studio.layout';
+const layout = (() => { try { return JSON.parse(localStorage.getItem(LAYOUT_KEY)) || {}; } catch { return {}; } })();
+const saveLayout = () => { try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout)); } catch { } };
+function applyLayout() {
+  const d = document.querySelector('.desk'), cl2 = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  for (const [k, v] of [['wL', '--wL'], ['wR', '--wR']]) if (layout[k]) d.style.setProperty(v, cl2(layout[k], 150, 600) + 'px'); else d.style.removeProperty(v);
+  if (layout.arrH) $('#arrWrap').style.setProperty('--arrH', Math.max(56, layout.arrH) + 'px'); else $('#arrWrap').style.removeProperty('--arrH');
+}
+function splitter(el, start, move) {
+  el.addEventListener('pointerdown', e => {
+    e.preventDefault(); el.setPointerCapture(e.pointerId); el.classList.add('on');
+    const s0 = start(), x0 = e.clientX, y0 = e.clientY;
+    const mv = ev => { move(s0, ev.clientX - x0, ev.clientY - y0); applyLayout(); };
+    const up = () => { el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up); el.classList.remove('on'); saveLayout(); };
+    el.addEventListener('pointermove', mv); el.addEventListener('pointerup', up);
+  });
+  el.addEventListener('dblclick', () => { move(null, 0, 0); applyLayout(); saveLayout(); });
+}
+splitter($('#splitL'), () => $('.tracks').getBoundingClientRect().width, (w, dx) => { if (w === null) delete layout.wL; else layout.wL = Math.round(w + dx); });
+splitter($('#splitR'), () => $('#strip').getBoundingClientRect().width, (w, dx) => { if (w === null) delete layout.wR; else layout.wR = Math.round(w - dx); });
+splitter($('#splitA'), () => $('#arrWrap').getBoundingClientRect().height, (h, dx, dy) => { if (h === null) delete layout.arrH; else layout.arrH = Math.round(h + dy); });
+applyLayout();
 addEventListener('resize', () => drawArr());
 addEventListener('beforeunload', e => { saveDraft(); });
 document.addEventListener('pointerdown', () => { if (!S.ctx) audio(); }, { once: true, capture: true });
