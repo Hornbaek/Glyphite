@@ -405,3 +405,9 @@ way.
   `setWeather` is called, and a test says a game that never calls it has none.
 - **A zoom the pixels cannot meet exactly says what it came to.** The cell is a whole number of device pixels, so `setZoom(1.3)` on an 8 pixel cell is 10 pixels (1.25); `getZoom()` reports it, the request is kept for
   the next resize, and a pinch adds up in the request, not in the rounded cell, or a slow pinch would never move it.
+- **A pixel-for-pixel test must not meet the wall clock.** `E6 gl: taking it off gives the picture back` (and its sisters) failed on CI about half the time, on `main` too, and only under load: the engine's feed (`say()`) draws a
+  message box that lives 1.6 s of real time, so on a slow machine it was in some of a test's pictures and not in others (a 252 x 36 px box of the HUD's colours over the ground). It reproduces locally with eight busy loops
+  running (`while True: pass`) beside the test. `LT.bare()` now silences `say` and empties `FEED`. When a picture test is flaky, diff the two pictures first: the shape of what differs (a box, a line of text) names the cause.
+- **Measure after the layout settles.** The studio's roll is resized a frame after its surroundings change (a `ResizeObserver`), and the hint under it changes with the lane: where the font is wider (CI has no JetBrains Mono)
+  the hint wraps to a second line, the roll shrinks 17 px and a click aimed with a box measured a moment before lands on another value (`TEMPO lane: a tempo change` got 239 BPM for a click meant for 165). `pt()` in `tests/studio.py`
+  now waits two animation frames before it measures.
