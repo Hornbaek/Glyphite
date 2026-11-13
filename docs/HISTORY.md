@@ -1356,6 +1356,11 @@ The second step of the plan in HISTORY 60: the studio itself can now make a patt
   edit; the beat's name, length and colour now ignore a change that changes nothing.
 - Checked: `tests/studio.py` drives all of it with the mouse (the grid, accents, painting, fills, the beat playing alone with live edits, length, undo, the roll,
   a beat from selected notes, a note clicked into an open beat going to the beat and not to the track).
+- **Review fixes** (an independent read-only review of steps 2 to 5, each finding reproduced before it was fixed): an open beat never loses notes off its end (moves,
+  arrow keys, quantize, paste and duplicate stay inside it; paste goes to the beat's own start, not the song's start mark); a beat plays without the song's tempo
+  changes and volume/pan/filter lanes (a fade-in intro had made it silent); `audio()`, called by every click, handed the Sampler the song while a beat played on its own
+  (now it keeps the beat); changing the beat's length, or adding, moving, duplicating or deleting a track, stops a playing beat (its copy of the song would be out of date);
+  a new beat's default name is never one another beat has.
 
 ## 62. The studio's beat machine, step 3: the arranger with clips (Claude Code, 2026-11-13)
 
@@ -1368,7 +1373,12 @@ The second step of the plan in HISTORY 60: the studio itself can now make a patt
 - **The pure part** (`beats-core.mjs`, `tests/node/beats.test.mjs`): `repeatsOf`, `splitClip` (the second part's `off` follows on, so the two sound what the one did),
   `trimStart`, `makeUnique` (clips given play the copy, the others stay linked), `flattenClip` (the track sounds the same, now with its own notes).
 - Checked in the browser with the mouse (`tests/studio.py`): loop by the edge, move, Alt-copy, trim, cut, duplicate, delete, the menu, make unique, turn into notes,
-  a beat dragged from the list. A trim test that could not fail (the clip was too short to trim) was found and rebuilt on a longer clip.
+  a beat dragged from the list.
+- **Review fixes** (reproduced first): clips of a deleted track stayed selected and threw in "Turn into notes" and Alt-copy (the selection is now cleaned after every change);
+  an Alt-drag that ended where it began left an exact duplicate clip on top (no copy, no undo step now; a move that changes nothing makes no undo step either); a clip
+  shorter than its step jumped a whole bar when an edge was nudged (short clips move their edges by the grid); a right-click on the overview moved the start mark (only the
+  left button does now); Ctrl+E cuts from either editor; "Make unique" opens the copy only if that beat was the open one; a beat opens from its own start (the roll could be
+  scrolled far past a one-bar beat); a long message in the header no longer wraps it and pushes the whole studio down (it is cut short, its tooltip has all of it). A trim test that could not fail (the clip was too short to trim) was found and rebuilt on a longer clip.
 
 ## 63. The studio's beat machine, step 4: drum kits from your own samples (Claude Code, 2026-11-13)
 
