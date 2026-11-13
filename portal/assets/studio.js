@@ -3,6 +3,7 @@
 // (Sampler.check); they save to the site (worker/songs.js, D1) and a draft is kept in this browser as you work.
 import { findLevels, toPixels } from './levels-core.mjs';
 import { songFromMidi, midiFromSong } from './midi-core.mjs';
+import * as B from './beats-core.mjs';
 const S = Sampler, PPQ = S.PPQ;
 const $ = q => document.querySelector(q);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -19,11 +20,32 @@ const DRAFT = `pixelite.studio.draft.${GAME_ID || 'none'}`;   // one draft per p
 const st = {
   song: null, meta: { id: null, updated_at: null, game: '' }, sel: 0, picked: new Set(), grid: 24, len: 96, start: 0,
   dirty: false, undo: [], redo: [], lane: 'vel', pending: null, clip: null, rec: null, click: false, countIn: true, quant: true,
-  keys: false, octave: 4, view: { x: 0, zoom: .7, top: 84 }, live: new Map(), pedal: false, bend: 0, follow: true
+  keys: false, octave: 4, view: { x: 0, zoom: .7, top: 84 }, live: new Map(), pedal: false, bend: 0, follow: true,
+  open: null, openView: 'grid', patStep: B.STEP, beat: null, rev: 0   // a beat open to edit ({ p }), how, its step in ticks, the beat playing on its own, a count that moves with every change
 };
 let project = { id: '', title: '' };   // the game this studio is working for (from /games.json)
 const song = () => st.song, track = () => st.song.tracks[st.sel];
 const end = () => S.songEnd(st.song);
+// ---------- beats: a pattern opened to edit stands in for the track's notes ----------
+const kitTrack = t => S.isKit(t.instrument);
+const pattern = () => (st.open && st.song && st.song.patterns ? st.song.patterns[st.open.p] : null);
+// what the roll and its commands edit: the selected track, or, with a beat open, the beat's notes as if they were the track's
+function target() {
+  const t = track();
+  if (!st.open) return t;
+  const P = pattern();
+  if (!P) { st.open = null; return t; }
+  return new Proxy(t, { get: (o, k) => k === 'notes' ? P.notes : o[k], set: (o, k, v) => { if (k === 'notes') P.notes = v; else o[k] = v; return true; } });
+}
+const rollEnd = () => { const P = pattern(); return P ? P.len : end(); };
+const playSong = () => st.beat || st.song;   // the song the Sampler is playing: a beat on its own, or the song
+const beatColor = id => { const P = st.song.patterns && st.song.patterns[id]; if (P && P.color) return P.color; return COLORS[Math.max(0, Object.keys(st.song.patterns || {}).indexOf(id)) % COLORS.length]; };
+const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; };
+// the names of a drum track's rows in the roll: the built-in kit's, or the pads' of a kit of the song's own
+function kitNamesOf(t) {
+  if (!t.instrument.startsWith('drums:')) return new Map(Object.entries(S.KIT).map(([n, v]) => [+n, v]));
+  return new Map(B.rowsOf(S, st.song, t, { notes: [] }).map(r => [r.note, r.name]));
+}
 const snapAt = (t, g = st.grid) => Math.round(t / g) * g;
 
 function template() {
@@ -41,7 +63,7 @@ function template() {
 function audio() {
   if (!S.ctx) S.init(new AudioContext({ latencyHint: 'interactive' }));
   if (S.ctx.state === 'suspended') S.ctx.resume();
-  S.use(st.song);
+  S.use(st.beat || st.song);   // (every click calls this: it must not hand the Sampler the song while a beat plays on its own)
 }
 
 // ---------- changes, undo, the draft ----------
@@ -49,7 +71,9 @@ const snap = () => JSON.stringify(st.song);
 function changed({ rebuild = false } = {}) {
   st.dirty = true; showSaved();
   for (const tr of st.song.tracks) tr.notes.sort((a, b) => a[0] - b[0] || a[2] - b[2]);
-  if (S.ctx) { S.use(st.song); S.sync(); }
+  for (const P of Object.values(st.song.patterns || {})) B.tidyBeat(P);   // a beat's notes stay inside it
+  st.rev++;
+  if (S.ctx) { S.use(playSong()); S.sync(); }
   if (rebuild) renderAll(); else { drawArr(); drawRoll(); }
   clearTimeout(changed.t); changed.t = setTimeout(saveDraft, 600);
 }
@@ -58,9 +82,14 @@ function edit(fn, opts) { pushUndo(snap()); st.redo = []; fn(); changed(opts); }
 // at most 150 steps, and about 60 MB of them (a song with samples is large)
 function pushUndo(j) { st.undo.push(j); let total = st.undo.reduce((n, u) => n + u.length, 0); while (st.undo.length > 150 || (total > 3e7 && st.undo.length > 3)) total -= st.undo.shift().length; }
 // slider drags: many small changes, one undo step (settle() when the drag ends)
-function tweak(fn) { if (!st.pending) st.pending = snap(); fn(); st.dirty = true; showSaved(); if (S.ctx) S.sync(); clearTimeout(changed.t); changed.t = setTimeout(saveDraft, 600); }
-function settle() { if (st.pending) { st.undo.push(st.pending); st.redo = []; st.pending = null; } drawArr(); drawRoll(); }
+function tweak(fn) { if (!st.pending) st.pending = snap(); fn(); st.rev++; st.dirty = true; showSaved(); if (S.ctx) S.sync(); clearTimeout(changed.t); changed.t = setTimeout(saveDraft, 600); }
+function settle() {
+  if (st.pending) { st.undo.push(st.pending); st.redo = []; st.pending = null; }
+  for (const P of Object.values(st.song.patterns || {})) B.tidyBeat(P);
+  st.rev++; drawArr(); drawRoll();
+}
 function restore(json) {
+  if (st.beat) stopAll();
   st.song = S.check(JSON.parse(json)); st.picked.clear(); st.sel = Math.min(st.sel, st.song.tracks.length - 1);
   changed({ rebuild: true });
 }
@@ -72,8 +101,9 @@ function showSaved(text) {
 }
 function load(s, meta = { id: null, updated_at: null, game: GAME_ID }, dirty = false) {
   if (S.playing) stopAll();
+  st.open = null; st.beat = null; st.rev++;
   st.song = S.check(s); st.meta = { ...meta }; st.sel = 0; st.picked.clear(); st.undo = []; st.redo = []; st.dirty = dirty; st.start = 0;
-  st.view.x = 0; st.view.top = st.song.tracks[0]?.instrument === 'kit' ? 60 : 84;
+  st.view.x = 0; st.view.top = S.isKit(st.song.tracks[0]?.instrument || '') ? 60 : 84;
   if (S.ctx) S.use(st.song);
   S.prepare(st.song);
   renderAll(); showSaved(); saveDraft();
@@ -95,7 +125,7 @@ function renderTracks() {
   $('#trackList').querySelectorAll('.trk').forEach((li, i) => {
     const t = st.song.tracks[i];
     li.querySelector('.tins').value = t.instrument;
-    li.addEventListener('pointerdown', e => { if (st.sel !== i) { st.sel = i; st.picked.clear(); focusTrack(); renderTracks(); renderStrip(); drawArr(); drawRoll(); } });
+    li.addEventListener('pointerdown', e => { if (st.sel !== i) { closeBeat(); st.sel = i; st.picked.clear(); focusTrack(); renderTracks(); renderStrip(); drawArr(); drawRoll(); } });
     li.querySelector('.tname').onchange = e => edit(() => { t.name = e.target.value.slice(0, 40) || 'Track'; }, { rebuild: true });
     li.querySelector('.tins').onchange = e => setInstrument(i, e.target.value);
     li.querySelectorAll('[data-k]').forEach(b => b.onclick = () => edit(() => { t[b.dataset.k] = !t[b.dataset.k]; }, { rebuild: true }));
@@ -106,13 +136,14 @@ function renderTracks() {
   });
 }
 function insOptions(load) {
-  const own = Object.entries(st.song.samples || {}), multi = Object.entries(st.song.multis || {});
+  const own = Object.entries(st.song.samples || {}), multi = Object.entries(st.song.multis || {}), kits = Object.entries(st.song.kits || {});
   return S.INSTRUMENTS.map(i => `<option value="${i.id}">${esc(i.group)} · ${esc(i.name)}</option>`).join('')
     + (own.length ? `<optgroup label="This song's samples">${own.map(([id, sm]) => `<option value="sample:${esc(id)}">Sample · ${esc(sm.name)}</option>`).join('')}</optgroup>` : '')
     + (multi.length ? `<optgroup label="This song's multisamples">${multi.map(([id, mu]) => `<option value="multi:${esc(id)}">Multi · ${esc(mu.name)}</option>`).join('')}</optgroup>` : '')
+    + (kits.length ? `<optgroup label="This song's drum kits">${kits.map(([id, ki]) => `<option value="drums:${esc(id)}">Drum kit · ${esc(ki.name)}</option>`).join('')}</optgroup>` : '')
     + (load ? '<option value="__load">+ Load a sample…</option><option value="__record">+ Record a sample…</option><option value="__multi">+ New multisample…</option>' : '');
 }
-const insName = id => id.startsWith('sample:') ? st.song.samples[id.slice(7)]?.name : id.startsWith('multi:') ? st.song.multis?.[id.slice(6)]?.name : S.INSTRUMENTS.find(x => x.id === id)?.name;
+const insName = id => id.startsWith('drums:') ? st.song.kits?.[id.slice(6)]?.name : id.startsWith('sample:') ? st.song.samples[id.slice(7)]?.name : id.startsWith('multi:') ? st.song.multis?.[id.slice(6)]?.name : S.INSTRUMENTS.find(x => x.id === id)?.name;
 function setInstrument(i, id) {
   if (id === '__load') { renderTracks(); return pickSample(i); }
   if (id === '__record') { renderTracks(); return recordSample(i); }
@@ -128,8 +159,9 @@ function setInstrument(i, id) {
 // show the part of the keyboard the track uses
 function focusTrack() {
   const t = track(); if (!t) return;
-  if (t.notes.length) { const lo = Math.min(...t.notes.map(n => n[2])), hi = Math.max(...t.notes.map(n => n[2])); st.view.top = Math.min(127, Math.max(hi + 3, lo + rows() - 3)); }
-  else st.view.top = t.instrument === 'kit' ? 60 : t.instrument.includes('bass') ? 60 : 84;
+  const N = target().notes;
+  if (N.length) { const lo = Math.min(...N.map(n => n[2])), hi = Math.max(...N.map(n => n[2])); st.view.top = Math.min(127, Math.max(hi + 3, lo + rows() - 3)); }
+  else st.view.top = kitTrack(t) ? 60 : t.instrument.includes('bass') ? 60 : 84;
 }
 
 // ---------- the strip: the selected track's sound and effects, and the master ----------
@@ -159,7 +191,7 @@ function renderStrip() {
   const box = $('#strip'); box.textContent = '';
   const t = track(), m = st.song.master;
   if (t) {
-    const d = S.defaults(t.instrument), s = t.sound, kit = t.instrument === 'kit';
+    const d = S.defaults(t.instrument), s = t.sound, kit = kitTrack(t);
     const env = (k, dk) => () => s[k] ?? d.env[dk];
     const head = document.createElement('div'); head.className = 'shead';
     head.innerHTML = `<b style="color:${COLORS[st.sel % COLORS.length]}">${esc(t.name)}</b><span class="spacer"></span>
@@ -222,7 +254,8 @@ function renderStrip() {
 }
 function trackAction(a) {
   const T = st.song.tracks, i = st.sel;
-  if (a === 'del') { if (T.length < 2 || (T[i].notes.length && !confirm(`Delete the track "${T[i].name}" and its ${T[i].notes.length} notes?`))) return; edit(() => { T.splice(i, 1); st.sel = Math.max(0, i - 1); }, { rebuild: true }); }
+  if (st.beat) stopAll();   // a beat playing on its own holds a copy of the song's tracks: it would play the old ones
+  if (a === 'del') { const nn = S.notesOf(st.song, T[i]).length; if (T.length < 2 || (nn && !confirm(`Delete the track "${T[i].name}" and its ${nn} notes?`))) return; edit(() => { T.splice(i, 1); st.sel = Math.max(0, i - 1); }, { rebuild: true }); }
   if (a === 'dup' && T.length < 32) edit(() => { const c = JSON.parse(JSON.stringify(T[i])); c.name += ' 2'; T.splice(i + 1, 0, c); st.sel = i + 1; }, { rebuild: true });
   if (a === 'up' && i > 0) edit(() => { [T[i - 1], T[i]] = [T[i], T[i - 1]]; st.sel = i - 1; }, { rebuild: true });
   if (a === 'down' && i < T.length - 1) edit(() => { [T[i + 1], T[i]] = [T[i], T[i + 1]]; st.sel = i + 1; }, { rebuild: true });
@@ -249,6 +282,12 @@ function drawEq() {
 
 // ---------- the song overview: bar ruler, loop, start mark, every track's notes ----------
 const A = { cv: $('#arr'), RULER: 18, TH: 14 };
+// every note a track plays, its clips' too, kept until the song changes (the overview is drawn every frame while it plays)
+const arrCache = { rev: -1, per: [] };
+function arrNotes(i) {
+  if (arrCache.rev !== st.rev) { arrCache.rev = st.rev; arrCache.per = []; }
+  return arrCache.per[i] ??= S.notesOf(st.song, st.song.tracks[i]);
+}
 function drawArr() {
   if (!st.song) return;
   const cv = A.cv, dpr = devicePixelRatio || 1, T = st.song.tracks, H = A.RULER + T.length * A.TH + 4;
@@ -269,15 +308,29 @@ function drawArr() {
     const y = A.RULER + i * A.TH;
     if (i === st.sel) { x.fillStyle = 'rgba(120,220,255,.08)'; x.fillRect(0, y, W, A.TH); }
     x.fillStyle = t.mute ? '#2a3546' : COLORS[i % COLORS.length];
-    for (const [at, len, note] of t.notes) x.fillRect(at * k, y + 2 + (1 - note / 127) * (A.TH - 5), Math.max(1, len * k), 2);
+    for (const c of t.clips || []) {   // a clip: a block in its beat's colour, its start marked
+      if (!st.song.patterns || !st.song.patterns[c.p]) continue;
+      const col = beatColor(c.p), on = st.open && st.open.p === c.p;
+      x.fillStyle = hexA(col, t.mute ? .08 : on ? .4 : .22); x.fillRect(c.at * k, y + 1, Math.max(2, c.len * k), A.TH - 2);
+      x.fillStyle = hexA(col, .95); x.fillRect(c.at * k, y + 1, 2, A.TH - 2);
+    }
+    x.fillStyle = t.mute ? '#2a3546' : COLORS[i % COLORS.length];
+    for (const [at, len, note] of arrNotes(i)) x.fillRect(at * k, y + 2 + (1 - note / 127) * (A.TH - 5), Math.max(1, len * k), 2);
   });
   // the piano roll's window, the start mark and the playhead
   const vis = (R.w - R.KEYW) / st.view.zoom;
   x.strokeStyle = 'rgba(238,243,249,.35)'; x.strokeRect(st.view.x * k + .5, A.RULER + st.sel * A.TH + .5, vis * k, A.TH - 1);
   x.fillStyle = '#8ceb96'; x.beginPath(); x.moveTo(st.start * k - 5, 0); x.lineTo(st.start * k + 5, 0); x.lineTo(st.start * k, 7); x.fill();
-  const p = S.playing ? S.position() : -1;
+  const p = S.playing && !st.beat ? S.position() : -1;   // (a beat playing on its own is not a place in the song)
   if (p >= 0) { x.fillStyle = '#eef3f9'; x.fillRect(p * k, 0, 1.5, H); }
 }
+A.cv.addEventListener('dblclick', e => {   // a clip opens in the editor below
+  const r = A.cv.getBoundingClientRect(), k = (r.width - 2) / end(), i = Math.floor((e.clientY - r.top - A.RULER) / A.TH), tick = (e.clientX - r.left) / k;
+  const t = st.song.tracks[i], c = t && (t.clips || []).find(c => tick >= c.at && tick < c.at + c.len && st.song.patterns && st.song.patterns[c.p]);
+  if (!c) return;
+  if (st.sel !== i) { closeBeat(); st.sel = i; st.picked.clear(); focusTrack(); renderTracks(); renderStrip(); }
+  openBeat(c.p);
+});
 A.cv.addEventListener('pointerdown', e => {
   audio();
   const r = A.cv.getBoundingClientRect(), k = (r.width - 2) / end(), bar = st.song.beatsPerBar * PPQ;
@@ -295,7 +348,7 @@ A.cv.addEventListener('pointerdown', e => {
   }
   const i = Math.floor((y - A.RULER) / A.TH);
   if (i >= 0 && i < st.song.tracks.length) {
-    if (i !== st.sel) { st.sel = i; st.picked.clear(); focusTrack(); renderTracks(); renderStrip(); }
+    if (i !== st.sel) { closeBeat(); st.sel = i; st.picked.clear(); focusTrack(); renderTracks(); renderStrip(); }
     st.view.x = Math.max(0, tickAt(e) - (R.w - R.KEYW) / st.view.zoom / 2); drawArr(); drawRoll();
   }
 });
@@ -312,15 +365,16 @@ function sizeRoll() {
 }
 function drawRoll() {
   if (!st.song) return;
-  const x = R.cv.getContext('2d'), dpr = devicePixelRatio || 1, t = track(); if (!t) return;
+  const x = R.cv.getContext('2d'), dpr = devicePixelRatio || 1, t = target(); if (!t) return;
+  $('#beatFromSel').disabled = !!st.open || !st.picked.size;
   x.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const W = R.w, H = R.h, gB = H - R.VEL, kit = t.instrument === 'kit', bar = st.song.beatsPerBar * PPQ, E = end();
+  const W = R.w, H = R.h, gB = H - R.VEL, kit = kitTrack(t), kitNames = kit ? kitNamesOf(t) : null, bar = st.song.beatsPerBar * PPQ, E = rollEnd();
   st.view.top = Math.max(rows() - 1, Math.min(127, st.view.top));
   x.fillStyle = '#05070c'; x.fillRect(0, 0, W, H);
   // rows
   for (let n = st.view.top; n > st.view.top - rows() - 1 && n >= 0; n--) {
     const y = yOf(n);
-    x.fillStyle = kit ? (S.KIT[n] ? '#101622' : '#080b11') : isBlack(n) ? '#080b11' : n % 12 === 0 ? '#121a27' : '#0d121b';
+    x.fillStyle = kit ? (kitNames.has(n) ? '#101622' : '#080b11') : isBlack(n) ? '#080b11' : n % 12 === 0 ? '#121a27' : '#0d121b';
     x.fillRect(R.KEYW, y, W - R.KEYW, R.RH - 1);
   }
   // beyond the song's end
@@ -335,14 +389,14 @@ function drawRoll() {
   }
   // ruler: bars, the loop, the start mark
   x.fillStyle = '#0b0f17'; x.fillRect(R.KEYW, 0, W, R.RULER);
-  const lp = st.song.loop;
+  const lp = st.open ? { on: false, start: 0, end: 0 } : st.song.loop;   // (a beat has no loop region or start mark of the song's)
   x.fillStyle = lp.on ? 'rgba(255,179,64,.35)' : 'rgba(93,107,128,.2)'; x.fillRect(Math.max(R.KEYW, xOf(lp.start)), 2, Math.max(0, xOf(lp.end) - Math.max(R.KEYW, xOf(lp.start))), R.RULER - 6);
   x.font = '10px JetBrains Mono, monospace'; x.textBaseline = 'top'; x.fillStyle = '#5d6b80';
   for (let b = Math.floor(st.view.x / bar); b * bar <= t1; b++) { const X = xOf(b * bar); if (X >= R.KEYW) x.fillText(String(b + 1), X + 3, 3); }
-  if (xOf(st.start) >= R.KEYW) { const X = xOf(st.start); x.fillStyle = '#8ceb96'; x.beginPath(); x.moveTo(X - 5, 0); x.lineTo(X + 5, 0); x.lineTo(X, 8); x.fill(); }
+  if (!st.open && xOf(st.start) >= R.KEYW) { const X = xOf(st.start); x.fillStyle = '#8ceb96'; x.beginPath(); x.moveTo(X - 5, 0); x.lineTo(X + 5, 0); x.lineTo(X, 8); x.fill(); }
   // other tracks, faint, to compose against
   st.song.tracks.forEach((o, i) => {
-    if (i === st.sel || o.instrument === 'kit' || kit) return;
+    if (st.open || i === st.sel || kitTrack(o) || kit) return;
     x.fillStyle = 'rgba(93,107,128,.28)';
     for (const [at, len, n] of o.notes) { const X = xOf(at); if (X > W || X + len * st.view.zoom < R.KEYW) continue; x.fillRect(X, yOf(n) + 3, len * st.view.zoom, R.RH - 7); }
   });
@@ -367,23 +421,23 @@ function drawRoll() {
     x.fillStyle = kit ? '#111722' : isBlack(n) ? '#05070c' : '#cdd6e2'; x.fillRect(0, y, R.KEYW - 2, R.RH - 1);
     const held = [...st.live.values()].some(l => l.note === n) || (drag && drag.audition === n);
     if (held) { x.fillStyle = '#ffb340'; x.fillRect(0, y, R.KEYW - 2, R.RH - 1); }
-    const label = kit ? (S.KIT[n] || '') : n % 12 === 0 ? noteName(n) : '';
+    const label = kit ? (kitNames.get(n) || '') : n % 12 === 0 ? noteName(n) : '';
     if (label) { x.fillStyle = kit ? '#cdd6e2' : '#05070c'; x.font = '9px JetBrains Mono, monospace'; x.textBaseline = 'middle'; x.fillText(label.slice(0, 9), 2, y + R.RH / 2); }
   }
   x.fillStyle = '#0b0f17'; x.fillRect(0, 0, R.KEYW, R.RULER); x.fillRect(0, gB, R.KEYW, R.VEL);
 
   // playhead
-  const p = S.playing ? recTick() : -1;
+  const p = st.open ? (st.beat && S.playing ? S.position() : -1) : S.playing ? recTick() : -1;
   if (p >= 0 && xOf(p) >= R.KEYW) { x.fillStyle = '#eef3f9'; x.fillRect(xOf(p), 0, 1.5, gB); }
 }
-const noteAt = (tick, pitch) => { const N = track().notes; for (let i = N.length - 1; i >= 0; i--) { const n = N[i]; if (n[2] === pitch && tick >= n[0] && tick < n[0] + n[1]) return n; } return null; };
+const noteAt = (tick, pitch) => { const N = target().notes; for (let i = N.length - 1; i >= 0; i--) { const n = N[i]; if (n[2] === pitch && tick >= n[0] && tick < n[0] + n[1]) return n; } return null; };
 let drag = null;
 R.cv.addEventListener('contextmenu', e => e.preventDefault());
 R.cv.addEventListener('pointerdown', e => {
   audio(); R.cv.focus({ preventScroll: true });
-  const r = R.cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top, t = track(), gB = R.h - R.VEL;
+  const r = R.cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top, t = target(), gB = R.h - R.VEL;
   R.cv.setPointerCapture(e.pointerId);
-  if (py < R.RULER) { st.start = Math.max(0, snapAt(tOf(px), PPQ)); drawRoll(); drawArr(); showPos(); return; }
+  if (py < R.RULER) { if (st.open) return; st.start = Math.max(0, snapAt(tOf(px), PPQ)); drawRoll(); drawArr(); showPos(); return; }
   if (px < R.KEYW) { const n = nOf(py); drag = { mode: 'key', audition: n, v: S.noteOn(st.sel, n, 100) }; drawRoll(); return; }
   if (py >= gB) { if (st.lane !== 'vel') return laneDown(px, py, e); drag = { mode: 'vel', before: snap(), changed: false }; velAt(px, py); return; }
   const tick = tOf(px), pitch = nOf(py), hit = noteAt(tick, pitch);
@@ -396,7 +450,8 @@ R.cv.addEventListener('pointerdown', e => {
     drag = { mode: nearEnd ? 'resize' : 'move', before: snap(), changed: false, t0: tick, p0: pitch, orig: new Map([...st.picked].map(n => [n, [...n]])), audition: hit[2] };
     if (!nearEnd) drag.v = S.noteOn(st.sel, hit[2], hit[3]);
   } else {
-    const at = Math.max(0, Math.floor(tick / st.grid) * st.grid), n = [at, t.instrument === 'kit' ? st.grid : st.len, pitch, 100];
+    if (st.open && tick >= rollEnd()) return;   // not past the end of the beat
+    const at = Math.max(0, Math.floor(tick / st.grid) * st.grid), n = [at, kitTrack(t) ? st.grid : st.len, pitch, 100];
     st.undo.push(snap()); st.redo = []; t.notes.push(n); t.notes.sort((a, b) => a[0] - b[0]);
     st.picked.clear(); st.picked.add(n);
     drag = { mode: 'resize', created: true, changed: true, t0: tick, orig: new Map([[n, [...n]]]), audition: pitch, v: S.noteOn(st.sel, pitch, 100) };
@@ -414,13 +469,13 @@ R.cv.addEventListener('pointermove', e => {
   if (drag.mode === 'box') {
     Object.assign(drag, { bx: Math.min(drag.x0, px), by: Math.min(drag.y0, py), bw: Math.abs(px - drag.x0), bh: Math.abs(py - drag.y0) });
     const ta = tOf(drag.bx), tb = tOf(drag.bx + drag.bw), pa = nOf(drag.by + drag.bh), pb = nOf(drag.by);
-    st.picked = new Set([...drag.add, ...track().notes.filter(n => n[0] < tb && n[0] + n[1] > ta && n[2] >= pa && n[2] <= pb)]);
+    st.picked = new Set([...drag.add, ...target().notes.filter(n => n[0] < tb && n[0] + n[1] > ta && n[2] >= pa && n[2] <= pb)]);
     return drawRoll();
   }
   if (drag.mode === 'key') { const n = nOf(py); if (n !== drag.audition) { S.noteOff(drag.v); drag.audition = n; drag.v = S.noteOn(st.sel, n, 100); drawRoll(); } return; }
   if (drag.mode === 'move') {
     const dt = snapAt(tick - drag.t0), dp = nOf(py) - drag.p0;
-    const minAt = Math.min(...[...drag.orig.values()].map(o => o[0])), dtc = Math.max(-minAt, dt);
+    const starts = [...drag.orig.values()].map(o => o[0]), minAt = Math.min(...starts), dtc = Math.max(-minAt, Math.min(lastStart() - Math.max(...starts), dt));
     for (const [n, o] of drag.orig) { n[0] = o[0] + dtc; n[2] = Math.max(0, Math.min(127, o[2] + dp)); }
     const lead = [...drag.orig.keys()][0];
     if (lead && lead[2] !== drag.audition) { S.noteOff(drag.v); drag.audition = lead[2]; drag.v = S.noteOn(st.sel, lead[2], lead[3]); }
@@ -515,7 +570,7 @@ function curveMove(py) {
   drag.changed = true; if (S.ctx) S.sync(); drawRoll();
 }
 function velAt(px, py) {
-  const t = track(), v = Math.max(1, Math.min(127, Math.round((R.h - 3 - py) / (R.VEL - 8) * 127)));
+  const t = target(), v = Math.max(1, Math.min(127, Math.round((R.h - 3 - py) / (R.VEL - 8) * 127)));
   let near = t.notes.filter(n => Math.abs(xOf(n[0]) - px) < 5);
   if (near.some(n => st.picked.has(n))) near = [...st.picked];
   for (const n of near) n[3] = v;
@@ -543,17 +598,21 @@ R.cv.addEventListener('wheel', e => {
 }, { passive: false });
 
 // ---------- editing commands ----------
-function picked() { return track().notes.filter(n => st.picked.has(n)); }
+function picked() { return target().notes.filter(n => st.picked.has(n)); }
+// the last tick a note may start on in what is being edited: the beat's end, or no end (a beat's notes never go past it, so a move that would take one is not made)
+const lastStart = () => (st.open && pattern() ? pattern().len - 1 : Infinity);
 function moveSel(dt, dp) {
   const P = picked(); if (!P.length) return;
   if (dt < 0 && Math.min(...P.map(n => n[0])) + dt < 0) return;
+  if (dt > 0 && Math.max(...P.map(n => n[0])) + dt > lastStart()) return;
   edit(() => { for (const n of P) { n[0] += dt; n[2] = Math.max(0, Math.min(127, n[2] + dp)); } });
   if (dp && P.length === 1) { const v = S.noteOn(st.sel, P[0][2], P[0][3]); setTimeout(() => S.noteOff(v), 180); }
 }
 function copySel() { const P = picked(); if (!P.length) return; const a = Math.min(...P.map(n => n[0])); st.clip = P.map(([at, l, p, v]) => [at - a, l, p, v]); }
 function pasteAt(at) {
   if (!st.clip) return;
-  const t = track(), add = st.clip.map(([o, l, p, v]) => [at + o, l, p, v]);
+  const t = target(), add = st.clip.map(([o, l, p, v]) => [at + o, l, p, v]).filter(n => n[0] <= lastStart());   // (not past the end of an open beat)
+  if (!add.length) return showSaved('no room for it there: the beat ends first');
   edit(() => { t.notes.push(...add); st.picked = new Set(add); });
 }
 function duplicateSel() {
@@ -561,8 +620,166 @@ function duplicateSel() {
   const a = Math.min(...P.map(n => n[0])), b = Math.max(...P.map(n => n[0] + n[1])), span = Math.ceil((b - a) / st.grid) * st.grid;
   copySel(); pasteAt(a + span);
 }
-function quantizeSel() { const P = picked(); if (!P.length) return; edit(() => { for (const n of P) { n[0] = snapAt(n[0]); n[1] = Math.max(st.grid, snapAt(n[1])); } }); }
-function deleteSel() { const P = picked(); if (!P.length) return; const t = track(); edit(() => { t.notes = t.notes.filter(n => !st.picked.has(n)); st.picked.clear(); }); }
+function quantizeSel() { const P = picked(); if (!P.length) return; edit(() => { for (const n of P) { n[0] = Math.min(snapAt(n[0]), Math.floor(lastStart() / st.grid) * st.grid); n[1] = Math.max(st.grid, snapAt(n[1])); } }); }
+function deleteSel() { const P = picked(); if (!P.length) return; const t = target(); edit(() => { t.notes = t.notes.filter(n => !st.picked.has(n)); st.picked.clear(); }); }
+
+
+// ---------- beats: the list, the pattern bar and the step grid ----------
+let markedStep = -1;
+const barTicks = () => st.song.beatsPerBar * PPQ;
+const fmtBars = ticks => String(+(ticks / barTicks()).toFixed(2));
+function openBeat(id, view) {
+  if (!st.song.patterns || !st.song.patterns[id]) return;
+  if (st.beat) stopAll();
+  st.open = { p: id }; st.openView = view || (kitTrack(track()) ? 'grid' : 'roll'); st.picked.clear();
+  renderBeats(); renderPat(); drawArr(); sizeRoll(); drawRoll();
+}
+function closeBeat() {
+  if (!st.open) return;
+  if (st.beat) stopAll();
+  st.open = null; st.picked.clear();
+  renderBeats(); renderPat(); focusTrack(); drawArr(); sizeRoll(); drawRoll();
+}
+// a new, empty beat and a clip of it in the selected track: at the start mark's bar, or the first bar after it where the track has no clip
+function newBeat() {
+  const t = track(); let id, c;
+  edit(() => {
+    id = B.addBeat(st.song, { len: barTicks() });
+    let at = Math.floor(st.start / barTicks()) * barTicks();
+    while ((t.clips || []).some(k => k.at < at + barTicks() && k.at + k.len > at)) at += barTicks();
+    c = B.addClip(t, { at, p: id, len: barTicks() });
+    st.song.bars = Math.max(st.song.bars, Math.ceil((c.at + c.len) / barTicks()));
+  }, { rebuild: true });
+  openBeat(id);
+}
+// the selected notes become a beat (a clip plays it where they were)
+function beatFromSelection() {
+  const P = picked(); if (st.open || !P.length) return;
+  let r; edit(() => { r = B.beatFromNotes(st.song, track(), P); st.picked.clear(); }, { rebuild: true });
+  openBeat(r.id, 'roll');
+}
+function renderBeats() {
+  const ul = $('#beatList'), list = B.beatsOf(st.song);
+  $('#beatFromSel').disabled = !!st.open || !picked().length;
+  if (!list.length) { ul.innerHTML = '<li class="empty muted">No beats yet. A beat is a pattern you make once and play wherever you like.</li>'; return; }
+  ul.innerHTML = list.map(([id, P]) => {
+    const n = B.usesOf(st.song, id).length;
+    return `<li class="beat${st.open && st.open.p === id ? ' on' : ''}" data-id="${esc(id)}" style="--c:${beatColor(id)}">
+      <button class="bopen" title="Open it to edit (double-click a clip in the overview does the same)"><i></i>${esc(P.name)}</button>
+      <span class="muted" title="${n ? `played by ${n} clip${n > 1 ? 's' : ''}` : 'no clip plays it'}">${fmtBars(P.len)} bar${P.len === barTicks() ? '' : 's'} · ×${n}</span>
+      <button class="bdel" title="${n ? 'A clip plays it: delete the clips first' : 'Delete the beat'}" ${n ? 'disabled' : ''}>×</button></li>`;
+  }).join('');
+  ul.querySelectorAll('.beat').forEach(li => {
+    const id = li.dataset.id;
+    li.querySelector('.bopen').onclick = () => (st.open && st.open.p === id ? closeBeat() : openBeat(id));
+    li.querySelector('.bdel').onclick = () => { if (st.open && st.open.p === id) closeBeat(); edit(() => B.removeBeat(st.song, id), { rebuild: true }); };
+  });
+}
+function renderPat() {
+  const bar = $('#patBar'), P = pattern();
+  if (!P) { st.open = null; bar.hidden = true; $('#beatGrid').hidden = true; $('.rollWrap').hidden = false; $('#hint').hidden = false; return; }
+  const drums = kitTrack(track()), grid = drums && st.openView === 'grid';
+  bar.hidden = false; $('#beatGrid').hidden = !grid; $('.rollWrap').hidden = grid; $('#hint').hidden = grid;
+  const n = B.usesOf(st.song, st.open.p).length;
+  bar.innerHTML = `<label>BEAT <input class="pname" value="${esc(P.name)}" maxlength="40" spellcheck="false" aria-label="Beat name"></label>
+    <label title="Length in bars">BARS <input type="number" class="plen" min=".25" max="64" step=".25" value="${fmtBars(P.len)}"></label>
+    <label title="Shuffle: every other 16th note comes later">SWING <input type="range" class="pswing" min="0" max=".75" step=".05" value="${P.swing || 0}"></label>
+    <label>COLOUR <input type="color" class="pcolor" value="${beatColor(st.open.p)}"></label>
+    ${drums ? `<label>STEP <select class="pstep"><option value="48">1/8</option><option value="24">1/16</option><option value="12">1/32</option></select></label>
+      <span class="seg"><button class="tog${grid ? ' on' : ''}" data-v="grid" aria-pressed="${grid}">GRID</button><button class="tog${grid ? '' : ' on'}" data-v="roll" aria-pressed="${!grid}">ROLL</button></span>` : ''}
+    <button class="btn small${S.playing && st.beat ? ' on' : ''}" id="patPlay" title="Play just this beat, looped (Space)">▶ BEAT</button>
+    <span class="muted" id="patUse">${n ? `played by ${n} clip${n > 1 ? 's' : ''}: a change is heard in all of them` : 'no clip plays it yet'}</span>
+    <span class="spacer"></span><button class="btn small" id="patClose" title="Close the beat (Esc)">✕</button>`;
+  const q = sel => bar.querySelector(sel);
+  // (a field that re-draws the bar loses focus and may say 'change' once more: the same value is no new edit)
+  q('.pname').onchange = e => { const v = e.target.value.slice(0, 40) || 'Beat'; if (v !== P.name) edit(() => { P.name = v; }, { rebuild: true }); };
+  q('.plen').onchange = e => { const len = Math.max(24, Math.round(+e.target.value * barTicks())); if (len !== P.len) { if (st.beat) stopAll(); } if (len !== P.len) edit(() => B.setLength(P, len), { rebuild: true }); };
+  q('.pswing').oninput = e => tweak(() => { if (+e.target.value > 0) P.swing = +e.target.value; else delete P.swing; });
+  q('.pswing').onchange = settle;
+  q('.pcolor').onchange = e => { if (e.target.value !== beatColor(st.open.p)) edit(() => { P.color = e.target.value; }, { rebuild: true }); };
+  if (drums) {
+    q('.pstep').value = String(st.patStep);
+    q('.pstep').onchange = e => { st.patStep = +e.target.value; renderGrid(); };
+    bar.querySelectorAll('[data-v]').forEach(b => b.onclick = () => { st.openView = b.dataset.v; renderPat(); sizeRoll(); drawRoll(); });
+  }
+  q('#patPlay').onclick = playBeat; q('#patClose').onclick = closeBeat;
+  if (grid) renderGrid();
+}
+// the beat on its own, looped: a copy of the song that shares the live data (the mixer, the instruments, the beat) but plays only the
+// selected track, from one clip that is the whole beat; so a step clicked while it plays is heard on the next pass
+function playBeat() {
+  const P = pattern(); if (!P) return;
+  audio();
+  if (S.playing) { const was = !!st.beat; stopAll(); if (was) return; }
+  const t = track(), sc = Object.create(st.song);
+  Object.defineProperties(sc, {
+    bars: { value: Math.max(1, Math.ceil(P.len / barTicks())) }, loop: { value: { on: true, start: 0, end: P.len } }, tempo: { value: [] }, auto: { value: { echo: [], feedback: [] } },   // (the song's own tempo changes and lanes are for the song, not for a beat)
+    tracks: { value: st.song.tracks.map(o => Object.create(o, { notes: { value: [] }, clips: { value: o === t ? [{ at: 0, p: st.open.p, len: P.len, off: 0 }] : [] }, mute: { value: false }, solo: { value: false }, auto: { value: { volume: [], pan: [], filter: [] } } })) }
+  });
+  st.beat = sc; S.metronome = st.click;
+  S.play(sc, { from: 0, loop: true, onEnd: () => stopAll() });
+  setPlaying(true); $('#patPlay').classList.add('on');
+}
+function markStep(i) {
+  if (i === markedStep) return;
+  const g = $('#beatGrid');
+  if (markedStep >= 0) g.querySelectorAll(`[data-s="${markedStep}"]`).forEach(e => e.classList.remove('now'));
+  markedStep = i;
+  if (i >= 0) g.querySelectorAll(`[data-s="${i}"]`).forEach(e => e.classList.add('now'));
+}
+// the step grid: a row for each sound, a cell for each step. Click turns a hit on or off, dragging paints or erases a run of them,
+// shift-click goes round soft, medium, hard.
+function renderGrid() {
+  const box = $('#beatGrid'), P = pattern(), t = track(); markedStep = -1;
+  if (!P || box.hidden) return;
+  const rows = B.rowsOf(S, st.song, t, P), step = st.patStep, steps = Math.ceil(P.len / step), perBeat = Math.max(1, PPQ / step), perBar = Math.max(1, barTicks() / step);
+  const off = P.notes.filter(n => n[0] % step || !rows.some(r => r.note === n[2])).length;
+  box.style.setProperty('--steps', steps);
+  let h = `<div class="gtop"><span></span>${Array.from({ length: steps }, (_, i) => `<i class="gn${i % perBar === 0 ? ' bar' : ''}">${i % perBeat === 0 ? Math.floor(i / perBeat) % st.song.beatsPerBar + 1 : ''}</i>`).join('')}</div>`;
+  for (const r of rows) {
+    h += `<div class="grow" data-note="${r.note}"><span class="gname"><button class="gplay" title="Hear it">${esc(r.name)}</button>
+      <select class="gfill" title="Fill the row"><option value="">…</option><option value="1">every step</option><option value="2">every 2nd</option><option value="4">every 4th</option><option value="8">every 8th</option><option value="0">clear</option></select></span>`;
+    for (let i = 0; i < steps; i++) {
+      const v = B.stepVel(P, r.note, i, step);
+      h += `<i class="gc${i % perBeat === 0 ? ' q' : ''}${i % perBar === 0 ? ' bar' : ''}${v ? ` on a${B.accentOf(v)}` : ''}" data-s="${i}" data-n="${r.note}"></i>`;
+    }
+    h += '</div>';
+  }
+  box.innerHTML = h + (off ? `<p class="muted goff">${off} note${off > 1 ? 's are' : ' is'} off the grid (between steps, or a sound with no row): see ROLL.</p>` : '');
+  box.querySelectorAll('.grow').forEach(row => {
+    const note = +row.dataset.note;
+    const play = row.querySelector('.gplay');
+    play.onpointerdown = () => { audio(); const v = S.noteOn(st.sel, note, 100); if (v) setTimeout(() => S.noteOff(v), 400); };
+    row.querySelector('.gfill').onchange = e => {
+      const k = e.target.value; e.target.value = ''; if (k === '') return;
+      edit(() => { for (let i = 0; i < steps; i++) B.setStep(P, note, i, +k && i % +k === 0 ? 100 : 0, step); });
+      renderGrid();
+    };
+  });
+}
+$('#beatGrid').addEventListener('pointerdown', e => {
+  const c = e.target.closest('.gc'); if (!c) return;
+  e.preventDefault(); audio();
+  const P = pattern(), step = st.patStep, box = $('#beatGrid');
+  const at = el => ({ note: +el.dataset.n, i: +el.dataset.s });
+  const first = at(c), had = B.stepVel(P, first.note, first.i, step);
+  const mode = e.shiftKey ? 'accent' : had ? 'erase' : 'paint';
+  const done = new Set();
+  const apply = el => {
+    const { note, i } = at(el), key = note + ':' + i; if (done.has(key)) return; done.add(key);
+    const v = B.stepVel(P, note, i, step);
+    const to = mode === 'erase' ? 0 : mode === 'accent' ? B.nextAccent(v) : v || 100;
+    if (to === v) return;
+    tweak(() => B.setStep(P, note, i, to, step));
+    el.className = `gc${el.classList.contains('q') ? ' q' : ''}${el.classList.contains('bar') ? ' bar' : ''}${to ? ` on a${B.accentOf(to)}` : ''}${el.classList.contains('now') ? ' now' : ''}`;
+    if (to && !S.playing) { const vv = S.noteOn(st.sel, note, to); if (vv) setTimeout(() => S.noteOff(vv), 200); }   // hear what was put there
+  };
+  apply(c);
+  const mv = ev => { const el = document.elementFromPoint(ev.clientX, ev.clientY); if (el && el.classList.contains('gc') && mode !== 'accent') apply(el); };
+  const up = () => { box.removeEventListener('pointermove', mv); removeEventListener('pointerup', up); settle(); renderBeats(); };
+  box.addEventListener('pointermove', mv); addEventListener('pointerup', up);
+});
+$('#addBeat').onclick = newBeat; $('#beatFromSel').onclick = beatFromSelection;
 
 // ---------- transport ----------
 const latencyTicks = () => (S.ctx ? (S.ctx.outputLatency || S.ctx.baseLatency || 0) : 0) * st.song.bpm / 60 * PPQ;
@@ -582,6 +799,7 @@ function play() {
 function record() {
   audio();
   if (st.rec) return stopAll();
+  if (st.open) return showSaved('close the beat (Esc) to record into the song');
   if (S.playing) S.stop(.02);
   st.rec = { track: st.sel, notes: [], before: snap() };
   S.metronome = st.click;
@@ -590,7 +808,9 @@ function record() {
 }
 function stopAll() {
   if (st.rec) finishRec();
-  S.stop(); setPlaying(false); showPos(); drawRoll(); drawArr();
+  S.stop();
+  if (st.beat) { st.beat = null; if (S.ctx) S.use(st.song); }   // the song is the Sampler's again
+  setPlaying(false); $('#patPlay')?.classList.remove('on'); showPos(); drawRoll(); drawArr();
 }
 function finishRec() {
   const R0 = st.rec; st.rec = null;
@@ -615,9 +835,10 @@ function frame() {
   if (S.playing) {
     showPos();
     const p = recTick(), vis = (R.w - R.KEYW) / st.view.zoom;
-    if (st.follow && p >= 0 && (p > st.view.x + vis * .92 || p < st.view.x)) st.view.x = Math.max(0, p - vis * .08);
+    if (st.follow && !st.open && p >= 0 && (p > st.view.x + vis * .92 || p < st.view.x)) st.view.x = Math.max(0, p - vis * .08);
     drawRoll(); drawArr();
-  }
+    markStep(st.beat && !$('#beatGrid').hidden ? Math.floor(S.position() / st.patStep) : -1);
+  } else if (markedStep !== -1) markStep(-1);
   const m = S.meter();
   if (m) $('#trackList').querySelectorAll('.trk .meter i').forEach((el, i) => { el.style.width = `${Math.round(100 * Math.min(1, (m.tracks[i] || 0) * 1.2))}%`; });
   requestAnimationFrame(frame);
@@ -672,20 +893,20 @@ addEventListener('keydown', e => {
     if (e.code in QWERTY) { e.preventDefault(); if (!e.repeat) liveOn((st.octave + 1) * 12 + QWERTY[e.code], 100, e.code); return; }
     if (e.code === 'KeyZ' || e.code === 'KeyX') { st.octave = Math.max(0, Math.min(8, st.octave + (e.code === 'KeyX' ? 1 : -1))); $('#keysBtn').textContent = `KEYS C${st.octave}`; return; }
   }
-  if (e.code === 'Space') { e.preventDefault(); play(); }
+  if (e.code === 'Space') { e.preventDefault(); if (st.open) playBeat(); else play(); }
   else if (ctrl && e.code === 'KeyZ') { e.preventDefault(); e.shiftKey ? redo() : undo(); }
   else if (ctrl && e.code === 'KeyY') { e.preventDefault(); redo(); }
   else if (ctrl && e.code === 'KeyS') { e.preventDefault(); save(); }
   else if (ctrl && e.code === 'KeyC') copySel();
-  else if (ctrl && e.code === 'KeyV') { e.preventDefault(); pasteAt(st.start); }
+  else if (ctrl && e.code === 'KeyV') { e.preventDefault(); pasteAt(st.open ? 0 : st.start); }   // (an open beat has no start mark: its own start)
   else if (ctrl && e.code === 'KeyD') { e.preventDefault(); duplicateSel(); }
-  else if (ctrl && e.code === 'KeyA') { e.preventDefault(); st.picked = new Set(track().notes); drawRoll(); }
+  else if (ctrl && e.code === 'KeyA') { e.preventDefault(); st.picked = new Set(target().notes); drawRoll(); }
   else if (!ctrl && e.code === 'KeyR') record();
   else if (!ctrl && e.code === 'KeyQ') quantizeSel();
   else if (e.code === 'Delete' || e.code === 'Backspace') { e.preventDefault(); deleteSel(); }
   else if (e.code === 'ArrowUp' || e.code === 'ArrowDown') { e.preventDefault(); moveSel(0, (e.code === 'ArrowUp' ? 1 : -1) * (e.shiftKey ? 12 : 1)); }
   else if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') { e.preventDefault(); moveSel((e.code === 'ArrowRight' ? 1 : -1) * st.grid, 0); }
-  else if (e.code === 'Escape') { st.picked.clear(); drawRoll(); }
+  else if (e.code === 'Escape') { if (st.open) closeBeat(); else { st.picked.clear(); drawRoll(); } }
 });
 addEventListener('keyup', e => { if (st.keys && e.code in QWERTY) liveOff(e.code); });
 addEventListener('blur', () => { for (const id of [...st.live.keys()]) liveOff(id, true); });
@@ -757,7 +978,7 @@ function pickInstruments(candidates) {
   const dlg = $('#midiPick'), list = $('#midiPickList');
   $('#midiPickInfo').textContent = `${candidates.length} instruments in the file. Untick the ones you do not want in the song (a song holds up to 32 tracks).`;
   list.innerHTML = candidates.map(c => `<label class="pickrow"><input type="checkbox" value="${c.index}" checked><b>${esc(c.name)}</b>
-    <span class="muted">${c.instrument === 'kit' ? 'drum kit' : esc(insName(c.instrument) || S.INSTRUMENTS.find(x => x.id === c.instrument)?.name || c.instrument)} · channel ${c.channel} · ${c.notes} notes</span></label>`).join('');
+    <span class="muted">${S.isKit(c.instrument) ? 'drum kit' : esc(insName(c.instrument) || S.INSTRUMENTS.find(x => x.id === c.instrument)?.name || c.instrument)} · channel ${c.channel} · ${c.notes} notes</span></label>`).join('');
   const boxes = () => [...list.querySelectorAll('input')];
   $('#midiPickAll').onclick = () => boxes().forEach(b => { b.checked = true; });
   $('#midiPickNone').onclick = () => boxes().forEach(b => { b.checked = false; });
@@ -1182,7 +1403,7 @@ function syncTransport() {
   tog('#loopBtn', s.loop.on); tog('#clickBtn', st.click); tog('#countBtn', st.countIn); tog('#quantBtn', st.quant); tog('#snesBtn', s.snes); tog('#keysBtn', st.keys);
   $('#grid').value = String(st.grid);
 }
-function renderAll() { syncTransport(); renderTracks(); renderAddIns(); renderStrip(); drawArr(); sizeRoll(); drawRoll(); showPos(); if (!$('#where').hidden) renderWhere(); }
+function renderAll() { syncTransport(); renderTracks(); renderAddIns(); renderStrip(); renderBeats(); renderPat(); drawArr(); sizeRoll(); drawRoll(); showPos(); if (!$('#where').hidden) renderWhere(); }
 $('#title').onchange = e => edit(() => { st.song.title = e.target.value.slice(0, 80) || 'Untitled'; });
 $('#bpm').onchange = e => edit(() => { st.song.bpm = Math.max(30, Math.min(300, +e.target.value || 120)); }, { rebuild: true });
 $('#bars').onchange = e => edit(() => { const s = st.song; s.bars = Math.max(1, Math.min(512, Math.round(+e.target.value) || 8)); const E = S.songEnd(s); s.loop.end = Math.min(s.loop.end, E); s.loop.start = Math.min(s.loop.start, s.loop.end - PPQ); }, { rebuild: true });
@@ -1199,7 +1420,7 @@ $('#playBtn').onclick = play; $('#recBtn').onclick = record; $('#stopBtn').oncli
 $('#midiBtn').onclick = connectMidi;
 $('#helpBtn').onclick = () => $('#help').showModal();
 function renderAddIns() { const v = $('#addIns').value || 'strings'; $('#addIns').innerHTML = insOptions(false); $('#addIns').value = v; if (!$('#addIns').value) $('#addIns').value = 'strings'; }
-$('#addTrack').onclick = () => { if (st.song.tracks.length >= 32) return; const id = $('#addIns').value; edit(() => { st.song.tracks.push(Object.assign(S.newTrack(id), { name: insName(id) || 'Track' })); st.sel = st.song.tracks.length - 1; }, { rebuild: true }); focusTrack(); drawRoll(); S.prepare(st.song); };
+$('#addTrack').onclick = () => { if (st.song.tracks.length >= 32) return; if (st.beat) stopAll(); const id = $('#addIns').value; edit(() => { st.song.tracks.push(Object.assign(S.newTrack(id), { name: insName(id) || 'Track' })); st.sel = st.song.tracks.length - 1; }, { rebuild: true }); focusTrack(); drawRoll(); S.prepare(st.song); };
 $('#newBtn').onclick = () => { if (st.dirty && !confirm('Start a new song? This one has changes that are not saved to the site.')) return; load(template()); };
 $('#saveBtn').onclick = () => save();
 const menu = $('#more');

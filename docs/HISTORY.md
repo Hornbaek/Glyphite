@@ -1333,6 +1333,35 @@ changes; "make unique" splits one off), and the arranger sits above the editor w
   Breaking the engine seven ways (swing parity, tune, level, normalising, choke, the cut at a clip's end, tune in the kit's key) fails a
   test each time; the choke test did not fail the first time (the cut and the open hat's own end fell at the same moment) and was fixed.
 
+## 61. The studio's beat machine, step 2: beats and the BEAT grid (Claude Code, 2026-11-13)
+
+The second step of the plan in HISTORY 60: the studio itself can now make a pattern and edit it as a step grid (the arranger's clip gestures are step 3).
+
+- **Beats** (`portal/assets/beats-core.mjs`, pure, `tests/node/beats.test.mjs`): make a beat (id, name, a bar), delete it only while no clip plays it, keep its notes
+  inside its length, set a step to a velocity or clear it at any step size, three accents (soft 70, medium 100, hard 127), the rows of the grid (the built-in
+  kit's main sounds, or a kit of the song's own by its pads, named for what the pad plays; plus any other note a beat holds so nothing is hidden), clips kept in
+  time order, and a beat made of selected notes (from the bar of the first note to the end of the bar of the last; the notes leave the track and a clip plays
+  them where they were: `Sampler.notesOf` is the same before and after, which the test proves).
+- **In the studio**: a BEATS list under the tracks (open, delete, how many clips play each), `+ BEAT` (a beat and a clip of it at the start mark's bar, or the first
+  bar after it where the track has no clip; the song grows to fit) and `FROM SELECTION`. An open beat is the editing target: the piano roll and every note command
+  (`noteAt`, copy, paste, duplicate, quantize, delete, velocity) work on its notes as if they were the track's (`target()`), in the beat's own time, with no loop
+  region or start mark. A pattern bar sets its name, length, swing, colour and step (1/8, 1/16, 1/32), switches GRID and ROLL, and plays the beat alone.
+- **The BEAT grid**: a row per sound, a cell per step; click puts a hit on or takes it off, dragging paints or erases a run (one undo step), shift-click goes round
+  the accents, a row's menu fills every 2nd/4th/8th step or clears it, its name plays the sound, and notes between steps are counted so none is lost sight of.
+  ▶ BEAT (and Space with a beat open) loops the beat alone: the Sampler is given a copy of the song that shares the live data (mixer, instruments, the beat) and
+  plays one clip, so a step clicked while it plays is heard on the next pass; the column playing is lit. Stopping gives the song back to the Sampler.
+- The overview draws clips as blocks in their beat's colour and the notes they play (cached per change, since it redraws every frame while playing); double-click
+  a clip opens its beat. Recording is blocked while a beat is open. Deleting a track counts the notes its clips play.
+- **Found while testing**: a field that redraws its own bar can say `change` a second time as it is removed while focused, which pushed two undo steps for one
+  edit; the beat's name, length and colour now ignore a change that changes nothing.
+- Checked: `tests/studio.py` drives all of it with the mouse (the grid, accents, painting, fills, the beat playing alone with live edits, length, undo, the roll,
+  a beat from selected notes, a note clicked into an open beat going to the beat and not to the track).
+- **Review fixes** (an independent read-only review of steps 2 to 5, each finding reproduced before it was fixed): an open beat never loses notes off its end (moves,
+  arrow keys, quantize, paste and duplicate stay inside it; paste goes to the beat's own start, not the song's start mark); a beat plays without the song's tempo
+  changes and volume/pan/filter lanes (a fade-in intro had made it silent); `audio()`, called by every click, handed the Sampler the song while a beat played on its own
+  (now it keeps the beat); changing the beat's length, or adding, moving, duplicating or deleting a track, stops a playing beat (its copy of the song would be out of date);
+  a new beat's default name is never one another beat has.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |
