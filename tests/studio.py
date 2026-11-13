@@ -53,6 +53,22 @@ def api(route):
         return route.fulfill(json={'id': rest, 'updated_at': at})
     DB.pop(rest, None); route.fulfill(json={'deleted': True})
 
+# the phone pad's meeting place, as worker/pad.js answers it (the offers and answers of the two pages)
+PAD = {}
+def pad_api(route):
+    req = route.request; rest = req.url.split('/api/pad/', 1)[1].split('?')[0].strip('/').split('/')
+    code, is_answer = rest[0], len(rest) > 1
+    if req.method == 'GET':
+        v = PAD.get(code)
+        return route.fulfill(json={'offer': v['offer'], 'answer': v['answer']}) if v else route.fulfill(status=404, json={'error': 'Nothing is waiting under that code.'})
+    if req.headers.get('x-pixelite') != '1': return route.fulfill(status=403, json={'error': 'no header'})
+    if req.method == 'DELETE': PAD.pop(code, None); return route.fulfill(json={'deleted': True})
+    body = json.loads(req.post_data)
+    if not is_answer: PAD[code] = {'offer': body['offer'], 'answer': None}; return route.fulfill(json={'code': code})
+    v = PAD.get(code)
+    if not v or v['offer']['id'] != body['answer']['id']: return route.fulfill(status=409, json={'error': 'older'})
+    v['answer'] = body['answer']; route.fulfill(json={'code': code})
+
 # a MIDI keyboard the test plays: window.__midi([status, data1, data2])
 FAKE_MIDI = """
 navigator.requestMIDIAccess = async () => {
@@ -127,7 +143,7 @@ async () => {
 """
 
 with sync_playwright() as p:
-    b = p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'])
+    b = p.chromium.launch(args=['--autoplay-policy=no-user-gesture-required', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--disable-features=WebRtcHideLocalIpsWithMdns'])
     ctx = b.new_context(viewport={'width': 1440, 'height': 900}, accept_downloads=True, permissions=['microphone'])
     ctx.add_init_script(FAKE_MIDI)
     pg = ctx.new_page(); errs = []
@@ -565,6 +581,63 @@ with sync_playwright() as p:
     check('a track in the stacked layout can be clicked (nothing covers it)', pg7.evaluate('studio.st.sel') == 2)
     check('no page errors in the layout checks', not errs6 and not errs7, [errs6, errs7])
     ctx7.close()
+
+    # ---- the phone as a drum pad and keyboard: the studio's page and the phone's page in one browser, a data channel between them ----
+    ctx8 = b.new_context(viewport={'width': 1440, 'height': 900}); pg8 = ctx8.new_page(); errs8 = []
+    pg8.on('pageerror', lambda e: errs8.append(str(e))); pg8.route('**/api/songs**', api); pg8.route('**/api/pad/**', pad_api); pg8.route('**/fonts.g*/**', lambda r: r.abort())
+    pg8.goto(f'{BASE}/studio/?game=spacemouse'); pg8.wait_for_function('window.studio && studio.st.song')
+    st8 = lambda js: pg8.evaluate(f'(() => {{ const st = studio.st; return {js}; }})()')
+    pg8.evaluate("() => { window.__on = []; const o = Sampler.noteOn.bind(Sampler); Sampler.noteOn = (...a) => { window.__on.push(a); return o(...a); }; }")
+    pg8.click('#phoneBtn'); pg8.wait_for_selector('#phoneDlg[open] #phoneQr svg')
+    code8 = pg8.text_content('#phoneCode'); url8 = pg8.get_attribute('#phoneUrl', 'href')
+    check('PHONE: a dialog with a QR code, the link and a six digit code', len(code8) == 6 and code8.isdigit() and url8.endswith(f'/studio/pad/?c={code8}') and pg8.locator('#phoneQr svg path').count() == 1, [code8, url8])
+    def open_phone(url):
+        ph = ctx8.new_page(); ph.set_viewport_size({'width': 390, 'height': 780}); ph.errs = []
+        ph.on('pageerror', lambda e: ph.errs.append(str(e))); ph.route('**/api/pad/**', pad_api); ph.route('**/fonts.g*/**', lambda r: r.abort())
+        ph.goto(url); return ph
+    ph = open_phone(url8)
+    ph.wait_for_function("document.querySelector('#status').textContent === 'connected'", timeout=30000)
+    pg8.wait_for_function("document.querySelector('#phoneState').textContent.startsWith('connected')", timeout=10000)
+    check('the phone connects straight to the studio (a data channel), and both pages say so with the round trip time', 'ms there and back' in pg8.text_content('#phoneState') or pg8.wait_for_function("document.querySelector('#phoneState').textContent.includes('ms there and back')", timeout=8000) is not None, pg8.text_content('#phoneState'))
+    check('the phone starts on the keyboard, because the selected track (the piano) is not a drum kit', ph.is_visible('#keys') and ph.is_hidden('#pads'))
+    ph.locator('#board .key:not(.black)').first.click()
+    pg8.wait_for_function('window.__on.length >= 1')
+    check('a key on the phone plays the selected track on the computer (C3, medium to loud)', pg8.evaluate('__on[0][1]') == 48 and pg8.evaluate('__on[0][2]') > 60, pg8.evaluate('__on'))
+    ph.click('#octUp'); ph.locator('#board .key:not(.black)').first.click(); pg8.wait_for_function('window.__on.length >= 2')
+    check('OCT moves the keyboard an octave', pg8.evaluate('__on[1][1]') == 60, pg8.evaluate('__on.map(a => a[1])'))
+    ph.click('#susBtn'); pg8.wait_for_function('studio.st.pedal === true', timeout=5000)
+    check('SUSTAIN on the phone is the pedal on the computer', st8('st.pedal') is True)
+    ph.click('#susBtn'); pg8.wait_for_function('studio.st.pedal === false', timeout=5000)
+    pg8.keyboard.press('Escape')   # (the dialog is modal: close it to reach the tracks)
+    pg8.click('#trackList .trk:nth-child(4)')
+    ph.wait_for_function("document.querySelector('#pads').hidden === false", timeout=8000)
+    names8 = ph.eval_on_selector_all('#pads .pad', 'ps => ps.map(p => p.lastChild.textContent)')
+    check('selecting the drum track on the computer puts the kit\'s pads on the phone, with their names', len(names8) == 16 and names8[:3] == ['Kick', 'Snare', 'Rim'], names8)
+    n0 = pg8.evaluate('__on.length')
+    top = ph.locator('#pads .pad').nth(1); top.click(position={'x': 20, 'y': 3}); pg8.wait_for_function(f'window.__on.length >= {n0 + 1}')
+    low = ph.locator('#pads .pad').nth(1); low.click(position={'x': 20, 'y': 70}); pg8.wait_for_function(f'window.__on.length >= {n0 + 2}')
+    v_top, v_low = pg8.evaluate(f'__on[{n0}]'), pg8.evaluate(f'__on[{n0 + 1}]')
+    check('a pad plays its note (the snare, 38), and a touch near the top of the pad is harder than one near the bottom', v_top[1] == 38 and v_low[1] == 38 and v_top[2] > v_low[2] + 15, [v_top, v_low])
+    ph.click('#velBtn'); n1 = pg8.evaluate('__on.length'); ph.locator('#pads .pad').nth(0).click(position={'x': 20, 'y': 3}); pg8.wait_for_function(f'window.__on.length >= {n1 + 1}')
+    check('with the velocity set to fixed, every touch is the same', pg8.evaluate(f'__on[{n1}][2]') == 100)
+    # recording what the phone plays: the same path as a MIDI keyboard
+    pg8.click('#recBtn'); pg8.wait_for_function('Sampler.playing && Sampler.position() > -200')
+    pg8.wait_for_function('Sampler.position() > 5', timeout=15000)
+    ph.locator('#pads .pad').nth(0).click(); pg8.wait_for_timeout(300); pg8.keyboard.press('Space')
+    pg8.wait_for_function('!Sampler.playing', timeout=10000)
+    check('recording takes the phone\'s notes into the selected track like a keyboard\'s', any(n[2] == 36 for n in st8('st.song.tracks[3].notes')), st8('st.song.tracks[3].notes'))
+    # the phone goes away and another comes back to the same code: the studio makes a new offer
+    ph.close(); ph2 = open_phone(url8)
+    ph2.wait_for_function("document.querySelector('#status').textContent === 'connected'", timeout=45000)
+    n2 = pg8.evaluate('__on.length'); ph2.locator('#pads .pad').nth(2).click(); pg8.wait_for_function(f'window.__on.length >= {n2 + 1}')
+    check('a phone that went away comes back to the same code and plays again', pg8.evaluate(f'__on[{n2}][1]') == 37)
+    pg8.click('#phoneBtn'); pg8.click('#phoneStop')
+    ph2.wait_for_function("document.querySelector('#status').textContent.startsWith('lost') || document.querySelector('#status').textContent.startsWith('no studio')", timeout=15000)
+    check('DISCONNECT on the computer ends it, and the phone says so', not PAD, list(PAD))
+    ph3 = ctx8.new_page(); ph3.set_viewport_size({'width': 390, 'height': 780}); ph3.goto(f'{BASE}/studio/pad/')
+    check('the phone page without a code asks for the six digits', ph3.is_visible('#codeForm') and ph3.is_hidden('#pads'))
+    check('no page errors on the studio or the phone', not errs8 and not ph2.errs, [errs8, ph2.errs])
+    ctx8.close()
 
     # ---- automation: tempo changes, lanes, glide ----
     auto = pg.evaluate('''async () => {

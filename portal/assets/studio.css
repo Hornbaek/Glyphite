@@ -217,3 +217,10 @@ dialog .row{display:flex;gap:10px;align-items:center}
 .vsplit{cursor:col-resize;background:var(--rim);touch-action:none}
 .hsplit{cursor:row-resize;background:var(--rim);height:6px;flex:none;touch-action:none}
 .vsplit:hover,.hsplit:hover,.vsplit.on,.hsplit.on{background:var(--gold)}
+
+/* the phone dialog */
+.qr{display:flex;justify-content:center;margin:10px 0}
+.qr svg{width:min(240px,60vw);height:auto;border-radius:4px}
+.phoneLink{text-align:center;font-size:12px;line-height:1.7;word-break:break-all}
+.phoneCode{font-size:20px;letter-spacing:.2em;color:var(--gold)}
+#phoneBtn.on{border-color:var(--green);color:var(--green)}

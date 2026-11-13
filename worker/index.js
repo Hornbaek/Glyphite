@@ -14,6 +14,7 @@
 import { requireUser, AuthError } from './auth.js';
 import { handleIdeas } from './ideas.js';
 import { handleSongs } from './songs.js';
+import { handlePad } from './pad.js';
 
 const SECURITY = {
   'X-Content-Type-Options': 'nosniff',
@@ -106,6 +107,10 @@ export async function handle(request, env, { auth = requireUser } = {}) {
   if (path === '/api/songs' || path.startsWith('/api/songs/')) {
     try { return secure(await handleSongs(request, env, user)); }
     catch (err) { console.error('songs api failed', err); return new Response('{"error":"Something went wrong."}', { status: 500, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...SECURITY } }); }
+  }
+  if (path.startsWith('/api/pad/')) {
+    try { return secure(await handlePad(request, env, user)); }
+    catch (err) { console.error('pad api failed', err); return new Response('{"error":"Something went wrong."}', { status: 500, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...SECURITY } }); }
   }
   const res = await env.ASSETS.fetch(request);
   // a page that is not there: a browser gets the 404 game (still status 404, never cached); files and the API get a plain 404

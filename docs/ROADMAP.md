@@ -44,6 +44,7 @@ Done: the engine's 16-bit Sampler, the studio at /studio/, songs saved on the si
   sources).
 - **Patterns, a beat machine, kits and an arranger** (HISTORY 60, 61, in steps): the engine's data is in (patterns, clips, drum kits of the song's own) and the
   BEAT grid with the beat list (HISTORY 61), the arranger with clips (drag, loop, trim, split, make unique; HISTORY 62), kits made of your own samples (HISTORY 63), polish: a mixer, markers, track colours (HISTORY 64). The plan is done; what is left is under Later.
+  The phone as a drum pad and keyboard is in (HISTORY 66); later for it: a relay through the site for networks that block the direct connection, pitch bend from the phone's tilt, MIDI out to other programs.
   Later: step probability and ratchets, a melodic step sequencer, a vertical drag in a step for its exact velocity, per-row mute in a beat.
 - ~~**MIDI files**~~ (HISTORY 51, 52): import a .mid into tracks, export the song as .mid (`tools/midi.mjs` too); pitch bend and the volume and
   pan that move are lanes, a tempo ramp is a ramp, a file with several instruments asks which to open, and a song's own samples

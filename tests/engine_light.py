@@ -52,7 +52,7 @@ COLOURS = """() => {
 
 SKY = """() => {
   TUNE.atmosphere = 0; startSite(2); Pixelite.test.step(3, []); Pixelite.test.freeze();
-  const sky = () => { skyKey = ''; draw(performance.now() / 1000 + Math.random()); };
+  const sky = () => { skyKey = ''; draw(500); };   // (one moment every time: the level's own beacons and lamps pulse with the clock, and at a random one a star beside them was 113 in one picture and 120 in the next)
   sky();
   let base = -1, bk = -1;
   for (let k = 0; k < R.RW * R.RH; k++) if ((R.sG[k] === 42 || R.sG[k] === 43 || R.sG[k] === 46) && k % R.RW < R.RW * .5 && R.sPix[k * 4] > base) { base = R.sPix[k * 4]; bk = k; }

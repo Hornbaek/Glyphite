@@ -4,6 +4,8 @@
 import { findLevels, toPixels } from './levels-core.mjs';
 import { songFromMidi, midiFromSong } from './midi-core.mjs';
 import * as B from './beats-core.mjs';
+import { PadHost } from './padlink.mjs';
+import { qrSvg } from './qr.mjs';
 const S = Sampler, PPQ = S.PPQ;
 const $ = q => document.querySelector(q);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -195,6 +197,7 @@ function section(title, ...kids) {
 const ms = v => v < 1 ? `${Math.round(v * 1000)} ms` : `${v.toFixed(2)} s`, db = v => `${v > 0 ? '+' : ''}${v.toFixed(1)} dB`, pct = v => `${Math.round(v * 100)}%`;
 const hzs = v => v >= 1000 ? `${(v / 1000).toFixed(1)} kHz` : `${Math.round(v)} Hz`;
 function renderStrip() {
+  phoneSend();   // (the phone shows the selected track's pads)
   const box = $('#strip'); box.textContent = '';
   const t = track(), m = st.song.master;
   if (t) {
@@ -1061,6 +1064,47 @@ function midiIn(d) {
   else if (hi === 0xB0 && a === 64) pedal(b >= 64);
   else if (hi === 0xE0) { st.bend = (((b << 7) | a) - 8192) / 8192 * 2; for (const l of st.live.values()) S.bend(l.v, st.bend); }
 }
+// ---------- the phone as a drum pad and keyboard (padlink.mjs, /studio/pad/) ----------
+let phone = null;
+const PHONE_STATE = { waiting: 'waiting for the phone…', connecting: 'connecting…', open: 'connected', lost: 'lost: waiting for the phone to come back…', stopped: 'disconnected' };
+// what the phone shows: the selected drum track's pads, or a keyboard
+function phoneLayout() {
+  const t = track(); if (!t) return { mode: 'keys' };
+  if (!kitTrack(t)) return { mode: 'keys' };
+  const names = kitNamesOf(t), ki = t.instrument.startsWith('drums:') ? st.song.kits[t.instrument.slice(6)] : null;
+  const notes = ki ? ki.pads.map(p => p.note) : [36, 38, 37, 39, 42, 46, 41, 45, 48, 49, 51, 70, 54, 35, 40, 44];
+  return { mode: 'pads', pads: notes.slice(0, 16).map(n => ({ note: n, name: names.get(n) || noteName(n) })) };
+}
+let phoneLast = '';
+function phoneSend(force) { if (!phone) return; const j = JSON.stringify(phoneLayout()); if (j === phoneLast && !force) return; phoneLast = j; phone.send(['pads', JSON.parse(j)]); }
+function phoneShow() {
+  if (!phone) return;
+  const url = `${location.origin}/studio/pad/?c=${phone.code}`;
+  $('#phoneQr').innerHTML = qrSvg(url, { scale: 6, dark: '#05070c', light: '#eef3f9' });
+  $('#phoneUrl').href = url; $('#phoneUrl').textContent = url; $('#phoneBase').textContent = `${location.host}/studio/pad/`; $('#phoneCode').textContent = phone.code;
+  const open = phone.status === 'open';
+  $('#phoneState').textContent = (PHONE_STATE[phone.status] || '') + (open && phone.rtt !== null ? ` · ${phone.rtt} ms there and back` : '') + (open ? ' · if there is no sound, click anywhere in this window once' : '');
+  $('#phoneBtn').classList.toggle('on', open);
+}
+function phoneMessage(m) {
+  if (m[0] === 'on') liveOn(Math.max(0, Math.min(127, m[1] | 0)), Math.max(1, Math.min(127, m[2] | 0)), 'ph' + m[1]);
+  else if (m[0] === 'off') liveOff('ph' + m[1]);
+  else if (m[0] === 'cc' && m[1] === 64) pedal(m[2] >= 64);
+}
+async function openPhone() {
+  audio();
+  if (!phone || phone.stopped) {
+    phone = new PadHost({
+      onMessage: phoneMessage,
+      onState: (s) => { if (s === 'open') phoneSend(true); phoneShow(); }
+    });
+    try { await phone.start(); } catch (e) { $('#phoneState').textContent = `could not start: ${e.message}`; }
+  }
+  phoneShow(); $('#phoneDlg').showModal();
+}
+$('#phoneBtn').onclick = openPhone;
+$('#phoneStop').onclick = async () => { if (phone) { const p = phone; phone = null; for (const id of [...st.live.keys()]) if (String(id).startsWith('ph')) liveOff(id, true); await p.stop(); } $('#phoneBtn').classList.remove('on'); $('#phoneDlg').close(); };
+
 const QWERTY = { KeyA: 0, KeyW: 1, KeyS: 2, KeyE: 3, KeyD: 4, KeyF: 5, KeyT: 6, KeyG: 7, KeyY: 8, KeyH: 9, KeyU: 10, KeyJ: 11, KeyK: 12, KeyO: 13, KeyL: 14, KeyP: 15, Semicolon: 16 };
 
 // ---------- keys ----------

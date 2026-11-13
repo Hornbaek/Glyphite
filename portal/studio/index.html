@@ -56,6 +56,7 @@
   <span class="spacer"></span>
   <button class="tog" id="keysBtn" aria-pressed="false" title="Play with the computer keyboard: A W S E D F T G Y H U J K (Z / X: octave)">KEYS</button>
   <button class="btn small" id="midiBtn" title="Use a MIDI keyboard (Chrome and Edge)">[ MIDI ]</button>
+  <button class="btn small" id="phoneBtn" title="Play with your phone as a drum pad and keyboard (same wifi)">[ PHONE ]</button>
   <span id="midiInfo" class="muted midi"></span>
   <button class="btn small" id="helpBtn" title="How to use the studio">[ ? ]</button>
 </div>
@@ -136,6 +137,7 @@
     <dt>the lane menu</dt><dd>VOLUME, PAN, FILTER, PITCH BEND, the ECHO and REVERB sends, the LOOP POINT of a sample, and for the whole song TEMPO and
       the ECHO's level and feedback: click to add a point, drag it, right-click deletes; the track (or the song) follows the line as it plays.
       <kbd>Shift</kbd> + drag a stretch of the line bends it into a curve; <kbd>Shift</kbd> + click a tempo point makes the tempo glide to it</dd>
+    <dt>[ PHONE ]</dt><dd>your phone as a drum pad and keyboard: scan the code with the phone's camera (same wifi, signed in to the site). It plays the selected track like a MIDI keyboard: on a drum track the pads are the kit's pads, on another track a two-octave keyboard (OCT moves it), SUSTAIN holds the notes. The connection goes straight over the wifi, so it is quick; the sound comes out of the computer</dd>
     <dt>[ MORE ] ▸ MIDI files</dt><dd>open a .mid as a new song (you choose which instruments; each becomes a track, with its General MIDI instrument
       mapped to the nearest one here; channel 10 is the drum kit; volume, pan and pitch bend that move become lanes), or export the song as a .mid
       for another program (the song's own samples ride along inside it)</dd>
@@ -170,6 +172,15 @@
   <div id="midiPickList" class="picklist"></div>
   <form method="dialog" class="row"><button class="btn small" type="button" id="midiPickAll">[ ALL ]</button><button class="btn small" type="button" id="midiPickNone">[ NONE ]</button>
     <span class="spacer"></span><button class="btn small primary" value="ok" id="midiPickOk">[ OPEN ]</button><button class="btn small" value="cancel">[ CANCEL ]</button></form>
+</dialog>
+
+<dialog id="phoneDlg">
+  <h2>Your phone as a drum pad and keyboard</h2>
+  <p class="muted">On the same wifi, point the phone's camera at this code and open the link (sign in if it asks). The phone plays the selected track like a MIDI keyboard, so it records too. The sound comes out of this computer.</p>
+  <div id="phoneQr" class="qr" aria-label="QR code with the link for the phone"></div>
+  <p class="phoneLink"><a id="phoneUrl" target="_blank" rel="noopener"></a><br>or open <b id="phoneBase"></b> and type the code <b id="phoneCode" class="phoneCode"></b></p>
+  <p id="phoneState" class="muted" aria-live="polite"></p>
+  <form method="dialog" class="row"><button class="btn small" type="button" id="phoneStop">[ DISCONNECT ]</button><span class="spacer"></span><button class="btn small" value="close">[ CLOSE ]</button></form>
 </dialog>
 
 <dialog id="recDlg">
