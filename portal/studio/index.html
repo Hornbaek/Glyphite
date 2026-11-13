@@ -67,6 +67,12 @@
       <select id="addIns" aria-label="Instrument for a new track"></select>
       <button class="btn small" id="addTrack">[ + TRACK ]</button>
     </div>
+    <div class="beats">
+      <div class="bhead"><b>BEATS</b><span class="spacer"></span>
+        <button class="btn small" id="beatFromSel" title="Make a beat of the selected notes (the clip plays it where they were)" disabled>[ FROM SELECTION ]</button>
+        <button class="btn small" id="addBeat" title="A new, empty beat in the selected track, at the start mark">[ + BEAT ]</button></div>
+      <ul id="beatList"></ul>
+    </div>
   </aside>
   <section class="editor">
     <div class="tabs" role="tablist">
@@ -75,6 +81,8 @@
     </div>
     <div id="where" class="where" hidden></div>
     <canvas id="arr" class="arr" aria-label="Song overview: every track, the bar ruler and the loop"></canvas>
+    <div id="patBar" class="patBar" hidden></div>
+    <div id="beatGrid" class="beatGrid" hidden aria-label="Step grid of the open beat"></div>
     <div class="rollWrap"><canvas id="roll" class="roll" tabindex="0" aria-label="Piano roll of the selected track"></canvas>
       <select id="lane" class="lane" aria-label="What the lane under the notes shows" title="The lane under the notes: velocity, or a line that changes the track (or the tempo) over the song">
         <option value="vel">VELOCITY</option>
@@ -127,6 +135,11 @@
       for another program (the song's own samples ride along inside it)</dd>
     <dt>instrument ▸ Load a sample…, Record a sample…, New multisample…</dt><dd>your own sound (WAV, MP3, OGG, or the microphone): set its note, loop
       (start, end and crossfade) and grit under SAMPLE; a multisample plays several samples, each over its own range of notes</dd>
+    <dt>BEATS ▸ [ + BEAT ]</dt><dd>a beat is a pattern you make once: a clip of it goes into the selected track, and the beat opens in the editor. On a drum track it is a
+      step grid: click a step to put a hit there, drag to paint or erase a run, <kbd>Shift</kbd> + click goes round soft, medium, hard; the menu by a row fills it
+      (every 2nd, 4th…) or clears it; click a row's name to hear it. ROLL shows the same beat as notes (exact velocities, off-grid hits). <kbd>Space</kbd> plays just the beat, looped;
+      <kbd>Esc</kbd> closes it. Every clip of a beat plays the same notes, so a change is heard everywhere it is used</dd>
+    <dt>[ FROM SELECTION ]</dt><dd>select notes in the roll, and they become a beat (a clip plays it where they were: nothing sounds different). Double-click a clip in the overview to open its beat</dd>
     <dt>WHERE IT PLAYS</dt><dd>the places in the game the song is for; play the level with the song inside the game</dd>
   </dl>
   <p class="muted">A MIDI keyboard plays the selected track (sustain pedal and pitch bend work). Without one, turn on KEYS and
