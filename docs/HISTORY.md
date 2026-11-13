@@ -1413,6 +1413,16 @@ The second step of the plan in HISTORY 60: the studio itself can now make a patt
 - **Left for later** (ROADMAP): step probability and ratchets, a melodic step sequencer, exact velocity by dragging in a step, a mute per row in a beat, moving a whole section by
   dragging its marker.
 
+## 65. The studio's layout: resizable panels, and a narrow window that no longer buries the tracks (Claude Code, 2026-11-13)
+
+The owner said the tracks were always covered by the piano keys and nothing could be dragged to resize. Tried in a browser at several window sizes: from 1000 px wide down, the grid squeezed the track list to 1 px
+under the editor (the media query gave it an `auto` row inside a fixed-height desk), so the roll covered it, and nothing in the studio could be resized at any width.
+- **Thin bars between the panels** drag: the width of the track list, the width of the sound panel and the height of the tracks above the editor (the overview scrolls when it is cut short); a double-click puts a bar back,
+  the sizes are kept in the browser (`pixelite.studio.layout`).
+- **A window narrower than 1000 px** stacks the panels and the page scrolls: the editor first (its overview has every track), then the track list, then the sound panel.
+- The roll can be squeezed shorter (150 px, was 220) and is clipped to its box, so it never spills over what is above or below it. Clip ends have a visible grip and a wider grab (10 px) for looping by dragging.
+- Checked in `tests/studio.py` with the mouse (dragging each bar, the sizes surviving a reload, a double-click, and a click on a track in a 900 px window that nothing covers).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

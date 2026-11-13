@@ -534,6 +534,38 @@ with sync_playwright() as p:
     check('no page errors in the polish', not errs5, errs5)
     ctx5.close()
 
+    # ---- layout: the panels resize with the bars between them; a narrow window stacks them instead of covering the track list ----
+    ctx6 = b.new_context(viewport={'width': 1440, 'height': 900}); pg6 = ctx6.new_page(); errs6 = []
+    pg6.on('pageerror', lambda e: errs6.append(str(e))); pg6.on('dialog', lambda d: d.accept())
+    pg6.route('**/api/songs**', api); pg6.route('**/fonts.g*/**', lambda r: r.abort())
+    pg6.goto(f'{BASE}/studio/?game=spacemouse'); pg6.wait_for_function('window.studio && studio.st.song')
+    wd = lambda sel: pg6.locator(sel).bounding_box()['width']; ht = lambda sel: pg6.locator(sel).bounding_box()['height']
+    def drag6(sel, dx, dy):
+        bx = pg6.locator(sel).bounding_box(); x0, y0 = bx['x'] + bx['width'] / 2, bx['y'] + bx['height'] / 2
+        pg6.mouse.move(x0, y0); pg6.mouse.down(); pg6.mouse.move(x0 + dx, y0 + dy, steps=6); pg6.mouse.up()
+    w0 = wd('.tracks'); drag6('#splitL', 70, 0)
+    check('the bar by the track list drags: the list is wider and the editor narrower by the same', abs(wd('.tracks') - (w0 + 70)) < 3, [w0, wd('.tracks')])
+    r0 = wd('#strip'); drag6('#splitR', -60, 0)
+    check('the bar by the sound panel drags the other way', abs(wd('#strip') - (r0 + 60)) < 3, [r0, wd('#strip')])
+    for _ in range(8): pg6.select_option('#addIns', 'strings'); pg6.click('#addTrack')
+    full = ht('#arr'); h0 = ht('#arrWrap'); drag6('#splitA', 0, -150)
+    check('the bar under the overview drags: fewer tracks show, and they scroll', ht('#arrWrap') < h0 - 100 and ht('#arr') == full and pg6.evaluate("() => { const w = document.querySelector('#arrWrap'); return w.scrollHeight > w.clientHeight; }"), [h0, ht('#arrWrap'), full])
+    pg6.reload(); pg6.wait_for_function('window.studio && studio.st.song')
+    check('the sizes are kept for next time', abs(wd('.tracks') - (w0 + 70)) < 3 and ht('#arrWrap') < full - 100, [wd('.tracks'), ht('#arrWrap')])
+    pg6.dblclick('#splitL'); pg6.dblclick('#splitA')
+    check('a double-click on a bar puts it back', abs(wd('.tracks') - 230) < 3 and ht('#arrWrap') >= full - 3, [wd('.tracks'), ht('#arrWrap'), full])
+    ctx6.close()
+    ctx7 = b.new_context(viewport={'width': 900, 'height': 700}); pg7 = ctx7.new_page(); errs7 = []
+    pg7.on('pageerror', lambda e: errs7.append(str(e))); pg7.route('**/api/songs**', api); pg7.route('**/fonts.g*/**', lambda r: r.abort())
+    pg7.goto(f'{BASE}/studio/?game=spacemouse'); pg7.wait_for_function('window.studio && studio.st.song')
+    tr = pg7.locator('.tracks').bounding_box(); ed = pg7.locator('.editor').bounding_box()
+    over = pg7.evaluate("() => { const r = document.querySelector('.editor').getBoundingClientRect(), t = document.querySelector('.tracks').getBoundingClientRect(); return r.bottom > t.top && r.top < t.bottom; }")
+    check('a window narrower than 1000 px stacks the panels: the track list is tall enough to use and nothing lies over it', tr['height'] > 300 and not over, [tr, ed])
+    pg7.click('#trackList .trk:nth-child(3)', timeout=3000)
+    check('a track in the stacked layout can be clicked (nothing covers it)', pg7.evaluate('studio.st.sel') == 2)
+    check('no page errors in the layout checks', not errs6 and not errs7, [errs6, errs7])
+    ctx7.close()
+
     # ---- automation: tempo changes, lanes, glide ----
     auto = pg.evaluate('''async () => {
       const S = Sampler, base = { format: 'pixelite-song', bpm: 120, bars: 4, master: { reverb: { volume: 0 }, echo: { volume: 0 }, comp: 0 } }, quiet = { echo: 0, reverb: 0 };

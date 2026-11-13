@@ -74,6 +74,7 @@
       <ul id="beatList"></ul>
     </div>
   </aside>
+  <div class="vsplit" id="splitL" role="separator" aria-orientation="vertical" title="Drag to change the width of the track list (double-click: back to normal)"></div>
   <section class="editor">
     <div class="tabs" role="tablist">
       <button role="tab" class="tab on" id="tabNotes" aria-selected="true">NOTES</button>
@@ -82,7 +83,8 @@
     </div>
     <div id="where" class="where" hidden></div>
     <div id="mixer" class="mixer" hidden></div>
-    <canvas id="arr" class="arr" aria-label="Song overview: every track, the bar ruler and the loop"></canvas>
+    <div id="arrWrap" class="arrWrap"><canvas id="arr" class="arr" aria-label="Song overview: every track, the bar ruler and the loop"></canvas></div>
+    <div class="hsplit" id="splitA" role="separator" aria-orientation="horizontal" title="Drag to change the height of the tracks (double-click: show all of them)"></div>
     <div id="patBar" class="patBar" hidden></div>
     <div id="beatGrid" class="beatGrid" hidden aria-label="Step grid of the open beat"></div>
     <div class="rollWrap"><canvas id="roll" class="roll" tabindex="0" aria-label="Piano roll of the selected track"></canvas>
@@ -95,6 +97,7 @@
           <option value="tempo">TEMPO</option><option value="mecho">ECHO LEVEL</option><option value="mfeedback">ECHO FEEDBACK</option></optgroup></select></div>
     <p class="hint muted" id="hint">Click to add a note, drag it to move, drag its end to lengthen. Shift-drag selects. Right-click deletes.</p>
   </section>
+  <div class="vsplit" id="splitR" role="separator" aria-orientation="vertical" title="Drag to change the width of the sound panel (double-click: back to normal)"></div>
   <aside class="strip" id="strip" aria-label="The selected track's sound and the master effects"></aside>
 </main>
 
@@ -142,6 +145,7 @@
       step grid: click a step to put a hit there, drag to paint or erase a run, <kbd>Shift</kbd> + click goes round soft, medium, hard; the menu by a row fills it
       (every 2nd, 4th…) or clears it; click a row's name to hear it. ROLL shows the same beat as notes (exact velocities, off-grid hits). <kbd>Space</kbd> plays just the beat, looped;
       <kbd>Esc</kbd> closes it. Every clip of a beat plays the same notes, so a change is heard everywhere it is used</dd>
+    <dt>the thin bars between the panels</dt><dd>drag them to change the width of the track list and of the sound panel, and the height of the tracks above the editor (double-click: back to normal); a window narrower than 1000 px stacks the panels and the page scrolls</dd>
     <dt>the overview (clips)</dt><dd>drag a beat from the list onto a track to put a clip of it there; drag a clip to move it (<kbd>Alt</kbd>: a copy), its right edge to loop the
       beat (a notch shows each time round), its left edge to trim the start; <kbd>Shift</kbd> snaps to the grid instead of the bar, <kbd>Shift</kbd> + click selects several.
       <kbd>Ctrl</kbd> + <kbd>E</kbd> cuts at the start mark (or the playhead), <kbd>Ctrl</kbd> + <kbd>D</kbd> duplicates, <kbd>Del</kbd> deletes; right-click for the rest
