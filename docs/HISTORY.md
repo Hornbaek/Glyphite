@@ -1423,6 +1423,24 @@ under the editor (the media query gave it an `auto` row inside a fixed-height de
 - The roll can be squeezed shorter (150 px, was 220) and is clipped to its box, so it never spills over what is above or below it. Clip ends have a visible grip and a wider grab (10 px) for looping by dragging.
 - Checked in `tests/studio.py` with the mouse (dragging each bar, the sizes surviving a reload, a double-click, and a click on a track in a 900 px window that nothing covers).
 
+## 66. The phone as a drum pad and keyboard for the SOUND STUDIO (Claude Code, 2026-11-13)
+
+The owner asked to use a phone, on the same wifi as the PC running the studio, as a remote drum pad and MIDI keyboard.
+- **The connection** (`portal/assets/padlink.mjs`): a WebRTC data channel between the studio's page and the phone's page, so a note takes the wifi and nothing else (a round trip of about a millisecond in the
+  two-page test; the real figure shows in the dialog). The two find each other through the site: `worker/pad.js` (`/api/pad/<six digits>`, table `pad_link`, `migrations/0004_pad_link.sql`, applied to the real
+  database with the D1 connector and recorded) holds the studio's offer and the phone's answer for ten minutes. Behind the Access login like every API, changes need the `X-Pixelite` header; the music does
+  not pass through the site. The studio, which owns the code, makes a new offer whenever the channel is lost (or the phone never answers), and the phone polls for it, so a phone that sleeps or is closed
+  comes back to the same code. A public STUN server is listed as a fallback for networks that hide the wifi addresses; the local network is tried first.
+- **The studio**: a `[ PHONE ]` button opens a dialog with a QR code (`portal/assets/qr.mjs`, written for this, no dependencies, checked once against OpenCV's decoder at versions 1 to 10), the link, the code and the
+  state with the round trip time. Phone notes go through `liveOn`/`liveOff` and the pedal, so they play the selected track, record, and sustain exactly like a MIDI keyboard's. The studio tells the phone what to show:
+  the selected drum track's pads with their names, or a keyboard for any other track.
+- **The phone page** (`/studio/pad/`): a 4 x 4 pad grid, a two-octave keyboard with OCT buttons, SUSTAIN, and "harder up high" (a touch near the top of a pad is louder; phone screens report no reliable
+  pressure) or a fixed velocity; multi-touch, no zoom or scroll, the screen kept awake while connected. Without a code in the link it asks for the six digits.
+- Checked in `tests/studio.py` with two pages in one browser (real WebRTC between them): the code and QR, the connection, a key and a pad playing the selected track at the right notes, the octave, the sustain pedal,
+  the layout following the selected track, velocity by touch height and fixed, recording the phone's notes, a second phone coming back to the same code, DISCONNECT; `tests/node/pad.test.mjs` for the API and
+  `tests/node/qr.test.mjs` for the QR maker.
+- **Not tested here**: a real phone and a real wifi (guest wifi with client isolation will block the direct connection), the camera scan, Safari on iOS.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |
