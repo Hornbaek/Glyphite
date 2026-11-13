@@ -16,7 +16,8 @@ export function newBeatId(song, base = 'beat') {
 // a new, empty beat (a bar long unless told); returns its id
 export function addBeat(song, { name, len = 4 * 96, notes = [], swing, color } = {}) {
   song.patterns = song.patterns || {};
-  const id = newBeatId(song), n = Object.keys(song.patterns).length + 1;
+  const id = newBeatId(song), taken = new Set(Object.values(song.patterns).map(p => p.name));
+  let n = Object.keys(song.patterns).length + 1; while (!name && taken.has(`Beat ${n}`)) n++;   // (a new beat's name is one no beat has: after deleting Beat 1 of two, the next is not a second Beat 2)
   song.patterns[id] = { name: String(name || `Beat ${n}`).slice(0, 40), len: Math.max(24, Math.min(MAX_LEN, Math.round(len))), notes };
   if (swing > 0) song.patterns[id].swing = swing;
   if (color) song.patterns[id].color = color;
