@@ -77,9 +77,11 @@
   <section class="editor">
     <div class="tabs" role="tablist">
       <button role="tab" class="tab on" id="tabNotes" aria-selected="true">NOTES</button>
+      <button role="tab" class="tab" id="tabMixer" aria-selected="false" title="Every track's fader, pan and sends side by side">MIXER</button>
       <button role="tab" class="tab" id="tabWhere" aria-selected="false" title="Where in the game this song plays, with the level to look at and play">WHERE IT PLAYS</button>
     </div>
     <div id="where" class="where" hidden></div>
+    <div id="mixer" class="mixer" hidden></div>
     <canvas id="arr" class="arr" aria-label="Song overview: every track, the bar ruler and the loop"></canvas>
     <div id="patBar" class="patBar" hidden></div>
     <div id="beatGrid" class="beatGrid" hidden aria-label="Step grid of the open beat"></div>
@@ -148,6 +150,9 @@
     <dt>instrument ▸ New drum kit…</dt><dd>a kit of 16 pads, each a built-in drum or a sound of your own: click a pad to hear it and choose it, drop a sound file on it to replace it
       (drop several on the grid and they fill the pads by the words in their names: kick, snare, hat, open, clap, tom, crash, ride, rim, shaker). Under the grid: the pad's sound,
       its note, tune, level, pan and choke group (pads in one group cut each other off, as a closed hat ends an open one). The BEAT grid then has a row for each pad</dd>
+    <dt>MIXER</dt><dd>every track's fader, pan, echo and reverb send, mute and solo side by side, with the master; the bars show the level as it plays</dd>
+    <dt>the ruler (right-click)</dt><dd>add a named marker (Intro, Chorus, Boss) on a bar; click a marker to put the start mark there; its menu renames it, deletes it, or loops that section
+      (to the next marker). The little colour box in a track's header chooses its colour</dd>
     <dt>WHERE IT PLAYS</dt><dd>the places in the game the song is for; play the level with the song inside the game</dd>
   </dl>
   <p class="muted">A MIDI keyboard plays the selected track (sustain pedal and pitch bend work). Without one, turn on KEYS and

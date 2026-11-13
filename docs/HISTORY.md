@@ -1398,6 +1398,21 @@ The second step of the plan in HISTORY 60: the studio itself can now make a patt
   pad picked it and then dropped it); one file that is not a sound no longer fails a whole drop; a file whose name says nothing goes to a pad without a sample, never over one;
   a pad's sample keeps its 1.5 s when its grit is changed; opening another song forgets the sounds as loaded (an id like `kick` could be re-made from the old song's audio).
 
+## 64. The studio's beat machine, step 5: polish (Claude Code, 2026-11-13)
+
+- **Track colours** (`track.color`, `#rrggbb`) chosen in the track's header; the overview, the roll and the strip use it. **Section markers** (`song.markers`,
+  `[{ at, name }]`, up to 64): a strip above the ruler; right-click adds one on the bar, renames it, deletes it, or loops the section to the next marker; a click puts
+  the start mark there. Both are new `check()` fields that exist only when used (nothing plays differently; `tests/node/patterns.test.mjs`), documented in `engine/API.md`.
+- **MIXER** tab: a channel per track (volume fader, pan, echo and reverb sends, mute, solo, a level bar) and the master, side by side; a click selects the track.
+  Moving between NOTES, MIXER and WHERE IT PLAYS now hides and brings back the beat bar and grid properly (before, an open beat's bar stayed over the other tabs).
+- The track list already had a level meter in each header (since the studio began); it stays.
+- The help dialog covers the beats, the grid, the clips, the kits, the mixer and the markers.
+- **Review fixes** (reproduced first): `check()` dropped a marker past the song's end, so making the song shorter lost it for good through undo, save or a draft (it is now kept,
+  like the notes, and not drawn); the mixer's faders and the track list's sliders showed different volumes (they follow each other); picking a track rebuilt its list, so the first
+  click on a colour box or name of another track was lost (the list is no longer rebuilt, only the selection is marked); with overlapping labels the marker nearest the pointer is hit.
+- **Left for later** (ROADMAP): step probability and ratchets, a melodic step sequencer, exact velocity by dragging in a step, a mute per row in a beat, moving a whole section by
+  dragging its marker.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |
