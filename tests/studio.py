@@ -561,6 +561,7 @@ with sync_playwright() as p:
     pg.click('#trackList .trk:nth-child(1)'); pg.select_option('#lane', 'volume')
     # (measured at every click: the hint under the roll changes with the lane, and when it wraps the roll gets shorter)
     def pt(tick, frac):
+        pg.evaluate('new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))')   # (the roll is resized a frame after its surroundings change: a longer hint under it, a font that is wider: measure after)
         box = pg.locator('#roll').bounding_box()
         return (box['x'] + 54 + (tick - st('st.view.x')) * st('st.view.zoom') + 1, box['y'] + box['height'] - 72 + 5 + (1 - frac) * 62)
     pg.mouse.click(*pt(96, .9)); pg.mouse.click(*pt(384, .2))
