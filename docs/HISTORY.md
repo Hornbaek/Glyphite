@@ -1292,6 +1292,47 @@ Engine 0.17.0, two new parts: `engine/19_liquid.js` and `engine/20_reactions.js`
 - **The cover** (`ref/cover_star_whiskers.png`) is kept as reference art; `tools/art.py` lists a picture nothing is cut from
   (its `use`), so `ref.json` stays generated.
 
+## 60. The studio's beat machine, step 1: patterns, clips and drum kits in the Sampler (Claude Code, 2026-11-13)
+
+> "I'm missing some ux and features in the sound studio. For example, I want a drum/beat machine and an easy way of creating a drum
+> instrument with a bunch of samples. Look into softwares like logic pro, ableton and reason and come up with a plan [...] after I've
+> created a beat I can drag that in as a section I can use other places, drag to loop it, cut it and more."
+
+The plan (approved) has five steps, each a pull request: the engine's data (this one), the BEAT grid, the arranger with clips, kits made
+of your own samples in the studio, and polish. Chosen with the owner: copies of a beat are **linked** (edit the pattern, every clip of it
+changes; "make unique" splits one off), and the arranger sits above the editor with a drawer of beats, kits and samples on the left.
+
+- **Patterns and clips** (`song.patterns[id] = { name, len, notes, swing?, color? }`, `track.clips = [{ at, p, len, off }]`): a clip plays a
+  pattern from `off`, round and round, for `len` ticks and cuts the last note where it ends; the scheduler asks for the clips' notes
+  window by window (`Sampler.clipNotes`), so editing a pattern while the song plays is heard at once, as editing notes is. `Sampler.notesOf`
+  is the notes of a track with its clips written out (the MIDI export, the lint). Swing delays the off-beat 16ths.
+- **Drum kits of the song's own** (`song.kits[id] = { name, pads: [{ note, sample | sound, tune, level, pan, choke }] }`, a track with
+  `instrument: 'drums:<id>'`): a pad is one of the song's samples or a built-in drum sound. Tune, level, pan and choke are read when a note
+  starts (so they are live, and turning them makes nothing again); the sounds are made once each, in slices like every instrument;
+  a sample on a pad is brought to the loudness of the built-in sounds first. `Sampler.newKit()` is 16 pads on General MIDI notes.
+- **MIDI**: a song of clips is written as the notes they play; a kit travels in the file (its pads, and the samples on them) like a
+  sample or a multisample does, on channel 10, and comes back as itself.
+- Every new field is only in a song when it has some: the shipped songs check to exactly what they were (a test).
+- **Reviewed before merging** (a second model, read-only, at high effort, against the diff), then each finding checked by hand:
+  - *Must-fix, both reproduced:* an id like `constructor` or `toString` counted as a kit, sample or pattern (the song's maps are plain objects), kept by
+    `check()` and then throwing in `ready()`: lookups are by own key now, in the engine and the MIDI reader (which uses maps without a prototype). And
+    a pattern one tick long with one maximum clip wrote out 590 000 notes in a 4-bar song (ten clips: 5.9 million, 668 MB): a pattern is at least a 16th
+    and holds at most 2048 notes, nothing a clip plays starts past the song's end, and all clips share a budget of 50 000 written-out notes.
+  - *Fixed:* in a render (one big window) a closed hat from a clip did not choke an open hat from loose notes (the window's notes are one list in time
+    order now); a panned pad made the track's other voices 3 dB louder (every kit voice has a panner); a kit being made while a pad changed was filed
+    under the wrong key (its pads are read once, when the job starts); the lint's command line did not `check()` a hand-written clip; a swung note
+    could pass a trimmed start that the unswung one could not; a pad whose sample is gone is kept, silent; the MIDI export said a kit plays as a
+    "pad or a marimba" in other programs, but it is drums by note number.
+  - *Left:* a kit's key hashes every pad's sample on every note (about 0.4 ms for 32 sample pads); `drums:` instruments in the studio need the studio changes
+    of steps 2 to 4 (until then clips are invisible there and a kit track's menu shows blank, though nothing breaks or is lost).
+  - Every one of these has a test that fails on the code as it was reviewed (8 of them, checked) and passes now.
+- **Tests** (`tests/node/patterns.test.mjs`, 13, and two more in `midi.test.mjs`): what `check()` keeps and drops, the clip arithmetic
+  (looping, trimming, cutting, swing, overlapping clips), a random test that asking for the notes of a song window by window gives
+  exactly the notes of the whole, a song with clips scheduled on the recording Web Audio exactly like the same song written out as
+  notes (same starts, pitches and loudness), pads (tune, loudness, pan, choke, a missing sample, what is made again and what is not).
+  Breaking the engine seven ways (swing parity, tune, level, normalising, choke, the cut at a clip's end, tune in the kit's key) fails a
+  test each time; the choke test did not fail the first time (the cut and the open hat's own end fell at the same moment) and was fixed.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

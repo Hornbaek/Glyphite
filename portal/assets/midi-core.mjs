@@ -158,12 +158,13 @@ export function songFromMidi(input, S, opts = {}) {
   const m = readMidi(input), warnings = [...m.warnings], k = S.PPQ / m.div, T = t => Math.round(t * k);
   const ids = new Set(S.INSTRUMENTS.map(i => i.id)), nameOf = Object.fromEntries(S.INSTRUMENTS.map(i => [i.id, i.name]));
   // the song's own sounds that a file written here carries
-  const samples = {}, multis = {};
+  const samples = Object.create(null), multis = Object.create(null), kits = Object.create(null);   // (no prototype: a file's id can be 'constructor')
   for (const x of m.extras) {
     if (x.pixelite === 'sample' && typeof x.id === 'string' && x.brr) samples[x.id] = { name: x.name, rate: x.rate, root: x.root, loop: x.loop, loopEnd: x.loopEnd, xfade: x.xfade, brr: x.brr };
     else if (x.pixelite === 'multi' && typeof x.id === 'string' && Array.isArray(x.zones)) multis[x.id] = { name: x.name, zones: x.zones };
+    else if (x.pixelite === 'kit' && typeof x.id === 'string' && Array.isArray(x.pads)) kits[x.id] = { name: x.name, pads: x.pads };
   }
-  const own = id => (id.startsWith('sample:') && samples[id.slice(7)]) || (id.startsWith('multi:') && multis[id.slice(6)]);
+  const own = id => (id.startsWith('sample:') && samples[id.slice(7)]) || (id.startsWith('multi:') && multis[id.slice(6)]) || (id.startsWith('drums:') && kits[id.slice(6)]);
   const parts = new Map();   // "midi track:channel:program" → one Sampler track
   const skipped = new Set();
   let end = 0;
@@ -181,7 +182,7 @@ export function songFromMidi(input, S, opts = {}) {
       const o = (c.open.get(pitch) || []).shift(); if (!o) return;
       let note = pitch;
       if (o.part.ins === 'kit') { note = S.KIT[pitch] ? pitch : DRUM_ALIASES[pitch]; if (!note) { skipped.add(pitch); return; } }
-      const at = T(o.start), len = Math.max(T(tick) - at, o.part.ins === 'kit' ? 12 : 1);   // a one-tick drum hit is a speck in the piano roll
+      const at = T(o.start), len = Math.max(T(tick) - at, S.isKit(o.part.ins) ? 12 : 1);   // a one-tick drum hit is a speck in the piano roll
       o.part.notes.push([at, len, note, o.vel]); end = Math.max(end, at + len);
       o.part.first = Math.min(o.part.first, o.start); o.part.last = Math.max(o.part.last, tick);
     };
@@ -213,7 +214,7 @@ export function songFromMidi(input, S, opts = {}) {
     // program's file that has only controllers is not a track
     if (forced && ![...parts.values()].some(p => p.ti === ti)) {
       const c = chans.find(c => c.vol.length) || chans[0];
-      parts.set(`${ti}:empty`, { ti, ch: forced === 'kit' ? 9 : 0, c, ins: forced, notes: [], first: 0, last: trk.end, keep: true });
+      parts.set(`${ti}:empty`, { ti, ch: forced && S.isKit(forced) ? 9 : 0, c, ins: forced, notes: [], first: 0, last: trk.end, keep: true });
     }
     end = Math.max(end, T(trk.end));
   });
@@ -223,7 +224,7 @@ export function songFromMidi(input, S, opts = {}) {
   const all = [...parts.values()].filter(p => p.notes.length || p.keep).sort((a, b) => a.ti - b.ti || a.ch - b.ch);
   const perTrack = new Map(); for (const p of all) perTrack.set(p.ti, (perTrack.get(p.ti) || 0) + 1);
   // one instrument to a MIDI track: the track's name; several (a format 0 file): the instrument and the channel
-  const nameFor = p => (perTrack.get(p.ti) > 1 ? `${nameOf[p.ins] || (own(p.ins) || {}).name || p.ins} (ch ${p.ch + 1})` : m.tracks[p.ti].name || (p.ins === 'kit' ? 'Drums' : `Track ${p.ti + 1}`)).slice(0, 40);
+  const nameFor = p => (perTrack.get(p.ti) > 1 ? `${nameOf[p.ins] || (own(p.ins) || {}).name || p.ins} (ch ${p.ch + 1})` : m.tracks[p.ti].name || (S.isKit(p.ins) ? 'Drums' : `Track ${p.ti + 1}`)).slice(0, 40);
   const candidates = all.map((p, index) => ({ index, name: nameFor(p), instrument: p.ins, channel: p.ch + 1, notes: p.notes.length }));
   let list = all;
   if (opts.only) {
@@ -259,7 +260,7 @@ export function songFromMidi(input, S, opts = {}) {
   const tracks = list.map(p => {
     const notes = p.notes.filter(n => n[0] < limit || (cut++, false)).map(([at, len, nt, v]) => [at, Math.min(len, limit - at), nt, v]);
     // volume (CC 7 × CC 11) and pan: a number when they hold, a lane too when they move while the notes play
-    const c = p.c, def = p.ins === 'kit' ? 0.5 : 0.7, tr = { name: nameFor(p), instrument: p.ins, notes, auto: {} };
+    const c = p.c, def = S.isKit(p.ins) ? 0.5 : 0.7, tr = { name: nameFor(p), instrument: p.ins, notes, auto: {} };
     const vol = c.vol.length ? laneFrom(c.vol, T, p.first, p.last, 1) : null;
     if (!vol) tr.volume = def;
     else {
@@ -285,12 +286,13 @@ export function songFromMidi(input, S, opts = {}) {
   // opts.title wins; else the sequence name (the first track's name, when it holds no notes); else opts.name (the file's name)
   const title = (opts.title || (first && first.name && !first.events.some(e => e.k === 'on') ? first.name : opts.name) || 'Imported MIDI').slice(0, 60);
   // the samples the kept tracks play (and the ones a multisample of theirs is made of)
-  const useSamples = {}, useMultis = {};
+  const useSamples = Object.create(null), useMultis = Object.create(null), useKits = Object.create(null);
   for (const t of tracks) {
+    if (t.instrument.startsWith('drums:') && kits[t.instrument.slice(6)]) { const id = t.instrument.slice(6); useKits[id] = kits[id]; for (const p of kits[id].pads || []) if (p && samples[p.sample]) useSamples[p.sample] = samples[p.sample]; }
     if (t.instrument.startsWith('multi:') && multis[t.instrument.slice(6)]) { const id = t.instrument.slice(6); useMultis[id] = multis[id]; for (const z of multis[id].zones || []) if (samples[z.sample]) useSamples[z.sample] = samples[z.sample]; }
     else if (t.instrument.startsWith('sample:') && samples[t.instrument.slice(7)]) useSamples[t.instrument.slice(7)] = samples[t.instrument.slice(7)];
   }
-  const song = S.check({ format: 'pixelite-song', title, bpm: Math.round(bpm * 100) / 100, beatsPerBar, bars, loop, tempo, tracks, samples: useSamples, multis: useMultis });
+  const song = S.check({ format: 'pixelite-song', title, bpm: Math.round(bpm * 100) / 100, beatsPerBar, bars, loop, tempo, tracks, samples: useSamples, multis: useMultis, kits: useKits });
   return { song, warnings, info: { tracks: song.tracks.length, notes: song.tracks.reduce((n, t) => n + t.notes.length, 0), candidates } };
 }
 
@@ -329,6 +331,11 @@ export function midiFromSong(song, S) {
   const carried = new Set();
   const carry = (kind, id, o) => { if (carried.has(kind + id)) return; carried.add(kind + id); conductor.push(ev(0, 0, meta(0x7F, [MAKER, ...str(JSON.stringify({ pixelite: kind, id, ...o }))]))); };
   const ownProgram = t => {
+    const ki = t.instrument.startsWith('drums:') ? (song.kits || {})[t.instrument.slice(6)] : null;
+    if (ki) {   // a kit of the song's own: its pads travel (and the samples on them); other programs play the drums by note number
+      for (const p of ki.pads) if (p.sample && song.samples && song.samples[p.sample]) carry('sample', p.sample, song.samples[p.sample]);
+      carry('kit', t.instrument.slice(6), ki); kitTracks++; return 0;
+    }
     const sm = t.instrument.startsWith('sample:') ? (song.samples || {})[t.instrument.slice(7)] : null, mu = t.instrument.startsWith('multi:') ? (song.multis || {})[t.instrument.slice(6)] : null;
     if (sm) { carry('sample', t.instrument.slice(7), sm); return sampleProgram(sm); }
     if (mu) {
@@ -349,14 +356,15 @@ export function midiFromSong(song, S) {
 
   const channels = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15]; let next = 0, shared = false;
   const trackChunks = [];
-  let missing = false, lanesLeft = false, customs = 0;
+  let missing = false, lanesLeft = false, customs = 0, kitTracks = 0;
   for (const t of song.tracks) {
-    const drums = t.instrument === 'kit', ch = drums ? 9 : channels[next++ % channels.length];
+    const drums = S.isKit(t.instrument), ch = drums ? 9 : channels[next++ % channels.length];
+    const notes = S.notesOf(song, t);   // a track's clips as the notes they play
     if (!drums && next > channels.length) shared = true;
     const A = t.auto || {};
     const mine = ownProgram(t);
     const known = t.instrument in INSTRUMENT_TO_GM || drums || mine !== null;
-    if (mine !== null) customs++;
+    if (mine !== null && !drums) customs++;   // (a kit is counted apart: it is not a pad or a marimba elsewhere, it is drums)
     const e = [ev(0, 0, meta(0x03, str(t.name)))];
     if (known) e.push(ev(0, 0, meta(0x01, str(TAG + t.instrument))));
     e.push(ev(0, 0, [0xB0 | ch, 7, Math.round(clamp(t.volume, 0, 1) * 127)]));
@@ -369,13 +377,14 @@ export function midiFromSong(song, S) {
       for (const [c, v] of [[101, 0], [100, 0], [6, 12], [38, 0], [101, 127], [100, 127]]) e.push(ev(0, 0, [0xB0 | ch, c, v]));
       e.push(...laneEvents(A.pitch, v => { const n = Math.round(8192 + clamp(v, -12, 12) / 12 * 8191); return [0xE0 | ch, n & 127, n >> 7]; }));
     }
-    for (const [at, len, note, vel] of t.notes) { e.push(ev(at, 2, [0x90 | ch, note, vel])); e.push(ev(at + len, 1, [0x80 | ch, note, 64])); }
-    trackChunks.push(chunk(e, t.notes.reduce((m, n) => Math.max(m, n[0] + n[1]), endTick)));
+    for (const [at, len, note, vel] of notes) { e.push(ev(at, 2, [0x90 | ch, note, vel])); e.push(ev(at + len, 1, [0x80 | ch, note, 64])); }
+    trackChunks.push(chunk(e, notes.reduce((m, n) => Math.max(m, n[0] + n[1]), endTick)));
     if ((t.instrument.startsWith('sample:') || t.instrument.startsWith('multi:')) && mine === null) missing = true;
     if (['filter', 'echo', 'reverb', 'loop'].some(l => A[l] && A[l].length)) lanesLeft = true;
   }
   // the conductor is written last, once the sounds the tracks carry are in it
   const chunks = [chunk(conductor, endTick), ...trackChunks];
+  if (kitTracks) warnings.push(`${kitTracks} track(s) play a drum kit of the song's own: the kit and its samples are in the file for Pixelite, and other programs play those notes as General MIDI drums`);
   if (customs) warnings.push(`${customs} track(s) play the song's own samples: they are in the file for Pixelite, and other programs play them as a pad (looping) or a marimba`);
   if (missing) warnings.push('a track plays a sample the song does not hold: it is written as a piano');
   if (lanesLeft) warnings.push('filter, echo, reverb and loop-point lanes are not in a MIDI file');
