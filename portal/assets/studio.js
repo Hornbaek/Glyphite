@@ -21,7 +21,7 @@ const st = {
   song: null, meta: { id: null, updated_at: null, game: '' }, sel: 0, picked: new Set(), grid: 24, len: 96, start: 0,
   dirty: false, undo: [], redo: [], lane: 'vel', pending: null, clip: null, rec: null, click: false, countIn: true, quant: true,
   keys: false, octave: 4, view: { x: 0, zoom: .7, top: 84 }, live: new Map(), pedal: false, bend: 0, follow: true,
-  open: null, openView: 'grid', patStep: B.STEP, beat: null, rev: 0   // a beat open to edit ({ p }), how, its step in ticks, the beat playing on its own, a count that moves with every change
+  cs: new Set(), focus: 'roll', open: null, openView: 'grid', patStep: B.STEP, beat: null, rev: 0   // a beat open to edit ({ p }), how, its step in ticks, the beat playing on its own, a count that moves with every change
 };
 let project = { id: '', title: '' };   // the game this studio is working for (from /games.json)
 const song = () => st.song, track = () => st.song.tracks[st.sel];
@@ -90,7 +90,7 @@ function settle() {
 }
 function restore(json) {
   if (st.beat) stopAll();
-  st.song = S.check(JSON.parse(json)); st.picked.clear(); st.sel = Math.min(st.sel, st.song.tracks.length - 1);
+  st.song = S.check(JSON.parse(json)); st.picked.clear(); st.cs.clear(); st.sel = Math.min(st.sel, st.song.tracks.length - 1);
   changed({ rebuild: true });
 }
 function undo() { if (!st.undo.length) return; st.redo.push(snap()); restore(st.undo.pop()); }
@@ -101,7 +101,7 @@ function showSaved(text) {
 }
 function load(s, meta = { id: null, updated_at: null, game: GAME_ID }, dirty = false) {
   if (S.playing) stopAll();
-  st.open = null; st.beat = null; st.rev++;
+  st.open = null; st.beat = null; st.rev++; st.cs.clear();
   st.song = S.check(s); st.meta = { ...meta }; st.sel = 0; st.picked.clear(); st.undo = []; st.redo = []; st.dirty = dirty; st.start = 0;
   st.view.x = 0; st.view.top = S.isKit(st.song.tracks[0]?.instrument || '') ? 60 : 84;
   if (S.ctx) S.use(st.song);
@@ -280,7 +280,7 @@ function drawEq() {
 }
 
 // ---------- the song overview: bar ruler, loop, start mark, every track's notes ----------
-const A = { cv: $('#arr'), RULER: 18, TH: 14 };
+const A = { cv: $('#arr'), RULER: 18, TH: 26 };
 // every note a track plays, its clips' too, kept until the song changes (the overview is drawn every frame while it plays)
 const arrCache = { rev: -1, per: [] };
 function arrNotes(i) {
@@ -310,12 +310,17 @@ function drawArr() {
     for (const c of t.clips || []) {   // a clip: a block in its beat's colour, its start marked
       if (!st.song.patterns || !st.song.patterns[c.p]) continue;
       const col = beatColor(c.p), on = st.open && st.open.p === c.p;
-      x.fillStyle = hexA(col, t.mute ? .08 : on ? .4 : .22); x.fillRect(c.at * k, y + 1, Math.max(2, c.len * k), A.TH - 2);
+      const cw = Math.max(2, c.len * k);
+      x.fillStyle = hexA(col, t.mute ? .1 : on ? .45 : .28); x.fillRect(c.at * k, y + 1, cw, A.TH - 2);
       x.fillStyle = hexA(col, .95); x.fillRect(c.at * k, y + 1, 2, A.TH - 2);
+      x.fillStyle = hexA(col, .6); for (const r of B.repeatsOf(st.song, c)) x.fillRect(r * k, y + 3, 1, A.TH - 6);   // where the beat comes round again
+      if (st.cs.has(c)) { x.strokeStyle = '#eef3f9'; x.lineWidth = 1.5; x.strokeRect(c.at * k + .5, y + 1.5, cw - 1, A.TH - 3); x.lineWidth = 1; }
+      if (cw > 34) { x.save(); x.beginPath(); x.rect(c.at * k + 4, y + 1, cw - 6, A.TH - 2); x.clip(); x.fillStyle = '#eef3f9'; x.font = '9px JetBrains Mono, monospace'; x.textBaseline = 'top'; x.fillText(st.song.patterns[c.p].name, c.at * k + 5, y + 3); x.restore(); }
     }
     x.fillStyle = t.mute ? '#2a3546' : COLORS[i % COLORS.length];
-    for (const [at, len, note] of arrNotes(i)) x.fillRect(at * k, y + 2 + (1 - note / 127) * (A.TH - 5), Math.max(1, len * k), 2);
+    for (const [at, len, note] of arrNotes(i)) x.fillRect(at * k, y + 4 + (1 - note / 127) * (A.TH - 8), Math.max(1, len * k), 2);
   });
+  if (arrDrop) { x.fillStyle = hexA(beatColor(arrDrop.p), .5); x.fillRect(arrDrop.at * k, A.RULER + arrDrop.i * A.TH + 1, Math.max(2, arrDrop.len * k), A.TH - 2); }
   // the piano roll's window, the start mark and the playhead
   const vis = (R.w - R.KEYW) / st.view.zoom;
   x.strokeStyle = 'rgba(238,243,249,.35)'; x.strokeRect(st.view.x * k + .5, A.RULER + st.sel * A.TH + .5, vis * k, A.TH - 1);
@@ -323,13 +328,6 @@ function drawArr() {
   const p = S.playing && !st.beat ? S.position() : -1;   // (a beat playing on its own is not a place in the song)
   if (p >= 0) { x.fillStyle = '#eef3f9'; x.fillRect(p * k, 0, 1.5, H); }
 }
-A.cv.addEventListener('dblclick', e => {   // a clip opens in the editor below
-  const r = A.cv.getBoundingClientRect(), k = (r.width - 2) / end(), i = Math.floor((e.clientY - r.top - A.RULER) / A.TH), tick = (e.clientX - r.left) / k;
-  const t = st.song.tracks[i], c = t && (t.clips || []).find(c => tick >= c.at && tick < c.at + c.len && st.song.patterns && st.song.patterns[c.p]);
-  if (!c) return;
-  if (st.sel !== i) { closeBeat(); st.sel = i; st.picked.clear(); focusTrack(); renderTracks(); renderStrip(); }
-  openBeat(c.p);
-});
 A.cv.addEventListener('pointerdown', e => {
   audio();
   const r = A.cv.getBoundingClientRect(), k = (r.width - 2) / end(), bar = st.song.beatsPerBar * PPQ;
@@ -345,12 +343,143 @@ A.cv.addEventListener('pointerdown', e => {
     addEventListener('pointermove', mv); addEventListener('pointerup', up);
     return;
   }
-  const i = Math.floor((y - A.RULER) / A.TH);
+  const h = clipHit(e); st.focus = 'arr';
+  if (h && h.c) { clipDrag(e, h, r, k); return; }
+  const i = h ? h.i : -1;
   if (i >= 0 && i < st.song.tracks.length) {
+    if (!e.shiftKey && st.cs.size) { st.cs.clear(); drawArr(); }
     if (i !== st.sel) { closeBeat(); st.sel = i; st.picked.clear(); focusTrack(); renderTracks(); renderStrip(); }
     st.view.x = Math.max(0, tickAt(e) - (R.w - R.KEYW) / st.view.zoom / 2); drawArr(); drawRoll();
   }
 });
+
+// ---------- the arranger: clips as blocks in the lanes ----------
+let arrDrop = null;   // where a beat dragged from the list would land: { i, at, len, p }
+// what is under the pointer: the lane, and the clip (the one drawn on top) with the part of it: its start, its end, or its body
+function clipHit(ev) {
+  const r = A.cv.getBoundingClientRect(), k = (r.width - 2) / end(), i = Math.floor((ev.clientY - r.top - A.RULER) / A.TH), t = st.song.tracks[i];
+  if (!t) return null;
+  const px = ev.clientX - r.left;
+  for (let n = (t.clips || []).length - 1; n >= 0; n--) {
+    const c = t.clips[n]; if (!st.song.patterns || !st.song.patterns[c.p]) continue;
+    const x0 = c.at * k, x1 = (c.at + c.len) * k;
+    if (px < x0 - 2 || px > x1 + 2) continue;
+    const edge = Math.min(8, (x1 - x0) / 3);
+    return { i, t, c, zone: px > x1 - edge ? 'end' : px < x0 + edge ? 'start' : 'body' };
+  }
+  return { i, t, c: null };
+}
+// the step a clip's edges move by: its beat's bar if it is a whole number of them, else a beat of the song; Shift: the grid
+const clipUnit = (c, shift) => { if (shift) return st.grid; const P = st.song.patterns[c.p]; return P.len % barTicks() === 0 ? barTicks() : PPQ; };
+const snapTo = (t, u) => Math.round(t / u) * u;
+function clipDrag(e, h, r, k) {
+  const { c, zone } = h, t0 = (e.clientX - r.left) / k, before = snap();
+  if (e.shiftKey) { if (st.cs.has(c)) st.cs.delete(c); else st.cs.add(c); } else if (!st.cs.has(c)) st.cs = new Set([c]);
+  if (h.i !== st.sel) { closeBeat(); st.sel = h.i; st.picked.clear(); focusTrack(); renderTracks(); renderStrip(); }
+  drawArr();
+  const group = zone === 'body' ? [...st.cs].map(x => ({ c: x, t: st.song.tracks.find(t => (t.clips || []).includes(x)), at: x.at })) : [{ c, t: h.t, at: c.at }];
+  const orig = { at: c.at, len: c.len, off: c.off };
+  let moved = false, copied = false;
+  const mv = ev => {
+    const dx = (ev.clientX - r.left) / k - t0;
+    if (!moved && Math.abs(dx) * k < 4) return;
+    if (!moved) { moved = true; if (e.altKey && zone === 'body') { copied = true; for (const g of group) { const n = B.addClip(g.t, { at: g.c.at, p: g.c.p, len: g.c.len, off: g.c.off }); g.c = n; } st.cs = new Set(group.map(g => g.c)); } }
+    const u = clipUnit(c, ev.shiftKey), E = end();
+    if (zone === 'body') {
+      const d = Math.max(-Math.min(...group.map(g => g.at)), snapTo(group[0].at + dx, u) - group[0].at);
+      for (const g of group) g.c.at = Math.max(0, Math.min(E - 24, g.at + d));
+    } else if (zone === 'end') {
+      c.len = Math.max(u, Math.min(E - c.at, snapTo(orig.at + orig.len + dx, u) - orig.at));
+      if (ev.altKey) c.len = Math.max(24, Math.min(E - c.at, Math.round(orig.len + dx)));
+    } else { Object.assign(c, orig); B.trimStart(st.song, c, Math.max(0, Math.min(orig.at + orig.len - u, snapTo(orig.at + dx, u))), 24); }
+    st.rev++; drawArr();
+  };
+  const up = () => {
+    removeEventListener('pointermove', mv); removeEventListener('pointerup', up);
+    if (!moved) return;
+    for (const tr of st.song.tracks) B.sortClips(tr);
+    st.undo.push(before); st.redo = []; changed({ rebuild: true });
+  };
+  addEventListener('pointermove', mv); addEventListener('pointerup', up);
+}
+A.cv.addEventListener('pointermove', e => {
+  if (e.buttons) return;
+  const h = clipHit(e); A.cv.style.cursor = h && h.c ? (h.zone === 'body' ? 'grab' : 'ew-resize') : 'pointer';
+});
+A.cv.addEventListener('dblclick', e => {   // a clip opens in the editor below
+  const h = clipHit(e); if (!h || !h.c) return;
+  if (st.sel !== h.i) { closeBeat(); st.sel = h.i; st.picked.clear(); focusTrack(); renderTracks(); renderStrip(); }
+  openBeat(h.c.p);
+});
+// a beat dragged from the list onto a lane makes a clip there
+A.cv.addEventListener('dragover', e => {
+  if (!e.dataTransfer.types.includes('text/x-pixelite-beat')) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'copy';
+  const r = A.cv.getBoundingClientRect(), k = (r.width - 2) / end(), i = Math.floor((e.clientY - r.top - A.RULER) / A.TH), p = dragBeat;
+  if (!p || i < 0 || i >= st.song.tracks.length) { if (arrDrop) { arrDrop = null; drawArr(); } return; }
+  const P = st.song.patterns[p], u = clipUnit({ p }, e.shiftKey), at = Math.max(0, Math.min(end() - 24, Math.floor((e.clientX - r.left) / k / u) * u));   // the bar under the pointer
+  arrDrop = { i, at, len: Math.min(P.len, end() - at), p }; drawArr();
+});
+A.cv.addEventListener('dragleave', () => { if (arrDrop) { arrDrop = null; drawArr(); } });
+A.cv.addEventListener('drop', e => {
+  e.preventDefault(); const d = arrDrop; arrDrop = null;
+  if (!d) return;
+  let c; edit(() => { c = B.addClip(st.song.tracks[d.i], { at: d.at, p: d.p, len: d.len }); }, { rebuild: true });
+  st.cs = new Set([c]); st.focus = 'arr'; drawArr();
+});
+let dragBeat = null;
+// the clip's menu (right-click)
+function showMenu(x, y, items) {
+  document.querySelector('#ctx')?.remove();
+  const m = document.createElement('div'); m.id = 'ctx'; m.className = 'menu ctx'; m.style.cssText = `left:${x}px;top:${y}px;right:auto;min-width:220px;position:fixed`;
+  for (const it of items) {
+    if (!it) { const hr = document.createElement('hr'); m.append(hr); continue; }
+    const b = document.createElement('button'); b.textContent = it.label; b.disabled = !!it.off; if (it.title) b.title = it.title;
+    b.onclick = () => { m.remove(); it.run(); }; m.append(b);
+  }
+  document.body.append(m);
+  const rr = m.getBoundingClientRect(); if (rr.bottom > innerHeight) m.style.top = Math.max(0, innerHeight - rr.height - 4) + 'px'; if (rr.right > innerWidth) m.style.left = Math.max(0, innerWidth - rr.width - 4) + 'px';
+  const away = ev => { if (!m.contains(ev.target)) { m.remove(); removeEventListener('pointerdown', away, true); } };
+  setTimeout(() => addEventListener('pointerdown', away, true));
+}
+A.cv.addEventListener('contextmenu', e => {
+  const h = clipHit(e); if (!h || !h.c) return;
+  e.preventDefault(); st.focus = 'arr';
+  if (!st.cs.has(h.c)) { st.cs = new Set([h.c]); drawArr(); }
+  const c = h.c, P = st.song.patterns[c.p], n = B.usesOf(st.song, c.p).length, here = [...st.cs];
+  showMenu(e.clientX, e.clientY, [
+    { label: 'Open the beat', run: () => { if (st.sel !== h.i) { closeBeat(); st.sel = h.i; focusTrack(); renderTracks(); renderStrip(); } openBeat(c.p); } },
+    { label: 'Rename the beat…', run: () => { const v = prompt('Name of the beat', P.name); if (v !== null && v.trim() && v.trim() !== P.name) edit(() => { P.name = v.trim().slice(0, 40); }, { rebuild: true }); } },
+    null,
+    { label: 'Split here (Ctrl+E)', run: splitClips },
+    { label: 'Duplicate (Ctrl+D)', run: dupClips },
+    { label: 'Loop to the end of the song', run: () => edit(() => { for (const x of here) x.len = Math.max(1, end() - x.at); }, { rebuild: true }) },
+    null,
+    { label: n > 1 ? `Make unique (a copy of the beat; ${n - 1} other clip${n > 2 ? 's stay' : ' stays'} linked)` : 'Make unique (a copy of the beat)', title: 'Edit this clip\'s beat without changing the others', run: () => { let id; edit(() => { id = B.makeUnique(st.song, c.p, here.filter(x => x.p === c.p)); }, { rebuild: true }); if (st.open) openBeat(id); } },
+    { label: 'Select every clip of this beat', run: () => { st.cs = new Set(st.song.tracks.flatMap(t => (t.clips || []).filter(x => x.p === c.p))); drawArr(); } },
+    { label: 'Turn into notes (no longer linked)', run: () => edit(() => { for (const x of here) { const t = st.song.tracks.find(t => (t.clips || []).includes(x)); B.flattenClip(S, st.song, t, x); } st.cs.clear(); }, { rebuild: true }) },
+    null,
+    { label: here.length > 1 ? `Delete ${here.length} clips` : 'Delete the clip', run: deleteClips }
+  ]);
+});
+function dupClips() {
+  if (!st.cs.size) return;
+  const made = []; edit(() => { for (const c of st.cs) { const t = st.song.tracks.find(t => (t.clips || []).includes(c)); if (t) made.push(B.addClip(t, { at: c.at + c.len, p: c.p, len: c.len, off: c.off })); } }, { rebuild: true });
+  st.cs = new Set(made); drawArr();
+}
+function deleteClips() {
+  if (!st.cs.size) return;
+  edit(() => { for (const t of st.song.tracks) if (t.clips) { t.clips = t.clips.filter(c => !st.cs.has(c)); if (!t.clips.length) delete t.clips; } st.cs.clear(); }, { rebuild: true });
+}
+// cut the selected clips (or the clips of the selected track) where the play position is
+function splitClips() {
+  const tick = Math.round((S.playing && !st.beat ? recTick() : st.start) / st.grid) * st.grid;
+  const hit = [...st.cs].filter(c => tick > c.at && tick < c.at + c.len);
+  const list = hit.length ? hit : st.cs.size ? [] : (track().clips || []).filter(c => tick > c.at && tick < c.at + c.len);
+  if (!list.length) return showSaved('nothing to cut there: put the start mark (or the playhead) inside a clip');
+  const made = []; edit(() => { for (const c of list) { const t = st.song.tracks.find(t => (t.clips || []).includes(c)); const r = B.splitClip(st.song, t, c, tick); if (r) made.push(r[1]); } }, { rebuild: true });
+  st.cs = new Set(made); drawArr();
+}
 
 // ---------- the piano roll ----------
 const R = { cv: $('#roll'), KEYW: 54, RULER: 18, VEL: 72, RH: 12, w: 0, h: 0 };
@@ -433,6 +562,7 @@ const noteAt = (tick, pitch) => { const N = target().notes; for (let i = N.lengt
 let drag = null;
 R.cv.addEventListener('contextmenu', e => e.preventDefault());
 R.cv.addEventListener('pointerdown', e => {
+  st.focus = 'roll';
   audio(); R.cv.focus({ preventScroll: true });
   const r = R.cv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top, t = target(), gB = R.h - R.VEL;
   R.cv.setPointerCapture(e.pointerId);
@@ -665,7 +795,9 @@ function renderBeats() {
       <button class="bdel" title="${n ? 'A clip plays it: delete the clips first' : 'Delete the beat'}" ${n ? 'disabled' : ''}>×</button></li>`;
   }).join('');
   ul.querySelectorAll('.beat').forEach(li => {
-    const id = li.dataset.id;
+    const id = li.dataset.id; li.draggable = true;
+    li.addEventListener('dragstart', e => { dragBeat = id; e.dataTransfer.setData('text/x-pixelite-beat', id); e.dataTransfer.effectAllowed = 'copy'; });
+    li.addEventListener('dragend', () => { dragBeat = null; if (arrDrop) { arrDrop = null; drawArr(); } });
     li.querySelector('.bopen').onclick = () => (st.open && st.open.p === id ? closeBeat() : openBeat(id));
     li.querySelector('.bdel').onclick = () => { if (st.open && st.open.p === id) closeBeat(); edit(() => B.removeBeat(st.song, id), { rebuild: true }); };
   });
@@ -887,6 +1019,12 @@ addEventListener('keydown', e => {
   if (st.keys && !ctrl && !e.altKey) {
     if (e.code in QWERTY) { e.preventDefault(); if (!e.repeat) liveOn((st.octave + 1) * 12 + QWERTY[e.code], 100, e.code); return; }
     if (e.code === 'KeyZ' || e.code === 'KeyX') { st.octave = Math.max(0, Math.min(8, st.octave + (e.code === 'KeyX' ? 1 : -1))); $('#keysBtn').textContent = `KEYS C${st.octave}`; return; }
+  }
+  if (st.focus === 'arr' && (st.cs.size || (ctrl && e.code === 'KeyE'))) {   // the arranger has the keys while its clips are what was last clicked
+    if (ctrl && e.code === 'KeyE') { e.preventDefault(); splitClips(); return; }
+    if (ctrl && e.code === 'KeyD') { e.preventDefault(); dupClips(); return; }
+    if (e.code === 'Delete' || e.code === 'Backspace') { e.preventDefault(); deleteClips(); return; }
+    if (e.code === 'Escape') { st.cs.clear(); drawArr(); return; }
   }
   if (e.code === 'Space') { e.preventDefault(); if (st.open) playBeat(); else play(); }
   else if (ctrl && e.code === 'KeyZ') { e.preventDefault(); e.shiftKey ? redo() : undo(); }

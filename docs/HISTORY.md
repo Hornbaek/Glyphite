@@ -1357,6 +1357,19 @@ The second step of the plan in HISTORY 60: the studio itself can now make a patt
 - Checked: `tests/studio.py` drives all of it with the mouse (the grid, accents, painting, fills, the beat playing alone with live edits, length, undo, the roll,
   a beat from selected notes, a note clicked into an open beat going to the beat and not to the track).
 
+## 62. The studio's beat machine, step 3: the arranger with clips (Claude Code, 2026-11-13)
+
+- **Clips as blocks** in the overview's lanes (now 26 px tall): in their beat's colour, named, a notch where the beat comes round again, the selected ones outlined,
+  the track's loose notes drawn over them. Gestures: drag a beat from the list onto a lane (a clip on the bar under the pointer), drag the body to move (`Alt`: copy),
+  the right edge to loop, the left edge to trim (the end stays, the beat is shown from further in; going earlier wraps round), `Shift` for the grid instead of the
+  bar, `Shift`-click for several, `Ctrl+E` to cut at the start mark or the playhead, `Ctrl+D` to duplicate, `Del`, and a right-click menu (open, rename the beat,
+  split, duplicate, loop to the end, make unique, select every clip of the beat, turn into notes, delete). Each gesture is one undo step. The arranger has the keys
+  while a clip is what was last clicked; the roll has them after a click in it.
+- **The pure part** (`beats-core.mjs`, `tests/node/beats.test.mjs`): `repeatsOf`, `splitClip` (the second part's `off` follows on, so the two sound what the one did),
+  `trimStart`, `makeUnique` (clips given play the copy, the others stay linked), `flattenClip` (the track sounds the same, now with its own notes).
+- Checked in the browser with the mouse (`tests/studio.py`): loop by the edge, move, Alt-copy, trim, cut, duplicate, delete, the menu, make unique, turn into notes,
+  a beat dragged from the list. A trim test that could not fail (the clip was too short to trim) was found and rebuilt on a longer clip.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

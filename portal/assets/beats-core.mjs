@@ -98,3 +98,42 @@ export function beatFromNotes(song, track, picked, { name } = {}) {
   track.notes = track.notes.filter(n => !set.has(n));
   return { id, clip: addClip(track, { at: a, p: id, len, off: 0 }) };
 }
+
+// ---------- what the arranger does to clips ----------
+export const sortClips = track => { if (track.clips) track.clips.sort(clipOrder); return track; };
+export const clipEnd = c => c.at + c.len;
+const mod = (a, n) => ((a % n) + n) % n;
+// the ticks where a clip's pattern comes round again (the notches to draw), inside the clip
+export function repeatsOf(song, c) {
+  const P = song.patterns && song.patterns[c.p], out = []; if (!P) return out;
+  for (let t = c.at - c.off + P.len; t < clipEnd(c); t += P.len) if (t > c.at) out.push(t);
+  return out;
+}
+// cut a clip in two at a tick inside it: the same beat, the second part starting where the first stopped; returns [first, second] or null
+export function splitClip(song, track, c, tick) {
+  const P = song.patterns && song.patterns[c.p]; tick = Math.round(tick);
+  if (!P || tick <= c.at || tick >= clipEnd(c)) return null;
+  const second = { at: tick, p: c.p, len: clipEnd(c) - tick, off: mod(c.off + tick - c.at, P.len) };
+  c.len = tick - c.at; track.clips.push(second); sortClips(track);
+  return [c, second];
+}
+// move a clip's start, its end staying where it is (a trim; going earlier shows the beat from before, wrapping round); false when it cannot
+export function trimStart(song, c, newAt, min = 1) {
+  const P = song.patterns && song.patterns[c.p]; newAt = Math.max(0, Math.round(newAt));
+  if (!P || newAt > clipEnd(c) - min) return false;
+  c.off = mod(c.off + newAt - c.at, P.len); c.len = clipEnd(c) - newAt; c.at = newAt;
+  return true;
+}
+// a copy of a beat of its own (the clips given play the copy; the others stay linked to the old one); returns the new id
+export function makeUnique(song, id, clips = []) {
+  const P = song.patterns[id], nid = addBeat(song, { name: `${P.name} copy`.slice(0, 40), len: P.len, notes: P.notes.map(n => n.slice()), swing: P.swing, color: P.color });
+  for (const c of clips) c.p = nid;
+  return nid;
+}
+// a clip's notes written out as the track's own, the clip gone: the track sounds the same; returns the notes
+export function flattenClip(S, song, track, c) {
+  const out = []; S.clipNotes(song, { clips: [c] }, 0, Infinity, (at, len, note, vel) => out.push([at, len, note, vel]));
+  track.clips = track.clips.filter(x => x !== c); if (!track.clips.length) delete track.clips;
+  track.notes.push(...out); track.notes.sort(byTime);
+  return out;
+}

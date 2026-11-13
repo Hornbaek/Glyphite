@@ -170,3 +170,6 @@ dialog .row{display:flex;gap:10px;align-items:center}
 .pickrow { display: flex; gap: 8px; align-items: baseline; padding: 3px 4px; cursor: pointer; }
 .pickrow:hover { background: #0f1520; }
 .recmeter { width: 100%; max-width: 360px; background: #05070c; display: block; margin: 8px 0; }
+.menu hr{border:0;border-top:1px solid var(--rim);margin:3px 0;width:100%}
+.menu button:disabled{opacity:.4;cursor:not-allowed}
+#ctx{z-index:20}
