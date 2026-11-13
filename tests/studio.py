@@ -407,6 +407,81 @@ with sync_playwright() as p:
     check('no page errors in the beat studio', not errs3, errs3)
     ctx3.close()
 
+    # ---- drum kits: pads of the built-in sounds and of your own samples ----
+    def wav(freq, secs=.5, sr=44100):
+        fr = b''.join(struct.pack('<h', int(26000 * math.sin(2 * math.pi * freq * i / sr))) for i in range(int(sr * secs)))
+        o = io.BytesIO(); w = wave.open(o, 'wb'); w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr); w.writeframes(fr); w.close(); return o.getvalue()
+    ctx4 = b.new_context(viewport={'width': 1440, 'height': 900}); pg4 = ctx4.new_page(); errs4 = []
+    pg4.on('pageerror', lambda e: errs4.append(str(e))); pg4.on('dialog', lambda d: d.accept())
+    pg4.route('**/api/songs**', api); pg4.route('**/fonts.g*/**', lambda r: r.abort())
+    pg4.goto(f'{BASE}/studio/?game=spacemouse'); pg4.wait_for_function('window.studio && studio.st.song')
+    st4 = lambda js: pg4.evaluate(f'(() => {{ const st = studio.st; return {js}; }})()')
+    pg4.select_option('#addIns', 'strings'); pg4.click('#addTrack'); n4 = st4('st.song.tracks.length')
+    pg4.select_option(f'#trackList .trk:nth-child({n4}) .tins', '__kit')
+    check('+ New drum kit…: a kit of 16 pads, the track plays it, the strip shows the pads', st4('Object.keys(st.song.kits)') == ['kit'] and st4('st.song.kits.kit.pads.length') == 16 and st4('st.song.tracks[st.sel].instrument') == 'drums:kit' and pg4.locator('#strip .pad').count() == 16, st4('st.song.kits'))
+    names4 = pg4.eval_on_selector_all('#strip .pad b', 'bs => bs.map(b => b.textContent)')
+    check('the pads are named for their sounds, from the kick', names4[:4] == ['Kick', 'Snare', 'Rim', 'Clap'], names4)
+    DROP = """([sel, files]) => {
+      const dt = new DataTransfer();
+      for (const f of files) dt.items.add(new File([Uint8Array.from(atob(f.b64), c => c.charCodeAt(0))], f.name, { type: 'audio/wav' }));
+      document.querySelector(sel).dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }));
+    }"""
+    import base64
+    drop = lambda sel, files: pg4.evaluate(DROP, [sel, files])   # files dropped on an element, as a person would
+    tone = lambda name, f: {'name': name, 'b64': base64.b64encode(wav(f)).decode()}
+    drop('#strip .pad[data-note="36"]', [tone('Big thump.wav', 440)])
+    pg4.wait_for_function("Object.keys(studio.st.song.samples).length === 1", timeout=15000)
+    pad = st4('st.song.kits.kit.pads.find(p => p.note === 36)')
+    check('a file dropped on a pad becomes its sample (16 kHz) and the built-in sound goes', pad.get('sample') == 'big-thump' and 'sound' not in pad and st4('st.song.samples["big-thump"].rate') == 16000 and st4('st.song.samples["big-thump"].name') == 'Big thump', pad)
+    FREQ = """async tune => {
+      const s = JSON.parse(JSON.stringify(studio.st.song)); s.kits.kit.pads.find(p => p.note === 36).tune = tune;
+      s.tracks = [{ ...s.tracks[s.tracks.length - 1], notes: [[0, 96, 36, 100]], sends: { echo: 0, reverb: 0 } }]; s.master = { ...s.master, reverb: { volume: 0 }, echo: { volume: 0 }, comp: 0 };
+      const b = await Sampler.render(Sampler.check(s), { seconds: 1, loop: false }), d = b.getChannelData(0), sr = b.sampleRate;
+      let z = 0; const a = Math.round(.03 * sr), e = Math.round(.2 * sr);
+      for (let i = a + 1; i < e; i++) if (d[i - 1] < 0 && d[i] >= 0) z++;
+      let peak = 0; for (const v of d) peak = Math.max(peak, Math.abs(v));
+      return { f: z / ((e - a) / sr), peak };
+    }"""
+    f0, f12 = pg4.evaluate(FREQ, 0), pg4.evaluate(FREQ, 12)
+    check('the pad plays the sample at its own pitch (440 Hz), and tuned up an octave at 880 Hz', f0['peak'] > .05 and abs(f0['f'] / 440 - 1) < .04 and abs(f12['f'] / 880 - 1) < .04, [f0, f12])
+    drop('#strip .pads', [tone('Kick 3.wav', 120), tone('snare drum.wav', 300), tone('open hat.wav', 900), tone('Mystery.wav', 200)])
+    pg4.wait_for_function("Object.keys(studio.st.song.samples).length === 4", timeout=15000)
+    has = lambda note: st4(f'st.song.kits.kit.pads.find(p => p.note === {note}).sample || null')
+    check('several files fill the pads by the words in their names (kick, snare, open hat), the rest into the next free pad', has(36) == 'kick-3' and has(38) == 'snare-drum' and has(46) == 'open-hat' and has(37) == 'mystery', [has(n) for n in (36, 38, 46, 37)])
+    check('the old kick sample went with the pad (nothing plays it)', 'big-thump' not in st4('Object.keys(st.song.samples)'), st4('Object.keys(st.song.samples)'))
+    pg4.keyboard.press('Control+z')
+    check('all of it is one undo step', st4('Object.keys(st.song.samples)') == ['big-thump'] and has(36) == 'big-thump', st4('Object.keys(st.song.samples)'))
+    pg4.click('#strip .pad[data-note="38"]')
+    tune = pg4.locator('#strip .ctl:has(span:text-is("Tune")) input'); tune.fill('5'); tune.dispatch_event('input'); tune.dispatch_event('change')
+    check('the pad inspector sets tune (in semitones) on the chosen pad', st4('st.song.kits.kit.pads.find(p => p.note === 38).tune') == 5 and st4('st.pad') == 38, st4('st.song.kits.kit.pads.find(p => p.note === 38)'))
+    pg4.select_option('#strip .ctl:has(span:text-is("Sound")) select', 'd:clap')
+    check('a pad can be switched to another built-in sound', st4('st.song.kits.kit.pads.find(p => p.note === 38).sound') == 'clap')
+    pg4.click('#addBeat')   # the kit in the BEAT grid
+    check('the beat grid of a kit has a row for each pad, named for its sound', pg4.locator('#beatGrid .grow').count() == 16 and pg4.locator('#beatGrid .grow .gplay').first.text_content() == 'Big thump', pg4.locator('#beatGrid .grow .gplay').first.text_content())
+    pg4.keyboard.press('Escape'); pg4.keyboard.press('Escape')
+    st4('(st.song.samples["big-thump"].brr = "A".repeat(400 * 1024), 0)')   # a lot of samples: the warning
+    pg4.click('#trackList .trk:nth-child(1)'); pg4.click(f'#trackList .trk:nth-child({n4})')
+    check('a kit over 300 KB warns that the song travels inside every game page', pg4.locator('#strip .meta.warn').count() == 1, pg4.locator('#strip .meta').all_text_contents())
+    st4('(st.song.samples["big-thump"].brr = studio.S.toB64(studio.S.brrEncode(new Float32Array(1600))), 0)')
+    # review fixes: a sample you loaded yourself is not thrown away when a pad stops using it; one bad file does not spoil a drop
+    st4('(st.song.samples.mine = { name: "Mine", rate: 16000, root: 60, loop: -1, brr: studio.S.toB64(studio.S.brrEncode(new Float32Array(1600))) }, 0)')
+    pg4.click('#strip .pad[data-note="37"]')
+    pg4.select_option('#strip .ctl:has(span:text-is("Sound")) select', 's:mine'); pg4.select_option('#strip .ctl:has(span:text-is("Sound")) select', 'd:rim')
+    check('a sample you loaded yourself stays when a pad that played it takes another sound', 'mine' in st4('Object.keys(st.song.samples)'), st4('Object.keys(st.song.samples)'))
+    st4('(delete st.song.samples.mine, 0)')
+    drop('#strip .pads', [tone('Good snare.wav', 300), {'name': 'notes.wav', 'b64': base64.b64encode(b'this is not a sound').decode()}])
+    pg4.wait_for_function("Object.keys(studio.st.song.samples).includes('good-snare')", timeout=15000)
+    check('a file that is not a sound is left out and the others still fill their pads', st4('st.song.kits.kit.pads.find(p => p.note === 38).sample') == 'good-snare', st4('Object.keys(st.song.samples)'))
+    pg4.select_option('#addIns', 'strings'); pg4.click('#addTrack'); n5 = st4('st.song.tracks.length')   # a sample taken out of the song: its pad goes back to a built-in sound
+    pg4.select_option(f'#trackList .trk:nth-child({n5}) .tins', 'sample:big-thump')
+    pg4.click('#strip [data-a="remove"]')
+    pad = st4('st.song.kits.kit.pads.find(p => p.note === 36)')
+    check('removing a sample a pad played puts a built-in sound on the pad (the kick)', 'sample' not in pad and pad.get('sound') == 'kick' and 'big-thump' not in st4('Object.keys(st.song.samples)'), pad)
+    pg4.click(f'#trackList .trk:nth-child({n4})'); pg4.click('#strip button:has-text("DELETE KIT")')
+    check('DELETE KIT: the track plays the built-in kit, and the samples only the kit played go', st4('st.song.kits') is None and st4('st.song.tracks[st.sel].instrument') == 'kit' and st4('Object.keys(st.song.samples).length') == 0, st4('Object.keys(st.song.samples)'))
+    check('no page errors in the kit studio', not errs4, errs4)
+    ctx4.close()
+
     # ---- automation: tempo changes, lanes, glide ----
     auto = pg.evaluate('''async () => {
       const S = Sampler, base = { format: 'pixelite-song', bpm: 120, bars: 4, master: { reverb: { volume: 0 }, echo: { volume: 0 }, comp: 0 } }, quiet = { echo: 0, reverb: 0 };

@@ -21,7 +21,7 @@ const st = {
   song: null, meta: { id: null, updated_at: null, game: '' }, sel: 0, picked: new Set(), grid: 24, len: 96, start: 0,
   dirty: false, undo: [], redo: [], lane: 'vel', pending: null, clip: null, rec: null, click: false, countIn: true, quant: true,
   keys: false, octave: 4, view: { x: 0, zoom: .7, top: 84 }, live: new Map(), pedal: false, bend: 0, follow: true,
-  cs: new Set(), focus: 'roll', open: null, openView: 'grid', patStep: B.STEP, beat: null, rev: 0   // a beat open to edit ({ p }), how, its step in ticks, the beat playing on its own, a count that moves with every change
+  cs: new Set(), focus: 'roll', pad: null, open: null, openView: 'grid', patStep: B.STEP, beat: null, rev: 0   // a beat open to edit ({ p }), how, its step in ticks, the beat playing on its own, a count that moves with every change
 };
 let project = { id: '', title: '' };   // the game this studio is working for (from /games.json)
 const song = () => st.song, track = () => st.song.tracks[st.sel];
@@ -103,7 +103,7 @@ function showSaved(text) {
 }
 function load(s, meta = { id: null, updated_at: null, game: GAME_ID }, dirty = false) {
   if (S.playing) stopAll();
-  st.open = null; st.beat = null; st.rev++; st.cs.clear();
+  st.open = null; st.beat = null; st.rev++; st.cs.clear(); sources.clear(); padOwned.clear();   // (another song's sounds are not this one's)
   st.song = S.check(s); st.meta = { ...meta }; st.sel = 0; st.picked.clear(); st.undo = []; st.redo = []; st.dirty = dirty; st.start = 0;
   st.view.x = 0; st.view.top = S.isKit(st.song.tracks[0]?.instrument || '') ? 60 : 84;
   if (S.ctx) S.use(st.song);
@@ -143,13 +143,14 @@ function insOptions(load) {
     + (own.length ? `<optgroup label="This song's samples">${own.map(([id, sm]) => `<option value="sample:${esc(id)}">Sample · ${esc(sm.name)}</option>`).join('')}</optgroup>` : '')
     + (multi.length ? `<optgroup label="This song's multisamples">${multi.map(([id, mu]) => `<option value="multi:${esc(id)}">Multi · ${esc(mu.name)}</option>`).join('')}</optgroup>` : '')
     + (kits.length ? `<optgroup label="This song's drum kits">${kits.map(([id, ki]) => `<option value="drums:${esc(id)}">Drum kit · ${esc(ki.name)}</option>`).join('')}</optgroup>` : '')
-    + (load ? '<option value="__load">+ Load a sample…</option><option value="__record">+ Record a sample…</option><option value="__multi">+ New multisample…</option>' : '');
+    + (load ? '<option value="__load">+ Load a sample…</option><option value="__record">+ Record a sample…</option><option value="__multi">+ New multisample…</option><option value="__kit">+ New drum kit…</option>' : '');
 }
 const insName = id => id.startsWith('drums:') ? st.song.kits?.[id.slice(6)]?.name : id.startsWith('sample:') ? st.song.samples[id.slice(7)]?.name : id.startsWith('multi:') ? st.song.multis?.[id.slice(6)]?.name : S.INSTRUMENTS.find(x => x.id === id)?.name;
 function setInstrument(i, id) {
   if (id === '__load') { renderTracks(); return pickSample(i); }
   if (id === '__record') { renderTracks(); return recordSample(i); }
   if (id === '__multi') { renderTracks(); return newMulti(i); }
+  if (id === '__kit') { renderTracks(); return newKitFor(i); }
   edit(() => {
     const t = st.song.tracks[i], was = insName(t.instrument);
     if (!t.name || t.name === 'Track' || t.name === was) t.name = insName(id) || 'Track';
@@ -204,6 +205,7 @@ function renderStrip() {
     const multi = t.instrument.startsWith('multi:'), own = multi || t.instrument.startsWith('sample:');
     if (multi) box.append(multiSection(t.instrument.slice(6)));
     else if (own) box.append(sampleSection(t.instrument.slice(7)));
+    else if (t.instrument.startsWith('drums:')) box.append(kitSection(t.instrument.slice(6)));
     const sound = section('SOUND');
     if (!own) sound.append(pick('Grit', S.RATES.map(r => [r, `${r / 1000} kHz${r === 32000 ? ' (SNES)' : ''}`]), () => s.rate, v => { s.rate = +v; S.prepare(st.song); }));
     if (!kit) sound.append(
@@ -1291,7 +1293,8 @@ function openRecorder() {
       audio(); showSaved('making the sample from the recording…');
       try {
         const src = await decodeFile(blob);
-        if (job.id) await replaceSample(job.id, src);
+        if (job.pad) { const n = Object.values(st.song.samples).filter(s => /^Recording/.test(s.name)).length + 1; await fillPads(job.pad.kit, [{ src, name: `Recording ${n}` }], job.pad.note); }
+        else if (job.id) await replaceSample(job.id, src);
         else { const n = Object.values(st.song.samples).filter(s => /^Recording/.test(s.name)).length + 1; await addSample(src, `Recording ${n}`, job.track); }
       } catch (err) { showSaved(`could not use the recording: ${err.message || err}`); }
     };
@@ -1303,12 +1306,149 @@ function openRecorder() {
   reset(); dlg.showModal();
 }
 
+
+// ---------- drum kits: a pad for each sound, each a built-in sound or a sample of your own ----------
+// what to call a sound's pad: words in a file's name that say which drum it is (open before hat: "open hat" is both)
+const PAD_WORDS = [['open', 46], ['hat', 42], ['hihat', 42], ['kick', 36], ['bass drum', 36], ['snare', 38], ['rim', 37], ['clap', 39], ['tom', 45], ['crash', 49], ['ride', 51], ['shaker', 70]];
+const fallbackSound = note => (S.newKit().pads.find(p => p.note === note) || { sound: 'kick' }).sound;
+const KIT_WARN_KB = 300;
+const padOwned = new Set();   // the samples this session made for a pad: only those go when nothing plays them (a sample you loaded for a track is yours to keep)
+function newSampleId(name) { let id = slug(name).slice(0, 24) || 'sample'; for (let k = 2; st.song.samples[id]; k++) id = `${slug(name).slice(0, 20)}-${k}`; return id; }
+// a sample no track, multisample or pad plays any more goes (it was the pad's own)
+function pruneSample(id) {
+  const s = st.song;
+  if (!padOwned.has(id) || !s.samples[id] || s.tracks.some(t => t.instrument === `sample:${id}`) || Object.values(s.multis || {}).some(m => m.zones.some(z => z.sample === id))
+    || Object.values(s.kits || {}).some(k => k.pads.some(p => p.sample === id))) return;
+  delete s.samples[id]; sources.delete(id); padOwned.delete(id);
+}
+function newKitFor(i) {
+  let id = 'kit'; for (let k = 2; st.song.kits?.[id]; k++) id = `kit-${k}`;
+  edit(() => {
+    (st.song.kits ??= {})[id] = S.newKit('Drum kit');
+    const t = st.song.tracks[i], was = insName(t.instrument);
+    if (!t.name || t.name === 'Track' || t.name === was) t.name = 'Drum kit';
+    t.instrument = `drums:${id}`; t.sound.attack = t.sound.decay = t.sound.sustain = t.sound.fall = t.sound.release = t.sound.vibrato = null;
+  }, { rebuild: true });
+  st.sel = i; st.pad = null; renderAll(); S.prepare(st.song);
+}
+// sounds (decoded: { src, name }) into a kit's pads: the first on `note` if given; the others by the words in their names, else the next pad not yet given one.
+// One undo step for all of it.
+async function fillPads(kitId, items, note) {
+  const ki = st.song.kits[kitId]; if (!ki) return;
+  const made = [];
+  for (const it of items) made.push({ ...it, data: await resample(it.src, 16000, 1.5) });   // 16 kHz and 1.5 s: a drum hit is short, and songs travel inside game pages
+  const taken = new Set(), place = [];
+  made.forEach((m, k) => {
+    let pad = k === 0 && note !== undefined ? ki.pads.find(p => p.note === note) : null;
+    if (!pad) { const low = m.name.toLowerCase(); for (const [w, n] of PAD_WORDS) if (low.includes(w)) { const c = ki.pads.find(p => p.note === n && !taken.has(p)); if (c) { pad = c; break; } } }
+    if (!pad) pad = ki.pads.find(p => !taken.has(p) && !p.sample);   // (a file that says nothing goes to a pad with no sample of its own, never over one)
+    if (pad) { taken.add(pad); place.push([pad, m]); }
+  });
+  edit(() => {
+    for (const [pad, m] of place) {
+      const id = newSampleId(m.name); sources.set(id, m.src);
+      const was = pad.sample;
+      st.song.samples[id] = { name: m.name, rate: 16000, root: 60, loop: -1, secs: 1.5, brr: S.toB64(S.brrEncode(m.data)) }; padOwned.add(id);   // (secs: a change of grit keeps it that short)
+      delete pad.sound; pad.sample = id; if (was) pruneSample(was);
+    }
+  }, { rebuild: true });
+  if (place.length) st.pad = place[0][0].note;
+  S.prepare(st.song).then(() => renderStrip());
+  showSaved(`${place.length} pad${place.length === 1 ? '' : 's'} filled${made.length > place.length ? `, ${made.length - place.length} had no pad left` : ''}`);
+}
+// decode dropped or chosen files: the ones that are sounds; one that is not does not spoil the others
+async function decodeAll(files) {
+  const r = await Promise.allSettled(files.map(async f => ({ src: await decodeFile(f), name: f.name.replace(/\.[a-z0-9]+$/i, '').slice(0, 40) || 'sample' })));
+  const items = r.filter(x => x.status === 'fulfilled').map(x => x.value), bad = r.length - items.length;
+  if (!items.length) throw new Error(r[0] && r[0].reason && r[0].reason.message ? r[0].reason.message : 'not a sound');
+  if (bad) showSaved(`${bad} file${bad > 1 ? 's' : ''} could not be read and ${bad > 1 ? 'were' : 'was'} left out`);
+  return items;
+}
+let padFile = null;   // the kit and pad a file chosen with the pad's button is for
+$('#padFile').onchange = async e => {
+  const files = [...e.target.files]; if (!files.length || !padFile) return;
+  audio(); showSaved('loading the sound…');
+  try { await fillPads(padFile.kit, await decodeAll(files), padFile.note); }
+  catch (err) { showSaved(`could not use that sound: ${err.message || err}`); }
+};
+function kitSection(id) {
+  const ki = st.song.kits?.[id], sec = section('DRUM KIT');
+  if (!ki) return sec;
+  if (!ki.pads.some(p => p.note === st.pad)) st.pad = ki.pads[0] ? ki.pads[0].note : null;
+  const names = new Map(B.rowsOf(S, st.song, { instrument: `drums:${id}` }, { notes: [] }).map(r => [r.note, r.name]));
+  const kb = Math.round([...new Set(ki.pads.map(p => p.sample).filter(Boolean))].reduce((a, sid) => a + (st.song.samples[sid]?.brr.length || 0), 0) / 1024);
+  const info = document.createElement('p'); info.className = 'meta';
+  info.textContent = `Each pad is a sound that plays on its note. Click a pad to hear it, drop a sound file on it to replace it (several files at once fill the pads by their names: kick, snare, hat, open, clap, tom, crash, ride, rim, shaker). ${kb ? `The kit's samples: ${kb} KB.` : 'All built-in sounds: no samples.'}`;
+  if (kb > KIT_WARN_KB) { const w = document.createElement('p'); w.className = 'meta warn'; w.textContent = `That is a lot (over ${KIT_WARN_KB} KB): the song travels inside every game page that plays it. Shorter or fewer sounds keep it light.`; info.append(w); }
+  const name = document.createElement('label'); name.className = 'ctl'; name.innerHTML = `<span>Name</span><input value="${esc(ki.name)}" maxlength="40">`;
+  name.querySelector('input').onchange = e => { const v = e.target.value || id; if (v !== ki.name) edit(() => { ki.name = v; }, { rebuild: true }); };
+  const grid = document.createElement('div'); grid.className = 'pads';
+  const dropFiles = async (files, note) => {
+    audio(); showSaved('loading the sounds…');
+    try { await fillPads(id, await decodeAll(files), note); }
+    catch (err) { showSaved(`could not use that sound: ${err.message || err}`); }
+  };
+  const hear = note => { audio(); S.prepare(st.song).then(() => { const v = S.noteOn(st.sel, note, 100); if (v) setTimeout(() => S.noteOff(v), 600); }); };
+  ki.pads.forEach(p => {
+    const b = document.createElement('button'); b.className = `pad${p.note === st.pad ? ' on' : ''}${p.sample ? ' smp' : ''}`; b.dataset.note = p.note;
+    b.innerHTML = `<b>${esc(names.get(p.note) || '')}</b><span>${noteName(p.note)}${p.sample ? ' · sample' : ''}</span>`;
+    b.title = 'Click to hear it and choose it; drop a sound file on it to put the sound there';
+    b.onclick = () => { st.pad = p.note; hear(p.note); renderStrip(); };
+    b.ondragover = e => { if ([...e.dataTransfer.types].includes('Files')) { e.preventDefault(); e.stopPropagation(); b.classList.add('over'); } };
+    b.ondragleave = () => b.classList.remove('over');
+    b.ondrop = e => { e.preventDefault(); e.stopPropagation(); b.classList.remove('over'); dropFiles([...e.dataTransfer.files], p.note); };
+    grid.append(b);
+  });
+  grid.ondragover = e => { if ([...e.dataTransfer.types].includes('Files')) e.preventDefault(); };
+  grid.ondrop = e => { e.preventDefault(); dropFiles([...e.dataTransfer.files]); };
+  const kids = [info, name, grid];
+  const p = ki.pads.find(x => x.note === st.pad);
+  if (p) {
+    const src = document.createElement('label'); src.className = 'ctl'; src.title = 'What the pad plays';
+    const samples = Object.entries(st.song.samples);
+    src.innerHTML = `<span>Sound</span><select><optgroup label="Built-in">${S.DRUM_KINDS.map(k => `<option value="d:${k}">${k}</option>`).join('')}</optgroup>${samples.length ? `<optgroup label="This song's samples">${samples.map(([sid, sm]) => `<option value="s:${esc(sid)}">${esc(sm.name)}</option>`).join('')}</optgroup>` : ''}</select>`;
+    const sel = src.querySelector('select'); sel.value = p.sample ? `s:${p.sample}` : `d:${p.sound}`;
+    sel.onchange = () => { const [k, v] = [sel.value[0], sel.value.slice(2)]; edit(() => { const was = p.sample; if (k === 'd') { delete p.sample; p.sound = v; } else { delete p.sound; p.sample = v; } if (was && was !== p.sample) pruneSample(was); }, { rebuild: true }); S.prepare(st.song); };
+    const row = document.createElement('div'); row.className = 'btnrow';
+    row.innerHTML = '<button class="btn small" data-a="file" title="Choose a sound file for this pad (or drop it on the pad)">[ LOAD ]</button><button class="btn small" data-a="rec" title="Record this pad\'s sound with the microphone">[ ● RECORD ]</button><button class="btn small" data-a="rm" title="Take this pad out of the kit">[ REMOVE PAD ]</button>';
+    row.querySelector('[data-a="file"]').onclick = () => { padFile = { kit: id, note: p.note }; $('#padFile').value = ''; $('#padFile').click(); };
+    row.querySelector('[data-a="rec"]').onclick = () => { recFor = { pad: { kit: id, note: p.note } }; openRecorder(); };
+    row.querySelector('[data-a="rm"]').onclick = () => { edit(() => { ki.pads = ki.pads.filter(x => x !== p); if (p.sample) pruneSample(p.sample); }, { rebuild: true }); S.prepare(st.song); };
+    const note = document.createElement('label'); note.className = 'ctl'; note.title = 'The note that plays this pad (35 = a kick, 38 = a snare… as in General MIDI)';
+    note.innerHTML = `<span>Note</span><input type="number" min="0" max="127" value="${p.note}"><output>${noteName(p.note)}</output>`;
+    note.querySelector('input').onchange = e => {
+      const v = Math.max(0, Math.min(127, Math.round(+e.target.value) || 0));
+      if (v !== p.note && ki.pads.some(x => x.note === v)) { showSaved(`${noteName(v)} is another pad's note`); return renderStrip(); }
+      if (v !== p.note) { edit(() => { p.note = v; ki.pads.sort((a, b) => a.note - b.note); }, { rebuild: true }); st.pad = v; S.prepare(st.song); }
+    };
+    const after = c => { c.querySelector('input').addEventListener('change', () => S.prepare(st.song)); return c; };
+    kids.push(src, row, note,
+      after(ctl('Tune', () => p.tune, v => { p.tune = Math.round(v * 10) / 10; }, { min: -24, max: 24, step: .1, fmt: v => `${v > 0 ? '+' : ''}${v.toFixed(1)} st` })),
+      after(ctl('Level', () => p.level, v => { p.level = v; }, { min: 0, max: 2, step: .01, fmt: pct })),
+      after(ctl('Pan', () => p.pan, v => { p.pan = v; }, { min: -1, max: 1, step: .05, fmt: v => v < -.02 ? `L${Math.round(-v * 100)}` : v > .02 ? `R${Math.round(v * 100)}` : 'C' })),
+      after(ctl('Choke', () => p.choke, v => { p.choke = Math.round(v); }, { min: 0, max: 8, step: 1, fmt: v => v ? `group ${v}` : 'none', title: 'Pads in one group cut each other off (a closed hat ends an open one)' })));
+  }
+  const add = document.createElement('button'); add.className = 'btn small'; add.textContent = '[ + PAD ]'; add.title = 'A new pad on the next free note';
+  add.disabled = ki.pads.length >= 32;
+  add.onclick = () => { let n = 35; while (ki.pads.some(x => x.note === n)) n++; edit(() => { ki.pads.push({ note: n, sound: 'kick', tune: 0, level: 1, pan: 0, choke: 0 }); ki.pads.sort((a, b) => a.note - b.note); }, { rebuild: true }); st.pad = n; S.prepare(st.song); };
+  const del = document.createElement('button'); del.className = 'btn small'; del.textContent = '[ DELETE KIT ]'; del.title = 'Take the kit out of the song: its tracks play the built-in kit';
+  del.onclick = () => {
+    const users = st.song.tracks.filter(t => t.instrument === `drums:${id}`).length;
+    if (!confirm(`Delete the kit "${ki.name}"${users ? ` (${users} track${users > 1 ? 's' : ''} will play the built-in kit)` : ''}?`)) return;
+    edit(() => { const used = ki.pads.map(x => x.sample).filter(Boolean); delete st.song.kits[id]; if (!Object.keys(st.song.kits).length) delete st.song.kits; for (const t of st.song.tracks) if (t.instrument === `drums:${id}`) t.instrument = 'kit'; used.forEach(pruneSample); }, { rebuild: true });
+  };
+  const foot = document.createElement('div'); foot.className = 'btnrow'; foot.append(add, del);
+  sec.append(...kids, foot);
+  return sec;
+}
+
 // ---------- samples and multisamples ----------
 // a sample taken out of the song: the multisamples that used it lose that zone, and the tracks that played it go back to the piano
 function dropSample(id) {
   const s = st.song; delete s.samples[id];
   for (const [mid, mu] of Object.entries(s.multis || {})) { mu.zones = mu.zones.filter(z => z.sample !== id); if (!mu.zones.length) delete s.multis[mid]; }
   if (s.multis && !Object.keys(s.multis).length) delete s.multis;
+  for (const ki of Object.values(s.kits || {})) for (const pad of ki.pads) if (pad.sample === id) { delete pad.sample; pad.sound = fallbackSound(pad.note); }   // a pad that played it goes back to a built-in sound
   for (const t of s.tracks) if ((t.instrument.startsWith('sample:') && !s.samples[t.instrument.slice(7)]) || (t.instrument.startsWith('multi:') && !(s.multis || {})[t.instrument.slice(6)])) t.instrument = 'piano';
 }
 function newMulti(i) {

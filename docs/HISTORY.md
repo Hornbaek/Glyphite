@@ -1380,6 +1380,24 @@ The second step of the plan in HISTORY 60: the studio itself can now make a patt
   left button does now); Ctrl+E cuts from either editor; "Make unique" opens the copy only if that beat was the open one; a beat opens from its own start (the roll could be
   scrolled far past a one-bar beat); a long message in the header no longer wraps it and pushes the whole studio down (it is cut short, its tooltip has all of it). A trim test that could not fail (the clip was too short to trim) was found and rebuilt on a longer clip.
 
+## 63. The studio's beat machine, step 4: drum kits from your own samples (Claude Code, 2026-11-13)
+
+- **`+ New drum kit…`** in the instrument menu makes a kit of 16 pads (the built-in sounds on their General MIDI notes, so it sounds right at once) and gives the
+  track `drums:<id>`. The strip shows the **pad grid**: click to hear and choose a pad; **drop a sound file on a pad** to put it there (16 kHz, at most 1.5 s, the
+  existing decode, resample and BRR path) and the built-in sound goes; **drop several files on the grid** and they fill the pads by words in their names (open before
+  hat, kick, snare, rim, clap, tom, crash, ride, shaker), the rest into the next pad without a sample; all of it one undo step. The pad inspector has the sound (a built-in
+  drum or one of the song's samples; LOAD; ● RECORD with the microphone), its note (never one another pad has), tune (±24 st), level, pan and choke group, REMOVE PAD, and
+  `+ PAD` (up to 32). The kit's samples are summed next to its name, with a warning over 300 KB (a song travels inside every game page that plays it). DELETE KIT sends its
+  tracks back to the built-in kit.
+- **Bookkeeping**: a sample only a pad played goes when the pad is given another sound (`pruneSample`), a sample removed in the strip puts a built-in sound back on the pads
+  that played it, and the beat grid and the roll name a kit's rows by what the pads play.
+- Checked in the browser with real drops (`tests/studio.py`): a pad filled from a file, the sample played at its own pitch (440 Hz) and tuned an octave up (880 Hz), several
+  files placed by name, one undo step, the inspector, a kit in the beat grid, the size warning, a sample removed, the kit deleted. The first run of the pitch check was
+  wrong in the test (the tuned sample was over inside the measuring window), not in the engine.
+- **Review fixes** (reproduced first): only a sample this session made for a pad is removed when no pad plays it any more (a sample loaded for a track was being deleted when a
+  pad picked it and then dropped it); one file that is not a sound no longer fails a whole drop; a file whose name says nothing goes to a pad without a sample, never over one;
+  a pad's sample keeps its 1.5 s when its grit is changed; opening another song forgets the sounds as loaded (an id like `kick` could be re-made from the old song's audio).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

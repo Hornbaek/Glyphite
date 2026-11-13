@@ -173,3 +173,14 @@ dialog .row{display:flex;gap:10px;align-items:center}
 .menu hr{border:0;border-top:1px solid var(--rim);margin:3px 0;width:100%}
 .menu button:disabled{opacity:.4;cursor:not-allowed}
 #ctx{z-index:20}
+
+/* drum kits: the pad grid in the strip */
+.pads{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:6px 0 10px}
+.pad{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;gap:2px;min-height:46px;padding:5px 6px;background:#101622;border:1px solid var(--rim2);border-radius:3px;overflow:hidden}
+.pad b{font:700 10px var(--mono);color:var(--bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pad span{font:9px var(--mono);color:var(--dim)}
+.pad.smp{background:#17202e;border-color:#3a4a63}
+.pad.on{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+.pad:hover,.pad.over{border-color:var(--phosphor);background:#1b2638}
+.btnrow{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.meta.warn{color:var(--red);margin:6px 0 0}
