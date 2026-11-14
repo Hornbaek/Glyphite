@@ -107,15 +107,15 @@ has a note or is marked [?]. Statuses: `idea` (default, no row), `planned` (the 
 The owner composes at **/studio/** (16-bit, Super Nintendo style: the engine's `Sampler`, `engine/13_sampler.js`, the same
 file the games run). The studio opens on a **project** (a game, or Sketches: `game = ''`); songs save to D1, table `songs` (id,
 title, game = the project, data = the song as JSON, updated_at, updated_by). A song can carry its own **samples** (BRR, in
-`song.samples`) and its **places** (`song.places`: the title screen, level indices, a note), set in the WHERE IT PLAYS tab.
+`song.samples`) and its **places** (`song.places`: the title screen, level indices, a note), set in the WHERE IT PLAYS view.
 - **List them**: `SELECT id, title, game, updated_at FROM songs ORDER BY updated_at DESC;`
-- **Put one into a game** (the studio's [ MORE ] menu writes this prompt): `SELECT data FROM songs WHERE id = ?;`, save it as
+- **Put one into a game** (the studio's WHERE IT PLAYS view writes this prompt; File ▸ Put it into a game opens it): `SELECT data FROM songs WHERE id = ?;`, save it as
   `games/<game>/music/<id>.song.json`, run `node tools/song.mjs <game>` (writes `songs.js` with `SONGS` and `SONG_AT`, which song
   plays where; add it to game.json's parts), and make the game play `SONG_AT`'s songs at their places after `Sampler.prepare` at
   load (`engine/API.md`, "The music director": `Music.preload()` in `init`, `Music.place(...)` each frame; Space Mouse's `afterFrame`). Do what the place's note asks. The repository's copy is what the
   game plays; a later save in the studio changes nothing until a session brings it over again.
-- **The phone as a pad**: the studio's `[ PHONE ]` button pairs a phone on the same wifi (`/studio/pad/`, `portal/assets/padlink.mjs`, `worker/pad.js`, table `pad_link`) as a drum pad and keyboard; its notes play, record and sustain like a MIDI keyboard's.
-- **MIDI files**: the studio's [ MORE ] menu opens a .mid as a new song (you choose which instruments) and exports the song as one; `node tools/midi.mjs list|import <file.mid>`
+- **The phone as a pad**: the studio's Phone ▸ Pair button (side panel) pairs a phone on the same wifi (`/studio/pad/`, `portal/assets/padlink.mjs`, `worker/pad.js`, table `pad_link`) as a drum pad and keyboard; its notes play, record and sustain like a MIDI keyboard's.
+- **MIDI files**: the studio's File menu opens a .mid as a new song (you choose which instruments) and exports the song as one; `node tools/midi.mjs list|import <file.mid>`
   / `export <file.song.json>` do the same from a session (notes, instruments, tempo, loop; not effects, automation or samples).
 - A session may also write a song itself: use the **`pixelite-song`** skill (it plans the song, writes it as code, checks its levels
   by rendering it, and ships it; the format is `Sampler.check`'s, see `games/spacemouse/music/cargo-bay.song.json`)

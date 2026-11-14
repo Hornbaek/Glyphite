@@ -3,37 +3,40 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#05070c">
-<title>Phone pad · Pixelite</title>
-<link rel="stylesheet" href="/assets/site.css">
+<meta name="theme-color" content="#1C1C1A">
+<title>Studio pad · Pixelite</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="/assets/pad.css">
 <script type="module" src="/assets/pad.js"></script>
 </head>
 <body class="padpage">
 <header class="top">
-  <b class="brand">PIXELITE · PHONE PAD</b>
+  <b class="brand">Studio pad</b>
   <span id="status" class="status" aria-live="polite">…</span>
 </header>
 
 <form id="codeForm" class="codeForm" hidden>
-  <p>Open the SOUND STUDIO on your computer, press <b>PHONE</b>, and scan its code, or type the six digits here.</p>
+  <p>Open the Sound Studio on your computer, press <b>Pair</b> by Phone, and scan its code, or type the six digits here.</p>
   <input id="codeIn" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="off" placeholder="123456" aria-label="The six digit code">
-  <button class="btn primary" type="submit">[ CONNECT ]</button>
+  <button class="btn primary" type="submit">Connect</button>
 </form>
 
 <nav class="tabs" id="tabs" hidden>
-  <button class="tab on" data-v="pads">PADS</button><button class="tab" data-v="keys">KEYS</button>
+  <button class="tab on" data-v="pads">Drum pads</button><button class="tab" data-v="keys">Keyboard</button>
 </nav>
 
 <main id="pads" class="pads" hidden aria-label="Drum pads"></main>
 <main id="keys" class="keysView" hidden aria-label="Keyboard">
-  <div class="octaves"><button id="octDown" class="btn">◂ OCT</button><output id="octOut">C3</output><button id="octUp" class="btn">OCT ▸</button></div>
+  <div class="octaves"><button id="octDown" class="btn" aria-label="Octave down">−</button><output id="octOut">C3</output><button id="octUp" class="btn" aria-label="Octave up">+</button></div>
   <div id="board" class="board"></div>
 </main>
 
 <footer class="bottom" id="bottom" hidden>
-  <button id="velBtn" class="tog" aria-pressed="true" title="Where you touch a pad sets how hard it plays: high is loud">HARDER UP HIGH</button>
-  <button id="susBtn" class="tog" aria-pressed="false" title="Hold the notes (the sustain pedal)">SUSTAIN</button>
+  <button id="susBtn" class="tog" aria-pressed="false" title="Hold the notes (the sustain pedal)">Sustain</button>
+  <button id="velBtn" class="tog" aria-pressed="true" title="Where you touch a pad sets how hard it plays: high is loud">Velocity:<br>touch height</button>
 </footer>
+<p class="hint" id="hint" hidden>Touch higher on a pad to hit harder · the sound plays on the computer</p>
 </body>
 </html>

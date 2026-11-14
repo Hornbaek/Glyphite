@@ -46,6 +46,9 @@ Done: the engine's 16-bit Sampler, the studio at /studio/, songs saved on the si
   BEAT grid with the beat list (HISTORY 61), the arranger with clips (drag, loop, trim, split, make unique; HISTORY 62), kits made of your own samples (HISTORY 63), polish: a mixer, markers, track colours (HISTORY 64). The plan is done; what is left is under Later.
   The phone as a drum pad and keyboard is in (HISTORY 66); later for it: a relay through the site for networks that block the direct connection, pitch bend from the phone's tilt, MIDI out to other programs.
   Later: step probability and ratchets, a melodic step sequencer, a vertical drag in a step for its exact velocity, per-row mute in a beat.
+- ~~**The studio redesigned**~~ (HISTORY 67): a light console, views in tabs, a side panel, the studio's own dialogs; chord stamp, scale shading, humanize, legato,
+  tap tempo, a voice meter, sizes in the status bar, snapshots. Next: step probability and ratchets (sketched in the design; they need the Sampler and the song format),
+  a velocity ramp across a selection, snapshots kept on the site (they live in the browser now), a stems export (one WAV per track).
 - ~~**MIDI files**~~ (HISTORY 51, 52): import a .mid into tracks, export the song as .mid (`tools/midi.mjs` too); pitch bend and the volume and
   pan that move are lanes, a tempo ramp is a ramp, a file with several instruments asks which to open, and a song's own samples
   travel inside the file (a pad or a marimba to other programs). Next: the filter, the sends and the echo as CC events (74, 91, 93), time

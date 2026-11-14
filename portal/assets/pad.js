@@ -1,4 +1,4 @@
-// The phone pad: the phone as a drum pad and keyboard for the SOUND STUDIO running on a computer (the studio's PHONE button shows the
+// The phone pad: the phone as a drum pad and keyboard for the SOUND STUDIO running on a computer (the studio's Pair button shows the
 // link). Touches become notes sent over the connection in padlink.mjs; the sound comes out of the computer.
 import { PadGuest } from './padlink.mjs';
 
@@ -52,7 +52,7 @@ function renderKeys() {
     k.className = 'key black'; k.style.left = `${(i + 1) * w - w * .3}%`; k.style.width = `${w * .6}%`;
     wire(k, note); board.append(k);
   }
-  $('#octOut').textContent = `${noteName(state.base)}–${noteName(state.base + 24)}`;
+  $('#octOut').textContent = `${noteName(state.base)} – ${noteName(state.base + 23)}`;
 }
 function show(view) {
   state.view = view;
@@ -60,11 +60,11 @@ function show(view) {
   document.querySelectorAll('#tabs .tab').forEach(t => t.classList.toggle('on', t.dataset.v === view));
   for (const [id, n] of down) { send(['off', n.note]); n.el.classList.remove('hit'); down.delete(id); }
 }
-const STATUS = { looking: ['no studio is waiting for this code: open the studio, press PHONE', 'bad'], connecting: ['connecting…', ''], open: ['connected', 'open'], lost: ['lost: reconnecting…', 'bad'], stopped: ['stopped', ''] };
+const STATUS = { looking: ['no studio is waiting for this code: open the studio and press Pair', 'bad'], connecting: ['connecting…', ''], open: ['connected', 'open'], lost: ['lost: reconnecting…', 'bad'], stopped: ['stopped', ''] };
 function setStatus(s) {
   const [text, cls] = STATUS[s] || [s, ''], el = $('#status'); el.textContent = text; el.className = `status ${cls}`;
   const live = s === 'open';
-  $('#tabs').hidden = !live; $('#bottom').hidden = !live; $('#pads').hidden = !live || state.view !== 'pads'; $('#keys').hidden = !live || state.view !== 'keys';
+  $('#tabs').hidden = !live; $('#bottom').hidden = !live; $('#hint').hidden = !live; $('#pads').hidden = !live || state.view !== 'pads'; $('#keys').hidden = !live || state.view !== 'keys';
   if (live) wake();
 }
 let lock = null;
@@ -87,7 +87,7 @@ function start() {
 $('#tabs').addEventListener('click', e => { const t = e.target.closest('.tab'); if (t) show(t.dataset.v); });
 $('#octDown').addEventListener('click', () => { state.base = Math.max(12, state.base - 12); renderKeys(); });
 $('#octUp').addEventListener('click', () => { state.base = Math.min(84, state.base + 12); renderKeys(); });
-$('#velBtn').addEventListener('click', e => { state.byHeight = !state.byHeight; e.currentTarget.setAttribute('aria-pressed', String(state.byHeight)); e.currentTarget.textContent = state.byHeight ? 'HARDER UP HIGH' : 'ALWAYS MEDIUM'; });
+$('#velBtn').addEventListener('click', e => { state.byHeight = !state.byHeight; e.currentTarget.setAttribute('aria-pressed', String(state.byHeight)); e.currentTarget.innerHTML = state.byHeight ? 'Velocity:<br>touch height' : 'Velocity:<br>fixed 100'; });
 $('#susBtn').addEventListener('click', e => { state.sustain = !state.sustain; e.currentTarget.setAttribute('aria-pressed', String(state.sustain)); send(['cc', 64, state.sustain ? 127 : 0]); });
 $('#codeForm').addEventListener('submit', e => { e.preventDefault(); code = $('#codeIn').value.replace(/\D/g, '').slice(0, 6); if (code.length === 6) start(); });
 if (code.length === 6) start(); else { $('#codeForm').hidden = false; $('#status').textContent = 'enter the code'; }
