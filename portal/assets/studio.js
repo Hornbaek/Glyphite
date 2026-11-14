@@ -8,6 +8,7 @@ import { songFromMidi, midiFromSong } from './midi-core.mjs';
 import * as B from './beats-core.mjs';
 import { PadHost } from './padlink.mjs';
 import { qrSvg } from './qr.mjs';
+import { readLibrary, classify, naturally, GM_DRUMS, KIND_ORDER } from './library-core.mjs';
 const S = Sampler, PPQ = S.PPQ;
 const $ = q => document.querySelector(q);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -1593,8 +1594,10 @@ $('#pMidi').onclick = () => $('#importMidi').click();
 const MAX_SECS = 6, sources = new Map();   // sample id → the sound as loaded ({ pcm, sr }): re-made from it at another rate or length
 let sampleFor = 0;
 function pickSample(i) { sampleFor = i; $('#sampleFile').value = ''; $('#sampleFile').click(); }
-async function decodeFile(file) {
-  const b = await new OfflineAudioContext(1, 1, 44100).decodeAudioData(await file.arrayBuffer());
+const decodeFile = async file => decodeBytes(await file.arrayBuffer());
+// a sound file's bytes as one channel of numbers, from where it starts sounding
+async function decodeBytes(bytes) {
+  const b = await new OfflineAudioContext(1, 1, 44100).decodeAudioData(bytes);
   const n = b.length, pcm = new Float32Array(n);
   for (let c = 0; c < b.numberOfChannels; c++) { const d = b.getChannelData(c); for (let i = 0; i < n; i++) pcm[i] += d[i] / b.numberOfChannels; }
   let peak = 0; for (const v of pcm) peak = Math.max(peak, Math.abs(v));
@@ -1705,8 +1708,13 @@ function openRecorder() {
 }
 
 // ---------- drum kits: a pad for each sound, each a built-in sound or a sample of your own ----------
-// what to call a sound's pad: words in a file's name that say which drum it is (open before hat: "open hat" is both)
-const PAD_WORDS = [['open', 46], ['hat', 42], ['hihat', 42], ['kick', 36], ['bass drum', 36], ['snare', 38], ['rim', 37], ['clap', 39], ['tom', 45], ['crash', 49], ['ride', 51], ['shaker', 70]];
+// a drum hit for a pad: 16 kHz and 1.5 s at most (a drum is short, and songs travel inside game pages), faded over its last 40 ms when it was cut
+async function padData(src) {
+  const d = await resample(src, 16000, 1.5);
+  if (src.pcm.length / src.sr > 1.5) { const n = Math.min(d.length, 640); for (let i = 0; i < n; i++) d[d.length - 1 - i] *= i / n; }
+  return d;
+}
+const padSample = (name, data) => ({ name, rate: 16000, root: 60, loop: -1, secs: 1.5, brr: S.toB64(S.brrEncode(data)) });   // (secs: a change of grit keeps it that short)
 const fallbackSound = note => (S.newKit().pads.find(p => p.note === note) || { sound: 'kick' }).sound;
 const KIT_WARN_KB = 300;
 const padOwned = new Set();   // the samples this session made for a pad: only those go when nothing plays them (a sample you loaded for a track is yours to keep)
@@ -1715,7 +1723,7 @@ function newSampleId(name) { let id = slug(name).slice(0, 24) || 'sample'; for (
 function pruneSample(id) {
   const s = st.song;
   if (!padOwned.has(id) || !s.samples[id] || s.tracks.some(t => t.instrument === `sample:${id}`) || Object.values(s.multis || {}).some(m => m.zones.some(z => z.sample === id))
-    || Object.values(s.kits || {}).some(k => k.pads.some(p => p.sample === id))) return;
+    || Object.values(s.kits || {}).some(k => k.pads.some(p => p.sample === id || (p.vary || []).includes(id)))) return;
   delete s.samples[id]; sources.delete(id); padOwned.delete(id);
 }
 // a new kit of 16 pads of the built-in sounds (it sounds right at once), played by track i (null: kept in the song for later); it opens under DRUM KITS
@@ -1736,11 +1744,11 @@ function newKitFor(i) {
 async function fillPads(kitId, items, note) {
   const ki = st.song.kits[kitId]; if (!ki) return;
   const made = [];
-  for (const it of items) made.push({ ...it, data: await resample(it.src, 16000, 1.5) });   // 16 kHz and 1.5 s: a drum hit is short, and songs travel inside game pages
+  for (const it of items) made.push({ ...it, data: await padData(it.src) });
   const taken = new Set(), place = [];
   made.forEach((m, k) => {
     let pad = k === 0 && note !== undefined ? ki.pads.find(p => p.note === note) : null;
-    if (!pad) { const low = m.name.toLowerCase(); for (const [w, n] of PAD_WORDS) if (low.includes(w)) { const c = ki.pads.find(p => p.note === n && !taken.has(p)); if (c) { pad = c; break; } } }
+    if (!pad) { const n = classify(m.name).note; if (n) pad = ki.pads.find(p => p.note === n && !taken.has(p)); }   // (the drum its name says: kick, snare, hhclosed, tomlo…)
     if (!pad) pad = ki.pads.find(p => !taken.has(p) && !p.sample);   // (a file that says nothing goes to a pad with no sample of its own, never over one)
     if (pad) { taken.add(pad); place.push([pad, m]); }
   });
@@ -1748,7 +1756,7 @@ async function fillPads(kitId, items, note) {
     for (const [pad, m] of place) {
       const id = newSampleId(m.name); sources.set(id, m.src);
       const was = pad.sample;
-      st.song.samples[id] = { name: m.name, rate: 16000, root: 60, loop: -1, secs: 1.5, brr: S.toB64(S.brrEncode(m.data)) }; padOwned.add(id);   // (secs: a change of grit keeps it that short)
+      st.song.samples[id] = padSample(m.name, m.data); padOwned.add(id);
       delete pad.sound; pad.sample = id; if (was) pruneSample(was);
     }
   }, { rebuild: true });
@@ -1771,7 +1779,7 @@ $('#padFile').onchange = async e => {
   try { await fillPads(padFile.kit, await decodeAll(files), padFile.note); }
   catch (err) { showSaved(`could not use that sound: ${err.message || err}`); }
 };
-const kitKB = ki => Math.round([...new Set(ki.pads.map(p => p.sample).filter(Boolean))].reduce((a, sid) => a + (st.song.samples[sid]?.brr.length || 0), 0) / 1024);
+const kitKB = ki => Math.round([...new Set(ki.pads.flatMap(p => [p.sample, ...(p.vary || [])]).filter(Boolean))].reduce((a, sid) => a + (st.song.samples[sid]?.brr.length || 0), 0) / 1024);
 // DRUM KITS: the song's kits on the left, the chosen kit's pads, the chosen pad's sound on the right
 function renderKits() {
   const box = $('#kitView'); box.textContent = '';
@@ -1783,11 +1791,12 @@ function renderKits() {
     const b = el('button', `sitem${id === st.kit ? ' on' : ''}`, `<span class="two"><span class="nm">${esc(ki.name)}</span><small>${ki.pads.length} pads · ${users.length ? esc(users.join(', ')) : 'not used yet'}</small></span>`);
     b.onclick = () => { st.kit = id; st.pad = null; renderKits(); }; side.append(b);
   }
-  const nk = el('div', 'acts2'), nb = el('button', 'b s'); nb.textContent = '+ New kit'; nb.title = 'A kit of 16 pads of the built-in sounds'; nb.onclick = () => newKitFor(null); nk.append(nb); side.append(nk);
+  const nk = el('div', 'acts2'), nb = el('button', 'b s'), ib = el('button', 'b s dark'); nb.textContent = '+ New kit'; nb.title = 'A kit of 16 pads of the built-in sounds'; nb.onclick = () => newKitFor(null);
+  ib.textContent = 'Import a library…'; ib.title = 'A drum library (a zip, a folder, SFZ, Decent Sampler, SoundFont) made into a kit'; ib.dataset.a = 'import'; ib.onclick = () => openLibrary(); nk.append(nb, ib); side.append(nk);
   side.append(el('div', 'lb', 'Built in'), el('p', 'meta', '<span style="padding:0 12px;display:block">The built-in kit: General MIDI drum sounds. A song kit starts as a copy of it.</span>'));
   box.append(side);
   const ki = st.kit && st.song.kits[st.kit];
-  if (!ki) { box.append(el('div', 'empty-view', '<h2>No drum kit of the song\'s own yet</h2><p>A kit is a set of pads, each a built-in drum or a sound of your own, with its tune, level, pan and choke group. Drum tracks play the built-in kit until you give them one.</p>')); const b = el('button', 'b dark'); b.textContent = '+ New kit'; b.onclick = () => newKitFor(null); box.lastChild.append(b); return; }
+  if (!ki) { box.append(el('div', 'empty-view', '<h2>No drum kit of the song\'s own yet</h2><p>A kit is a set of pads, each a built-in drum or a sound of your own, with its tune, level, pan and choke group. Drum tracks play the built-in kit until you give them one.</p>')); const b = el('button', 'b'); b.textContent = '+ New kit'; b.onclick = () => newKitFor(null); const b2 = el('button', 'b dark'); b2.textContent = 'Import a sound library…'; b2.onclick = () => openLibrary(); const row = el('div', 'btnrow'); row.append(b2, b); box.lastChild.append(row); return; }
   const id = st.kit, edit_ = el('div', 'edit'); box.append(edit_);
   if (!ki.pads.some(p => p.note === st.pad)) st.pad = ki.pads[0] ? ki.pads[0].note : null;
   const names = new Map(B.rowsOf(S, st.song, { instrument: `drums:${id}` }, { notes: [] }).map(r => [r.note, r.name]));
@@ -1806,7 +1815,7 @@ function renderKits() {
   const del = el('button', 'b s danger'); del.textContent = 'Delete kit…'; del.title = 'Take the kit out of the song: its tracks play the built-in kit';
   del.onclick = async () => {
     if (!await ask({ title: `Delete the kit “${ki.name}”?`, text: `${users ? `${users} track${users > 1 ? 's' : ''} will play the built-in kit. ` : ''}Samples only this kit played go with it. You can undo this.`, buttons: [['Cancel', null], ['Delete kit', true, 'danger dark']] })) return;
-    edit(() => { const used = ki.pads.map(x => x.sample).filter(Boolean); delete st.song.kits[id]; if (!Object.keys(st.song.kits).length) delete st.song.kits; for (const tr of st.song.tracks) if (tr.instrument === `drums:${id}`) tr.instrument = 'kit'; used.forEach(pruneSample); st.kit = null; }, { rebuild: true });
+    edit(() => { const used = ki.pads.flatMap(x => [x.sample, ...(x.vary || [])]).filter(Boolean); delete st.song.kits[id]; if (!Object.keys(st.song.kits).length) delete st.song.kits; for (const tr of st.song.tracks) if (tr.instrument === `drums:${id}`) tr.instrument = 'kit'; used.forEach(pruneSample); st.kit = null; }, { rebuild: true });
   };
   head.append(fill, add, del); edit_.append(head);
   const drop = el('div', 'dropzone', '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v9M4 7l4 4 4-4M2 14h12" fill="none" stroke="#4A4843" stroke-width="1.4"/></svg><span>Drop sound files here. Names with <b>kick</b>, <b>snare</b>, <b>open hat</b>, <b>hat</b>, <b>clap</b>, <b>tom</b>, <b>crash</b>, <b>ride</b>, <b>rim</b> or <b>shaker</b> find their pad; the rest fill pads without a sample. Shortened to 16 kHz and 1.5 s. Drop one on a pad to put it there.</span>');
@@ -1819,7 +1828,7 @@ function renderKits() {
   };
   ki.pads.forEach(p => {
     const b = el('button', `pad${p.note === st.pad ? ' on' : ''}${p.sample ? ' smp' : ''}`); b.dataset.note = p.note; b.type = 'button';
-    b.innerHTML = `<b>${esc(names.get(p.note) || '')}</b><span>note ${p.note} · ${p.sample ? `sample: ${esc(st.song.samples[p.sample]?.name || p.sample)}` : esc(p.sound)}${p.tune ? ` · tune ${p.tune > 0 ? '+' : ''}${p.tune}` : ''}</span><span class="ch${p.choke ? ' g' : ''}">${p.choke ? `choke ${p.choke}` : 'no choke'}</span>`;
+    b.innerHTML = `<b>${esc(names.get(p.note) || '')}</b><span>note ${p.note} · ${p.sample ? `sample: ${esc(st.song.samples[p.sample]?.name || p.sample)}` : esc(p.sound)}${p.tune ? ` · tune ${p.tune > 0 ? '+' : ''}${p.tune}` : ''}</span><span class="tags">${p.vary ? `<span class="ch v">×${p.vary.length + 1} ${p.pick === 'random' ? 'random' : 'in turn'}</span>` : ''}<span class="ch${p.choke ? ' g' : ''}">${p.choke ? `choke ${p.choke}` : 'no choke'}</span></span>`;
     b.title = 'Click: hear it and choose it · drop a sound file on it: that sound on this pad';
     b.onclick = () => { st.pad = p.note; hear(p.note); renderKits(); };
     b.ondragover = e => { if ([...e.dataTransfer.types].includes('Files')) { e.preventDefault(); e.stopPropagation(); b.classList.add('over'); } };
@@ -1836,13 +1845,30 @@ function renderKits() {
   // the chosen pad
   const p = ki.pads.find(x => x.note === st.pad), ps = el('aside', 'padside'); ps.setAttribute('aria-label', 'Pad'); box.append(ps);
   if (!p) return;
-  const ph = el('header', 'vhead', `<b style="font-size:14px">${esc(names.get(p.note) || noteName(p.note))}</b><span class="grow"></span>`);
+  const ph = el('header', 'vhead', `<input class="nm" value="${esc(p.name || '')}" placeholder="${esc(names.get(p.note) || noteName(p.note))}" maxlength="24" aria-label="Pad name" spellcheck="false" title="The pad's name (empty: named for what it plays)" style="width:170px"><span class="grow"></span>`);
+  ph.querySelector('.nm').onchange = e => { const v = e.target.value.trim().slice(0, 24); if (v !== (p.name || '')) edit(() => { if (v) p.name = v; else delete p.name; }, { rebuild: true }); };
   const hb = el('button', 'b s dark', '<svg width="9" height="9"><use href="#i-play"/></svg>Hear'); hb.onclick = () => hear(p.note); ph.append(hb); ps.append(ph);
   const body = el('div', 'mb'); ps.append(body);
-  const samples = Object.entries(st.song.samples);
-  const src = pick('Sound', [...S.DRUM_KINDS.map(k => [`d:${k}`, `built-in: ${k}`]), ...samples.map(([sid, sm]) => [`s:${sid}`, `sample: ${sm.name}`])], () => p.sample ? `s:${p.sample}` : `d:${p.sound}`, () => {});
-  const sel = src.querySelector('select');
-  sel.onchange = () => { const [k, v] = [sel.value[0], sel.value.slice(2)]; edit(() => { const was = p.sample; if (k === 'd') { delete p.sample; p.sound = v; } else { delete p.sound; p.sample = v; } if (was && was !== p.sample) pruneSample(was); }, { rebuild: true }); S.prepare(st.song); };
+  // its sound: a card to hear, and the picker to change it
+  const src = el('div', 'padsnd'), own = p.sample ? st.song.samples[p.sample] : null;
+  src.innerHTML = `<span class="lb">Sound</span><div class="scard cur"><button class="sp" type="button" aria-label="Hear it"><svg width="9" height="9"><use href="#i-play"/></svg></button>
+    <span class="nm"><b>${esc(own ? own.name : p.sample || p.sound)}</b><small>${own ? 'a sample of the song' : p.sample ? 'its sample is gone' : 'built in'}</small></span>
+    <button class="b s" type="button" data-a="change">Change…</button></div>`;
+  src.querySelector('.sp').onclick = () => hearChoice(p.sample ? `s:${p.sample}` : `d:${p.sound}`);
+  src.querySelector('[data-a="change"]').onclick = () => openPicker({ kit: id, note: p.note, mode: 'set' });
+  // its variations: more sounds a hit takes in turn (round robin) or at random
+  const vars = el('div', 'padvars'), vary = p.vary || [];
+  vars.innerHTML = `<div class="vh"><span class="lb">Variations${vary.length ? ` · ${vary.length + 1} sounds` : ''}</span><span class="grow"></span></div>`;
+  if (vary.length) vars.querySelector('.vh').append(segs([['cycle', 'In turn'], ['random', 'Random']], () => p.pick === 'random' ? 'random' : 'cycle', v => edit(() => { if (v === 'random') p.pick = 'random'; else delete p.pick; }, { rebuild: true })));
+  else vars.append(el('p', 'meta', 'A hit can take one of several sounds, in turn (round robin) or at random, so a fast roll does not sound like a machine gun.'));
+  vary.forEach(v => {
+    const sm = st.song.samples[v], c = el('div', 'vchip', `<button class="sp" type="button" aria-label="Hear it"><svg width="8" height="8"><use href="#i-play"/></svg></button><span>${esc(sm ? sm.name : v)}</span><button class="bdel" type="button" aria-label="Take this variation off the pad"><svg width="9" height="9"><use href="#i-x"/></svg></button>`);
+    c.querySelector('.sp').onclick = () => hearChoice(`s:${v}`);
+    c.querySelector('.bdel').onclick = () => { edit(() => { p.vary = p.vary.filter(x => x !== v); if (!p.vary.length) { delete p.vary; delete p.pick; } pruneSample(v); }, { rebuild: true }); S.prepare(st.song); };
+    vars.append(c);
+  });
+  const addVar = el('button', 'b s'); addVar.type = 'button'; addVar.dataset.a = 'vary'; addVar.textContent = '+ Variation…'; addVar.disabled = vary.length >= 8; addVar.title = 'Another sound this pad can play (up to 9 in all)';
+  addVar.onclick = () => openPicker({ kit: id, note: p.note, mode: 'vary' }); vars.append(addVar);
   const row = el('div', 'btnrow');
   row.innerHTML = '<button class="b s" data-a="file" title="Choose a sound file for this pad (or drop it on the pad)">Load file…</button><button class="b s" data-a="rec" title="Record this pad\'s sound with the microphone">● Record</button>';
   row.querySelector('[data-a="file"]').onclick = () => { padFile = { kit: id, note: p.note }; $('#padFile').value = ''; $('#padFile').click(); };
@@ -1858,13 +1884,283 @@ function renderKits() {
   const choke = el('div', 'ctl'); choke.title = 'Pads in one group cut each other off: a closed hat ends an open one';
   choke.append(el('span', '', 'Choke group'), el('output', '', p.choke ? `group ${p.choke}` : 'none'));
   const cs = segs(['–', 1, 2, 3, 4, 5, 6, 7, 8].map((v, i) => [i, String(v)]), () => p.choke | 0, v => edit(() => { p.choke = +v; }, { rebuild: true })); cs.style.gridColumn = '1 / -1'; choke.append(cs);
-  const rm = el('button', 'b s danger'); rm.textContent = 'Remove pad'; rm.onclick = () => { edit(() => { ki.pads = ki.pads.filter(x => x !== p); if (p.sample) pruneSample(p.sample); }, { rebuild: true }); S.prepare(st.song); };
-  body.append(src, row, note,
+  const rm = el('button', 'b s danger'); rm.textContent = 'Remove pad'; rm.onclick = () => { edit(() => { ki.pads = ki.pads.filter(x => x !== p); for (const x of [p.sample, ...(p.vary || [])]) if (x) pruneSample(x); }, { rebuild: true }); S.prepare(st.song); };
+  body.append(src, row, vars, note,
     after(ctl('Tune', () => p.tune, v => { p.tune = Math.round(v * 10) / 10; }, { min: -24, max: 24, step: .1, fmt: v => `${v > 0 ? '+' : ''}${v.toFixed(1)} st` })),
     after(ctl('Level', () => p.level, v => { p.level = v; }, { min: 0, max: 2, step: .01, fmt: v => v.toFixed(2) })),
     after(ctl('Pan', () => p.pan, v => { p.pan = v; }, { min: -1, max: 1, step: .05, fmt: panFmt })),
     choke, rm);
 }
+
+// ---------- sound libraries: a zip, a folder or files read into kits (library-core.mjs), kept in this browser to pick sounds from later ----------
+// LIB.cur: the library open in the import (its sounds and the kits it holds); LIB.prop: the kit being put together ({ name, pads }); LIB.sel: its chosen pad
+const LIB = { cur: null, prop: null, sel: 0, kind: 'all', q: '', srcs: new Map(), libs: new Map(), from: null };
+// the libraries kept in this browser (IndexedDB: the files as they came, read again when wanted); a browser that keeps nothing still imports
+const shelf = (() => {
+  let db = null;
+  const open = () => db || (db = new Promise((res, rej) => { const r = indexedDB.open('pixelite-studio', 1); r.onupgradeneeded = () => r.result.createObjectStore('libraries', { keyPath: 'name' }); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }));
+  const tx = async (mode, f) => { const d = await open(); return new Promise((res, rej) => { const t = d.transaction('libraries', mode), q = f(t.objectStore('libraries')); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); }); };
+  return {
+    list: async () => { try { return (await tx('readonly', s => s.getAll())).map(x => ({ name: x.name, at: x.at, n: x.files.length })).sort((a, b) => b.at - a.at); } catch { return []; } },
+    get: async name => { try { return await tx('readonly', s => s.get(name)); } catch { return null; } },
+    put: async v => { try { await tx('readwrite', s => s.put(v)); return true; } catch { return false; } },
+    del: async name => { try { await tx('readwrite', s => s.delete(name)); } catch { } }
+  };
+})();
+// the files of a drop (folders walked), or of a file input (a folder's files carry their path in it)
+async function filesOfDrop(dt) {
+  const entries = [...dt.items].map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean), out = [];
+  if (!entries.length) return filesOfList([...dt.files]);
+  const walk = async (e, pre) => {
+    if (e.isFile) { const f = await new Promise((res, rej) => e.file(res, rej)); out.push({ path: pre + f.name, data: new Uint8Array(await f.arrayBuffer()) }); }
+    else if (e.isDirectory) { const r = e.createReader(); for (;;) { const batch = await new Promise((res, rej) => r.readEntries(res, rej)); if (!batch.length) break; for (const c of batch) await walk(c, `${pre}${e.name}/`); } }
+  };
+  for (const e of entries) await walk(e, '');
+  return out;
+}
+const filesOfList = async list => Promise.all([...list].map(async f => ({ path: f.webkitRelativePath || f.name, data: new Uint8Array(await f.arrayBuffer()) })));
+// a library's name: its zip's or folder's, else its first file's
+const libName = files => { const top = files[0].path.split('/'); return (top.length > 1 ? top[0] : files.length === 1 ? top[0] : 'Sounds').replace(/\.(zip|dslibrary)$/i, '').replace(/[_]+/g, ' ').slice(0, 40); };
+// the sound of a library sound, as numbers (decoded once, kept for the session); a SoundFont's own samples need no decoding
+async function libSrc(s) {
+  if (LIB.srcs.has(s)) return LIB.srcs.get(s);
+  const p = s.pcm ? Promise.resolve(trimSrc({ pcm: s.pcm.data, sr: s.pcm.sr })) : decodeBytes(s.data.slice().buffer);
+  LIB.srcs.set(s, p); p.then(v => { p.done = v; }, () => LIB.srcs.delete(s));   // (done: what the cards show the length of)
+  return p;
+}
+function trimSrc({ pcm, sr }) { let peak = 0; for (const v of pcm) peak = Math.max(peak, Math.abs(v)); let a = 0; while (a < pcm.length - 1 && Math.abs(pcm[a]) < peak * .02) a++; return { pcm: pcm.slice(a), sr }; }
+// hear a sound as it is (before it is squeezed into the song); one at a time
+let previewNode = null;
+function previewSound(src, gain = .8) {
+  audio(); try { previewNode && previewNode.stop(); } catch { }
+  const b = S.ctx.createBuffer(1, Math.max(1, src.pcm.length), src.sr); b.copyToChannel(src.pcm, 0);
+  const n = S.ctx.createBufferSource(), g = S.ctx.createGain(); g.gain.value = gain; n.buffer = b; n.connect(g); g.connect(S.ctx.destination); n.start(); previewNode = n;
+}
+const BUILTIN_NOTE = { kick: 36, snare: 38, hat: 42, open: 46, tom: 45, crash: 49, ride: 51, rim: 37, clap: 39, shaker: 70 };
+// hear a choice: 'd:<built-in sound>', 's:<sample of the song>', or 'l:<library>|<sound id>'
+async function hearChoice(v) {
+  const [k, rest] = [v[0], v.slice(2)];
+  if (k === 'd') { await S.prepare(['kit']); audition('kit', BUILTIN_NOTE[rest] || 36, 110, 600); }
+  else if (k === 's') { const sm = st.song.samples[rest]; if (sm) { await S.prepare(st.song); audition(`sample:${rest}`, Math.round(sm.root), 110, 900); } }
+  else { const s = libSound(rest); if (s) previewSound(await libSrc(s)); }
+}
+const libSound = ref => { const [name, id] = ref.split('|'), lib = name === LIB.cur?.name ? LIB.cur : LIB.libs.get(name); return lib ? lib.sounds.find(s => s.id === id) : null; };
+const fmtSecs = s => s >= 1 ? `${s.toFixed(1)} s` : `${Math.round(s * 1000)} ms`;
+// a sound's group in the cards: the kinds folded into a few
+const GROUPS = [['kick', 'Kicks', ['kick']], ['snare', 'Snares & claps', ['snare', 'clap', 'rim']], ['hat', 'Hats', ['closed hat', 'open hat', 'pedal hat']], ['tom', 'Toms', ['tom', 'low tom']],
+  ['cym', 'Cymbals', ['crash', 'ride', 'china', 'splash']], ['perc', 'Percussion', ['tambourine', 'cowbell', 'conga', 'bongo', 'timbale', 'agogo', 'cabasa', 'maracas', 'shaker', 'guiro', 'claves', 'wood block', 'whistle', 'triangle', 'percussion']], ['other', 'Other', ['other']]];
+const groupOf = kind => (GROUPS.find(g => g[2].includes(kind)) || GROUPS[GROUPS.length - 1])[0];
+
+// open the import: the drop zone (and the libraries kept in this browser), or a library at once
+async function openLibrary() {
+  closeMenu(); const d = $('#libDlg');
+  if (!d.open) d.showModal();
+  if (!LIB.cur) showLibDrop();
+}
+async function showLibDrop() {
+  LIB.cur = null; $('#libDrop').hidden = false; $('#libMain').hidden = true; $('#libFoot').hidden = true; $('#libSub').textContent = 'a zip, a folder or sound files';
+  const kept = await shelf.list();
+  $('#libShelf').innerHTML = kept.length ? `<span class="lb">Kept in this browser</span>${kept.map(k => `<div class="shelfrow"><b>${esc(k.name)}</b><span class="muted small">${k.n} file${k.n > 1 ? 's' : ''} · ${new Date(k.at).toLocaleDateString()}</span><span class="grow"></span>
+    <button class="b s" type="button" data-open="${esc(k.name)}">Open</button><button class="b s" type="button" data-forget="${esc(k.name)}">Forget</button></div>`).join('')}` : '';
+  $('#libShelf').querySelectorAll('[data-open]').forEach(b => b.onclick = async () => { const v = await shelf.get(b.dataset.open); if (v) loadLibrary(v.files, v.name, false); });
+  $('#libShelf').querySelectorAll('[data-forget]').forEach(b => b.onclick = async () => { await shelf.del(b.dataset.forget); LIB.libs.delete(b.dataset.forget); showLibDrop(); });
+}
+// read a library and put its first kit up as the new kit
+async function loadLibrary(files, name = libName(files), keep = true) {
+  if (!files.length) return;
+  $('#libSub').textContent = 'reading…';
+  let lib;
+  try { lib = await readLibrary(files); } catch (e) { $('#libSub').textContent = `could not read it: ${e.message}`; return; }
+  if (!lib.sounds.length) { $('#libSub').textContent = 'no sounds the browser can play were found in it'; if (lib.notes.length) tell('No sounds found', lib.notes.join('\n')); return; }
+  // a zip of one folder is called by the folder ('BPB Cassette 808'), not by what the download was named
+  const inner = new Set(lib.sounds.map(x => x.path.split('/')).filter(a => a.length > 2).map(a => a[1]));
+  if (files.length === 1 && /\.(zip|dslibrary)$/i.test(files[0].path) && inner.size === 1 && lib.sounds.every(x => x.path.split('/').length > 2)) name = [...inner][0].replace(/[_]+/g, ' ').slice(0, 40);
+  lib.name = name; LIB.cur = lib; LIB.libs.set(name, lib); LIB.kind = 'all'; LIB.q = '';
+  if (keep && !await shelf.put({ name, files, at: Date.now() })) lib.notes.push('It could not be kept in this browser (no room): it is here until the page is closed.');
+  useKit(0);
+  $('#libDrop').hidden = true; $('#libMain').hidden = false; $('#libFoot').hidden = false;
+  $('#libSub').textContent = `${name} · ${lib.sounds.length} sounds`;
+  renderLib();
+  for (const s of lib.sounds) { try { await libSrc(s); } catch { } if (LIB.cur !== lib) return; renderLibSize(); }   // (lengths for the cards and the size, one by one)
+  renderLibSounds();
+}
+// a kit of the library as the new kit's pads (a copy: changing them changes nothing in the library)
+function useKit(i) {
+  const k = LIB.cur.kits[i];
+  LIB.from = i; LIB.sel = 0;
+  LIB.prop = { name: k ? k.name : LIB.cur.name, pads: k ? k.pads.map(p => ({ ...p, sounds: [...p.sounds] })) : [] };
+}
+function renderLib() {
+  const lib = LIB.cur; if (!lib) return;
+  const kits = $('#libKits');
+  kits.innerHTML = `<div class="lb">Kits in it</div>${lib.kits.map((k, i) => `<button class="sitem${i === LIB.from ? ' on' : ''}" type="button" data-k="${i}"><span class="two"><span class="nm">${esc(k.name)}</span>
+      <small>${k.pads.length} pad${k.pads.length === 1 ? '' : 's'} · ${{ names: 'by the sounds\' names', sfz: 'SFZ mapping', dspreset: 'Decent Sampler mapping', sf2: k.drums ? 'SoundFont drum kit' : 'SoundFont preset' }[k.from]}</small></span></button>`).join('')}
+    ${lib.notes.length ? `<div class="lb">Good to know</div>${lib.notes.map(n => `<p class="meta libnote">${esc(n)}</p>`).join('')}` : ''}
+    <div class="acts2"><button class="b s" type="button" data-a="another">Another library…</button></div>`;
+  kits.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { useKit(+b.dataset.k); renderLib(); });
+  kits.querySelector('[data-a="another"]').onclick = showLibDrop;
+  $('#libName').value = LIB.prop.name;
+  const t = track(); $('#libTrack').textContent = t ? t.name : ''; $('#libGive').checked = !!t && kitTrack(t); $('#libGiveWrap').hidden = !t;
+  renderLibPads(); renderLibSounds(); renderLibSize();
+}
+const soundOf = id => LIB.cur.sounds.find(s => s.id === id);
+function renderLibPads() {
+  const P = LIB.prop, box = $('#libPads');
+  $('#libCount').textContent = `${P.pads.length} of 32 pads`;
+  box.innerHTML = P.pads.map((p, i) => `<div class="ppad${i === LIB.sel ? ' on' : ''}" data-i="${i}">
+      <div class="pt"><b>${esc(p.name)}</b><span class="mono small">${p.note}</span></div>
+      <div class="ps">${p.sounds.map(id => esc(soundOf(id)?.name || id)).slice(0, 3).join(', ')}${p.sounds.length > 3 ? ` +${p.sounds.length - 3}` : ''}</div>
+      <div class="pf"><button class="sp" type="button" data-a="hear" aria-label="Hear it"><svg width="9" height="9"><use href="#i-play"/></svg></button>
+        ${p.sounds.length > 1 ? `<button class="vary" type="button" data-a="pick" title="A hit takes the next sound in turn (round robin), or one at random (never the same twice running)">×${p.sounds.length} ${p.pick === 'random' ? 'random' : 'in turn'}</button>` : ''}
+        ${p.choke ? `<span class="ch g">choke ${p.choke}</span>` : ''}<span class="grow"></span>
+        <button class="bdel" type="button" data-a="del" aria-label="Take the pad out"><svg width="9" height="9"><use href="#i-x"/></svg></button></div></div>`).join('')
+    + (P.pads.length < 32 ? '<p class="muted small ppadhint">Click a pad, then a sound on the right to put it there, or add it as a variation. A sound with no pad chosen gets a pad of its own.</p>' : '');
+  box.querySelectorAll('.ppad').forEach(c => {
+    const i = +c.dataset.i, p = P.pads[i];
+    c.onclick = e => { if (e.target.closest('button')) return; LIB.sel = i; renderLibPads(); renderLibSounds(); };
+    c.querySelector('[data-a="hear"]').onclick = async () => { p.turn = ((p.turn ?? -1) + 1) % p.sounds.length; const s = soundOf(p.sounds[p.pick === 'random' ? Math.floor(Math.random() * p.sounds.length) : p.turn]); if (s) previewSound(await libSrc(s)); };
+    c.querySelector('[data-a="pick"]')?.addEventListener('click', () => { p.pick = p.pick === 'random' ? 'cycle' : 'random'; renderLibPads(); });
+    c.querySelector('[data-a="del"]').onclick = () => { P.pads.splice(i, 1); LIB.sel = Math.min(LIB.sel, P.pads.length - 1); renderLibPads(); renderLibSounds(); renderLibSize(); };
+  });
+}
+function renderLibSounds() {
+  const lib = LIB.cur; if (!lib) return;
+  const counts = {}; for (const s of lib.sounds) counts[groupOf(s.kind)] = (counts[groupOf(s.kind)] || 0) + 1;
+  $('#libChips').innerHTML = [['all', 'All', lib.sounds.length], ...GROUPS.filter(g => counts[g[0]]).map(g => [g[0], g[1], counts[g[0]]])].map(([k, t, n]) => `<button class="chip${LIB.kind === k ? ' on' : ''}" type="button" data-g="${k}">${esc(t)} <span>${n}</span></button>`).join('');
+  $('#libChips').querySelectorAll('[data-g]').forEach(b => b.onclick = () => { LIB.kind = b.dataset.g; renderLibSounds(); });
+  const q = LIB.q.toLowerCase(), sel = LIB.prop.pads[LIB.sel];
+  const list = lib.sounds.filter(s => (LIB.kind === 'all' || groupOf(s.kind) === LIB.kind) && (!q || s.path.toLowerCase().includes(q)))
+    .sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || naturally(a.path, b.path));
+  const where = new Map(); LIB.prop.pads.forEach(p => p.sounds.forEach(id => where.set(id, p.name)));
+  $('#libSounds').innerHTML = list.map(s => {
+    const src = LIB.srcs.get(s), secs = src && src.done ? src.done.pcm.length / src.done.sr : null, dir = s.path.split('/').slice(-2, -1)[0] || '';
+    return `<div class="scard${where.has(s.id) ? ' used' : ''}" data-s="${s.id}"><button class="sp" type="button" aria-label="Hear ${esc(s.name)}"><svg width="9" height="9"><use href="#i-play"/></svg></button>
+      <span class="nm"><b title="${esc(s.path)}">${esc(s.name)}</b><small>${esc(s.kind === 'other' ? dir || 'sound' : s.kind)}${secs ? ` · ${fmtSecs(secs)}` : ''}${where.has(s.id) ? ` · on ${esc(where.get(s.id))}` : ''}</small></span>
+      <span class="sa"><button class="b s" type="button" data-a="use" title="${sel ? `Put it on ${esc(sel.name)}` : 'A pad of its own'}">${sel ? 'Use' : 'New pad'}</button>
+      ${sel ? `<button class="b s" type="button" data-a="vary" title="One more sound for ${esc(sel.name)}: a hit takes them in turn or at random"${sel.sounds.length >= 9 || sel.sounds.includes(s.id) ? ' disabled' : ''}>+ Var</button>` : ''}
+      <button class="b s" type="button" data-a="pad" title="A new pad with this sound"${LIB.prop.pads.length >= 32 ? ' disabled' : ''}>+ Pad</button></span></div>`;
+  }).join('') || '<p class="muted small" style="padding:12px">No sound matches.</p>';
+  $('#libSounds').querySelectorAll('.scard').forEach(c => {
+    const s = soundOf(c.dataset.s);
+    c.querySelector('.sp').onclick = async () => previewSound(await libSrc(s));
+    c.querySelector('[data-a="use"]').onclick = () => { const p = LIB.prop.pads[LIB.sel]; if (p) { p.sounds = [s.id]; p.pick = 'cycle'; } else addLibPad(s); renderLibPads(); renderLibSounds(); renderLibSize(); };
+    c.querySelector('[data-a="vary"]')?.addEventListener('click', () => { const p = LIB.prop.pads[LIB.sel]; if (p && p.sounds.length < 9 && !p.sounds.includes(s.id)) p.sounds.push(s.id); renderLibPads(); renderLibSounds(); renderLibSize(); });
+    c.querySelector('[data-a="pad"]').onclick = () => { addLibPad(s); renderLibPads(); renderLibSounds(); renderLibSize(); };
+  });
+}
+// a new pad for a sound: on its drum's General MIDI note if that is free, else the next free note from 35 up
+function addLibPad(s) {
+  const P = LIB.prop; if (P.pads.length >= 32) return;
+  const used = new Set(P.pads.map(p => p.note)); let note = s.note && !used.has(s.note) ? s.note : 35; while (used.has(note) && note < 127) note++;
+  const c = classify(s.path), name = (c.kind !== 'other' ? c.kind : s.name).replace(/^./, x => x.toUpperCase());
+  P.pads.push({ note, name: name.slice(0, 24), sounds: [s.id], pick: 'cycle', tune: 0, level: 1, pan: 0, choke: /hat/.test(c.kind) ? 1 : 0 });
+  P.pads.sort((a, b) => a.note - b.note); LIB.sel = P.pads.findIndex(p => p.sounds[0] === s.id && p.note === note);
+}
+// what the kit will weigh in the song: each sound at 16 kHz, 1.5 s at most, as the console's compressed samples are kept
+const sizeOfSecs = secs => Math.min(1.5, secs) * 16000 / 16 * 9 * 4 / 3 / 1024;
+function renderLibSize() {
+  const ids = new Set(LIB.prop.pads.flatMap(p => p.sounds)); let kb = 0, known = 0;
+  for (const id of ids) { const s = soundOf(id), d = s && LIB.srcs.get(s)?.done; if (d) { kb += sizeOfSecs(d.pcm.length / d.sr); known++; } else kb += sizeOfSecs(1.5); }
+  const warn = kb > KIT_WARN_KB;
+  $('#libSize').innerHTML = `<b>${LIB.prop.pads.length} pads</b>, ${ids.size} sound${ids.size === 1 ? '' : 's'} · about <b class="${warn ? 'warn' : ''}">${Math.round(kb)} KB</b> in the song${known < ids.size ? ' (still measuring)' : ''}${warn ? ` · above ${KIT_WARN_KB} KB: the song ships inside every game page that plays it` : ''} · each sound at most 1.5 s, at 16 kHz`;
+  $('#libMake').disabled = !LIB.prop.pads.length;
+}
+// make the kit: every sound squeezed once into a sample of the song, the pads with their variations, one undo step; the kit opens under DRUM KITS
+async function makeLibKit() {
+  const P = LIB.prop, lib = LIB.cur; if (!P.pads.length) return;
+  $('#libMake').disabled = true; $('#libMake').textContent = 'Making it…';
+  try {
+    const made = new Map();
+    for (const id of new Set(P.pads.flatMap(p => p.sounds))) { const s = soundOf(id); try { const src = await libSrc(s); made.set(id, { s, src, data: await padData(src) }); } catch { } }
+    let kid = slug(P.name).slice(0, 24) || 'kit'; for (let k = 2; st.song.kits?.[kid]; k++) kid = `${slug(P.name).slice(0, 20) || 'kit'}-${k}`;
+    const give = $('#libGive').checked && track();
+    edit(() => {
+      const sid = new Map();
+      for (const [id, m] of made) { const n = newSampleId(m.s.name); st.song.samples[n] = padSample(m.s.name.slice(0, 40), m.data); sources.set(n, m.src); padOwned.add(n); sid.set(id, n); }
+      const pads = P.pads.map(p => { const ids = p.sounds.map(x => sid.get(x)).filter(Boolean); if (!ids.length) return null;
+        return { note: p.note, ...(p.name ? { name: p.name.slice(0, 24) } : {}), sample: ids[0], tune: p.tune || 0, level: p.level ?? 1, pan: p.pan || 0, choke: p.choke || 0, ...(ids.length > 1 ? { vary: ids.slice(1, 9), ...(p.pick === 'random' ? { pick: 'random' } : {}) } : {}) }; })
+        .filter(Boolean).sort((a, b) => a.note - b.note);
+      (st.song.kits ??= {})[kid] = { name: ($('#libName').value.trim() || P.name).slice(0, 40), pads };
+      if (give) { const t = track(), was = insName(t.instrument); t.instrument = `drums:${kid}`; if (!t.name || t.name === was || t.name === 'Drums' || t.name === 'Drum kit') t.name = st.song.kits[kid].name; }
+    }, { rebuild: true });
+    st.kit = kid; st.pad = null; $('#libDlg').close(); showView('kits'); S.prepare(st.song);
+    showSaved(`kit “${st.song.kits[kid].name}”: ${st.song.kits[kid].pads.length} pads from ${lib.name}`);
+  } finally { $('#libMake').disabled = false; $('#libMake').textContent = 'Make the kit'; }
+}
+// the picker: a pad's sound (built in, the song's samples, a library's sounds), or one more variation of it, as cards to hear and choose
+const PICK = { kit: null, note: null, mode: 'set', tab: 'lib', lib: null, kind: 'all', q: '' };
+async function openPicker(o) {
+  Object.assign(PICK, o, { kind: 'all', q: '' }); $('#pickSearch').value = '';
+  const kept = await shelf.list();
+  PICK.libNames = kept.map(k => k.name); for (const n of LIB.libs.keys()) if (!PICK.libNames.includes(n)) PICK.libNames.push(n);
+  if (!PICK.lib || !PICK.libNames.includes(PICK.lib)) PICK.lib = PICK.libNames[0] || null;
+  PICK.tab = o.mode === 'vary' ? (Object.keys(st.song.samples).length ? 'song' : 'lib') : PICK.lib ? 'lib' : 'built';
+  const ki = st.song.kits[o.kit], p = ki && ki.pads.find(x => x.note === o.note);
+  $('#pickTitle').textContent = o.mode === 'vary' ? `One more sound for ${padLabel(o.kit, o.note)}` : `The sound of ${padLabel(o.kit, o.note)}`;
+  $('#pickNote').textContent = o.mode === 'vary' ? 'A variation is a sample: built-in sounds cannot be one' : p && p.vary ? 'Its variations stay' : '';
+  if (!$('#pickDlg').open) $('#pickDlg').showModal();
+  renderPicker();
+}
+const padLabel = (kit, note) => new Map(B.rowsOf(S, st.song, { instrument: `drums:${kit}` }, { notes: [] }).map(r => [r.note, r.name])).get(note) || noteName(note);
+async function renderPicker() {
+  const tabs = [['built', 'Built in', PICK.mode !== 'vary'], ['song', 'This song', true], ...PICK.libNames.map(n => [`lib:${n}`, n, true])];
+  $('#pickTabs').innerHTML = tabs.map(([k, t, on]) => `<button class="btab${(PICK.tab === k || (PICK.tab === 'lib' && k === `lib:${PICK.lib}`)) ? ' on' : ''}" type="button" data-t="${esc(k)}"${on ? '' : ' disabled'}>${esc(t)}</button>`).join('')
+    + '<button class="btab add" type="button" data-t="import">+ Import a library…</button>';
+  $('#pickTabs').querySelectorAll('[data-t]').forEach(b => b.onclick = () => {
+    const t = b.dataset.t; if (t === 'import') { $('#pickDlg').close(); return openLibrary(); }
+    if (t.startsWith('lib:')) { PICK.tab = 'lib'; PICK.lib = t.slice(4); } else PICK.tab = t; PICK.kind = 'all'; renderPicker();
+  });
+  let cards = [];   // { v, name, kind, sub }
+  if (PICK.tab === 'built') cards = S.DRUM_KINDS.map(k => ({ v: `d:${k}`, name: k[0].toUpperCase() + k.slice(1), kind: { hat: 'closed hat', open: 'open hat' }[k] || k, sub: 'built in' }));
+  else if (PICK.tab === 'song') cards = Object.entries(st.song.samples).map(([id, sm]) => ({ v: `s:${id}`, name: sm.name, kind: classify(sm.name).kind, sub: `${sampleSecs(sm).toFixed(2)} s · ${Math.round(sm.brr.length / 1024)} KB` }));
+  else if (PICK.lib) {
+    let lib = LIB.libs.get(PICK.lib);
+    if (!lib) { $('#pickCards').innerHTML = '<p class="muted small" style="padding:12px">Reading the library…</p>'; const v = await shelf.get(PICK.lib); if (v) { lib = await readLibrary(v.files); lib.name = PICK.lib; LIB.libs.set(PICK.lib, lib); } }
+    if (lib) cards = lib.sounds.map(s => ({ v: `l:${lib.name}|${s.id}`, name: s.name, kind: s.kind, sub: s.path.split('/').slice(-2, -1)[0] || '' }));
+  }
+  const counts = {}; for (const c of cards) counts[groupOf(c.kind)] = (counts[groupOf(c.kind)] || 0) + 1;
+  $('#pickChips').innerHTML = cards.length > 8 ? [['all', 'All', cards.length], ...GROUPS.filter(g => counts[g[0]]).map(g => [g[0], g[1], counts[g[0]]])].map(([k, t, n]) => `<button class="chip${PICK.kind === k ? ' on' : ''}" type="button" data-g="${k}">${esc(t)} <span>${n}</span></button>`).join('') : '';
+  $('#pickChips').querySelectorAll('[data-g]').forEach(b => b.onclick = () => { PICK.kind = b.dataset.g; renderPicker(); });
+  const q = PICK.q.toLowerCase(), list = cards.filter(c => (PICK.kind === 'all' || groupOf(c.kind) === PICK.kind) && (!q || `${c.name} ${c.sub}`.toLowerCase().includes(q)))
+    .sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || naturally(a.name, b.name));
+  $('#pickCards').innerHTML = list.map(c => `<div class="scard" data-v="${esc(c.v)}"><button class="sp" type="button" aria-label="Hear ${esc(c.name)}"><svg width="9" height="9"><use href="#i-play"/></svg></button>
+      <button class="use" type="button" title="Choose it"><b>${esc(c.name)}</b><small>${esc(c.kind === 'other' ? c.sub : `${c.kind}${c.sub ? ` · ${c.sub}` : ''}`)}</small></button></div>`).join('')
+    || `<p class="muted small" style="padding:12px">${PICK.tab === 'song' ? 'The song has no samples yet.' : PICK.tab === 'lib' && !PICK.lib ? 'No library yet: import one.' : 'No sound matches.'}</p>`;
+  $('#pickCards').querySelectorAll('.scard').forEach(c => { c.querySelector('.sp').onclick = () => hearChoice(c.dataset.v); c.querySelector('.use').onclick = () => choosePick(c.dataset.v); });
+}
+// the chosen card onto the pad: a built-in sound, a sample of the song, or a library sound squeezed into a new sample first
+async function choosePick(v) {
+  const ki = st.song.kits[PICK.kit], p = ki && ki.pads.find(x => x.note === PICK.note); if (!p) return;
+  let k = v[0], id = v.slice(2), made = null;
+  if (k === 'l') {
+    const s = libSound(id); if (!s) return;
+    showSaved('making the sample…');
+    try { const src = await libSrc(s); made = { name: s.name.slice(0, 40), src, data: await padData(src) }; } catch (e) { return showSaved(`could not use that sound: ${e.message || e}`); }
+  }
+  edit(() => {
+    if (made) { id = newSampleId(made.name); st.song.samples[id] = padSample(made.name, made.data); sources.set(id, made.src); padOwned.add(id); k = 's'; }
+    if (PICK.mode === 'vary') { if (k === 's' && id !== p.sample && !(p.vary || []).includes(id) && (p.vary || []).length < 8) (p.vary ??= []).push(id); return; }
+    const was = p.sample;
+    if (k === 'd') { delete p.sample; p.sound = id; } else { delete p.sound; p.sample = id; if (p.vary) { p.vary = p.vary.filter(x => x !== id); if (!p.vary.length) { delete p.vary; delete p.pick; } } }
+    if (was && was !== p.sample) pruneSample(was);
+  }, { rebuild: true });
+  $('#pickDlg').close(); showSaved(); S.prepare(st.song).then(() => hearChoice(k === 'd' ? `d:${id}` : `s:${id}`));
+}
+$('#pickClose').onclick = () => $('#pickDlg').close();
+$('#pickSearch').oninput = e => { PICK.q = e.target.value; renderPicker(); };
+$('#libClose').onclick = () => $('#libDlg').close();
+$('#libPickFiles').onclick = () => { $('#libFile').value = ''; $('#libFile').click(); };
+$('#libPickDir').onclick = () => { $('#libDir').value = ''; $('#libDir').click(); };
+$('#libFile').onchange = async e => { const f = await filesOfList(e.target.files); if (f.length) loadLibrary(f); };
+$('#libDir').onchange = async e => { const f = await filesOfList(e.target.files); if (f.length) loadLibrary(f); };
+$('#libDrop').addEventListener('dragover', e => { e.preventDefault(); $('#libDrop').classList.add('over'); });
+$('#libDrop').addEventListener('dragleave', () => $('#libDrop').classList.remove('over'));
+$('#libDrop').addEventListener('drop', async e => { e.preventDefault(); $('#libDrop').classList.remove('over'); const f = await filesOfDrop(e.dataTransfer); if (f.length) loadLibrary(f); });
+$('#libSearch').oninput = e => { LIB.q = e.target.value; renderLibSounds(); };
+$('#libEmpty').onclick = () => { LIB.prop.pads = []; LIB.sel = -1; renderLibPads(); renderLibSounds(); renderLibSize(); };
+$('#libName').onchange = e => { LIB.prop.name = e.target.value.trim().slice(0, 40) || LIB.prop.name; };
+$('#libMake').onclick = makeLibKit;
+$('#importLibBtn').onclick = openLibrary;
 
 // ---------- SAMPLES: the song's samples and multisamples ----------
 // a sample taken out of the song: the multisamples that used it lose that zone, and the tracks that played it go back to the piano
@@ -1872,7 +2168,12 @@ function dropSample(id) {
   const s = st.song; delete s.samples[id];
   for (const [mid, mu] of Object.entries(s.multis || {})) { mu.zones = mu.zones.filter(z => z.sample !== id); if (!mu.zones.length) delete s.multis[mid]; }
   if (s.multis && !Object.keys(s.multis).length) delete s.multis;
-  for (const ki of Object.values(s.kits || {})) for (const pad of ki.pads) if (pad.sample === id) { delete pad.sample; pad.sound = fallbackSound(pad.note); }   // a pad that played it goes back to a built-in sound
+  for (const ki of Object.values(s.kits || {})) for (const pad of ki.pads) {
+    if (pad.vary) { pad.vary = pad.vary.filter(v => v !== id); if (!pad.vary.length) { delete pad.vary; delete pad.pick; } }   // a variation it was goes
+    if (pad.sample === id) {   // a pad that played it takes its first variation, else goes back to a built-in sound
+      if (pad.vary) { pad.sample = pad.vary.shift(); if (!pad.vary.length) { delete pad.vary; delete pad.pick; } } else { delete pad.sample; pad.sound = fallbackSound(pad.note); }
+    }
+  }
   for (const t of s.tracks) if ((t.instrument.startsWith('sample:') && !s.samples[t.instrument.slice(7)]) || (t.instrument.startsWith('multi:') && !(s.multis || {})[t.instrument.slice(6)])) t.instrument = 'piano';
 }
 // a new multisample (one zone over every note) of the song's samples, played by track i (null: kept for later)

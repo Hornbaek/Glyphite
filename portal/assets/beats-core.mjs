@@ -74,7 +74,7 @@ export function rowsOf(S, song, track, P) {
   const rows = [], have = new Set();
   const add = (note, name) => { if (!have.has(note)) { have.add(note); rows.push({ note, name }); } };
   const ki = track.instrument.startsWith('drums:') && song.kits ? song.kits[track.instrument.slice(6)] : null;
-  if (ki) for (const p of ki.pads) add(p.note, p.sample ? ((song.samples || {})[p.sample] || {}).name || p.sample : SOUND_NAMES[p.sound] || p.sound);   // (what the pad plays, not what General MIDI calls its note)
+  if (ki) for (const p of ki.pads) add(p.note, p.name || (p.sample ? ((song.samples || {})[p.sample] || {}).name || p.sample : SOUND_NAMES[p.sound] || p.sound));   // (its own name, else what it plays, not what General MIDI calls its note)
   else for (const n of MAIN_ROWS) add(n, S.KIT[n]);
   for (const n of P.notes.map(x => x[2]).sort((a, b) => a - b)) add(n, S.KIT[n] || noteName(n));
   return rows;

@@ -169,7 +169,8 @@ const Sampler = (() => {
     54: ['shaker', 1.2, 0, 'Tambourine'], 57: ['crash', .9, 0, 'Crash 2'], 59: ['ride', 1.1, 0, 'Ride 2'], 70: ['shaker', 1, 0, 'Shaker']
   };
   // the built-in drum sounds a pad can be (the generators above), and the drum instruments: the built-in kit, or a kit of the song's own
-  // (song.kits[id]: pads, each a note with a sample of the song or one of these sounds, its tune in semitones, level, pan and choke group)
+  // (song.kits[id]: pads, each a note with a sample of the song or one of these sounds, its tune in semitones, level, pan and choke group, and
+  // perhaps variations: more samples a hit takes in turn or at random)
   const DRUM_KINDS = ['kick', 'snare', 'hat', 'open', 'tom', 'crash', 'ride', 'rim', 'clap', 'shaker'];
   const isKit = id => id === 'kit' || id.startsWith('drums:');
   // a song's samples, multisamples, kits and patterns are plain objects keyed by id: only an id the song itself holds counts ('constructor' is no sample)
@@ -222,12 +223,14 @@ const Sampler = (() => {
   const multiOf = (id, song) => id.startsWith('multi:') && song ? own(song.multis, id.slice(6)) : null;
   const hashStr = s => { let h = 5381; for (let i = 0; i < s.length; i += 7) h = (Math.imul(h, 33) ^ s.charCodeAt(i)) >>> 0; return h.toString(36) + s.length; };
   const sampleKey = (sm, loop = sm.loop) => `${hashStr(sm.brr)}:${sm.rate}:${sm.root}:${loop}:${sm.loopEnd || 0}:${sm.xfade || 0}`;
-  // where a pad's sound comes from: a sample of the song (played once), or a built-in drum sound at the track's grit; null when the sample is gone
+  // where a pad's sound comes from: a sample of the song (played once), or a built-in drum sound at the track's grit; null when the sample is gone.
+  // vary: the pad's variations (more samples of the song: a hit plays one of them, in turn or at random), the ones the song still holds
   const padSource = (p, song, rate) => {
-    if (p.sample) { const sm = own(song.samples, p.sample); return sm ? { key: `pad:${sampleKey(sm, -1)}`, sm } : null; }
-    return { key: `pad:${p.sound}@${rate}`, sm: null };
+    const vary = (p.vary || []).map(v => own(song.samples, v)).filter(Boolean).map(sm => ({ key: `pad:${sampleKey(sm, -1)}`, sm }));
+    if (p.sample) { const sm = own(song.samples, p.sample); return sm ? { key: `pad:${sampleKey(sm, -1)}`, sm, vary } : null; }
+    return { key: `pad:${p.sound}@${rate}`, sm: null, vary };
   };
-  const keyOfPads = (id, pads) => `${id}:${pads.map(p => `${p.note}=${p.q.key}`).join('|')}`;
+  const keyOfPads = (id, pads) => `${id}:${pads.map(p => `${p.note}=${[p.q.key, ...p.q.vary.map(v => v.key)].join('+')}`).join('|')}`;
   // only what makes the pads' buffers is in a kit's key: tune, level, pan and choke are read when a note starts, so turning them
   // makes nothing again
   const keyOf = (id, rate, song) => {
@@ -283,15 +286,17 @@ const Sampler = (() => {
         key = keyOfPads(id, pads);
         const kit = {};
         for (const { note, sound, q } of pads) {
-          if (!made.has(q.key)) {
-            if (q.sm) {
+          for (const v of [q, ...q.vary]) {
+            if (made.has(v.key)) continue;
+            if (v.sm) {
               yield;
-              const z = sampleZone(q.sm, -1), d = z.buffer.getChannelData(0); let pk = 0;
+              const z = sampleZone(v.sm, -1), d = z.buffer.getChannelData(0); let pk = 0;
               for (let i = 0; i < d.length; i++) pk = Math.max(pk, Math.abs(d[i]));
-              made.set(q.key, { buffer: z.buffer, norm: pk > 0 ? Math.min(4, .9 / pk) : 1 });   // as loud as the built-in sounds before the pad's level
-            } else made.set(q.key, { buffer: buf(yield* drum(rate, sound)), norm: 1 });
+              made.set(v.key, { buffer: z.buffer, norm: pk > 0 ? Math.min(4, .9 / pk) : 1 });   // as loud as the built-in sounds before the pad's level
+            } else made.set(v.key, { buffer: buf(yield* drum(rate, sound)), norm: 1 });
           }
           const b = made.get(q.key); kit[note] = { buffer: b.buffer, norm: b.norm, pitch: 1, choke: 0, pad: true };
+          if (q.vary.length) kit[note].alts = [b, ...q.vary.map(v => made.get(v.key))];   // the pad's own sound first, then its variations
         }
         inst = { kit, level: 1 };
       } else if (id === 'kit') {
@@ -513,7 +518,10 @@ const Sampler = (() => {
         const note = cl(Math.round(p.note), 0, 127), sample = typeof p.sample === 'string' && ID_RE.test(p.sample) && (own(out.samples, p.sample) || !DRUM_KINDS.includes(p.sound)) ? p.sample : null;
         if (seen.has(note) || !sample && !DRUM_KINDS.includes(p.sound)) continue;
         seen.add(note);
-        pads.push({ note, ...(sample ? { sample } : { sound: p.sound }), tune: round2(cl(+p.tune || 0, -24, 24)), level: round2(cl(p.level == null ? 1 : +p.level || 0, 0, 2)), pan: round2(cl(+p.pan || 0, -1, 1)), choke: cl(Math.round(+p.choke || 0), 0, 8) });
+        // variations: up to 8 more samples of the song, each once and not the pad's own; 'random' picks among them, anything else takes them in turn
+        const vary = [...new Set(Array.isArray(p.vary) ? p.vary : [])].filter(v => typeof v === 'string' && ID_RE.test(v) && v !== sample && own(out.samples, v)).slice(0, 8);
+        pads.push({ note, ...(typeof p.name === 'string' && p.name.trim() ? { name: p.name.trim().slice(0, 24) } : {}), ...(sample ? { sample } : { sound: p.sound }), tune: round2(cl(+p.tune || 0, -24, 24)), level: round2(cl(p.level == null ? 1 : +p.level || 0, 0, 2)), pan: round2(cl(+p.pan || 0, -1, 1)), choke: cl(Math.round(+p.choke || 0), 0, 8),
+          ...(vary.length ? { vary, ...(p.pick === 'random' ? { pick: 'random' } : {}) } : {}) });
       }
       if (pads.length) out.kits[id] = { name: String(ki.name || id).slice(0, 40), pads };
     }
@@ -739,7 +747,14 @@ const Sampler = (() => {
       buffer = k.buffer; rateMul = k.pitch; choke = k.choke;
       if (k.pad) {   // a pad of the song's own kit: its tune, level, pan and choke group as they are now (the buffer only depends on the sound)
         const p = padOf(song, tr.instrument, note) || {};
-        rateMul = Math.pow(2, (p.tune || 0) / 12); choke = p.choke | 0; zgain = k.norm * (p.level == null ? 1 : p.level); pan = p.pan || 0;
+        let norm = k.norm;
+        if (k.alts) {   // variations: in turn (round robin), or at random but never the same one twice running; remembered per track and pad
+          const rr = S.rr || (S.rr = new Map()), last = rr.has(note) ? rr.get(note) : -1, n = k.alts.length;
+          let i = p.pick === 'random' ? Math.floor(Math.random() * (last < 0 ? n : n - 1)) : (last + 1) % n;
+          if (p.pick === 'random' && last >= 0 && i >= last) i++;
+          rr.set(note, i); buffer = k.alts[i].buffer; norm = k.alts[i].norm;
+        }
+        rateMul = Math.pow(2, (p.tune || 0) / 12); choke = p.choke | 0; zgain = norm * (p.level == null ? 1 : p.level); pan = p.pan || 0;
         panned = true;   // every voice of a kit track goes through a panner, centred or not: mono and stereo voices meeting in one input would not be as loud as each other
       }
     } else {

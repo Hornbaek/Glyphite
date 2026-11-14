@@ -282,10 +282,10 @@ test('a song built of clips is written as the notes they play', () => {
   assert.equal(back.tracks[0].notes.length, 7);
 });
 
-test('a drum kit of the song\'s own travels in the file: its pads, their samples and the notes they sit on', () => {
+test('a drum kit of the song\'s own travels in the file: its pads, their samples (variations too) and the notes they sit on', () => {
   const brr = S.toB64(S.brrEncode(Float32Array.from({ length: 800 }, (_, i) => Math.sin(i * .2) * Math.exp(-i / 300) * .6)));
-  const song = S.check({ format: 'pixelite-song', title: 'Kit', bars: 2, samples: { boing: { name: 'Boing', rate: 16000, root: 60, loop: -1, brr } },
-    kits: { mine: { name: 'Mine', pads: [{ note: 60, sample: 'boing', tune: 3, level: 1.5, pan: -.4, choke: 2 }, { note: 61, sound: 'snare', tune: -2, level: .8, pan: .3, choke: 0 }] } },
+  const song = S.check({ format: 'pixelite-song', title: 'Kit', bars: 2, samples: { boing: { name: 'Boing', rate: 16000, root: 60, loop: -1, brr }, boing2: { name: 'Boing 2', rate: 16000, root: 60, loop: -1, brr } },
+    kits: { mine: { name: 'Mine', pads: [{ note: 60, sample: 'boing', tune: 3, level: 1.5, pan: -.4, choke: 2, vary: ['boing2'], pick: 'random' }, { note: 61, sound: 'snare', tune: -2, level: .8, pan: .3, choke: 0 }] } },
     tracks: [{ name: 'Pads', instrument: 'drums:mine', volume: .6, notes: [[0, 24, 60, 100], [48, 24, 61, 90], [96, 24, 60, 70]] },
     { name: 'Bass', instrument: 'fingerbass', notes: [[0, 96, 36, 100]] }] });
   const { bytes, warnings } = midiFromSong(song, S);
