@@ -288,7 +288,7 @@ export function songFromMidi(input, S, opts = {}) {
   // the samples the kept tracks play (and the ones a multisample of theirs is made of)
   const useSamples = Object.create(null), useMultis = Object.create(null), useKits = Object.create(null);
   for (const t of tracks) {
-    if (t.instrument.startsWith('drums:') && kits[t.instrument.slice(6)]) { const id = t.instrument.slice(6); useKits[id] = kits[id]; for (const p of kits[id].pads || []) if (p && samples[p.sample]) useSamples[p.sample] = samples[p.sample]; }
+    if (t.instrument.startsWith('drums:') && kits[t.instrument.slice(6)]) { const id = t.instrument.slice(6); useKits[id] = kits[id]; for (const p of kits[id].pads || []) for (const sid of p ? [p.sample, ...(Array.isArray(p.vary) ? p.vary : [])] : []) if (samples[sid]) useSamples[sid] = samples[sid]; }
     if (t.instrument.startsWith('multi:') && multis[t.instrument.slice(6)]) { const id = t.instrument.slice(6); useMultis[id] = multis[id]; for (const z of multis[id].zones || []) if (samples[z.sample]) useSamples[z.sample] = samples[z.sample]; }
     else if (t.instrument.startsWith('sample:') && samples[t.instrument.slice(7)]) useSamples[t.instrument.slice(7)] = samples[t.instrument.slice(7)];
   }
@@ -333,7 +333,7 @@ export function midiFromSong(song, S) {
   const ownProgram = t => {
     const ki = t.instrument.startsWith('drums:') ? (song.kits || {})[t.instrument.slice(6)] : null;
     if (ki) {   // a kit of the song's own: its pads travel (and the samples on them); other programs play the drums by note number
-      for (const p of ki.pads) if (p.sample && song.samples && song.samples[p.sample]) carry('sample', p.sample, song.samples[p.sample]);
+      for (const p of ki.pads) for (const id of [p.sample, ...(p.vary || [])]) if (id && song.samples && song.samples[id]) carry('sample', id, song.samples[id]);   // (its variations too)
       carry('kit', t.instrument.slice(6), ki); kitTracks++; return 0;
     }
     const sm = t.instrument.startsWith('sample:') ? (song.samples || {})[t.instrument.slice(7)] : null, mu = t.instrument.startsWith('multi:') ? (song.multis || {})[t.instrument.slice(6)] : null;

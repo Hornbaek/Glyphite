@@ -768,12 +768,17 @@ writes them into the game's `songs.js` as `SONGS['<id>']`.
 - **Multisamples:** `song.multis[id] = { name, zones: [{ sample, lo, hi }] }` plays several of the song's samples as one instrument
   (`instrument: 'multi:<id>'`): a note plays the zone whose notes (`lo`..`hi`, MIDI) hold it (the nearest zone when none does), pitched
   from that sample's own `root`; each zone is made as loud as the others. Only in the song when there is one.
-- **Drum kits of the song's own:** `song.kits[id] = { name, pads: [{ note, sample | sound, tune, level, pan, choke }] }`, up to 32 pads, played
+- **Drum kits of the song's own:** `song.kits[id] = { name, pads: [{ note, name?, sample | sound, tune, level, pan, choke, vary?, pick? }] }`, up to 32 pads, played
   by a track with `instrument: 'drums:<id>'` (a track whose kit is not there plays the built-in `'kit'`). A pad sits on a note (once), and
   is one of the song's samples (played once, brought to the loudness of the built-in sounds) or a built-in sound (`Sampler.DRUM_KINDS`:
   kick, snare, hat, open, tom, crash, ride, rim, clap, shaker; a pad naming a sample the song does not hold just now stays, silent, so deleting a
   sample does not quietly empty a kit); `tune` is in semitones (-24..24), `level` 0..2, `pan` -1..1 and `choke` 0..8 (a pad
-  cuts the sounding pads of its group, in its track: a closed hat ends an open one). They are read when a note starts, so a game or the
+  cuts the sounding pads of its group, in its track: a closed hat ends an open one); `name` (24 characters at most) is what the studio calls the pad, else it is
+  named for what it plays. A pad may have **variations**, `vary: [sampleId, ...]` (up to 8
+  more samples of the song, not its own sound again): a hit plays the pad's own sound or one of them, in turn (round robin, the default) or, with
+  `pick: 'random'`, at random but never the same one twice running; which comes next is kept per track and pad, so a song played from its start
+  (or `Sampler.render`) takes them in the same order every time. Each variation is brought to the same loudness, like the pad's own sample.
+  They are read when a note starts, so a game or the
   studio can change them live; only the sound itself is made (and kept, per sound) when the kit is prepared. `Sampler.newKit(name)` is a kit of 16
   pads on General MIDI notes made of the built-in sounds; `Sampler.isKit(id)` is true for `'kit'` and `'drums:<id>'`. Every voice of a kit of the song's own
   goes through a panner of its own (centred or not), so a panned pad does not make the track's other voices louder. The beat the visuals follow

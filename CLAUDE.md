@@ -115,6 +115,8 @@ title, game = the project, data = the song as JSON, updated_at, updated_by). A s
   load (`engine/API.md`, "The music director": `Music.preload()` in `init`, `Music.place(...)` each frame; Space Mouse's `afterFrame`). Do what the place's note asks. The repository's copy is what the
   game plays; a later save in the studio changes nothing until a session brings it over again.
 - **The phone as a pad**: the studio's Phone ▸ Pair button (side panel) pairs a phone on the same wifi (`/studio/pad/`, `portal/assets/padlink.mjs`, `worker/pad.js`, table `pad_link`) as a drum pad and keyboard; its notes play, record and sustain like a MIDI keyboard's.
+- **Sound libraries** (Drum kits ▸ Import a library…, `portal/assets/library-core.mjs`): zips, folders, SFZ, Decent Sampler and SoundFont 2 become kits; Kontakt `.nki` is closed, so
+  its sounds come in by name (round robins as a pad's variations: `pad.vary`, `pad.pick`, engine/API.md). The libraries are kept in the browser (IndexedDB) for the card picker.
 - **MIDI files**: the studio's File menu opens a .mid as a new song (you choose which instruments) and exports the song as one; `node tools/midi.mjs list|import <file.mid>`
   / `export <file.song.json>` do the same from a session (notes, instruments, tempo, loop; not effects, automation or samples).
 - A session may also write a song itself: use the **`pixelite-song`** skill (it plans the song, writes it as code, checks its levels

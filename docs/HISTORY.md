@@ -1469,6 +1469,34 @@ format, saving, MIDI files, samples, kits, beats and the phone link are the same
   198 checks.
 - **Not built**: step probability and ratchets (the canvas sketched them; they need the Sampler and the song format, so they stay on the roadmap).
 
+## 68. Sound libraries into kits, a card picker, and pad variations (Claude Code, 2026-11-14)
+
+> "I want to create a proper import. Can we work with the .nki file (and other files similar but to other programs, if I find them?)? It would be nice with some visual
+> picker instead of a dropdown of the available sounds. Like small cards and perhaps a little preview button to play a sample of the sound before actually picking it?
+> I'm unsure about the variations, if you have an idea how to do it best, or know the best practice, then do that."
+
+The owner had a drum library (BPB Cassette 808: three kits of WAVs and a Kontakt .nki each, the kick in six round robins).
+- **The .nki**: Kontakt 5's container (`hsin`/`DSIN` chunks) with its instrument compressed in Native Instruments' own scheme: no zlib, no sample names in the clear. Reading it would mean reverse-engineering
+  a closed format, so the studio says what it found and maps the sounds beside it by their names instead; round robins in the names (`kick01rr1`..`rr6`) become one pad's variations, which is what the
+  .nki did with them. Logic's `.exs` and Ableton racks are recognised the same way.
+- **The open formats are read properly** (`portal/assets/library-core.mjs`, no DOM, tested in Node): **SFZ** (inherited opcodes from `<control>`/`<global>`/`<master>`/`<group>`, `#define`, note names,
+  paths with spaces, round robins by `seq_position`, random by `lorand`, the velocity layer that holds a hit of 100, choke groups from `group`/`off_by`), **Decent Sampler** (`.dspreset`, `.dslibrary`;
+  group attributes inherited, `seqMode`), **SoundFont 2** (`.sf2`: presets, bank 128 as drum kits, the samples it holds, exclusive classes as choke groups), zips (stored or deflated, with the browser's
+  own `DecompressionStream`) and folders. Plain sounds are named by what their names say (kick, snare, hhclosed, tomlo/mid/hi, conga, cowbell, clave, maracas… to their General MIDI notes).
+- **Import a sound library** (Drum kits ▸ Import a library…, or File): drop a zip, a folder or files. The kits in it on the left (one per mapping file, and one per folder of loose sounds), the new kit's
+  pads as cards in the middle (each with ▶, its variations "×6 in turn", which can go at random, and its choke group), and every sound of the library as a card on the right, filtered by kind (Kicks 29, Hats 6…)
+  or by name, each with ▶ and Use / + Var / + Pad. The size the kit will add to the song is shown before it is made. **Make the kit** squeezes each sound once (16 kHz, 1.5 s at most, now with a 40 ms fade
+  where a long sound is cut, so it does not click), makes the pads with their names and variations, and gives the kit to the selected track if asked: one undo step. The library is kept in this browser
+  (IndexedDB), so its sounds can be picked from later.
+- **The card picker**: a pad's sound is no longer a dropdown: its sound is a card with ▶ and Change…, which opens cards to hear and choose from (Built in, This song, each library), filtered by kind.
+- **Variations** (best practice for drums: round robin, so a roll does not sound like a machine gun; random as an option, never the same twice running): in the engine, `pad.vary` (up to 8 more samples)
+  and `pad.pick: 'random'`; which comes next is kept per track and pad, so a song from its start, and a render, plays them in the same order every time. The games play them too. The pad panel lists them
+  (each with ▶ and ×), "+ Variation…" opens the picker, and In turn / Random switches. A pad can also have its own `name` now.
+- Tests: `tests/node/library.test.mjs` (names, round robins, zips, SFZ, Decent Sampler, a SoundFont built in the test, whole libraries), variations in `tests/node/patterns.test.mjs` (check(), in turn,
+  random, what is made again) and `midi.test.mjs` (they travel in a MIDI file); `tests/studio.py` imports a library with an SFZ, loose round robins and a .nki, puts pads together, makes the kit, and
+  picks a library sound as a variation (213 checks). The real 808 library was imported by hand: three kits of 16 pads, the six kick takes on one pad, 195 KB.
+- **Not done**: velocity layers (a soft and a hard sample on one pad: the import takes the layer a hit of 100 plays), melodic instruments from a library as multisamples, AIFF (the browser cannot read it).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

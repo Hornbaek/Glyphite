@@ -10,7 +10,7 @@ Build first: npm run build.
 
   python3 tests/studio.py
 """
-import io, json, threading, functools, struct, wave, math
+import io, json, threading, functools, struct, wave, math, zipfile
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -475,8 +475,15 @@ with sync_playwright() as p:
     pg4.click('#kitView .pad[data-note="38"]')
     tune = pg4.locator('#kitView .ctl:has(span:text-is("Tune")) input'); tune.fill('5'); tune.dispatch_event('input'); tune.dispatch_event('change')
     check('the pad inspector sets tune (in semitones) on the chosen pad', st4('st.song.kits.kit.pads.find(p => p.note === 38).tune') == 5 and st4('st.pad') == 38, st4('st.song.kits.kit.pads.find(p => p.note === 38)'))
-    pg4.select_option('#kitView .ctl:has(span:text-is("Sound")) select', 'd:clap')
-    check('a pad can be switched to another built-in sound', st4('st.song.kits.kit.pads.find(p => p.note === 38).sound') == 'clap')
+    def choose4(tab, v):   # the pad's sound from the card picker
+        pg4.click('#kitView [data-a="change"]'); pg4.wait_for_selector('#pickDlg[open]'); pg4.click(f'#pickTabs [data-t="{tab}"]')
+        pg4.wait_for_selector(f'#pickCards .scard[data-v="{v}"]'); pg4.click(f'#pickCards .scard[data-v="{v}"] .use'); pg4.wait_for_function('!document.querySelector("#pickDlg").open')
+    pg4.click('#kitView [data-a="change"]'); pg4.wait_for_selector('#pickDlg[open]'); pg4.click('#pickTabs [data-t="built"]')
+    cards = pg4.eval_on_selector_all('#pickCards .scard', 'cs => cs.map(c => c.dataset.v)')
+    check('the sound picker shows the built-in sounds as cards, each with a play button', len(cards) == 10 and pg4.locator('#pickCards .scard .sp').count() == 10, cards)
+    pg4.keyboard.press('Escape'); pg4.wait_for_function('!document.querySelector("#pickDlg").open')
+    choose4('built', 'd:clap')
+    check('a pad can be switched to another built-in sound from its card', st4('st.song.kits.kit.pads.find(p => p.note === 38).sound') == 'clap')
     pg4.click('#tabArrange'); pg4.click('#addBeat')   # the kit in the BEAT grid
     check('the beat grid of a kit has a row for each pad, named for its sound', pg4.locator('#beatGrid .grow').count() == 16 and pg4.locator('#beatGrid .grow .gplay').first.text_content() == 'Big thump', pg4.locator('#beatGrid .grow .gplay').first.text_content())
     pg4.keyboard.press('Escape'); pg4.keyboard.press('Escape')
@@ -487,7 +494,7 @@ with sync_playwright() as p:
     # review fixes: a sample you loaded yourself is not thrown away when a pad stops using it; one bad file does not spoil a drop
     st4('(st.song.samples.mine = { name: "Mine", rate: 16000, root: 60, loop: -1, brr: studio.S.toB64(studio.S.brrEncode(new Float32Array(1600))) }, 0)')
     pg4.click('#kitView .pad[data-note="37"]')
-    pg4.select_option('#kitView .ctl:has(span:text-is("Sound")) select', 's:mine'); pg4.select_option('#kitView .ctl:has(span:text-is("Sound")) select', 'd:rim')
+    choose4('song', 's:mine'); choose4('built', 'd:rim')
     check('a sample you loaded yourself stays when a pad that played it takes another sound', 'mine' in st4('Object.keys(st.song.samples)'), st4('Object.keys(st.song.samples)'))
     st4('(delete st.song.samples.mine, 0)')
     drop('#kitView .pads', [tone('Good snare.wav', 300), {'name': 'notes.wav', 'b64': base64.b64encode(b'this is not a sound').decode()}])
@@ -500,6 +507,50 @@ with sync_playwright() as p:
     check('removing a sample a pad played puts a built-in sound on the pad (the kick)', 'sample' not in pad and pad.get('sound') == 'kick' and 'big-thump' not in st4('Object.keys(st.song.samples)'), pad)
     pg4.click('#tabArrange'); pg4.click(f'#trackList .trk:nth-child({n4})'); pg4.click('#tabKits'); pg4.click('#kitView button:has-text("Delete kit")'); pg4.click('#askDlg button:has-text("Delete kit")')
     check('DELETE KIT: the track plays the built-in kit, and the samples only the kit played go', st4('st.song.kits') is None and st4('st.song.tracks[st.sel].instrument') == 'kit' and st4('Object.keys(st.song.samples).length') == 0, st4('Object.keys(st.song.samples)'))
+    # ---- a sound library into a kit: an SFZ kit and loose files (round robins, a closed format), the cards, variations, the picker ----
+    def zipped(entries):
+        o = io.BytesIO(); z = zipfile.ZipFile(o, 'w', zipfile.ZIP_DEFLATED)
+        for name, data in entries: z.writestr(name, data)
+        z.close(); return o.getvalue()
+    lib = zipped([('Lib/kit.sfz', '<control> default_path=one/\n<group> key=36 seq_length=2\n<region> sample=boom a.wav seq_position=1\n<region> sample=boom b.wav seq_position=2\n<region> key=38 sample=crack.wav\n'),
+                  ('Lib/one/boom a.wav', wav(110, .3)), ('Lib/one/boom b.wav', wav(130, .3)), ('Lib/one/crack.wav', wav(500, .2)),
+                  ('Lib/Loose/kick01rr1.wav', wav(90, .3)), ('Lib/Loose/kick01rr2.wav', wav(95, .3)), ('Lib/Loose/kick02.wav', wav(70, 2.5)), ('Lib/Loose/hhclosed.wav', wav(3000, .1)),
+                  ('Lib/Loose/hhopen.wav', wav(2500, .4)), ('Lib/Loose/Loose.nki', b'hsin not readable')])
+    pg4.click('#tabKits'); pg4.click('#kitView [data-a="import"]'); pg4.wait_for_selector('#libDlg[open] #libDrop:not([hidden])')
+    pg4.set_input_files('#libFile', files=[{'name': 'Test library.zip', 'mimeType': 'application/zip', 'buffer': lib}])
+    pg4.wait_for_selector('#libMain:not([hidden]) .ppad', timeout=20000)
+    kits = pg4.eval_on_selector_all('#libKits .sitem .nm', 'n => n.map(x => x.textContent)')
+    check('IMPORT: the library\'s kits, from its SFZ (named for its folder: "kit.sfz" says nothing) and from the names of its loose sounds', kits == ['Lib', 'Loose'], kits)
+    check('the SFZ kit: the boom on 36 with its round robin as a variation, the crack on 38', pg4.eval_on_selector_all('#libPads .ppad .pt', 'p => p.map(x => [x.querySelector("b").textContent, x.querySelector("span").textContent])') == [['Kick', '36'], ['Snare', '38']] and pg4.locator('#libPads .ppad .vary').first.text_content().startswith('×2'),
+          pg4.eval_on_selector_all('#libPads .ppad', 'p => p.map(x => x.textContent.replace(/\\s+/g, " "))'))
+    check('the closed format is said so, and its folder still comes in by name', 'Kontakt instrument (.nki)' in pg4.text_content('#libKits'))
+    pg4.click('#libKits .sitem:has-text("Loose")')
+    loose = pg4.eval_on_selector_all('#libPads .ppad .pt b', 'b => b.map(x => x.textContent)')
+    check('the loose sounds by name: the kick\'s rr1/rr2 one pad, the hats choked together, kick02 left to choose', loose == ['Kick', 'Closed hat', 'Open hat'] and pg4.locator('#libPads .ppad .ch.g').count() == 2, loose)
+    check('every sound is a card with a play button', pg4.locator('#libSounds .scard').count() == 8 and pg4.locator('#libSounds .scard .sp').count() == 8)
+    pg4.click('#libPads .ppad:nth-child(1)'); pg4.click('#libSounds .scard:has-text("kick02") [data-a="vary"]')
+    check('+ Var adds a sound to the chosen pad', pg4.locator('#libPads .ppad').first.locator('.vary').text_content().startswith('×3'))
+    pg4.click('#libPads .ppad:nth-child(1) [data-a="pick"]')
+    check('and its variations can go at random instead of in turn', 'random' in pg4.locator('#libPads .ppad').first.locator('.vary').text_content())
+    size = pg4.text_content('#libSize')
+    check('the size it will add to the song is shown before it is made', 'KB in the song' in size and '3 pads' in size, size)
+    pg4.uncheck('#libGive'); pg4.fill('#libName', 'Loose kit'); pg4.dispatch_event('#libName', 'change'); pg4.click('#libMake')
+    pg4.wait_for_function("Object.values(studio.st.song.kits || {}).some(k => k.name === 'Loose kit')", timeout=20000)
+    made = st4("Object.values(st.song.kits).find(k => k.name === 'Loose kit')")
+    kick = next(p for p in made['pads'] if p['note'] == 36)
+    check('MAKE THE KIT: one undo step later the song has the kit, its pads named, the kick with two variations at random', len(made['pads']) == 3 and kick.get('name') == 'Kick' and len(kick.get('vary', [])) == 2 and kick.get('pick') == 'random', made)
+    long = st4(f"Sampler.sampleLen(st.song.samples['kick02']) / st.song.samples['kick02'].rate")
+    check('a long sound is cut to 1.5 s (and faded, so it does not click)', 1.4 < long <= 1.51 and st4("Math.abs(studio.S.brrDecode(studio.S.fromB64(st.song.samples['kick02'].brr)).slice(-8).reduce((a, v) => a + Math.abs(v), 0))") < .05, long)
+    check('the kit opens under DRUM KITS, the track it was not given to keeps its own', st4('st.page') == 'kits' and st4('st.song.kits[st.kit].name') == 'Loose kit' and not st4('st.song.tracks[st.sel].instrument').endswith(st4('st.kit')))
+    pg4.click('#kitView .pad[data-note="42"]'); n_before = len(st4("st.song.kits[st.kit].pads.find(p => p.note === 42).vary || []"))
+    pg4.click('#kitView [data-a="vary"]'); pg4.wait_for_selector('#pickDlg[open]')
+    check('+ Variation… opens the picker without the built-in sounds (a variation is a sample)', pg4.locator('#pickTabs [data-t="built"]').is_disabled())
+    pg4.click('#pickTabs [data-t="lib:Lib"]'); pg4.wait_for_selector('#pickCards .scard:has-text("hhopen")')
+    pg4.click('#pickCards .scard:has-text("hhopen") .use'); pg4.wait_for_function('!document.querySelector("#pickDlg").open')
+    pg4.wait_for_function("(studio.st.song.kits[studio.st.kit].pads.find(p => p.note === 42).vary || []).length === 1", timeout=10000)
+    check('a library sound picked as a variation becomes a sample of the song on the pad', len(st4("st.song.kits[st.kit].pads.find(p => p.note === 42).vary")) == n_before + 1)
+    pg4.keyboard.press('Control+z'); pg4.keyboard.press('Control+z')
+    check('undo takes the variation back, then the whole kit', not any(k['name'] == 'Loose kit' for k in st4('Object.values(st.song.kits || {})')), st4('Object.keys(st.song.kits || {})'))
     check('no page errors in the kit studio', not errs4, errs4)
     ctx4.close()
 

@@ -49,6 +49,9 @@ Done: the engine's 16-bit Sampler, the studio at /studio/, songs saved on the si
 - ~~**The studio redesigned**~~ (HISTORY 67): a light console, views in tabs, a side panel, the studio's own dialogs; chord stamp, scale shading, humanize, legato,
   tap tempo, a voice meter, sizes in the status bar, snapshots. Next: step probability and ratchets (sketched in the design; they need the Sampler and the song format),
   a velocity ramp across a selection, snapshots kept on the site (they live in the browser now), a stems export (one WAV per track).
+- ~~**Sound libraries and pad variations**~~ (HISTORY 68): zips, folders, SFZ, Decent Sampler and SoundFont 2 into kits; a card picker; round robin and random variations
+  in the engine. Next: velocity layers on a pad (a sample per velocity range), a melodic library (SFZ, Decent Sampler, SoundFont presets) as a multisample, Ableton drum racks
+  (gzipped XML: readable), the library's sounds in the SAMPLES view too.
 - ~~**MIDI files**~~ (HISTORY 51, 52): import a .mid into tracks, export the song as .mid (`tools/midi.mjs` too); pitch bend and the volume and
   pan that move are lanes, a tempo ramp is a ramp, a file with several instruments asks which to open, and a song's own samples
   travel inside the file (a pad or a marimba to other programs). Next: the filter, the sends and the echo as CC events (74, 91, 93), time

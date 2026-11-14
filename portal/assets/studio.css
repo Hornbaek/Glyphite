@@ -312,7 +312,9 @@ canvas.zmap { display: block; width: 100%; height: 90px; border: 1px solid var(-
 .pad.smp { background: #F4EBDD; }
 .pad.on { background: var(--white); border: 2px solid var(--sel); padding: 8px 9px; }
 .pad.over { border: 2px dashed var(--sel); }
-.pad .ch { margin-top: auto; align-self: flex-start; font: 10.5px var(--mono); padding: 1px 5px; border-radius: 2px; background: #E4E1DA; color: var(--ink2); }
+.pad .tags { margin-top: auto; display: flex; gap: 4px; }
+.pad .ch.v { background: #F2F5FD; color: var(--sel); border: 1px solid #B8C7EE; }
+.pad .ch { align-self: flex-start; font: 10.5px var(--mono); padding: 1px 5px; border-radius: 2px; background: #E4E1DA; color: var(--ink2); }
 .pad .ch.g { background: var(--ink); color: var(--white); }
 .padside { width: 300px; flex: none; border-left: 1px solid var(--line); background: var(--raised); display: flex; flex-direction: column; overflow-y: auto; }
 .padside .mb { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
@@ -453,3 +455,63 @@ canvas.mini { width: 80px; height: 45px; image-rendering: pixelated; border: 1px
   .sound, .samples, .kits, .where { flex-direction: column; overflow: visible; }
   .side, .places, .padside { width: auto; border-right: 0; }
 }
+
+/* ---------- a sound library into a kit, and the card picker ---------- */
+.dlg.lib { width: min(1320px, calc(100vw - 32px)); height: min(860px, calc(100vh - 32px)); }
+.dlg.lib[open] { display: flex; flex-direction: column; }
+.dlg.pick { width: min(980px, calc(100vw - 32px)); height: min(720px, calc(100vh - 32px)); }
+.dlg.pick[open] { display: flex; flex-direction: column; }
+.libdrop { flex: 1; margin: 18px 20px; border: 2px dashed var(--strong); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; color: var(--ink2); background: var(--white); overflow-y: auto; }
+.libdrop.over { border-color: var(--sel); background: #F2F5FD; }
+.libdrop b { font-size: 16px; color: var(--ink); }
+.libdrop p { max-width: 720px; margin: 0; line-height: 1.6; }
+.shelf { width: min(560px, 100%); display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.shelfrow { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line2); border-radius: 4px; background: var(--raised); }
+.libmain { flex: 1; min-height: 0; display: grid; grid-template-columns: 240px minmax(0, 1fr) minmax(340px, 420px); }
+.libkits { border-right: 1px solid var(--line); overflow-y: auto; background: var(--panel); }
+.libkits .lb { padding: 12px 12px 6px; }
+.libnote { padding: 0 12px 8px; font-size: 11.5px; }
+.libpads, .libsounds { display: flex; flex-direction: column; min-height: 0; }
+.libsounds { border-left: 1px solid var(--line); background: var(--panel); }
+.libbar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line2); flex: none; }
+.libbar input { height: 30px; flex: 1; min-width: 0; }
+#libName { font-weight: 600; font-size: 14px; max-width: 280px; }
+.ppads { flex: 1; overflow-y: auto; padding: 12px 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); grid-auto-rows: 96px; gap: 8px; align-content: start; }
+.ppad { border: 1px solid var(--line); border-radius: 4px; background: var(--raised); padding: 8px 9px; display: flex; flex-direction: column; gap: 3px; cursor: pointer; min-width: 0; }
+.ppad:hover { border-color: var(--strong); }
+.ppad.on { border: 2px solid var(--sel); padding: 7px 8px; background: var(--white); }
+.ppad .pt { display: flex; justify-content: space-between; gap: 6px; } .ppad .pt b { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ppad .ps { font-size: 11px; color: var(--ink2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ppad .pf { margin-top: auto; display: flex; align-items: center; gap: 5px; }
+.ppad .vary { white-space: nowrap; font: 500 10.5px var(--mono); border: 1px solid var(--sel); color: var(--sel); background: #F2F5FD; border-radius: 2px; padding: 1px 5px; cursor: pointer; }
+.ppad .ch { font: 10.5px var(--mono); padding: 1px 5px; border-radius: 2px; background: var(--ink); color: var(--white); }
+.ppadhint { grid-column: 1 / -1; margin: 4px 0 0; }
+.sp { width: 26px; height: 26px; flex: none; border-radius: 50%; border: 1px solid #BEB9AF; background: var(--white); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0 0 0 2px; }
+.sp:hover { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; padding: 8px 14px; border-bottom: 1px solid var(--line2); flex: none; }
+.chip { font: 500 11.5px var(--sans); height: 26px; padding: 0 10px; border: 1px solid #CBC7BF; border-radius: 13px; background: var(--raised); cursor: pointer; }
+.chip span { color: var(--ink3); font-family: var(--mono); font-size: 10.5px; margin-left: 2px; }
+.chip.on { background: var(--ink); color: var(--white); border-color: var(--ink); } .chip.on span { color: #CFCAC0; }
+.scards { flex: 1; overflow-y: auto; padding: 10px 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 6px; align-content: start; }
+.libsounds .scards { grid-template-columns: 1fr; }
+.scard { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border: 1px solid var(--line2); border-radius: 4px; background: var(--raised); min-width: 0; }
+.scard:hover { border-color: var(--strong); background: var(--white); }
+.scard.used { border-color: #B8C7EE; background: #F5F7FD; }
+.scard .nm, .scard .use { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.scard .use { background: none; border: 0; padding: 0; text-align: left; cursor: pointer; }
+.scard b { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scard small { font-size: 11px; color: var(--ink3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scard .sa { display: flex; gap: 3px; flex: none; }
+.scard.cur { background: var(--white); }
+.ptabs { display: flex; gap: 0; border-bottom: 1px solid var(--line); padding: 0 14px; overflow-x: auto; flex: none; }
+.ptabs .btab { flex: none; padding: 0 12px; height: 36px; }
+.ptabs .btab.add { color: var(--sel); margin-left: auto; }
+.btab:disabled { opacity: .4; cursor: default; }
+.padsnd { display: flex; flex-direction: column; gap: 6px; }
+.padvars { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--line2); padding-top: 12px; }
+.padvars .vh { display: flex; align-items: center; gap: 8px; }
+.padvars .segs .b { height: 22px; font-size: 11px; }
+.vchip { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 3px 4px 3px 3px; border: 1px solid var(--line2); border-radius: 14px; background: var(--white); }
+.vchip .sp { width: 22px; height: 22px; } .vchip span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+b.warn { color: var(--rec2); }
+@media (max-width: 1000px) { .libmain { grid-template-columns: 1fr; overflow-y: auto; } .libkits, .libsounds { border: 0; } }

@@ -190,6 +190,42 @@ test('turning a pad\'s tune, level, pan or choke makes nothing again; changing i
   assert.equal(run('Sampler.ready(__song)'), true);
 });
 
+test('variations: check() keeps up to 8 of the song\'s own samples on a pad, once each, and the pick only with them; a pad\'s name', () => {
+  const sm = THUMP(), samples = Object.fromEntries(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'].map(k => [k, sm]));
+  const k = S.check({ format: 'pixelite-song', samples, kits: { k: { name: 'K', pads: [
+    { note: 36, sample: 'a', vary: ['b', 'b', 'a', 'gone', 'Bad Id', 7, 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'], pick: 'random' },
+    { note: 38, sound: 'snare', vary: ['b'], pick: 'sideways', name: '  Snare with a name far longer than a pad can show  ' }, { note: 40, sound: 'clap', vary: [], pick: 'random', name: '  ' }, { note: 41, sample: 'a', vary: 'b', name: 7 }] } } }).kits.k.pads;
+  assert.equal(k[1].name, 'Snare with a name far lo', 'a pad\'s own name, trimmed to 24'); assert.ok(!('name' in k[2]) && !('name' in k[3]), 'no name: no field');
+  assert.deepEqual(k[0].vary, ['b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'], 'no repeats, not the pad\'s own, only samples the song holds, at most 8');
+  assert.equal(k[0].pick, 'random');
+  assert.deepEqual([k[1].vary, k[1].pick], [['b'], undefined], 'a built-in sound can have sample variations; an unknown pick is "in turn" (no field)');
+  assert.ok(!('vary' in k[2]) && !('pick' in k[2]) && !('vary' in k[3]), 'no variations: no fields, and no pick');
+});
+
+test('variations: a pad takes its sounds in turn (round robin), or at random but never the same twice running', () => {
+  const a = THUMP(), b = { ...THUMP(), root: 61, brr: THUMP().brr.replace(/A/g, 'B') }, c = { ...THUMP(), brr: THUMP().brr.replace(/A/g, 'C') };
+  const hits = 9, notes = Array.from({ length: hits }, (_, i) => [i * 24, 12, 36, 100]);
+  const s = (pick) => song({ bars: 2, samples: { a, b, c }, kits: { k: { name: 'K', pads: [{ note: 36, sample: 'a', vary: ['b', 'c'], ...(pick ? { pick } : {}) }] } }, tracks: [{ instrument: 'drums:k', notes }] });
+  const order = r => { const bufs = []; return r.voices.map(v => { let i = bufs.indexOf(v.buffer); if (i < 0) { bufs.push(v.buffer); i = bufs.length - 1; } return i; }); };
+  const rr = order(schedule(s()));
+  assert.equal(rr.length, hits);
+  assert.deepEqual(rr, [0, 1, 2, 0, 1, 2, 0, 1, 2], 'in turn: the pad\'s own sound, then each variation, and round again');
+  const rnd = order(schedule(s('random')));
+  assert.ok(rnd.every((x, i) => i === 0 || x !== rnd[i - 1]), `never the same twice running: ${rnd}`);
+  assert.ok(new Set(rnd).size > 1, 'and more than one of them');
+});
+
+test('variations: adding one makes only the new sound; tune, level, pan and the pick make nothing again', async () => {
+  const { E, run } = boot(), s = kitSong([{ note: 36, sample: 'thump', tune: 0, level: 1, pan: 0, choke: 0 }]);
+  s.samples.other = { ...THUMP(), brr: THUMP().brr.replace(/A/g, 'D') };
+  E.ctx.__song = s; await run('Sampler.prepare(__song)');
+  s.kits.k.pads[0].vary = ['other'];
+  assert.equal(run('Sampler.ready(__song)'), false, 'a new variation is a new buffer');
+  await run('Sampler.prepare(__song)');
+  s.kits.k.pads[0].pick = 'random'; s.kits.k.pads[0].tune = 3;
+  assert.equal(run('Sampler.ready(__song)'), true, 'the pick is read when a note starts');
+});
+
 test('a new kit has 16 pads on General MIDI notes that all sound, and the kit of a track that is not a kit is not one', () => {
   const k = S.newKit('Mine');
   assert.equal(k.pads.length, 16); assert.equal(k.name, 'Mine');
