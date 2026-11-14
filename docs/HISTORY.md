@@ -1441,6 +1441,34 @@ The owner asked to use a phone, on the same wifi as the PC running the studio, a
   `tests/node/qr.test.mjs` for the QR maker.
 - **Not tested here**: a real phone and a real wifi (guest wifi with client isolation will block the direct connection), the camera scan, Safari on iOS.
 
+## 67. The SOUND STUDIO redesigned from scratch (Claude Code, 2026-11-14)
+
+> "I will provide a complete function description. You should NOT take ANY inspiration from the current design, design it completely from scratch, as you did not know
+> of glyphite at all. It should be simple design, don't look too AI generated and add features you see fit for a DAW."
+
+> "Okay, now use that artifact to rebuild the sound studio completely after that new ui/ux"
+
+First a design canvas (a claude.ai Design artifact, 13 screens) from the owner's description of everything the studio does, then the studio rebuilt after it. The sound, the song
+format, saving, MIDI files, samples, kits, beats and the phone link are the same code; everything the owner sees and touches is new.
+- **The look**: a light, quiet console instead of the dark terminal. IBM Plex Sans for words, Plex Mono for numbers, hairlines, one orange for record and the playing position, one blue
+  for what is selected; muted track colours so a clip's name stays readable on its tint. The studio has its own stylesheet now (`portal/assets/studio.css`, no `site.css`).
+- **The top bar**: the project and song title (the project name and the caret open the projects and their songs), the save state, the transport (back, play, stop, record, loop,
+  metronome, count-in), a dark LCD with the position, the tempo and the time signature, **Tap** (tap the beat, the tempo follows), a **voice meter** (how many voices sound now, out of
+  the console's 8: red above 8), undo and redo, the File menu and Save.
+- **Views** in tabs under it: **Arrange** (track headers beside the lanes of the whole song, the note editor docked under them, a side panel with the beats, the markers and what you
+  play with), **Track sound** (instrument by family, pitch and grit, the envelope drawn, vibrato and sends, tone: EQ with its curve, filter, chorus), **Samples** (a waveform with the
+  loop's flags, root note, grit, length, loop end and crossfade; multisample zones drawn over a keyboard), **Drum kits** (a pad grid, a drop zone, the chosen pad's sound, note, tune,
+  level, pan and choke group, the kit's size against the 300 KB warning), **Mixer** (channel strips and the master's echo, reverb, EQ and glue) and **Where it plays** (the places,
+  the game preview and, beside it, the prompt that hands the song to a session).
+- **New**: a chord stamp (a click puts a whole chord), a scale shaded in the roll, Humanize and Legato, tap tempo, the voice meter, the song's size in the status bar (notes out of
+  50,000, samples, the song against 1.5 MB), **snapshots** (named save points of a song, kept in this browser, restored as an undoable edit), a marker list in the side panel,
+  a right-click menu on a track's header, and the studio's own dialogs instead of the browser's (`confirm`, `prompt`, `alert`): a save that clashes now offers keep, open the
+  saved one, save a copy, or overwrite. A new sample, multisample or kit opens in its own view; one can be made there without giving it to a track.
+- **The phone pad** (`/studio/pad/`) in the same type, dark: pads with their names and notes, a keyboard with − and + for the octave, Sustain and the velocity switch.
+- `tests/studio.py` follows the new layout (it reads the roll's and the overview's sizes from `studio.R` and `studio.A`, answers the studio's dialogs) and checks the additions:
+  198 checks.
+- **Not built**: step probability and ratchets (the canvas sketched them; they need the Sampler and the song format, so they stay on the roadmap).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |
