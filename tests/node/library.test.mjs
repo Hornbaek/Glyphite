@@ -4,7 +4,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { deflateRawSync, crc32 } from 'node:zlib';
 import { writeZip } from '../../tools/library.mjs';
-import { classify, roundRobin, plainName, readZip, parseSfz, parseDspreset, parseSf2, padsFromRegions, readLibrary, parseAiff, encodeWav, isAiff, cleanName, planSort, LAYOUT, README } from '../../portal/assets/library-core.mjs';
+import { classify, roundRobin, plainName, readZip, parseSfz, parseDspreset, parseSf2, padsFromRegions, readLibrary, parseAiff, encodeWav, isAiff, cleanName, planSort, LAYOUT, README, noteOf, familyOf } from '../../portal/assets/library-core.mjs';
+import { readFileSync } from 'node:fs';
 
 const enc = s => new TextEncoder().encode(s);
 // a zip of [path, bytes, deflate?] (just enough of the format: local headers, the central directory, its end)
@@ -241,4 +242,15 @@ test('folders named for a drum (Kicks, Hats) are parts of the kit above them, no
   const lib = await readLibrary(files);
   assert.deepEqual(lib.kits.map(k => k.name), ['Kit A', 'Kit B']);
   assert.deepEqual(lib.kits[0].pads.map(p => p.note).sort(), [36, 38, 42]);
+});
+
+test('the note a file name says (C4 is 60, as the studio names notes), and the family a name suggests', () => {
+  assert.deepEqual(['Splendid Grand Piano A0.wav', 'Piano C4.wav', 'str_A#2_soft.wav', 'Bb1.wav', 'Kars C-1.wav', 'Pad F#7.wav', 'kick.wav', 'Take 2.wav'].map(noteOf), [21, 60, 46, 34, 0, 102, null, null]);
+  assert.deepEqual(['Splendid Grand Piano', 'Nekobi Bass', 'Warm Strings', 'Kars'].map(familyOf), ['Keys', 'Bass', 'Strings', 'Other']);
+});
+
+test('the plugin bridge pastes safely into PowerShell: plain ASCII, no line that would end the here-string', () => {
+  const py = readFileSync(new URL('../../tools/pixelite_bridge.py', import.meta.url), 'utf8');
+  assert.match(py, /^[\x00-\x7f]*$/);
+  assert.doesNotMatch(py, /^'@/m);
 });

@@ -416,3 +416,12 @@ way.
 - **A folder's handle cannot be tested in a throwaway profile.** The studio keeps the library folder's `FileSystemDirectoryHandle` in IndexedDB. In a Playwright `browser.new_context()` (an
   off-the-record profile) reading such a handle back kills the whole browser, with no page error; in `launch_persistent_context` (a profile on disk, as a person's Chrome is) it works. The
   folder test in `tests/studio.py` runs in one; the private folder (`navigator.storage.getDirectory()`) stands in for the picker, which a test cannot click through.
+- **Pasting a block into PowerShell runs each line as soon as it is complete.** An `if { } ` closed on one line and `else { }` on the next is two statements, and the
+  second fails; keep `} else {` on one line. A here-string (`@'` … `'@`) holds a whole script, but a line of it that starts with `'@` would end it early, and Windows
+  PowerShell 5.1 can mangle what is not ASCII: `tests/node/library.test.mjs` keeps `tools/pixelite_bridge.py` plain ASCII with no such line.
+- **A plugin's channels and its load time are its own.** pedalboard asks for stereo by default and some instruments have one output (Kars): try 2, then 1. Opening a
+  plugin can take seconds (DPF plugins expose every MIDI controller of every channel as a parameter: 2,083 for Kars, 16 s), so the studio's requests to the bridge have
+  no time limit, and the dialog shows what the bridge is doing.
+- **The studio's overview is drawn a frame after the song changes.** `tests/studio.py` measured `#arr` right after adding eight tracks and on CI got 11 tracks' height
+  (660 px) where 12 were coming (716 px), so the "same height after the drag" check failed there and not here. Wait for what the drawing should show (its height from
+  `studio.A`) before measuring it.

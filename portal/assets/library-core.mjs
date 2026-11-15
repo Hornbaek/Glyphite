@@ -401,6 +401,16 @@ const FAMILY = [[/piano|keys|rhodes|wurli|organ|e ?piano|clav|celest|marimba|vib
   [/guitar|gtr|banjo|ukulele|uke|mandolin|sitar|koto/, 'Guitar'], [/synth|pad|lead|pluck|arp|saw|square|analog|chip|8 ?bit|seq/, 'Synth']];
 // a note name in a sound's name ('Piano C4', 'str_A#2_soft'): the mark of a multisample's note
 const NOTED = /(^|[\s_\-.])([a-g](#|b|s)?-?[0-8])(?=$|[\s_\-.])/i;
+// the instrument family a name suggests ('Grand Piano' → Keys), for Instruments/<family>
+export const familyOf = name => (FAMILY.find(([re]) => re.test(plainName(String(name)))) || [0, 'Other'])[1];
+// the note a sound's name says it plays ('Piano C4.wav' → 60, 'str_A#2_soft' → 46, 'Bb1' → 34), or null
+export function noteOf(file) {
+  const m = NOTED.exec(String(file).split('/').pop().replace(/\.[a-z0-9]{2,5}$/i, ''));
+  if (!m) return null;
+  const [, , t] = m, oct = +t.replace(/^[a-g](#|b|s)?/i, ''), pc = 'c d ef g a b'.indexOf(t[0].toLowerCase()) + ({ '#': 1, s: 1, b: -1 }[t.slice(1, 2).toLowerCase()] || 0);
+  const n = pc + (oct + 1) * 12;
+  return n >= 0 && n <= 127 ? n : null;
+}
 // a tidy name for a loose sound: no web-site tags, no underscores or runs of spaces, the extension in lower case
 export function cleanName(file) {
   const m = /^(.*?)(\.[a-z0-9]{2,5})?$/i.exec(String(file)), ext = (m[2] || '').toLowerCase();

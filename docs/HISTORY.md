@@ -1523,6 +1523,33 @@ The owner had a drum library (BPB Cassette 808: three kits of WAVs and a Kontakt
 - Tests: `tests/node/library.test.mjs` (the layout and README, AIFF to WAV, names tidied, the plans for a kit zip, packs, instruments, plugins; the CLI's zip), `tests/studio.py` (a folder in
   a profile kept on disk: set up, sorted, the cards, + Sample, a kit from a folder, the picker's tab, a recording kept, the next visit).
 
+## 70. Plugins sampled into instruments: the plugin bridge, and a free piano (Claude Code, 2026-11-15)
+
+> "Would it be possible to create a local server app that streams the vst3 and similar instruments/effects to our sound studio?" / "Yes, start with the sampling
+> side, find a free piano plugin and sample that. Afterwards, I want to create the server. We don't need to build anything like an exe for now, you can just give me
+> the PowerShell command to run it locally as a fake 'start server' button in the sound studio."
+
+- **Why sampling**: a VST3 is a program for Windows or macOS that only runs inside a host; a web page cannot load one, and a game page loads nothing at all. So a plugin
+  reaches a song the way every other sound does: played note by note, each note kept as a WAV, the WAVs a multisample.
+- **`tools/pixelite_bridge.py`** (one Python file; Spotify's open-source plugin host `pedalboard` plays the plugins): `list` (the VST3s in the usual folders), `sample
+  <plugin.vst3 | file.sf2> --name … --out …` (the notes from/to, every N semitones, velocity, held for, release; one gain for every note so they keep their balance, the
+  silent end of each cut with a short fade, files named `<name> C4.wav`; a SoundFont is played by FluidSynth), and `serve`: the studio's bridge on 127.0.0.1:47390.
+  The server answers only the studio's pages (Origin), only by this computer's name (Host: a web page that points its own name here is turned away), only JSON POSTs
+  (so a page cannot send one without asking first), opens only plugins it found in the plugin folders, and keeps requests in bounds (88 notes, 10 s). Plugins are touched
+  only on its main thread (their windows insist), where **Show its window** opens the plugin's own window to choose a preset.
+- **The studio: Library ▸ Sample a plugin…** Without the bridge it says how to start it: **Copy the start command** puts a PowerShell command on the clipboard that holds the
+  script itself (a here-string; the build publishes it as `/studio/pixelite_bridge.py`), saves it in `AppData\Local\Pixelite`, installs Python with winget if it is
+  missing, installs pedalboard, and runs `serve`. The dialog finds the running bridge by itself, lists the plugins, opens one, and samples it into
+  `Instruments/<family>/<name>/` of the library folder (a folder of its own if the name is taken).
+- **Make an instrument from it…** (after sampling, or on any Library folder of note-named sounds): a multisample of the song, at most 8 notes spread over the range,
+  2 s each at 32 kHz (faded where cut), their loudness against each other kept, each over the notes nearest its own.
+- **The free piano**: no piano plugin was reachable from the cloud session (the plugin sites are blocked there), so the piano is the **Splendid Grand** of the MuseScore
+  General SoundFont (AKAI S5000 samples, verified public domain), played through FluidSynth by the same sampler: A0 to C8 every third semitone, 30 notes, checked in tune.
+  It went to the owner as a zip in the library's layout (`Instruments/Keys/Splendid Grand Piano/`, with its licence). The VST3 path was proved with DISTRHO's Kars.
+- The top bar no longer pushes Save off a 1280-wide screen (the voice meter hides below 1366 px; below 1240 px the bar wraps).
+- Tests: `tests/bridge.py` (the command carries the script whole; the bridge's guards; the studio finds it, opens Kars, samples three notes into the folder, makes the
+  instrument), `tests/node/library.test.mjs` (note names, families, the script pastes safely). CI installs pedalboard and `dpf-plugins-vst3`, and runs up to 30 minutes.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

@@ -734,6 +734,8 @@ with sync_playwright() as p:
     r0 = wd('#browser'); drag6('#splitR', -60, 0)
     check('the bar by the side panel drags the other way', abs(wd('#browser') - (r0 + 60)) < 3, [r0, wd('#browser')])
     for _ in range(8): pg6.select_option('#addIns', 'strings'); pg6.click('#addTrack')
+    # (the overview is drawn a frame after a track is added: measure it once it shows them all, or a slow machine measures one track short)
+    pg6.wait_for_function("document.querySelector('#arr').getBoundingClientRect().height === studio.A.RULER + studio.st.song.tracks.length * studio.A.TH")
     full = ht('#arr'); h0 = ht('#arrWrap'); drag6('#splitA', 0, -150)
     check('the bar under the overview drags: fewer tracks show, and they scroll', ht('#arrWrap') < h0 - 100 and ht('#arr') == full and pg6.evaluate("() => { const w = document.querySelector('#arrWrap'); return w.scrollHeight > w.clientHeight; }"), [h0, ht('#arrWrap'), full])
     pg6.reload(); pg6.wait_for_function('window.studio && studio.st.song')
