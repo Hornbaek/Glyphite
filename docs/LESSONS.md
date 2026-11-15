@@ -413,3 +413,6 @@ way.
   now waits two animation frames before it measures.
 - **A test that draws at a random time compares different pictures.** `stars: back to normal when the light is gone` drew the sky at `performance.now() / 1000 + Math.random()`, and a star beside one of the level's pulsing beacons was
   113 in one picture and 120 in the next (the tolerance had already been widened once, 3% to 5%). It draws at one fixed moment now, so the pictures differ only by what the test changes.
+- **A folder's handle cannot be tested in a throwaway profile.** The studio keeps the library folder's `FileSystemDirectoryHandle` in IndexedDB. In a Playwright `browser.new_context()` (an
+  off-the-record profile) reading such a handle back kills the whole browser, with no page error; in `launch_persistent_context` (a profile on disk, as a person's Chrome is) it works. The
+  folder test in `tests/studio.py` runs in one; the private folder (`navigator.storage.getDirectory()`) stands in for the picker, which a test cannot click through.

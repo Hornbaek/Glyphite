@@ -8,7 +8,7 @@ import { songFromMidi, midiFromSong } from './midi-core.mjs';
 import * as B from './beats-core.mjs';
 import { PadHost } from './padlink.mjs';
 import { qrSvg } from './qr.mjs';
-import { readLibrary, classify, naturally, GM_DRUMS, KIND_ORDER } from './library-core.mjs';
+import { readLibrary, readZip, classify, naturally, GM_DRUMS, KIND_ORDER, isAiff, parseAiff, encodeWav, planSort, LAYOUT, README } from './library-core.mjs';
 const S = Sampler, PPQ = S.PPQ;
 const $ = q => document.querySelector(q);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -1597,7 +1597,10 @@ function pickSample(i) { sampleFor = i; $('#sampleFile').value = ''; $('#sampleF
 const decodeFile = async file => decodeBytes(await file.arrayBuffer());
 // a sound file's bytes as one channel of numbers, from where it starts sounding
 async function decodeBytes(bytes) {
-  const b = await new OfflineAudioContext(1, 1, 44100).decodeAudioData(bytes);
+  const u = new Uint8Array(bytes instanceof ArrayBuffer ? bytes : bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+  // AIFF the browser cannot decode: read here (library-core.mjs)
+  const b = isAiff(u) ? (({ channels, sr }) => ({ length: channels[0].length, numberOfChannels: channels.length, sampleRate: sr, getChannelData: c => channels[c] }))(parseAiff(u))
+    : await new OfflineAudioContext(1, 1, 44100).decodeAudioData(u.buffer);
   const n = b.length, pcm = new Float32Array(n);
   for (let c = 0; c < b.numberOfChannels; c++) { const d = b.getChannelData(c); for (let i = 0; i < n; i++) pcm[i] += d[i] / b.numberOfChannels; }
   let peak = 0; for (const v of pcm) peak = Math.max(peak, Math.abs(v));
@@ -1635,7 +1638,7 @@ async function makeSample(id, opts = {}) {
   return { brr: S.toB64(S.brrEncode(data)), length: data.length };
 }
 // a sound (a file's, or a recording's) becomes a new sample, played by track i (null: kept in the song for later), and opens under SAMPLES
-async function addSample(src, name, i) {
+async function addSample(src, name, i, stay = false) {   // (stay: from the Library, which stays open)
   const id = newSampleId(name);
   sources.set(id, src);
   const rate = 32000, data = await resample(src, rate, MAX_SECS), root = detectRoot(data, rate) ?? 60;
@@ -1646,7 +1649,7 @@ async function addSample(src, name, i) {
     t.sound.attack = t.sound.decay = t.sound.sustain = t.sound.fall = t.sound.release = t.sound.vibrato = null;
   }, { rebuild: true });
   if (i !== null) st.sel = i;
-  st.smp = { k: 's', id }; showView('samples'); S.prepare(st.song);
+  st.smp = { k: 's', id }; if (!stay) showView('samples'); S.prepare(st.song);
   showSaved(`sample “${name}”: ${(data.length / rate).toFixed(2)} s, plays ${noteName(Math.round(root))}`);
 }
 // a new sound in place of a sample's (the same name, note and place in the song's tracks)
@@ -1697,6 +1700,7 @@ function openRecorder() {
         if (job.pad) await fillPads(job.pad.kit, [{ src, name }], job.pad.note);
         else if (job.id) await replaceSample(job.id, src);
         else await addSample(src, name, job.track);
+        keepRecording(src, name);
       } catch (err) { showSaved(`could not use the recording: ${err.message || err}`); }
     };
     rec.start(); t0 = performance.now(); go.textContent = '■ Stop';
@@ -1898,9 +1902,14 @@ const LIB = { cur: null, prop: null, sel: 0, kind: 'all', q: '', srcs: new Map()
 // the libraries kept in this browser (IndexedDB: the files as they came, read again when wanted); a browser that keeps nothing still imports
 const shelf = (() => {
   let db = null;
-  const open = () => db || (db = new Promise((res, rej) => { const r = indexedDB.open('pixelite-studio', 1); r.onupgradeneeded = () => r.result.createObjectStore('libraries', { keyPath: 'name' }); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }));
-  const tx = async (mode, f) => { const d = await open(); return new Promise((res, rej) => { const t = d.transaction('libraries', mode), q = f(t.objectStore('libraries')); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); }); };
+  // two stores: the libraries imported as files, and settings (the library folder's handle, its index)
+  const open = () => db || (db = new Promise((res, rej) => { const r = indexedDB.open('pixelite-studio', 2);
+    r.onupgradeneeded = () => { for (const [n, k] of [['libraries', 'name'], ['settings', 'key']]) if (!r.result.objectStoreNames.contains(n)) r.result.createObjectStore(n, { keyPath: k }); };
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }));
+  const tx = async (mode, f, store = 'libraries') => { const d = await open(); return new Promise((res, rej) => { const t = d.transaction(store, mode), q = f(t.objectStore(store)); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); }); };
   return {
+    setting: async key => { try { return (await tx('readonly', s => s.get(key), 'settings'))?.value; } catch { return undefined; } },
+    setSetting: async (key, value) => { try { await tx('readwrite', s => s.put({ key, value }), 'settings'); } catch { } },
     list: async () => { try { return (await tx('readonly', s => s.getAll())).map(x => ({ name: x.name, at: x.at, n: x.files.length })).sort((a, b) => b.at - a.at); } catch { return []; } },
     get: async name => { try { return await tx('readonly', s => s.get(name)); } catch { return null; } },
     put: async v => { try { await tx('readwrite', s => s.put(v)); return true; } catch { return false; } },
@@ -1924,7 +1933,7 @@ const libName = files => { const top = files[0].path.split('/'); return (top.len
 // the sound of a library sound, as numbers (decoded once, kept for the session); a SoundFont's own samples need no decoding
 async function libSrc(s) {
   if (LIB.srcs.has(s)) return LIB.srcs.get(s);
-  const p = s.pcm ? Promise.resolve(trimSrc({ pcm: s.pcm.data, sr: s.pcm.sr })) : decodeBytes(s.data.slice().buffer);
+  const p = s.pcm ? Promise.resolve(trimSrc({ pcm: s.pcm.data, sr: s.pcm.sr })) : (s.data ? Promise.resolve(s.data) : s.load()).then(b => decodeBytes(b.slice()));   // (a folder's sounds are read when first heard)
   LIB.srcs.set(s, p); p.then(v => { p.done = v; }, () => LIB.srcs.delete(s));   // (done: what the cards show the length of)
   return p;
 }
@@ -1942,6 +1951,7 @@ async function hearChoice(v) {
   const [k, rest] = [v[0], v.slice(2)];
   if (k === 'd') { await S.prepare(['kit']); audition('kit', BUILTIN_NOTE[rest] || 36, 110, 600); }
   else if (k === 's') { const sm = st.song.samples[rest]; if (sm) { await S.prepare(st.song); audition(`sample:${rest}`, Math.round(sm.root), 110, 900); } }
+  else if (k === 'f') previewSound(await folderSrc(rest));
   else { const s = libSound(rest); if (s) previewSound(await libSrc(s)); }
 }
 const libSound = ref => { const [name, id] = ref.split('|'), lib = name === LIB.cur?.name ? LIB.cur : LIB.libs.get(name); return lib ? lib.sounds.find(s => s.id === id) : null; };
@@ -2094,7 +2104,7 @@ async function openPicker(o) {
   const kept = await shelf.list();
   PICK.libNames = kept.map(k => k.name); for (const n of LIB.libs.keys()) if (!PICK.libNames.includes(n)) PICK.libNames.push(n);
   if (!PICK.lib || !PICK.libNames.includes(PICK.lib)) PICK.lib = PICK.libNames[0] || null;
-  PICK.tab = o.mode === 'vary' ? (Object.keys(st.song.samples).length ? 'song' : 'lib') : PICK.lib ? 'lib' : 'built';
+  PICK.tab = o.mode === 'vary' ? (Object.keys(st.song.samples).length ? 'song' : 'lib') : PICK.lib ? 'lib' : FOLD.perm === 'granted' && FOLD.index.length ? 'folder' : 'built';
   const ki = st.song.kits[o.kit], p = ki && ki.pads.find(x => x.note === o.note);
   $('#pickTitle').textContent = o.mode === 'vary' ? `One more sound for ${padLabel(o.kit, o.note)}` : `The sound of ${padLabel(o.kit, o.note)}`;
   $('#pickNote').textContent = o.mode === 'vary' ? 'A variation is a sample: built-in sounds cannot be one' : p && p.vary ? 'Its variations stay' : '';
@@ -2103,7 +2113,7 @@ async function openPicker(o) {
 }
 const padLabel = (kit, note) => new Map(B.rowsOf(S, st.song, { instrument: `drums:${kit}` }, { notes: [] }).map(r => [r.note, r.name])).get(note) || noteName(note);
 async function renderPicker() {
-  const tabs = [['built', 'Built in', PICK.mode !== 'vary'], ['song', 'This song', true], ...PICK.libNames.map(n => [`lib:${n}`, n, true])];
+  const tabs = [['built', 'Built in', PICK.mode !== 'vary'], ['song', 'This song', true], ...(FOLD.root && FOLD.perm === 'granted' ? [['folder', 'Library folder', true]] : []), ...PICK.libNames.map(n => [`lib:${n}`, n, true])];
   $('#pickTabs').innerHTML = tabs.map(([k, t, on]) => `<button class="btab${(PICK.tab === k || (PICK.tab === 'lib' && k === `lib:${PICK.lib}`)) ? ' on' : ''}" type="button" data-t="${esc(k)}"${on ? '' : ' disabled'}>${esc(t)}</button>`).join('')
     + '<button class="btab add" type="button" data-t="import">+ Import a library…</button>';
   $('#pickTabs').querySelectorAll('[data-t]').forEach(b => b.onclick = () => {
@@ -2113,6 +2123,7 @@ async function renderPicker() {
   let cards = [];   // { v, name, kind, sub }
   if (PICK.tab === 'built') cards = S.DRUM_KINDS.map(k => ({ v: `d:${k}`, name: k[0].toUpperCase() + k.slice(1), kind: { hat: 'closed hat', open: 'open hat' }[k] || k, sub: 'built in' }));
   else if (PICK.tab === 'song') cards = Object.entries(st.song.samples).map(([id, sm]) => ({ v: `s:${id}`, name: sm.name, kind: classify(sm.name).kind, sub: `${sampleSecs(sm).toFixed(2)} s · ${Math.round(sm.brr.length / 1024)} KB` }));
+  else if (PICK.tab === 'folder') cards = FOLD.index.filter(p => SOUNDISH.test(p) && !p.startsWith('Inbox/')).map(p => { const a = p.split('/'), n = a.pop().replace(/\.[a-z0-9]+$/i, ''); return { v: `f:${p}`, name: n, kind: classify(p).kind, sub: a.slice(-2).join(' / ') }; });
   else if (PICK.lib) {
     let lib = LIB.libs.get(PICK.lib);
     if (!lib) { $('#pickCards').innerHTML = '<p class="muted small" style="padding:12px">Reading the library…</p>'; const v = await shelf.get(PICK.lib); if (v) { lib = await readLibrary(v.files); lib.name = PICK.lib; LIB.libs.set(PICK.lib, lib); } }
@@ -2122,7 +2133,7 @@ async function renderPicker() {
   $('#pickChips').innerHTML = cards.length > 8 ? [['all', 'All', cards.length], ...GROUPS.filter(g => counts[g[0]]).map(g => [g[0], g[1], counts[g[0]]])].map(([k, t, n]) => `<button class="chip${PICK.kind === k ? ' on' : ''}" type="button" data-g="${k}">${esc(t)} <span>${n}</span></button>`).join('') : '';
   $('#pickChips').querySelectorAll('[data-g]').forEach(b => b.onclick = () => { PICK.kind = b.dataset.g; renderPicker(); });
   const q = PICK.q.toLowerCase(), list = cards.filter(c => (PICK.kind === 'all' || groupOf(c.kind) === PICK.kind) && (!q || `${c.name} ${c.sub}`.toLowerCase().includes(q)))
-    .sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || naturally(a.name, b.name));
+    .sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || naturally(a.name, b.name)).slice(0, 400);   // (a big library: search narrows it)
   $('#pickCards').innerHTML = list.map(c => `<div class="scard" data-v="${esc(c.v)}"><button class="sp" type="button" aria-label="Hear ${esc(c.name)}"><svg width="9" height="9"><use href="#i-play"/></svg></button>
       <button class="use" type="button" title="Choose it"><b>${esc(c.name)}</b><small>${esc(c.kind === 'other' ? c.sub : `${c.kind}${c.sub ? ` · ${c.sub}` : ''}`)}</small></button></div>`).join('')
     || `<p class="muted small" style="padding:12px">${PICK.tab === 'song' ? 'The song has no samples yet.' : PICK.tab === 'lib' && !PICK.lib ? 'No library yet: import one.' : 'No sound matches.'}</p>`;
@@ -2132,10 +2143,11 @@ async function renderPicker() {
 async function choosePick(v) {
   const ki = st.song.kits[PICK.kit], p = ki && ki.pads.find(x => x.note === PICK.note); if (!p) return;
   let k = v[0], id = v.slice(2), made = null;
-  if (k === 'l') {
-    const s = libSound(id); if (!s) return;
+  if (k === 'l' || k === 'f') {
+    const s = k === 'l' ? libSound(id) : null; if (k === 'l' && !s) return;
     showSaved('making the sample…');
-    try { const src = await libSrc(s); made = { name: s.name.slice(0, 40), src, data: await padData(src) }; } catch (e) { return showSaved(`could not use that sound: ${e.message || e}`); }
+    try { const src = await (s ? libSrc(s) : folderSrc(id)), name = (s ? s.name : id.split('/').pop().replace(/\.[a-z0-9]+$/i, '')).slice(0, 40); made = { name, src, data: await padData(src) }; }
+    catch (e) { return showSaved(`could not use that sound: ${e.message || e}`); }
   }
   edit(() => {
     if (made) { id = newSampleId(made.name); st.song.samples[id] = padSample(made.name, made.data); sources.set(id, made.src); padOwned.add(id); k = 's'; }
@@ -2161,6 +2173,234 @@ $('#libEmpty').onclick = () => { LIB.prop.pads = []; LIB.sel = -1; renderLibPads
 $('#libName').onchange = e => { LIB.prop.name = e.target.value.trim().slice(0, 40) || LIB.prop.name; };
 $('#libMake').onclick = makeLibKit;
 $('#importLibBtn').onclick = openLibrary;
+
+// ---------- the library folder: a folder on the owner's computer the studio reads (and, allowed, writes): Chrome's File System Access ----------
+// FOLD.root: the folder's handle (kept in this browser, so the next visit asks only to reconnect); FOLD.index: every file in it by path, kept too, so
+// the Library opens at once; FOLD.dir: the folder the Library view shows
+const FOLD = { root: null, perm: null, index: [], dir: '', q: '', kind: 'all', busy: '', more: 0 };
+const SOUNDISH = /\.(wav|wave|mp3|ogg|oga|flac|m4a|aac|opus|aif|aiff|aifc)$/i;
+const canFolder = () => typeof window.showDirectoryPicker === 'function';
+async function folderPerm(h, ask = false) {
+  if (!h.queryPermission) return 'granted';   // (a folder the browser made itself needs no asking)
+  const o = { mode: 'readwrite' }; let p = await h.queryPermission(o);
+  if (p !== 'granted' && ask) p = await h.requestPermission(o);
+  return p;
+}
+// a folder's handle by its path (made when asked), a file's bytes, a file written (its folders made), something taken away
+async function dirAt(path, create = false) { let d = FOLD.root; for (const seg of path.split('/').filter(Boolean)) d = await d.getDirectoryHandle(seg, { create }); return d; }
+async function readAt(path) { const i = path.lastIndexOf('/'), d = await dirAt(path.slice(0, Math.max(0, i))); return new Uint8Array(await (await (await d.getFileHandle(path.slice(i + 1))).getFile()).arrayBuffer()); }
+async function existsAt(path) { try { const i = path.lastIndexOf('/'), d = await dirAt(path.slice(0, Math.max(0, i))); const n = path.slice(i + 1); try { await d.getFileHandle(n); } catch { await d.getDirectoryHandle(n); } return true; } catch { return false; } }
+async function writeAt(path, bytes) {
+  const i = path.lastIndexOf('/'), d = await dirAt(path.slice(0, Math.max(0, i)), true), w = await (await d.getFileHandle(path.slice(i + 1), { create: true })).createWritable();
+  await w.write(bytes); await w.close();
+}
+async function removeAt(path) { const i = path.lastIndexOf('/'), d = await dirAt(path.slice(0, Math.max(0, i))); await d.removeEntry(path.slice(i + 1), { recursive: true }); }
+// a free name in the folder: 'kick.wav' taken, then 'kick 2.wav'
+async function freeAt(path) { let p = path, k = 2; while (await existsAt(p)) p = path.replace(/(\.[a-z0-9]+)?$/i, m => ` ${k++}${m}`); return p; }
+// every file in the folder, by path (dot files and Mac leftovers left out)
+async function walkDir(d, pre = '', out = []) {
+  for await (const [n, h] of d.entries()) {
+    if (n.startsWith('.') || n === '__MACOSX' || /^(Thumbs\.db|desktop\.ini)$/i.test(n)) continue;
+    if (h.kind === 'directory') await walkDir(h, `${pre}${n}/`, out); else out.push(`${pre}${n}`);
+  }
+  return out;
+}
+async function scanFolder() {
+  if (!FOLD.root || FOLD.perm !== 'granted') return;
+  FOLD.busy = 'reading the folder…'; if (st.page === 'library') renderFolder();
+  try { FOLD.index = (await walkDir(FOLD.root)).sort(naturally); shelf.setSetting('folderIndex', { name: FOLD.root.name, files: FOLD.index, at: Date.now() }); }
+  catch (e) { showSaved(`could not read the library folder: ${e.message}`); }
+  FOLD.busy = ''; if (st.page === 'library') renderFolder();
+}
+// connect: Chrome shows its folder picker, then asks to let the studio see (and change) it; the folder is remembered for next time
+async function connectFolder(h) {
+  if (!h) {
+    if (!canFolder()) return tell('This browser cannot open a folder', 'Chrome or Edge can (Firefox and Safari do not let a web page open a folder on the computer).');
+    try { h = await window.showDirectoryPicker({ id: 'pixelite-library', mode: 'readwrite', startIn: 'music' }); } catch { return; }
+  }
+  FOLD.root = h; FOLD.perm = await folderPerm(h, true); FOLD.dir = ''; FOLD.index = [];
+  await shelf.setSetting('folder', h);
+  if (st.page !== 'library') showView('library'); else renderFolder();
+  await scanFolder();
+}
+// the next visit: the folder from last time, and its list; Chrome asks again only when the page asks it to (a click: Reconnect)
+async function restoreFolder() {
+  const h = await shelf.setting('folder'); if (!h) return;
+  FOLD.root = h;
+  try { FOLD.perm = await folderPerm(h); } catch { FOLD.perm = 'prompt'; }
+  const ix = await shelf.setting('folderIndex'); if (ix && ix.name === h.name) FOLD.index = ix.files;
+  if (FOLD.perm === 'granted') scanFolder();
+  if (st.page === 'library') renderFolder();
+}
+const setUp = () => !!FOLD.dirs && LAYOUT.every(d => FOLD.dirs.has(d));
+// the library's folders and its README (what is there stays as it is: a folder is made only if missing, the README only if there is none)
+async function setUpFolder() {
+  for (const d of LAYOUT) await dirAt(d, true);
+  if (!await existsAt('README.txt')) await writeAt('README.txt', new TextEncoder().encode(README.replace(/\n/g, '\r\n')));
+  await folderDirs(); await scanFolder(); showSaved('the library\'s folders are made');
+}
+// which folders there are (the index holds files only; an empty folder is still a folder)
+async function folderDirs() {
+  const dirs = new Set(), walk = async (d, pre, depth) => { for await (const [n, h] of d.entries()) if (h.kind === 'directory' && !n.startsWith('.')) { dirs.add(pre + n); if (depth < 2) await walk(h, `${pre}${n}/`, depth + 1); } };
+  try { await walk(FOLD.root, '', 0); } catch { }
+  FOLD.dirs = dirs; return dirs;
+}
+// a file of the folder as the library reader wants it: its bytes when asked
+const folderFile = path => ({ path, load: () => readAt(path) });
+function renderFolder() {
+  const box = $('#libraryView'); box.textContent = '';
+  if (!FOLD.root) {
+    box.append(el('div', 'empty-view', `<h2>Your sound library</h2>
+      <p>Connect a folder on this computer where you keep sounds. The studio reads it where it is (nothing is uploaded) and shows every sound as a card you can hear,
+      makes kits from its kit folders, and picks pads' sounds from it. A sound goes into a song only when you use it.</p>
+      <p>Allow changes too, and it can set the folder up (Inbox, Drum kits, One-shots by kind, Instruments, SoundFonts, Recordings, and a README), save what you record
+      with the microphone, and sort what you drop into its Inbox.</p>
+      ${canFolder() ? '' : '<p class="meta warn">This browser cannot open a folder: Chrome or Edge can.</p>'}`));
+    const b = el('button', 'b dark'); b.textContent = 'Connect library folder…'; b.dataset.a = 'connect'; b.disabled = !canFolder(); b.onclick = () => connectFolder();
+    box.lastChild.append(b); return;
+  }
+  if (FOLD.perm !== 'granted') {
+    box.append(el('div', 'empty-view', `<h2>${esc(FOLD.root.name)}</h2><p>The studio needs your say-so again to read this folder (Chrome asks once per visit; "Allow on every visit" stops it asking).</p>`));
+    const b = el('button', 'b dark'); b.textContent = 'Reconnect'; b.dataset.a = 'reconnect'; b.onclick = async () => { FOLD.perm = await folderPerm(FOLD.root, true); renderFolder(); if (FOLD.perm === 'granted') { await folderDirs(); scanFolder(); } };
+    const c = el('button', 'b'); c.textContent = 'Another folder…'; c.onclick = () => connectFolder();
+    const row = el('div', 'btnrow'); row.append(b, c); box.lastChild.append(row); return;
+  }
+  if (!FOLD.dirs) { folderDirs().then(() => renderFolder()); return; }
+  const files = FOLD.index, sounds = files.filter(p => SOUNDISH.test(p)), inbox = new Set(files.filter(p => p.startsWith('Inbox/')).map(p => p.split('/')[1]));
+  for (const d of FOLD.dirs) if (d.startsWith('Inbox/') && d.split('/').length === 2) inbox.add(d.split('/')[1]);
+  // the folders, as a tree: the top ones, and the way down to the one shown
+  const side = el('nav', 'side tree'); side.setAttribute('aria-label', 'Folders');
+  const count = pre => sounds.filter(p => p.startsWith(pre)).length;
+  const kids = pre => [...new Set([...files.filter(p => p.startsWith(pre) && p.slice(pre.length).includes('/')).map(p => p.slice(pre.length).split('/')[0]),
+    ...[...FOLD.dirs].filter(d => d.startsWith(pre) && d.length > pre.length && !d.slice(pre.length).includes('/')).map(d => d.slice(pre.length))])].sort(naturally);
+  const row = (path, label, depth) => {
+    const b = el('button', `sitem${FOLD.dir === path ? ' on' : ''}`, `<span class="nm" style="padding-left:${depth * 14}px">${esc(label)}</span><small class="mono">${count(path ? path + '/' : '') || ''}</small>`);
+    b.onclick = () => { FOLD.dir = path; FOLD.more = 0; FOLD.q = ''; renderFolder(); }; side.append(b);
+  };
+  row('', FOLD.root.name || 'Library', 0);
+  const down = (pre, depth) => { for (const k of kids(pre)) { const path = pre + k; row(path, k, depth); if (FOLD.dir === path || FOLD.dir.startsWith(path + '/')) down(path + '/', depth + 1); } };
+  down('', 1);
+  box.append(side);
+  const main = el('div', 'edit'); box.append(main);
+  const head = el('header', 'vhead');
+  head.innerHTML = `<b style="font-size:14px">${esc(FOLD.dir ? FOLD.dir.split('/').join(' / ') : FOLD.root.name || 'Library')}</b><span class="muted small">${count(FOLD.dir ? FOLD.dir + '/' : '')} sounds${FOLD.busy ? ` · ${esc(FOLD.busy)}` : ''}</span><span class="grow"></span>`;
+  const btn = (t, a, f, cls = 'b s') => { const b = el('button', cls); b.type = 'button'; b.textContent = t; b.dataset.a = a; b.onclick = f; head.append(b); return b; };
+  if (!setUp()) btn('Set up folders', 'setup', async () => { await setUpFolder(); }, 'b s dark').title = 'Make Inbox, Drum kits, One-shots (by kind), Instruments, SoundFonts, Recordings and a README; what is there stays';
+  btn(`Sort the Inbox${inbox.size ? ` (${inbox.size})` : ''}`, 'sort', () => openSort(), inbox.size ? 'b s dark' : 'b s').disabled = !inbox.size;
+  btn('Rescan', 'rescan', async () => { await folderDirs(); scanFolder(); });
+  btn('Another folder…', 'change', () => connectFolder());
+  main.append(head);
+  // a kit in this folder: its mapping files, or its sounds by their names (the import dialog puts it together)
+  const pre = FOLD.dir ? FOLD.dir + '/' : '', here = files.filter(p => p.startsWith(pre));
+  if (FOLD.dir && here.some(p => SOUNDISH.test(p) || /\.(sfz|dspreset|sf2)$/i.test(p)) && !FOLD.dir.startsWith('Inbox')) {
+    const kb = el('div', 'kitbar', `<span>${here.some(p => /\.(sfz|dspreset|sf2)$/i.test(p)) ? 'This folder has a kit\'s mapping.' : 'The sounds in this folder can make a kit, by their names.'}</span>`);
+    const mk = el('button', 'b s dark'); mk.type = 'button'; mk.dataset.a = 'makekit'; mk.textContent = 'Make a kit from it…';
+    mk.onclick = async () => { const d = $('#libDlg'); if (!d.open) d.showModal(); LIB.cur = null; await loadLibrary(here.map(folderFile), FOLD.dir.split('/').pop(), false); };
+    kb.append(mk); main.append(kb);
+  }
+  const bar = el('div', 'libbar', `<input placeholder="Find a sound in the whole library" aria-label="Find a sound in the library" spellcheck="false" value="${esc(FOLD.q)}">`);
+  bar.querySelector('input').oninput = e => { FOLD.q = e.target.value; FOLD.more = 0; renderFolderCards(); }; main.append(bar);
+  const chips = el('div', 'chips'); chips.id = 'foldChips'; main.append(chips);
+  const cards = el('div', 'scards'); cards.id = 'foldCards'; main.append(cards);
+  renderFolderCards();
+  if (!files.length && !FOLD.busy) cards.innerHTML = `<p class="muted small" style="padding:12px">${setUp() ? 'No sounds yet. Drop downloads into Inbox, then Sort the Inbox.' : 'An empty folder: Set up folders makes the library\'s layout and a README.'}</p>`;
+}
+// the sounds of the folder shown (or, while searching, of the whole library) as cards to hear, and to put into the song
+function renderFolderCards() {
+  const cards = $('#foldCards'); if (!cards) return;
+  const q = FOLD.q.trim().toLowerCase(), pre = FOLD.dir ? FOLD.dir + '/' : '';
+  const all = FOLD.index.filter(p => SOUNDISH.test(p) && (q ? p.toLowerCase().includes(q) : p.startsWith(pre))).map(p => ({ p, kind: classify(p).kind }));
+  const counts = {}; for (const c of all) counts[groupOf(c.kind)] = (counts[groupOf(c.kind)] || 0) + 1;
+  $('#foldChips').innerHTML = all.length > 8 ? [['all', 'All', all.length], ...GROUPS.filter(g => counts[g[0]]).map(g => [g[0], g[1], counts[g[0]]])].map(([k, t, n]) => `<button class="chip${FOLD.kind === k ? ' on' : ''}" type="button" data-g="${k}">${esc(t)} <span>${n}</span></button>`).join('') : '';
+  $('#foldChips').querySelectorAll('[data-g]').forEach(b => b.onclick = () => { FOLD.kind = b.dataset.g; FOLD.more = 0; renderFolderCards(); });
+  const list = all.filter(c => FOLD.kind === 'all' || groupOf(c.kind) === FOLD.kind), shown = list.slice(0, 240 + FOLD.more);
+  cards.innerHTML = shown.map(c => { const parts = c.p.split('/'), name = parts.pop().replace(/\.[a-z0-9]+$/i, '');
+    return `<div class="scard" data-p="${esc(c.p)}"><button class="sp" type="button" aria-label="Hear ${esc(name)}"><svg width="9" height="9"><use href="#i-play"/></svg></button>
+      <span class="nm"><b title="${esc(c.p)}">${esc(name)}</b><small>${esc(c.kind === 'other' ? '' : c.kind + ' · ')}${esc(parts.slice(-2).join(' / '))}</small></span>
+      <span class="sa"><button class="b s" type="button" data-a="add" title="A sample of the song, to play on a track (SAMPLES)">+ Sample</button></span></div>`; }).join('')
+    + (list.length > shown.length ? `<button class="b s" type="button" id="foldMore" style="grid-column:1/-1">Show ${Math.min(240, list.length - shown.length)} more of ${list.length - shown.length}</button>` : '');
+  cards.querySelectorAll('.scard').forEach(c => {
+    const p = c.dataset.p;
+    c.querySelector('.sp').onclick = async () => { try { previewSound(await folderSrc(p)); } catch (e) { showSaved(`could not play it: ${e.message}`); } };
+    c.querySelector('[data-a="add"]').onclick = async () => { try { audio(); await addSample(await folderSrc(p), p.split('/').pop().replace(/\.[a-z0-9]+$/i, '').slice(0, 40), null, true); } catch (e) { showSaved(`could not use that sound: ${e.message}`); } };
+  });
+  $('#foldMore')?.addEventListener('click', () => { FOLD.more += 240; renderFolderCards(); });
+}
+// a sound of the folder, decoded once per visit
+const foldSrcs = new Map();
+function folderSrc(path) { if (!foldSrcs.has(path)) { const p = readAt(path).then(b => decodeBytes(b)); foldSrcs.set(path, p); p.catch(() => foldSrcs.delete(path)); } return foldSrcs.get(path); }
+// what the microphone records is kept in Recordings/ as WAV too (when the folder may be written)
+async function keepRecording(src, name) {
+  if (!FOLD.root || FOLD.perm !== 'granted') return;
+  try { const d = new Date(), stamp = `${d.toISOString().slice(0, 10)} ${String(d.getHours()).padStart(2, '0')}-${String(d.getMinutes()).padStart(2, '0')}`;
+    const path = await freeAt(`Recordings/${name} ${stamp}.wav`); await writeAt(path, encodeWav([src.pcm], src.sr)); FOLD.index.push(path); }
+  catch { }
+}
+
+// ---------- sorting the Inbox: where each thing goes (planSort), shown first, then done ----------
+let SORT = null;   // { items (each with a way to read its files), plans }
+async function openSort() {
+  const d = $('#sortDlg'); $('#sortList').innerHTML = '<p class="muted" style="padding:20px">Looking through the Inbox…</p>'; $('#sortGo').disabled = true; if (!d.open) d.showModal();
+  const inbox = await dirAt('Inbox', true), items = [];
+  for await (const [n, h] of inbox.entries()) {
+    if (n.startsWith('.') || /^(Thumbs\.db|desktop\.ini)$/i.test(n)) continue;
+    if (h.kind === 'directory') { const paths = await walkDir(h); items.push({ name: n, type: 'dir', files: paths.map(path => ({ path, read: () => readAt(`Inbox/${n}/${path}`) })) }); }
+    else if (/\.(zip|dslibrary)$/i.test(n)) {
+      try { const z = await readZip(await readAt(`Inbox/${n}`)); items.push({ name: n, type: 'zip', files: z.map(f => ({ path: f.path, read: async () => f.data })) }); }
+      catch (e) { items.push({ name: n, type: 'file', files: [{ path: n, read: () => readAt(`Inbox/${n}`) }], bad: e.message }); }
+    } else items.push({ name: n, type: 'file', files: [{ path: n, read: () => readAt(`Inbox/${n}`) }] });
+  }
+  items.sort((a, b) => naturally(a.name, b.name));
+  SORT = { items, plans: planSort(items) };
+  renderSort();
+}
+function renderSort() {
+  const { plans } = SORT, list = $('#sortList');
+  $('#sortSub').textContent = plans.length ? `${plans.length} thing${plans.length > 1 ? 's' : ''} in the Inbox` : 'the Inbox is empty';
+  if (!plans.length) { list.innerHTML = '<p class="muted" style="padding:20px">Nothing in the Inbox. Drop downloads (zips, folders, sounds) into the library\'s Inbox folder, then sort them here.</p>'; $('#sortSum').textContent = ''; $('#sortGo').disabled = true; return; }
+  list.innerHTML = plans.map((p, i) => {
+    const keep = p.ops.filter(o => o.op !== 'drop'), drop = p.ops.filter(o => o.op === 'drop'), conv = keep.filter(o => o.op === 'convert').length;
+    return `<div class="sortitem${p.checked ? '' : ' off'}" data-i="${i}"><label class="chk"><input type="checkbox"${p.checked ? ' checked' : ''} aria-label="Sort ${esc(p.name)}"></label>
+      <div class="si"><div class="st"><b>${esc(p.name)}</b><span class="arrow">→</span><span class="dest">${esc(p.dest || (drop.length ? 'removed from the Inbox' : 'left in the Inbox'))}</span><span class="tag ${p.kind}">${{ kit: 'drum kit', oneshot: 'one-shot', oneshots: 'one-shots', instrument: 'instrument', soundfont: 'SoundFont', nothing: 'nothing to use' }[p.kind]}</span></div>
+      <div class="muted small">${esc(p.reason)}${keep.length ? ` · ${keep.length} file${keep.length > 1 ? 's' : ''} placed` : ''}${conv ? `, ${conv} AIFF made WAV` : ''}${drop.length ? ` · ${drop.length} taken out` : ''}</div>
+      <details><summary class="small">What happens to each file</summary><ul class="ops">${keep.map(o => `<li><span class="op ${o.op}">${o.op === 'convert' ? 'make WAV' : 'place'}</span> ${esc(o.from)} <span class="arrow">→</span> ${esc(o.to)}</li>`).join('')}
+        ${drop.map(o => `<li><span class="op drop">remove</span> ${esc(o.from)} <span class="muted">(${esc(o.why)})</span></li>`).join('')}</ul></details></div></div>`;
+  }).join('');
+  list.querySelectorAll('.sortitem').forEach(r => r.querySelector('input').onchange = e => { plans[+r.dataset.i].checked = e.target.checked; r.classList.toggle('off', !e.target.checked); sortSum(); });
+  sortSum();
+}
+function sortSum() {
+  const on = SORT.plans.filter(p => p.checked), files = on.reduce((n, p) => n + p.ops.filter(o => o.op !== 'drop').length, 0), gone = on.reduce((n, p) => n + p.ops.filter(o => o.op === 'drop').length, 0);
+  $('#sortSum').textContent = on.length ? `${on.length} of ${SORT.plans.length}: ${files} file${files === 1 ? '' : 's'} placed, ${gone} taken out. Each one leaves the Inbox once it is placed; a name already taken gets a number.` : 'Nothing chosen.';
+  $('#sortGo').disabled = !on.length; $('#sortGo').textContent = on.length ? `Sort ${on.length}` : 'Sort';
+}
+async function runSort() {
+  const go = $('#sortGo'); go.disabled = true;
+  const log = [`Sorted ${new Date().toLocaleString()}`], fails = [];
+  let n = 0;
+  for (const [i, p] of SORT.plans.entries()) {
+    if (!p.checked) continue;
+    const it = SORT.items[i]; let ok = true;
+    go.textContent = `Sorting ${++n}…`;
+    for (const o of p.ops) {
+      if (o.op === 'drop') { log.push(`  removed  ${p.name}/${o.from}  (${o.why})`); continue; }
+      try {
+        let bytes = await it.files.find(f => f.path === o.from).read();
+        if (o.op === 'convert') { const a = parseAiff(bytes); bytes = encodeWav(a.channels, a.sr, a.bits > 16 ? 24 : 16); }
+        const to = await freeAt(o.to); await writeAt(to, bytes); log.push(`  ${o.op === 'convert' ? 'made WAV' : 'placed  '} ${p.name}/${o.from}  ->  ${to}`);
+      } catch (e) { ok = false; fails.push(`${p.name}: ${o.from}: ${e.message}`); }
+    }
+    if (ok) { try { await removeAt(`Inbox/${p.name}`); } catch (e) { fails.push(`${p.name}: could not be taken out of the Inbox: ${e.message}`); } }
+    else log.push(`  ${p.name} stays in the Inbox: not every file could be placed`);
+  }
+  try { const prev = await existsAt('Sorting log.txt') ? new TextDecoder().decode(await readAt('Sorting log.txt')) : ''; await writeAt('Sorting log.txt', new TextEncoder().encode(prev + log.join('\r\n') + '\r\n\r\n')); } catch { }
+  $('#sortDlg').close(); go.textContent = 'Sort';
+  await folderDirs(); await scanFolder();
+  if (fails.length) tell('Some files could not be sorted', `They stay in the Inbox:\n- ${fails.slice(0, 12).join('\n- ')}${fails.length > 12 ? `\n… and ${fails.length - 12} more` : ''}`);
+  else showSaved(`the Inbox is sorted: ${n} thing${n === 1 ? '' : 's'} placed (see "Sorting log.txt" in the library)`);
+}
+$('#sortGo').onclick = runSort;
+$('#sortClose').onclick = $('#sortCancel').onclick = () => $('#sortDlg').close();
 
 // ---------- SAMPLES: the song's samples and multisamples ----------
 // a sample taken out of the song: the multisamples that used it lose that zone, and the tracks that played it go back to the piano
@@ -2548,7 +2788,7 @@ function renderMixer() {
 }
 
 // ---------- the views ----------
-const VIEWS = { arrange: '#arrange', sound: '#soundView', samples: '#samplesView', kits: '#kitView', mixer: '#mixerView', where: '#where' };
+const VIEWS = { arrange: '#arrange', sound: '#soundView', samples: '#samplesView', kits: '#kitView', library: '#libraryView', mixer: '#mixerView', where: '#where' };
 function showView(name) {
   const was = st.page; st.page = name;
   for (const [k, sel] of Object.entries(VIEWS)) $(sel).hidden = k !== name;
@@ -2562,6 +2802,7 @@ function renderView() {
   if (st.page === 'sound') renderSound();
   if (st.page === 'samples') renderSamples();
   if (st.page === 'kits') renderKits();
+  if (st.page === 'library') renderFolder();
   if (st.page === 'mixer') renderMixer();
   if (st.page === 'where') renderWhere();
 }
@@ -2696,6 +2937,7 @@ document.addEventListener('pointerdown', () => { if (!S.ctx) audio(); }, { once:
   showHint(); showView('arrange');
   if (PROJECT === null) showProjects(); else listSongs();
   loadLevels();
+  restoreFolder();
 })();
 requestAnimationFrame(frame);
-window.studio = { st, S, A, R };   // for tests and curious hands in the console
+window.studio = { st, S, A, R, useFolder: h => connectFolder(h), FOLD };   // for tests and curious hands in the console

@@ -52,6 +52,8 @@ Done: the engine's 16-bit Sampler, the studio at /studio/, songs saved on the si
 - ~~**Sound libraries and pad variations**~~ (HISTORY 68): zips, folders, SFZ, Decent Sampler and SoundFont 2 into kits; a card picker; round robin and random variations
   in the engine. Next: velocity layers on a pad (a sample per velocity range), a melodic library (SFZ, Decent Sampler, SoundFont presets) as a multisample, Ableton drum racks
   (gzipped XML: readable), the library's sounds in the SAMPLES view too.
+- ~~**A library folder on the computer**~~ (HISTORY 69): connect, set up, the Library view, Sort the Inbox, `tools/library.mjs`. Next: tags and favourites kept in the folder
+  (a small JSON beside the README), a kit saved back into `Drum kits/` as SFZ, waveforms on the cards, and sorting by listening (a sound's kind from its sound when its name says nothing).
 - ~~**MIDI files**~~ (HISTORY 51, 52): import a .mid into tracks, export the song as .mid (`tools/midi.mjs` too); pitch bend and the volume and
   pan that move are lanes, a tempo ramp is a ramp, a file with several instruments asks which to open, and a song's own samples
   travel inside the file (a pad or a marimba to other programs). Next: the filter, the sends and the echo as CC events (74, 91, 93), time

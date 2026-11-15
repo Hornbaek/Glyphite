@@ -515,3 +515,32 @@ canvas.mini { width: 80px; height: 45px; image-rendering: pixelated; border: 1px
 .vchip .sp { width: 22px; height: 22px; } .vchip span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 b.warn { color: var(--rec2); }
 @media (max-width: 1000px) { .libmain { grid-template-columns: 1fr; overflow-y: auto; } .libkits, .libsounds { border: 0; } }
+
+/* the Library view: the folder on this computer, as a tree and sound cards */
+.library { display: flex; overflow: hidden; }
+.side.tree .sitem { min-height: 30px; padding: 4px 12px; }
+.side.tree .sitem .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.side.tree .sitem small { color: var(--ink3); font-size: 11px; }
+.kitbar { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--line2); background: var(--raised); color: var(--ink2); flex: none; }
+.kitbar span { flex: 1; }
+.empty-view h2 { font-size: 16px; color: var(--ink); margin: 0 0 8px; }
+.empty-view .b { margin-top: 6px; }
+.meta.warn { color: var(--rec2); }
+/* sorting the Inbox: one row a thing, its files behind a fold */
+.dlg.sort { width: min(920px, calc(100vw - 32px)); height: min(760px, calc(100vh - 32px)); }
+.dlg.sort[open] { display: flex; flex-direction: column; }
+.sortlist { flex: 1; overflow-y: auto; border-top: 1px solid var(--line2); border-bottom: 1px solid var(--line2); }
+.sortitem { display: flex; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line3); }
+.sortitem.off { opacity: .55; }
+.sortitem .chk { padding-top: 2px; }
+.sortitem .si { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.sortitem .st { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+.sortitem .dest { font-family: var(--mono); font-size: 12px; }
+.arrow { color: var(--faint); }
+.tag { font-size: 10.5px; padding: 1px 6px; border-radius: 9px; background: var(--well); color: var(--ink2); }
+.tag.kit { background: #E3EAFB; color: #23408F; } .tag.instrument { background: #E5F1E3; color: #2F6B2B; } .tag.nothing { background: #F6E3DA; color: var(--rec2); }
+.sortitem details summary { cursor: pointer; color: var(--ink3); }
+.ops { margin: 6px 0 2px; padding: 0; list-style: none; font: 11px/1.6 var(--mono); max-height: 220px; overflow-y: auto; }
+.ops li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.op { display: inline-block; width: 64px; font-family: var(--sans); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--ok); }
+.op.convert { color: var(--sel); } .op.drop { color: var(--rec2); }

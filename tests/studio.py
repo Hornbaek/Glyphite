@@ -554,6 +554,87 @@ with sync_playwright() as p:
     check('no page errors in the kit studio', not errs4, errs4)
     ctx4.close()
 
+    # ---- the library folder: a folder on the computer (here the browser's own private one stands in), set up, sorted, used ----
+    def aiff(freq, secs=.3, sr=44100):   # an AIFF, as Macs and many sample packs ship them (big-endian, an 80-bit rate)
+        n = int(sr * secs); data = b''.join(struct.pack('>h', int(20000 * math.sin(2 * math.pi * freq * i / sr))) for i in range(n))
+        e = 16383 + 15; m = sr << (63 - 15)   # (44100 < 2^16: exponent 15)
+        comm = struct.pack('>hIh', 1, n, 16) + struct.pack('>HQ', e, m)
+        body = b'AIFF' + b'COMM' + struct.pack('>I', len(comm)) + comm + b'SSND' + struct.pack('>III', len(data) + 8, 0, 0) + data
+        return b'FORM' + struct.pack('>I', len(body)) + body
+    # (a profile kept on disk, as a person's Chrome is: Chromium's throwaway test profiles cannot keep a folder's handle in IndexedDB)
+    import tempfile
+    ctx7 = p.chromium.launch_persistent_context(tempfile.mkdtemp(prefix='studio-lib-'), viewport={'width': 1440, 'height': 900}, permissions=['microphone'],
+                                                args=['--autoplay-policy=no-user-gesture-required', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'])
+    pg7 = ctx7.pages[0] if ctx7.pages else ctx7.new_page(); errs7 = []
+    pg7.on('pageerror', lambda e: errs7.append(str(e))); pg7.on('dialog', lambda d: d.accept())
+    pg7.route('**/api/songs**', api); pg7.route('**/fonts.g*/**', lambda r: r.abort())
+    pg7.goto(f'{BASE}/studio/?game=spacemouse'); pg7.wait_for_function('window.studio && studio.st.song')
+    st7 = lambda js: pg7.evaluate(f'(() => {{ const st = studio.st; return {js}; }})()')
+    pg7.click('#tabLibrary')
+    check('LIBRARY: before a folder is connected, the view says what it is for and offers Connect', pg7.is_visible('#libraryView [data-a="connect"]') and 'Connect a folder' in pg7.text_content('#libraryView'))
+    FS = """async ([op, path, b64]) => {   // the stand-in folder, from outside the studio (as Explorer would see it)
+      const root = await navigator.storage.getDirectory(), segs = path.split('/').filter(Boolean);
+      if (op === 'clear') { for await (const [n] of root.entries()) await root.removeEntry(n, { recursive: true }); return null; }
+      if (op === 'list') { const out = [], walk = async (d, pre) => { for await (const [n, h] of d.entries()) { if (h.kind === 'directory') { out.push(pre + n + '/'); await walk(h, pre + n + '/'); } else out.push(pre + n); } }; await walk(root, ''); return out.sort(); }
+      let d = root; for (const s of segs.slice(0, -1)) d = await d.getDirectoryHandle(s, { create: op === 'put' });
+      if (op === 'put') { const w = await (await d.getFileHandle(segs.at(-1), { create: true })).createWritable(); await w.write(Uint8Array.from(atob(b64), c => c.charCodeAt(0))); await w.close(); return null; }
+      const bytes = new Uint8Array(await (await (await d.getFileHandle(segs.at(-1))).getFile()).arrayBuffer());
+      return op === 'text' ? new TextDecoder().decode(bytes) : String.fromCharCode(...bytes.slice(0, 12));
+    }"""
+    fs = lambda op, path='', data=b'': pg7.evaluate(FS, [op, path, base64.b64encode(data).decode()])
+    fs('clear')
+    pg7.evaluate('async () => studio.useFolder(await navigator.storage.getDirectory())')
+    pg7.wait_for_selector('#libraryView [data-a="setup"]')
+    check('connected: an empty folder offers to be set up', pg7.is_visible('#libraryView [data-a="setup"]') and pg7.is_disabled('#libraryView [data-a="sort"]'))
+    pg7.click('#libraryView [data-a="setup"]'); pg7.wait_for_function("!document.querySelector('#libraryView [data-a=\"setup\"]')")
+    have = fs('list')
+    check('SET UP FOLDERS makes the library\'s layout and a README', all(f'{d}/' in have for d in ('Inbox', 'Drum kits', 'One-shots/Kicks', 'One-shots/Snares', 'Instruments/Keys', 'SoundFonts', 'Recordings')) and 'README.txt' in have, have)
+    check('the README explains the folders, in Windows line ends', '\r\n' in fs('text', 'README.txt') and 'Inbox' in fs('text', 'README.txt'))
+    fs('put', 'Inbox/BPB 808.zip', zipped([('BPB 808/Kicks/Kick 1.wav', wav(60, .3)), ('BPB 808/Kicks/Kick 2.wav', wav(65, .3)), ('BPB 808/Snares/Snare 1.wav', wav(300, .2)),
+                                          ('BPB 808/Hats/Closed Hat.wav', wav(3000, .1)), ('BPB 808/BPB 808.nki', b'hsin closed'), ('BPB 808/License.txt', b'use it in games')]))
+    for nt, f in (('C3', 131), ('E3', 165), ('G3', 196), ('C4', 262)): fs('put', f'Inbox/Warm Piano/Piano {nt}.wav', wav(f, .3))
+    fs('put', 'Inbox/BIG_Snare_01.aif', aiff(250))
+    fs('put', 'Inbox/Plugin.vst3/Contents/x86_64-win/Plugin.vst3', b'MZ a program')
+    pg7.click('#libraryView [data-a="rescan"]'); pg7.wait_for_function("document.querySelector('#libraryView [data-a=\"sort\"]')?.textContent.includes('(4)')")
+    pg7.click('#libraryView [data-a="sort"]'); pg7.wait_for_selector('#sortDlg[open] .sortitem')
+    rows = pg7.eval_on_selector_all('#sortList .sortitem', 'r => r.map(x => [x.querySelector("b").textContent, x.querySelector(".dest").textContent, x.querySelector("input").checked])')
+    check('SORT THE INBOX shows where each thing goes before anything moves', rows == [['BIG_Snare_01.aif', 'One-shots/Snares', True], ['BPB 808.zip', 'Drum kits/BPB 808', True], ['Plugin.vst3', 'removed from the Inbox', False], ['Warm Piano', 'Instruments/Keys/Warm Piano', True]], rows)
+    check('a plugin is "nothing to use", not ticked; the kit says what is taken out', 'nothing to use' in pg7.text_content('#sortList .sortitem:nth-child(3)') and '1 taken out' in pg7.text_content('#sortList .sortitem:nth-child(2)'))
+    check('nothing has moved yet', 'Inbox/BPB 808.zip' in fs('list'))
+    pg7.click('#sortGo'); pg7.wait_for_function("!document.querySelector('#sortDlg').open", timeout=20000)
+    have = fs('list')
+    check('sorted: the kit as it came, its licence kept, the closed .nki left out', all(x in have for x in ('Drum kits/BPB 808/Kicks/Kick 1.wav', 'Drum kits/BPB 808/Hats/Closed Hat.wav', 'Drum kits/BPB 808/License.txt')) and not any(x.endswith('.nki') for x in have), have)
+    check('the piano among the instruments, the loose snare among the snares, tidied and made WAV', 'Instruments/Keys/Warm Piano/Piano C4.wav' in have and 'One-shots/Snares/BIG Snare 01.wav' in have and fs('head', 'One-shots/Snares/BIG Snare 01.wav').startswith('RIFF'), have)
+    check('the Inbox keeps only what was not ticked, and the log says what happened', [x for x in have if x.startswith('Inbox/') and x.rstrip('/').count('/') == 1] == ['Inbox/Plugin.vst3/'] and 'BIG Snare 01.wav' in fs('text', 'Sorting log.txt'), [x for x in have if x.startswith('Inbox/')])
+    pg7.wait_for_function("document.querySelectorAll('#libraryView .side .sitem').length > 3")
+    pg7.click('#libraryView .side .sitem:has-text("Drum kits")'); pg7.click('#libraryView .side .sitem:has-text("BPB 808")')
+    cards7 = pg7.eval_on_selector_all('#foldCards .scard b', 'b => b.map(x => x.textContent)')
+    check('the Library view: a folder\'s sounds as cards', sorted(cards7) == ['Closed Hat', 'Kick 1', 'Kick 2', 'Snare 1'], cards7)
+    pg7.click('#foldCards .scard:has-text("Kick 1") .sp'); pg7.wait_for_timeout(200)
+    pg7.click('#foldCards .scard:has-text("Snare 1") [data-a="add"]'); pg7.wait_for_function("Object.keys(studio.st.song.samples).length === 1", timeout=15000)
+    check('+ SAMPLE puts a folder\'s sound into the song', st7('Object.values(st.song.samples)[0].name') == 'Snare 1', st7('Object.keys(st.song.samples)'))
+    pg7.click('#libraryView [data-a="makekit"]'); pg7.wait_for_selector('#libMain:not([hidden]) .ppad', timeout=20000)
+    kit7 = pg7.eval_on_selector_all('#libPads .ppad .pt b', 'b => b.map(x => x.textContent)')
+    check('MAKE A KIT FROM IT: one kit of the folder\'s sounds by name (its Kicks, Snares and Hats folders are parts of it)', kit7 == ['Kick', 'Snare', 'Closed hat'] and pg7.locator('#libKits .sitem').count() == 1, kit7)
+    pg7.click('#libMake'); pg7.wait_for_function("studio.st.song.kits && Object.keys(studio.st.song.kits).length === 1", timeout=20000)
+    kid = st7('Object.keys(st.song.kits)[0]')
+    pg7.click('#kitView .pad[data-note="38"]'); pg7.click('#kitView [data-a="change"]'); pg7.wait_for_selector('#pickDlg[open]')
+    pg7.click('#pickTabs [data-t="folder"]'); pg7.wait_for_selector('#pickCards .scard[data-v="f:Instruments/Keys/Warm Piano/Piano C4.wav"]')
+    pg7.click('#pickCards .scard[data-v="f:One-shots/Snares/BIG Snare 01.wav"] .use'); pg7.wait_for_function('!document.querySelector("#pickDlg").open')
+    check('the sound picker\'s LIBRARY FOLDER tab: any sound of the folder onto a pad', st7(f'st.song.samples[st.song.kits["{kid}"].pads.find(p => p.note === 38).sample].name') == 'BIG Snare 01')
+    pg7.click('#tabArrange'); pg7.select_option('#addIns', 'strings'); pg7.click('#addTrack'); n7 = st7('st.song.tracks.length')
+    pg7.select_option(f'#trackList .trk:nth-child({n7}) .tins', '__record'); pg7.wait_for_selector('#recDlg[open]')
+    pg7.click('#recGo'); pg7.wait_for_timeout(1200); pg7.click('#recGo')
+    pg7.wait_for_function("studio.FOLD.index.some(p => p.startsWith('Recordings/'))", timeout=20000)
+    rec = [x for x in fs('list') if x.startswith('Recordings/') and x.endswith('.wav')]
+    check('what the microphone records is kept in Recordings/ as a WAV', len(rec) == 1 and fs('head', rec[0]).startswith('RIFF'), rec)
+    pg8 = ctx7.new_page(); pg8.on('pageerror', lambda e: errs7.append(str(e))); pg8.route('**/api/songs**', api); pg8.route('**/fonts.g*/**', lambda r: r.abort())   # the next visit
+    pg8.goto(f'{BASE}/studio/?game=spacemouse'); pg8.wait_for_function('window.studio && studio.st.song'); pg8.click('#tabLibrary')
+    pg8.wait_for_selector('#libraryView .side .sitem:has-text("Drum kits")')
+    check('the next visit: the folder is remembered and opens as it was', pg8.locator('#libraryView [data-a="rescan"]').count() == 1)
+    check('no page errors with the library folder', not errs7, errs7)
+    ctx7.close()
+
     # ---- polish: track colours, section markers on the ruler, the mixer ----
     ctx5 = b.new_context(viewport={'width': 1440, 'height': 900}); pg5 = ctx5.new_page(); errs5 = []
     pg5.on('pageerror', lambda e: errs5.append(str(e))); pg5.on('dialog', lambda d: d.accept())
