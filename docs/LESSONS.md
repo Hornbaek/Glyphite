@@ -422,3 +422,6 @@ way.
 - **A plugin's channels and its load time are its own.** pedalboard asks for stereo by default and some instruments have one output (Kars): try 2, then 1. Opening a
   plugin can take seconds (DPF plugins expose every MIDI controller of every channel as a parameter: 2,083 for Kars, 16 s), so the studio's requests to the bridge have
   no time limit, and the dialog shows what the bridge is doing.
+- **The studio's overview is drawn a frame after the song changes.** `tests/studio.py` measured `#arr` right after adding eight tracks and on CI got 11 tracks' height
+  (660 px) where 12 were coming (716 px), so the "same height after the drag" check failed there and not here. Wait for what the drawing should show (its height from
+  `studio.A`) before measuring it.
