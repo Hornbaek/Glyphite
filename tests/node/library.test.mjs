@@ -2,8 +2,9 @@
 // SoundFont 2, closed formats said so, and a whole library made into kits.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { deflateRawSync } from 'node:zlib';
-import { classify, roundRobin, plainName, readZip, parseSfz, parseDspreset, parseSf2, padsFromRegions, readLibrary } from '../../portal/assets/library-core.mjs';
+import { deflateRawSync, crc32 } from 'node:zlib';
+import { writeZip } from '../../tools/library.mjs';
+import { classify, roundRobin, plainName, readZip, parseSfz, parseDspreset, parseSf2, padsFromRegions, readLibrary, parseAiff, encodeWav, isAiff, cleanName, planSort, LAYOUT, README } from '../../portal/assets/library-core.mjs';
 
 const enc = s => new TextEncoder().encode(s);
 // a zip of [path, bytes, deflate?] (just enough of the format: local headers, the central directory, its end)
@@ -129,12 +130,12 @@ test('a library: a zip of folders becomes a kit per folder, round robins are one
   const z = zip([['808/Clean/kick01rr1.wav', wav], ['808/Clean/kick01rr2.wav', wav], ['808/Clean/kick02.wav', wav], ['808/Clean/hhclosed.wav', wav],
     ['808/Clean/hhopen.wav', wav], ['808/Clean/Clean.nki', enc('hsin')], ['808/Hot/kick01.wav', wav], ['808/Hot/snare01.wav', wav, true], ['808/Hot/notes.aif', wav]]);
   const lib = await readLibrary([{ path: '808.zip', data: z }]);
-  assert.equal(lib.sounds.length, 7, 'every sound, the ones no pad uses too (kick02 is there to choose)');
+  assert.equal(lib.sounds.length, 8, 'every sound, the ones no pad uses too (kick02 is there to choose), and the AIFF (the studio reads AIFF itself now)');
   assert.deepEqual(lib.kits.map(k => k.name), ['Clean', 'Hot']);
   const clean = lib.kits[0], name = id => lib.sounds.find(s => s.id === id).name;
   assert.deepEqual(clean.pads.map(p => [p.note, p.sounds.map(name)]), [[36, ['kick01rr1', 'kick01rr2']], [42, ['hhclosed']], [46, ['hhopen']]]);
   assert.ok(clean.pads[1].choke === 1 && clean.pads[2].choke === 1, 'the hats choke each other');
-  assert.ok(lib.notes.some(n => /Kontakt instrument \(\.nki\)/.test(n)) && lib.notes.some(n => /AIFF/.test(n)), lib.notes);
+  assert.ok(lib.notes.some(n => /Kontakt instrument \(\.nki\)/.test(n)) && !lib.notes.some(n => /AIFF/.test(n)), lib.notes);
 });
 
 test('a library with an SFZ: its kit comes from the mapping, and the sounds it does not name still make a kit of their own', async () => {
@@ -145,4 +146,99 @@ test('a library with an SFZ: its kit comes from the mapping, and the sounds it d
   assert.deepEqual(sfz.pads.map(p => p.note), [36, 38], 'boom on 36 and crack on 38, though their names say nothing');
   assert.ok(lib.notes.some(n => /1 sound it names is not among the files/.test(n)), lib.notes);
   assert.ok(lib.kits.some(k => k.from === 'names' && k.pads[0].note === 38), 'the snare no mapping covers is in a kit made from its name');
+});
+
+test('a library whose files load only when wanted: the sounds keep their loader, a mapping file is read', async () => {
+  const wav = enc('RIFF----WAVEfmt '), asked = [];
+  const lazy = (path, data) => ({ path, load: async () => { asked.push(path); return data; } });
+  const lib = await readLibrary([lazy('Kit/kit.sfz', enc('<region> key=36 sample=boom.wav')), lazy('Kit/boom.wav', wav), lazy('Kit/snare.wav', wav)]);
+  assert.deepEqual(asked, ['Kit/kit.sfz'], 'only the mapping file was read: the sounds wait until they are heard or used');
+  assert.equal(typeof lib.sounds.find(s => s.name === 'boom').load, 'function');
+  assert.deepEqual(lib.kits.find(k => k.from === 'sfz').pads.map(p => p.note), [36]);
+});
+
+// an AIFF of a few frames (16-bit, two channels, big-endian), as a program would write it
+function aiff(frames, sr = 44100, comp = null) {
+  const ch = 2, data = new Uint8Array(frames.length * ch * 2), dv = new DataView(data.buffer);
+  frames.forEach((f, i) => f.forEach((x, c) => dv.setInt16((i * ch + c) * 2, Math.round(x * 32767), comp === 'sowt')));
+  const comm = new Uint8Array(comp ? 24 : 18), cv = new DataView(comm.buffer);
+  cv.setUint16(0, ch); cv.setUint32(2, frames.length); cv.setUint16(6, 16);
+  const e = Math.floor(Math.log2(sr)); cv.setUint16(8, 16383 + e); cv.setUint32(10, Math.round(sr / 2 ** e * 2 ** 31)); cv.setUint32(14, 0);
+  if (comp) comm.set(enc(comp), 18);
+  const chunk = (id, body) => { const b = new Uint8Array(8 + body.length + (body.length & 1)); b.set(enc(id)); new DataView(b.buffer).setUint32(4, body.length); b.set(body, 8); return b; };
+  const ssnd = new Uint8Array(8 + data.length); ssnd.set(data, 8);
+  const parts = [chunk('COMM', comm), chunk('SSND', ssnd)], len = parts.reduce((n, p) => n + p.length, 4);
+  const out = new Uint8Array(8 + len), ov = new DataView(out.buffer); out.set(enc('FORM')); ov.setUint32(4, len); out.set(enc(comp ? 'AIFC' : 'AIFF'), 8);
+  let p = 12; for (const x of parts) { out.set(x, p); p += x.length; } return out;
+}
+
+test('AIFF: read (big-endian, and AIFC sowt), made WAV, and the WAV reads back', () => {
+  const frames = [[0, .5], [.25, -.5], [-1, .999]];
+  for (const comp of [null, 'sowt']) {
+    const a = parseAiff(aiff(frames, 48000, comp));
+    assert.equal(a.sr, 48000); assert.equal(a.channels.length, 2);
+    frames.forEach((f, i) => f.forEach((x, c) => assert.ok(Math.abs(a.channels[c][i] - x) < 1e-4, `${comp} frame ${i} channel ${c}`)));
+  }
+  assert.ok(isAiff(aiff(frames)) && !isAiff(enc('RIFF....WAVE')));
+  const w = encodeWav(parseAiff(aiff(frames)).channels, 48000), dv = new DataView(w.buffer);
+  assert.equal(new TextDecoder().decode(w.slice(0, 4)), 'RIFF'); assert.equal(dv.getUint16(22, true), 2); assert.equal(dv.getUint32(24, true), 48000);
+  assert.ok(Math.abs(dv.getInt16(44 + 4 * 1 + 2, true) / 32767 + .5) < 1e-3, 'the second frame\'s right channel');
+  assert.throws(() => parseAiff(enc('RIFF....WAVE')), /not an AIFF/);
+});
+
+test('names tidied: web-site tags, a download\'s hash, underscores and spaces; the extension in lower case', () => {
+  assert.equal(cleanName('Kick_Hard [www.freesounds.com].WAV'), 'Kick Hard.wav');
+  assert.equal(cleanName('8262fd7d-BPB_Cassette_808.zip'), 'BPB Cassette 808.zip');
+  assert.equal(cleanName('snare  02 (free download).wav'), 'snare 02.wav');
+  assert.equal(cleanName('___.wav'), 'sound.wav');
+});
+
+test('the library\'s layout and its README name every folder', () => {
+  for (const d of ['Inbox', 'Drum kits', 'One-shots/Kicks', 'One-shots/Hats', 'Instruments/Keys', 'SoundFonts', 'Recordings']) assert.ok(LAYOUT.includes(d), d);
+  for (const d of ['Inbox/', 'Drum kits/', 'One-shots/', 'Instruments/', 'SoundFonts/', 'Recordings/']) assert.ok(README.includes(d), d);
+});
+
+test('sorting the Inbox: kits as they came, one-shots by kind with tidy names, instruments by family, SoundFonts, AIFF made WAV, what cannot be used taken out', () => {
+  const at = (plan, from) => plan.ops.find(o => o.from === from);
+  const [kit, kick, aif, piano, pack, sf2, vst, mixed] = planSort([
+    { name: '8262fd7d-BPB_Cassette_808.zip', type: 'zip', files: ['BPB Cassette 808/Info.pdf', 'BPB Cassette 808/Artwork.jpg', 'BPB Cassette 808/Samples/Data.nkc', 'BPB Cassette 808/Samples/Clean Kit/Cassette 808 (Clean).nki',
+      'BPB Cassette 808/Samples/Clean Kit/kick01rr1.wav', 'BPB Cassette 808/Samples/Clean Kit/hhclosed.wav', 'BPB Cassette 808/Samples/Hot Kit/snare01.wav', '__MACOSX/BPB Cassette 808/._Info.pdf'].map(path => ({ path })) },
+    { name: 'Kick_Hard [www.freesounds.com].wav', type: 'file', files: [{ path: 'Kick_Hard [www.freesounds.com].wav' }] },
+    { name: 'Mystery boom.aif', type: 'file', files: [{ path: 'Mystery boom.aif' }] },
+    { name: 'Felt Piano', type: 'dir', files: ['Samples/Felt Piano C2.wav', 'Samples/Felt Piano C3.wav', 'Samples/Felt Piano C4.wav', 'Felt Piano.sfz', 'License.txt', 'cover.jpg'].map(path => ({ path })) },
+    { name: '120_Hard_Kicks.zip', type: 'zip', files: ['120 Hard Kicks/Kick_01.wav', '120 Hard Kicks/Kick_02.aiff', '120 Hard Kicks/Clap 1.wav'].map(path => ({ path })) },
+    { name: 'GeneralUser GS.sf2', type: 'file', files: [{ path: 'GeneralUser GS.sf2' }] },
+    { name: 'SuperSynth.zip', type: 'zip', files: [{ path: 'SuperSynth/SuperSynth.vst3/Contents/x86_64-win/SuperSynth.vst3' }, { path: 'SuperSynth/readme.txt' }] },
+    { name: 'Mixed', type: 'dir', files: [{ path: 'weird thing.wav' }, { path: 'other thing.wav' }] }]);
+  assert.equal(kit.kind, 'kit'); assert.equal(kit.dest, 'Drum kits/BPB Cassette 808', 'named by its folder, not the download\'s hash');
+  assert.equal(at(kit, 'BPB Cassette 808/Samples/Clean Kit/kick01rr1.wav').to, 'Drum kits/BPB Cassette 808/Clean Kit/kick01rr1.wav', 'the wrappers (the zip\'s folder, Samples) are gone, the kit folders kept');
+  assert.equal(at(kit, 'BPB Cassette 808/Info.pdf').to, 'Drum kits/BPB Cassette 808/Info.pdf', 'its info kept');
+  assert.equal(at(kit, 'BPB Cassette 808/Artwork.jpg').op, 'drop'); assert.match(at(kit, 'BPB Cassette 808/Samples/Clean Kit/Cassette 808 (Clean).nki').why, /Kontakt/);
+  assert.ok(!kit.ops.some(o => o.from.includes('__MACOSX')), 'Mac leftovers are not even listed');
+  assert.deepEqual([kick.dest, kick.ops[0].to], ['One-shots/Kicks', 'One-shots/Kicks/Kick Hard.wav']);
+  assert.deepEqual([aif.ops[0].op, aif.ops[0].to], ['convert', 'One-shots/Other/Mystery boom.wav'], 'AIFF made WAV; a name that says nothing: Other');
+  assert.equal(piano.kind, 'instrument'); assert.equal(piano.dest, 'Instruments/Keys/Felt Piano');
+  assert.equal(at(piano, 'Felt Piano.sfz').to, 'Instruments/Keys/Felt Piano/Felt Piano.sfz', 'its mapping keeps its place beside its sounds');
+  assert.deepEqual(pack.ops.filter(o => o.op !== 'drop').map(o => o.to), ['One-shots/Kicks/120 Hard Kicks/Kick 01.wav', 'One-shots/Kicks/120 Hard Kicks/Kick 02.wav', 'One-shots/Claps/120 Hard Kicks/Clap 1.wav'], 'a pack split by kind, names tidied, the AIFF made WAV');
+  assert.equal(pack.ops[1].op, 'convert');
+  assert.deepEqual([sf2.kind, sf2.ops[0].to], ['soundfont', 'SoundFonts/GeneralUser GS.sf2']);
+  assert.equal(vst.kind, 'nothing'); assert.ok(!vst.checked, 'nothing usable: not done unless asked'); assert.match(vst.reason, /plugin/);
+  assert.equal(mixed.kind, 'oneshots'); assert.ok(mixed.ops.every(o => o.to.startsWith('One-shots/Other/Mixed/')));
+});
+
+test('tools/library.mjs writes zips that read back, with the CRCs Windows checks, folders and UTF-8 names', async () => {
+  const big = enc('boom '.repeat(400)), z = new Uint8Array(writeZip([['Drum kits/', null], ['Drum kits/Kit/kick.wav', big], ['One-shots/Hats/hé.wav', enc('hat')]]));
+  const files = await readZip(z);
+  assert.deepEqual(files.map(f => f.path), ['Drum kits/Kit/kick.wav', 'One-shots/Hats/hé.wav'], 'folders are entries, files read back by their UTF-8 names');
+  assert.equal(new TextDecoder().decode(files[0].data), 'boom '.repeat(400));
+  const dv = new DataView(z.buffer); let p = 0; const crcs = [];
+  while (dv.getUint32(p, true) === 0x04034b50) { crcs.push(dv.getUint32(p + 14, true)); p += 30 + dv.getUint16(p + 26, true) + dv.getUint32(p + 18, true); }
+  assert.deepEqual(crcs.slice(1), [crc32(big), crc32(enc('hat'))]);
+});
+
+test('folders named for a drum (Kicks, Hats) are parts of the kit above them, not kits of their own', async () => {
+  const w = new Uint8Array(64), files = ['Kit A/Kicks/01.wav', 'Kit A/Snares/01.wav', 'Kit A/Hats/closed.wav', 'Kit B/kick.wav'].map(path => ({ path: `Top/${path}`, data: w }));
+  const lib = await readLibrary(files);
+  assert.deepEqual(lib.kits.map(k => k.name), ['Kit A', 'Kit B']);
+  assert.deepEqual(lib.kits[0].pads.map(p => p.note).sort(), [36, 38, 42]);
 });

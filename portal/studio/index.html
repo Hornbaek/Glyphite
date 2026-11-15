@@ -90,6 +90,7 @@
     <button role="tab" class="vtab" id="tabSound" data-view="sound" aria-selected="false">Track sound</button>
     <button role="tab" class="vtab" id="tabSamples" data-view="samples" aria-selected="false">Samples</button>
     <button role="tab" class="vtab" id="tabKits" data-view="kits" aria-selected="false">Drum kits</button>
+    <button role="tab" class="vtab" id="tabLibrary" data-view="library" aria-selected="false">Library</button>
     <button role="tab" class="vtab" id="tabMixer" data-view="mixer" aria-selected="false">Mixer</button>
     <button role="tab" class="vtab" id="tabWhere" data-view="where" aria-selected="false">Where it plays</button>
   </div>
@@ -161,6 +162,7 @@
     <section class="view sound" id="soundView" hidden aria-label="Track sound"></section>
     <section class="view samples" id="samplesView" hidden aria-label="Samples and multisamples"></section>
     <section class="view kits" id="kitView" hidden aria-label="Drum kits"></section>
+    <section class="view library" id="libraryView" hidden aria-label="Your sound library folder"></section>
     <section class="view mixer" id="mixerView" hidden aria-label="Mixer"><div class="strips" id="mixer"></div><div class="masterfx" id="masterFx"></div></section>
     <section class="view where" id="where" hidden aria-label="Where it plays"></section>
   </main>
@@ -313,6 +315,13 @@
   <div class="libbar"><input id="pickSearch" placeholder="Find a sound" aria-label="Find a sound" spellcheck="false"><span class="grow"></span><span class="muted small" id="pickNote"></span></div>
   <div class="chips" id="pickChips"></div>
   <div class="scards" id="pickCards"></div>
+</dialog>
+
+<!-- sorting the library's Inbox: where each thing goes, before anything moves -->
+<dialog id="sortDlg" class="dlg sort">
+  <div class="dhead"><h2>Sort the Inbox</h2><span class="muted" id="sortSub"></span><span class="grow"></span><button class="b" type="button" id="sortClose">Close</button></div>
+  <div class="sortlist" id="sortList"></div>
+  <div class="dfoot"><span class="small" id="sortSum"></span><span class="grow"></span><button class="b" type="button" id="sortCancel">Cancel</button><button class="b dark" type="button" id="sortGo">Sort</button></div>
 </dialog>
 
 <dialog id="snapDlg" class="dlg">

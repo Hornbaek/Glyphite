@@ -1497,6 +1497,32 @@ The owner had a drum library (BPB Cassette 808: three kits of WAVs and a Kontakt
   picks a library sound as a variation (213 checks). The real 808 library was imported by hand: three kits of 16 pads, the six kick takes on one pad, 195 KB.
 - **Not done**: velocity layers (a soft and a hard sample on one pad: the import takes the layer a hit of 100 plays), melodic instruments from a library as multisamples, AIFF (the browser cannot read it).
 
+## 69. A library folder on the owner's computer, set up and sorted by the studio (Claude Code, 2026-11-15)
+
+> "We should be able to connect to a local folder where I store all instrument information. I'm ok with pressing "accept" from the browser each time. I also want your help to create
+> sort of a folder system on my computer to be able to use it as a library." / "Windows, chrome. It may write, let it create the folder structure and readme. But I will later give you
+> files and have you place them correctly, remove files we cannot use and possibly renaming sample files. Do the sorting :) Is it possible to read other files like vst3 too?"
+
+- **Library** (a new view of the studio): **Connect library folder…** opens Chrome's folder picker (File System Access, read and write); the folder's handle and its list of files are kept in
+  the browser (IndexedDB, store `settings`), so the next visit opens the Library at once and asks only for **Reconnect** (one click, Chrome's own prompt). Nothing is uploaded: a sound is read
+  from the disk when it is heard and goes into a song only when it is used.
+- **Set up folders** makes the layout (`LAYOUT` in `portal/assets/library-core.mjs`): `Inbox`, `Drum kits`, `One-shots/<Kicks, Snares, Claps, Hats, Toms, Cymbals, Percussion, FX, Other>`,
+  `Instruments/<Keys, Strings, Winds, Synth, Bass, Guitar, Choir, Other>`, `SoundFonts`, `Recordings`, and a `README.txt` (Windows line ends) that says what goes where. What is there stays.
+- **The Library view**: the folder as a tree (sounds counted), the sounds as cards with ▶ and **+ Sample**, a search over the whole library, the kind chips; a folder of a kit has **Make a kit
+  from it…** (the import dialog, read lazily). The sound picker of a pad has a **Library folder** tab. What the microphone records is kept in `Recordings/` as a WAV too.
+- **Sort the Inbox** (`planSort`): each zip, folder or file in the Inbox gets a place, shown before anything moves (ticked, with every file's fate behind a fold), then done. A kit (a mapping
+  file, a closed format's folder, or three kinds of drum) goes to `Drum kits/<name>` as it came; a pack of one kind of hit to `One-shots/<Kind>/<pack>/`; a loose hit to `One-shots/<Kind>/`
+  with a tidy name (`BIG_Snare_01.aif` → `BIG Snare 01.wav`); notes of one instrument (note names in the file names) to `Instruments/<family>/<name>`; a SoundFont to `SoundFonts`.
+  Wrapper folders (the zip's own, `Samples`) are dropped from the paths; AIFF is made WAV; licences and manuals stay with their sounds; what cannot be used is taken out (Kontakt's `.nki`,
+  Logic's `.exs`, Ableton racks, pictures, MIDI, plugins). A name already taken gets a number; a thing leaves the Inbox only when all of its files are placed; `Sorting log.txt` says what happened.
+- Drum folders inside a kit (`Kicks/`, `Hats/`) are parts of the kit above them now, not kits of their own (`readLibrary`).
+- **From a session**: `node tools/library.mjs plan <zips, folders, files>` prints the same plan; `sort … --out sorted.zip` writes the sorted files as a zip shaped like the library (unzip it into
+  the library folder); `layout --out library.zip` writes the empty layout and the README.
+- **VST3 and other plugins** cannot run in a web page (they are programs for Windows or macOS, built to run inside a DAW), so the sort takes them out and says so: record the plugin's notes to
+  WAVs in a DAW and drop those into the Inbox.
+- Tests: `tests/node/library.test.mjs` (the layout and README, AIFF to WAV, names tidied, the plans for a kit zip, packs, instruments, plugins; the CLI's zip), `tests/studio.py` (a folder in
+  a profile kept on disk: set up, sorted, the cards, + Sample, a kit from a folder, the picker's tab, a recording kept, the next visit).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

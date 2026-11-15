@@ -233,20 +233,21 @@ function resolver(paths) {
     return near ? lower.get(near) : null;
   };
 }
-// files: [{ path, data }] (zips already opened) -> { sounds, kits, notes }. A sound: { id, path, name, kind, note, rr: [base, n] | null, data | pcm }.
+// files: [{ path, data }] or [{ path, load }] (load() gives the bytes when they are wanted: a folder of thousands of sounds is not read up front)
+// -> { sounds, kits, notes }. A sound: { id, path, name, kind, note, rr: [base, n] | null, data | load | pcm }.
 // A kit: { name, from ('names' | 'sfz' | 'dspreset' | 'sf2'), pads: [{ note, name, kind?, sounds: [ids], pick, tune, level, pan, choke }] }.
 export async function readLibrary(files) {
   const all = [];
   for (const f of files) {
-    if (/\.zip$/i.test(f.path)) { try { for (const z of await readZip(f.data)) all.push({ path: `${f.path.replace(/\.zip$/i, '')}/${z.path}`, data: z.data }); } catch (e) { all.push({ path: f.path, data: null, bad: e.message }); } }
+    if (/\.(zip|dslibrary)$/i.test(f.path)) { try { for (const z of await readZip(f.data || await f.load())) all.push({ path: `${f.path.replace(/\.(zip|dslibrary)$/i, '')}/${z.path}`, data: z.data }); } catch (e) { all.push({ path: f.path, data: null, bad: e.message }); } }
     else all.push(f);
   }
   // a single top folder that wraps everything (a zip of one folder) is no part of a name
   const notes = [], sounds = [], kits = [], paths = all.map(f => f.path);
   const byPath = new Map(), byPcm = new Map(), find = resolver(paths);
-  const soundFor = (path, data) => {
+  const soundFor = (path, data, load = null) => {
     if (byPath.has(path)) return byPath.get(path);
-    const c = classify(path), s = { id: `s${sounds.length + 1}`, path, name: path.split('/').pop().replace(/\.[a-z0-9]+$/i, ''), kind: c.kind, note: c.note, rr: roundRobin(path), data };
+    const c = classify(path), s = { id: `s${sounds.length + 1}`, path, name: path.split('/').pop().replace(/\.[a-z0-9]+$/i, ''), kind: c.kind, note: c.note, rr: roundRobin(path), data, ...(load ? { load } : {}) };
     sounds.push(s); byPath.set(path, s); return s;
   };
   // a sound a SoundFont holds itself: one per sample of the file, named after it (its drum from its name, else from the note it sits on)
@@ -257,9 +258,7 @@ export async function readLibrary(files) {
     if (!s.note && GM_DRUMS[note]) { const c = classify(GM_DRUMS[note]); s.kind = c.kind; s.note = note; }
     byPcm.set(r.pcm, s); return s;
   };
-  for (const f of all) if (AUDIO.test(f.path) && f.data) soundFor(f.path, f.data);
-  const aiff = all.filter(f => AIFF.test(f.path)).length;
-  if (aiff) notes.push(`${aiff} AIFF file${aiff > 1 ? 's' : ''} left out: the browser cannot read AIFF (WAV, FLAC, OGG and MP3 it can).`);
+  for (const f of all) if ((AUDIO.test(f.path) || AIFF.test(f.path)) && (f.data || f.load)) soundFor(f.path, f.data || null, f.data ? null : f.load);
   for (const f of all) if (f.bad) notes.push(`${f.path.split('/').pop()}: ${f.bad}.`);
   const text = d => new TextDecoder().decode(d);
   const mapped = (from, path, regions) => {
@@ -269,8 +268,10 @@ export async function readLibrary(files) {
     return rs;
   };
   for (const f of all) {
-    if (!f.data) continue;
+    if (!/\.(sfz|dspreset|sf2)$/i.test(f.path)) continue;
     try {
+      if (!f.data && f.load) f.data = await f.load();
+      if (!f.data) continue;
       if (/\.sfz$/i.test(f.path)) { const rs = mapped('sfz', f.path, parseSfz(text(f.data))); if (rs.length) kits.push(kitOf(plainTitle(f.path), 'sfz', rs, pcmSound)); }
       else if (/\.dspreset$/i.test(f.path)) { const rs = mapped('dspreset', f.path, parseDspreset(text(f.data))); if (rs.length) kits.push(kitOf(plainTitle(f.path), 'dspreset', rs, pcmSound)); }
       else if (/\.sf2$/i.test(f.path)) { for (const k of parseSf2(f.data)) kits.push(kitOf(k.name, 'sf2', k.regions, pcmSound, k.drums)); }
@@ -283,9 +284,12 @@ export async function readLibrary(files) {
   }
   // every folder of sounds that no mapping file covers becomes a kit made from the names
   const covered = new Set(kits.flatMap(k => k.pads.flatMap(p => p.sounds)));
-  const dirs = [...new Set(sounds.filter(s => s.data && !covered.has(s.id)).map(s => dirOf(s.path)))].sort(naturally);
+  const real = s => s.data || s.load;   // (a sound of a file, not one a SoundFont holds)
+  // (a folder named for a drum, 'Kicks' or 'Hats', is a part of the kit above it, not a kit of its own)
+  const kitDir = d => { const i = d.lastIndexOf('/'); return d && classify(d.slice(i + 1) + '/x').kind !== 'other' ? d.slice(0, Math.max(0, i)) : d; };
+  const dirs = [...new Set(sounds.filter(s => real(s) && !covered.has(s.id)).map(s => kitDir(dirOf(s.path))))].sort(naturally);
   for (const d of dirs) {
-    const here = sounds.filter(s => s.data && !covered.has(s.id) && dirOf(s.path) === d);
+    const here = sounds.filter(s => real(s) && !covered.has(s.id) && kitDir(dirOf(s.path)) === d);
     if (here.length) kits.push(namesKit(d ? plainTitle(d) : 'Sounds', here));
   }
   return { sounds, kits, notes };
@@ -311,4 +315,154 @@ export function namesKit(name, here) {
   }
   const list = [...pads.values()].sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || a.note - b.note).slice(0, 32);
   return { name, from: 'names', drums: true, pads: list.map(({ rr, ...p }) => p) };
+}
+
+// ---------- AIFF (the browser cannot decode it) and WAV ----------
+export const isAiff = u => u && u.length > 12 && String.fromCharCode(u[0], u[1], u[2], u[3]) === 'FORM' && /^AIF[FC]$/.test(String.fromCharCode(u[8], u[9], u[10], u[11]));
+// an AIFF or AIFC (uncompressed, big- or little-endian 'sowt', or 32-bit float) as its channels of numbers -1..1 and its rate
+export function parseAiff(bytes) {
+  const u = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes), v = new DataView(u.buffer, u.byteOffset, u.byteLength);
+  if (!isAiff(u)) throw new Error('not an AIFF file');
+  const id = p => String.fromCharCode(u[p], u[p + 1], u[p + 2], u[p + 3]);
+  let ch = 0, frames = 0, bits = 0, sr = 0, comp = 'NONE', data = -1;
+  for (let p = 12; p + 8 <= u.length;) {
+    const t = id(p), n = v.getUint32(p + 4);
+    if (t === 'COMM') {
+      ch = v.getUint16(p + 8); frames = v.getUint32(p + 10); bits = v.getUint16(p + 14);
+      const e = v.getUint16(p + 16) & 0x7FFF, hi = v.getUint32(p + 18), lo = v.getUint32(p + 22);   // the rate is an 80-bit extended float
+      sr = Math.round((hi * 2 ** 32 + lo) * 2 ** (e - 16383 - 63));
+      if (n >= 22) comp = id(p + 26);
+    } else if (t === 'SSND') data = p + 16 + v.getUint32(p + 8);
+    p += 8 + n + (n & 1);
+  }
+  if (!ch || data < 0 || !sr) throw new Error('an AIFF file without its sound');
+  const little = comp === 'sowt', float = comp === 'fl32' || comp === 'FL32';
+  if (!['NONE', 'sowt', 'twos'].includes(comp) && !float) throw new Error(`compressed AIFF (${comp}) cannot be read`);
+  const bps = float ? 4 : Math.ceil(bits / 8), out = Array.from({ length: ch }, () => new Float32Array(frames));
+  for (let i = 0; i < frames; i++) for (let c = 0; c < ch; c++) {
+    const p = data + (i * ch + c) * bps; if (p + bps > u.length) break;
+    let x;
+    if (float) x = v.getFloat32(p, little);
+    else if (bps === 1) x = v.getInt8(p) / 128;
+    else if (bps === 2) x = v.getInt16(p, little) / 32768;
+    else if (bps === 3) { const b0 = u[p], b1 = u[p + 1], b2 = u[p + 2]; const n = little ? (b2 << 16) | (b1 << 8) | b0 : (b0 << 16) | (b1 << 8) | b2; x = ((n << 8) >> 8) / 8388608; }
+    else x = v.getInt32(p, little) / 2147483648;
+    out[c][i] = x;
+  }
+  return { channels: out, sr, bits: float ? 24 : Math.min(24, bits) };
+}
+// channels of numbers -1..1 as a WAV file (16 or 24 bits)
+export function encodeWav(channels, sr, bits = 16) {
+  const ch = channels.length, n = channels[0].length, bps = bits === 24 ? 3 : 2, size = n * ch * bps, out = new Uint8Array(44 + size), v = new DataView(out.buffer);
+  const str = (p, s) => { for (let i = 0; i < s.length; i++) out[p + i] = s.charCodeAt(i); };
+  str(0, 'RIFF'); v.setUint32(4, 36 + size, true); str(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, ch, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * ch * bps, true); v.setUint16(32, ch * bps, true); v.setUint16(34, bps * 8, true); str(36, 'data'); v.setUint32(40, size, true);
+  for (let i = 0, p = 44; i < n; i++) for (let c = 0; c < ch; c++, p += bps) {
+    const x = Math.max(-1, Math.min(1, channels[c][i]));
+    if (bps === 2) v.setInt16(p, Math.round(x * 32767), true);
+    else { const k = Math.round(x * 8388607); out[p] = k & 255; out[p + 1] = (k >> 8) & 255; out[p + 2] = (k >> 16) & 255; }
+  }
+  return out;
+}
+
+// ---------- the library folder: its layout, and where what comes into its Inbox belongs ----------
+// the one-shot folders by drum kind, the instrument folders by family
+export const ONESHOTS = ['Kicks', 'Snares', 'Claps', 'Hats', 'Toms', 'Cymbals', 'Percussion', 'FX', 'Other'];
+export const FAMILIES = ['Keys', 'Strings', 'Winds', 'Synth', 'Bass', 'Guitar', 'Choir', 'Other'];
+export const LAYOUT = ['Inbox', 'Drum kits', ...ONESHOTS.map(d => `One-shots/${d}`), ...FAMILIES.map(d => `Instruments/${d}`), 'SoundFonts', 'Recordings'];
+export const README = `PIXELITE SOUND LIBRARY
+=======================
+
+This folder is a sound library for the Pixelite SOUND STUDIO (Chrome or Edge: Library > Connect library folder).
+The studio reads it where it is; nothing is uploaded. A sound goes into a song only when you use it, squeezed into
+the console's own format (16 kHz for drums, at most 1.5 s).
+
+Inbox/          Put new downloads here: zips, folders or single files. Library > Sort the Inbox shows where each
+                one should go (unzipped, AIFF made WAV, names tidied, what cannot be used taken out) and does it
+                when you say so. A Claude session can sort files the same way (tools/library.mjs).
+Drum kits/      One folder per kit, as it came: SFZ, Decent Sampler, SoundFont, or WAVs (Kontakt's .nki is closed,
+                so its sounds are read by their names; rr1, rr2... in a name are round robins: one pad's variations).
+One-shots/      Single hits by kind: Kicks, Snares, Claps, Hats, Toms, Cymbals, Percussion, FX, Other.
+                A folder's name tells the studio what is in it, so Kicks/01.wav is a kick.
+Instruments/    Melodic sounds, one folder per instrument (several notes of it: a multisample), by family.
+SoundFonts/     .sf2 files (each holds its own sounds).
+Recordings/     What you record with the microphone in the studio is saved here as WAV.
+
+What the studio cannot use: plugins (VST, VST3, AU, AAX: programs, not sounds), Kontakt/Logic/Ableton instrument
+files (their sounds still come in), pictures. Sorting the Inbox takes those out; licences and readmes are kept.
+`;
+const JUNK = /(^|\/)(__MACOSX|\.[^/]*)(\/|$)|\.(nki|nkm|nkc|nkr|nkx|nks|nksn|nkb|exs|adg|adv|alp|als|asd|reapeaks|pk|db|ini|url|lnk|jpg|jpeg|png|gif|bmp|webp|ico|svg|psd|mid|midi)$/i;
+const PLUGIN = /\.(vst3?|dll|component|aaxplugin|clap|exe|msi|dmg|pkg|app|so|dylib)(\/|$)/i;
+const DOC = /\.(pdf|txt|rtf|md|html?)$/i, MAP = /\.(sfz|dspreset)$/i, SF2 = /\.sf2$/i, SOUND = /\.(wav|wave|mp3|ogg|oga|flac|m4a|aac|opus|aif|aiff|aifc)$/i;
+const ONESHOT_OF = kind => ({ kick: 'Kicks', snare: 'Snares', rim: 'Snares', clap: 'Claps', 'closed hat': 'Hats', 'open hat': 'Hats', 'pedal hat': 'Hats', tom: 'Toms', 'low tom': 'Toms',
+  crash: 'Cymbals', ride: 'Cymbals', china: 'Cymbals', splash: 'Cymbals', percussion: 'FX', other: 'Other' }[kind] || 'Percussion');
+const FAMILY = [[/piano|keys|rhodes|wurli|organ|e ?piano|clav|celest|marimba|vibra|xylo|bell|glock|harp|kalimba|music ?box/, 'Keys'], [/string|violin|viola|cello|contrabass|ensemble|pizz|orchestra/, 'Strings'],
+  [/flute|brass|horn|trumpet|trombone|sax|clarinet|oboe|bassoon|wind|tuba|recorder|whistle/, 'Winds'], [/choir|vox|voice|vocal|aah|ooh|chant/, 'Choir'], [/bass/, 'Bass'],
+  [/guitar|gtr|banjo|ukulele|uke|mandolin|sitar|koto/, 'Guitar'], [/synth|pad|lead|pluck|arp|saw|square|analog|chip|8 ?bit|seq/, 'Synth']];
+// a note name in a sound's name ('Piano C4', 'str_A#2_soft'): the mark of a multisample's note
+const NOTED = /(^|[\s_\-.])([a-g](#|b|s)?-?[0-8])(?=$|[\s_\-.])/i;
+// a tidy name for a loose sound: no web-site tags, no underscores or runs of spaces, the extension in lower case
+export function cleanName(file) {
+  const m = /^(.*?)(\.[a-z0-9]{2,5})?$/i.exec(String(file)), ext = (m[2] || '').toLowerCase();
+  let base = m[1].replace(/[[(][^\])]*(www|\.com|\.net|\.org|free|download|sample ?pack)[^\])]*[\])]/gi, '').replace(/^[0-9a-f]{6,}[-_ ]+/i, '');
+  base = base.replace(/_+/g, ' ').replace(/\s*-\s*$/, '').replace(/^\s*-\s*/, '').replace(/\s+/g, ' ').trim() || 'sound';
+  return base + ext;
+}
+const folderName = n => cleanName(String(n).replace(/\.(zip|dslibrary|sf2)$/i, '')).replace(/\.[a-z0-9]+$/i, '').slice(0, 60) || 'Untitled';
+// Where each thing in the Inbox goes. items: [{ name, type: 'file' | 'dir' | 'zip', files: [{ path }] }] (a file's path is its own name; a folder's
+// and a zip's are inside it). Returns, for each item, { name, kind, dest, reason, ops, checked }: ops [{ op: 'copy' | 'convert' | 'drop', from, to, why }]
+// with `to` relative to the library's top. Pure: nothing is read or written here.
+export function planSort(items) {
+  return items.map(it => {
+    const files = it.files.filter(f => !/(^|\/)(__MACOSX|\.DS_Store|Thumbs\.db|desktop\.ini)(\/|$)/i.test(f.path));
+    const useful = files.filter(f => SOUND.test(f.path) || MAP.test(f.path) || SF2.test(f.path));
+    const sounds = useful.filter(f => SOUND.test(f.path)), maps = useful.filter(f => MAP.test(f.path)), fonts = useful.filter(f => SF2.test(f.path));
+    const plugin = files.some(f => PLUGIN.test(f.path)), closed = files.some(f => /\.(nki|nkm|exs)$/i.test(f.path));
+    const drop = (f, why) => ({ op: 'drop', from: f.path, why });
+    // a wrapper is a folder all the useful files are in: the zip's own folder, 'Samples', 'Sounds'… It is no part of where they go
+    let root = '', name = it.type === 'file' ? it.name : folderName(it.name);
+    for (;;) {
+      const tops = new Set(useful.map(f => f.path.slice(root.length).split('/')[0]));
+      if (useful.length && tops.size === 1 && useful.every(f => f.path.slice(root.length).includes('/'))) {
+        const t = [...tops][0];
+        if (!root && !/^(samples?|sounds?|wavs?|audio|files|content|data|one ?shots?)$/i.test(t)) name = folderName(t);
+        root += t + '/';
+      } else break;
+    }
+    const rel = p => p.startsWith(root) ? p.slice(root.length) : p.split('/').pop();
+    const target = (dir, f, tidy = false) => {
+      const r = rel(f.path), base = tidy ? cleanName(r.split('/').pop()) : r, wav = /\.(aif|aiff|aifc)$/i.test(base);
+      const to = `${dir}/${tidy ? base : r}`.replace(/\.(aif|aiff|aifc)$/i, wav ? '.wav' : '$&');
+      return wav ? { op: 'convert', from: f.path, to, why: 'AIFF made WAV (the browser cannot read AIFF)' } : { op: 'copy', from: f.path, to };
+    };
+    const keepDocs = dir => files.filter(f => DOC.test(f.path) && !PLUGIN.test(f.path)).map(f => ({ op: 'copy', from: f.path, to: `${dir}/${rel(f.path)}`, why: 'a licence or readme: kept with the sounds' }));
+    const junk = files.filter(f => !useful.includes(f) && !DOC.test(f.path)).map(f => drop(f, PLUGIN.test(f.path) ? 'a plugin (a program, not a sound): the studio cannot run it'
+      : /\.(nki|nkm|nkc|nkr|nkx|nks|nksn|nkb)$/i.test(f.path) ? 'Kontakt\'s own file (closed): its sounds are read by their names' : /\.exs$/i.test(f.path) ? 'Logic\'s own file (closed)'
+      : /\.(mid|midi)$/i.test(f.path) ? 'a MIDI file: open it in the studio as a song (File menu) instead' : 'not a sound the studio can use'));
+    const out = (kind, dest, reason, ops) => ({ name: it.name, kind, dest, reason, ops: [...ops, ...junk], checked: kind !== 'nothing' });
+    if (!sounds.length && !fonts.length && !maps.length) return { name: it.name, kind: 'nothing', dest: null, checked: false,
+      reason: plugin ? 'a plugin (VST, VST3, AU…): a program, not sounds. The studio cannot run it; record its notes in a DAW and drop the WAVs in instead.' : 'nothing the studio can use in it',
+      ops: files.map(f => drop(f, PLUGIN.test(f.path) ? 'a plugin (a program, not a sound)' : 'not a sound the studio can use')) };
+    if (!sounds.length && !maps.length) return out('soundfont', 'SoundFonts', `${fonts.length === 1 ? 'a SoundFont' : `${fonts.length} SoundFonts`}: each holds its own sounds`, fonts.map(f => ({ op: 'copy', from: f.path, to: `SoundFonts/${cleanName(f.path.split('/').pop())}` })));
+    // what the sounds are: drums by their names (and folders), notes of an instrument by note names in theirs
+    const kinds = sounds.map(f => classify(f.path).kind), drums = kinds.filter(k => k !== 'other' && k !== 'percussion').length, distinct = new Set(kinds.filter(k => k !== 'other')).size;
+    const noted = sounds.filter(f => NOTED.test(plainName(f.path.split('/').pop()).replace(/ (\d)/g, '$1').replace(/ #/g, '#'))).length;
+    if (it.type === 'file') {   // one loose sound: a one-shot, by what its name says, its name tidied
+      const k = kinds[0], dir = `One-shots/${ONESHOT_OF(k)}`;
+      return out('oneshot', dir, k === 'other' ? 'one sound whose name does not say what it is: under Other (rename it, and it can go where it belongs)' : `one sound: a ${k}`, [target(dir, files[0], true)]);
+    }
+    const melodic = noted >= Math.max(2, sounds.length * .5) && drums < sounds.length * .5;
+    if (melodic) {
+      const fam = (FAMILY.find(([re]) => re.test(plainName(`${it.name} ${name} ${root}`))) || [0, 'Other'])[1], dir = `Instruments/${fam}/${name}`;
+      return out('instrument', dir, `an instrument: ${sounds.length} sounds named by their notes${maps.length ? ', with its mapping' : ''}${fam === 'Other' ? ' (its family not in its name: under Other)' : ` (${fam.toLowerCase()})`}`, [...useful.map(f => target(dir, f)), ...keepDocs(dir)]);
+    }
+    if (maps.length || closed || distinct >= 3) {   // a kit: kept as it came (a mapping file finds its sounds by their paths), only the wrappers gone
+      const dir = `Drum kits/${name}`;
+      return out('kit', dir, `a drum kit: ${sounds.length} sounds${maps.length ? `, mapped by ${maps.map(f => f.path.split('/').pop()).join(', ')}` : closed ? ' (mapped by a closed format: read by their names)' : `, ${distinct} kinds of drum`}`, [...useful.map(f => target(dir, f)), ...keepDocs(dir)]);
+    }
+    // a pack of one or two kinds of hit ('120 kicks'): each into its kind's folder, under the pack's name, names tidied
+    const ops = sounds.map((f, i) => target(`One-shots/${ONESHOT_OF(kinds[i])}/${name}`, f, true));
+    const where = [...new Set(kinds.map(ONESHOT_OF))];
+    return out('oneshots', where.length === 1 ? `One-shots/${where[0]}/${name}` : 'One-shots', `${sounds.length} one-shot${sounds.length > 1 ? 's' : ''}: ${where.join(', ').toLowerCase()}`, [...ops, ...keepDocs(`One-shots/${where[0]}/${name}`)]);
+  });
 }
