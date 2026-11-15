@@ -8,7 +8,7 @@ import { songFromMidi, midiFromSong } from './midi-core.mjs';
 import * as B from './beats-core.mjs';
 import { PadHost } from './padlink.mjs';
 import { qrSvg } from './qr.mjs';
-import { readLibrary, readZip, classify, naturally, GM_DRUMS, KIND_ORDER, isAiff, parseAiff, encodeWav, planSort, LAYOUT, README } from './library-core.mjs';
+import { readLibrary, readZip, classify, naturally, GM_DRUMS, KIND_ORDER, isAiff, parseAiff, encodeWav, planSort, LAYOUT, README, FAMILIES, familyOf, noteOf } from './library-core.mjs';
 const S = Sampler, PPQ = S.PPQ;
 const $ = q => document.querySelector(q);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -2287,12 +2287,18 @@ function renderFolder() {
   const btn = (t, a, f, cls = 'b s') => { const b = el('button', cls); b.type = 'button'; b.textContent = t; b.dataset.a = a; b.onclick = f; head.append(b); return b; };
   if (!setUp()) btn('Set up folders', 'setup', async () => { await setUpFolder(); }, 'b s dark').title = 'Make Inbox, Drum kits, One-shots (by kind), Instruments, SoundFonts, Recordings and a README; what is there stays';
   btn(`Sort the Inbox${inbox.size ? ` (${inbox.size})` : ''}`, 'sort', () => openSort(), inbox.size ? 'b s dark' : 'b s').disabled = !inbox.size;
+  btn('Sample a plugin…', 'bridge', openBridge).title = 'Play a VST3 instrument on this computer note by note, into WAVs in Instruments/';
   btn('Rescan', 'rescan', async () => { await folderDirs(); scanFolder(); });
   btn('Another folder…', 'change', () => connectFolder());
   main.append(head);
   // a kit in this folder: its mapping files, or its sounds by their names (the import dialog puts it together)
   const pre = FOLD.dir ? FOLD.dir + '/' : '', here = files.filter(p => p.startsWith(pre));
-  if (FOLD.dir && here.some(p => SOUNDISH.test(p) || /\.(sfz|dspreset|sf2)$/i.test(p)) && !FOLD.dir.startsWith('Inbox')) {
+  const own = here.filter(p => SOUNDISH.test(p) && !p.slice(pre.length).includes('/')), noted = own.filter(p => noteOf(p) !== null);
+  if (FOLD.dir && noted.length >= 2 && noted.length * 2 >= own.length) {   // notes of one instrument ('Piano C4.wav'…): a multisample
+    const ns = noted.map(noteOf).sort((a, b) => a - b), ib = el('div', 'kitbar', `<span>${noted.length} notes of an instrument, ${noteName(ns[0])} to ${noteName(ns.at(-1))}.</span>`);
+    const mk = el('button', 'b s dark'); mk.type = 'button'; mk.dataset.a = 'makeinstrument'; mk.textContent = 'Make an instrument from it…'; mk.title = 'A multisample of the song: up to 8 of these notes, 2 s each';
+    mk.onclick = () => makeInstrument(FOLD.dir); ib.append(mk); main.append(ib);
+  } else if (FOLD.dir && here.some(p => SOUNDISH.test(p) || /\.(sfz|dspreset|sf2)$/i.test(p)) && !FOLD.dir.startsWith('Inbox')) {
     const kb = el('div', 'kitbar', `<span>${here.some(p => /\.(sfz|dspreset|sf2)$/i.test(p)) ? 'This folder has a kit\'s mapping.' : 'The sounds in this folder can make a kit, by their names.'}</span>`);
     const mk = el('button', 'b s dark'); mk.type = 'button'; mk.dataset.a = 'makekit'; mk.textContent = 'Make a kit from it…';
     mk.onclick = async () => { const d = $('#libDlg'); if (!d.open) d.showModal(); LIB.cur = null; await loadLibrary(here.map(folderFile), FOLD.dir.split('/').pop(), false); };
@@ -2401,6 +2407,168 @@ async function runSort() {
 }
 $('#sortGo').onclick = runSort;
 $('#sortClose').onclick = $('#sortCancel').onclick = () => $('#sortDlg').close();
+
+// ---------- an instrument from a folder of notes ('Piano C4.wav', 'Piano F#4.wav'…): a multisample of the song ----------
+// at most `max` of its notes, spread over its range, each `secs` long at most (faded where it is cut), keeping how loud they are against each other
+async function makeInstrument(dir, max = 8, secs = 2, rate = 32000) {
+  const notes = FOLD.index.filter(p => p.startsWith(dir + '/') && !p.slice(dir.length + 1).includes('/') && SOUNDISH.test(p))
+    .map(p => ({ p, n: noteOf(p) })).filter(x => x.n !== null).sort((a, b) => a.n - b.n);
+  if (!notes.length) return showSaved('no sounds named by their notes in that folder');
+  const pick = notes.length <= max ? notes : Array.from({ length: max }, (_, i) => notes[Math.round(i * (notes.length - 1) / (max - 1))]);
+  const name = dir.split('/').pop().slice(0, 40), cuts = [];
+  showSaved(`making the instrument from ${pick.length} notes…`); audio();
+  try {
+    for (const x of pick) {
+      const src = await folderSrc(x.p), n = Math.min(src.pcm.length, Math.round(secs * src.sr)), pcm = src.pcm.slice(0, n), f = Math.min(n, Math.round(.4 * src.sr));
+      if (src.pcm.length > n) for (let i = 0; i < f; i++) pcm[n - f + i] *= 1 - i / f;   // (cut short: faded out, not chopped)
+      let peak = 0; for (const v of pcm) peak = Math.max(peak, Math.abs(v));
+      cuts.push({ ...x, src: { pcm, sr: src.sr }, peak });
+    }
+    const top = Math.max(...cuts.map(c => c.peak));
+    for (const c of cuts) { c.data = await resample(c.src, rate, secs); const g = c.peak / top; if (g < 1) for (let i = 0; i < c.data.length; i++) c.data[i] *= g; }
+  } catch (e) { return showSaved(`could not make it: ${e.message}`); }
+  let mid = 'multi'; for (let k = 2; st.song.multis?.[mid]; k++) mid = `multi-${k}`;
+  edit(() => {
+    const zones = cuts.map(c => { const id = newSampleId(`${name} ${noteName(c.n)}`); st.song.samples[id] = { name: `${name} ${noteName(c.n)}`.slice(0, 40), rate, root: c.n, loop: -1, secs, brr: S.toB64(S.brrEncode(c.data)) }; sources.set(id, c.src); return { sample: id, root: c.n }; });
+    // each sample over the notes nearest to its own (split halfway between neighbours)
+    (st.song.multis ??= {})[mid] = { name, zones: zones.map((z, i) => ({ sample: z.sample, lo: i ? Math.round((zones[i - 1].root + z.root) / 2) + 1 : 0, hi: i < zones.length - 1 ? Math.round((z.root + zones[i + 1].root) / 2) : 127 })) };
+  }, { rebuild: true });
+  const kb = Math.round(cuts.reduce((s, c) => s + c.data.length, 0) * 9 / 16 / 1024);
+  st.smp = { k: 'm', id: mid }; $('#bridgeDlg').open && $('#bridgeDlg').close(); showView('samples'); S.prepare(st.song);
+  showSaved(`instrument “${name}”: ${cuts.length} notes (${noteName(cuts[0].n)}–${noteName(cuts.at(-1).n)}), about ${kb} KB; choose it in a track's instrument menu`);
+}
+
+// ---------- plugins: the bridge (tools/pixelite_bridge.py) runs on this computer and plays a VST3 note by note; the notes come back as WAVs for the library ----------
+const BRIDGE = 'http://127.0.0.1:47390';
+const BR = { up: false, bs: null, plugins: [], q: '', sel: null, timer: 0, cmd: '', busy: false, done: null, err: '',
+  spec: { name: '', family: 'Keys', from: 'C1', to: 'C7', step: 3, velocity: 100, hold: 2, tail: 1.5 } };
+async function bridgeGet(path) {
+  const r = await fetch(BRIDGE + path, { signal: AbortSignal.timeout(path === '/status' ? 1500 : 20000) }), o = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(o.error || r.statusText); return o;
+}
+async function bridgePost(path, body) {   // (no time limit: a plugin can take a while to open, or to play 88 notes)
+  const r = await fetch(BRIDGE + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), o = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(o.error || r.statusText); return o;
+}
+// the command that starts it: the script itself (as the build published it next to this page), saved in AppData, Python and pedalboard installed the first time
+async function bridgeCommand() {
+  if (BR.cmd) return BR.cmd;
+  const py = (await (await fetch('pixelite_bridge.py', { cache: 'no-store' })).text()).trimEnd();
+  return BR.cmd = ['# Pixelite plugin bridge: saves the script, installs Python and pedalboard (the plugin host) the first time, then starts it',
+    '$d = "$env:LOCALAPPDATA\\Pixelite"; New-Item -ItemType Directory -Force $d | Out-Null',
+    "@'", py, "'@ | Set-Content -Encoding UTF8 \"$d\\pixelite_bridge.py\"",
+    'if (Get-Command py -ErrorAction SilentlyContinue) {',
+    '  py -m pip install --user --quiet --disable-pip-version-check pedalboard numpy',
+    '  py "$d\\pixelite_bridge.py" serve',
+    '} else {',
+    '  winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements',
+    '  Write-Host "Python is installed. Close this window, open a new PowerShell window and paste the command again."',
+    '}', ''].join('\n');
+}
+// while the dialog is open: is the bridge there, what is it doing
+async function pollBridge() {
+  clearTimeout(BR.timer);
+  if (!$('#bridgeDlg').open) return;
+  const was = BR.up, wasOpen = BR.bs?.plugin?.path;
+  try { BR.bs = await bridgeGet('/status'); BR.up = true; } catch { BR.up = false; BR.bs = null; }
+  if (BR.up && !was) try { BR.plugins = (await bridgeGet('/plugins')).plugins; } catch { }
+  if (BR.up !== was || BR.bs?.plugin?.path !== wasOpen) renderBridge();
+  else { const b = $('#brBusy'); if (b) b.textContent = bridgeBusy(); }
+  BR.timer = setTimeout(pollBridge, BR.up ? 1000 : 2000);
+}
+const bridgeBusy = () => { const b = BR.bs || {}; return b.busy ? `the bridge is ${b.busy}` : b.editor ? 'its window is open on your desktop: close it to sample' : b.error || ''; };
+function openBridge() { const d = $('#bridgeDlg'); if (!d.open) d.showModal(); renderBridge(); pollBridge(); }
+async function choosePlugin(path) {
+  BR.sel = path; BR.done = null; BR.err = '';
+  const p = BR.plugins.find(x => x.path === path); BR.spec.name = p ? p.name : 'Instrument'; BR.spec.family = familyOf(BR.spec.name);
+  renderBridge();
+  try { await bridgePost('/open', { path }); BR.bs = await bridgeGet('/status'); } catch (e) { BR.err = `it could not be opened: ${e.message}`; }
+  renderBridge();
+}
+const folderOk = () => FOLD.root && FOLD.perm === 'granted';
+function renderBridge() {
+  const box = $('#brBody'); box.textContent = '';
+  $('#brSub').textContent = BR.up ? `the bridge is running · ${BR.plugins.length} plugin${BR.plugins.length === 1 ? '' : 's'} found` : 'the bridge is not running';
+  if (!BR.up) {
+    const start = el('div', 'brstart', `<p>Plugins (VST3) are programs for your computer: a web page cannot run them. The <b>plugin bridge</b> is a small program that plays a plugin
+      note by note on your computer and sends the notes here, where they become WAVs in your library: an instrument the studio and the games can play.</p>
+      <ol><li>Press <b>Copy the start command</b>.</li><li>Open <b>PowerShell</b> (Start, type <i>PowerShell</i>, Enter), right-click in it to paste, and press Enter.</li>
+      <li>The first time, it installs Python and the plugin host (a few minutes). When it says it is running, this dialog finds it. Leave its window open while you sample.</li>
+      <li>If Chrome asks whether this site may reach apps on this device, allow it.</li></ol>`);
+    const cp = el('button', 'b dark'); cp.type = 'button'; cp.dataset.a = 'copy'; cp.textContent = 'Copy the start command';
+    cp.onclick = async () => { try { await navigator.clipboard.writeText(await bridgeCommand()); cp.textContent = 'Copied: paste it into PowerShell'; } catch (e) { showSaved(`could not copy it: ${e.message}`); } };
+    const row = el('div', 'btnrow'); row.append(cp); start.append(row);
+    const det = el('details', 'brcmd', `<summary class="small">What the command does</summary><p class="small muted">It saves the bridge (the Python script below) in your
+      AppData\\Local\\Pixelite folder, installs Python with winget if it is missing, installs pedalboard (Spotify's open-source plugin host), and starts the bridge. It listens
+      on this computer only (127.0.0.1:47390), answers only this studio, and opens only plugins in your VST3 folders. Close its window to stop it.</p><pre class="mono"></pre>`);
+    det.ontoggle = async () => { if (det.open) det.querySelector('pre').textContent = await bridgeCommand(); };
+    start.append(det, el('p', 'small muted', 'Looking for the bridge on this computer…'));
+    box.append(start); return;
+  }
+  const side = el('nav', 'brlist', `<input placeholder="Find a plugin" aria-label="Find a plugin" spellcheck="false" value="${esc(BR.q)}">`), list = el('div', 'brplugs'); side.append(list);
+  const fill = () => {
+    list.innerHTML = BR.plugins.filter(p => p.name.toLowerCase().includes(BR.q.toLowerCase())).map(p => `<button class="sitem${BR.sel === p.path ? ' on' : ''}" type="button" data-p="${esc(p.path)}" title="${esc(p.path)}"><span class="nm">${esc(p.name)}</span></button>`).join('')
+      || '<p class="muted small" style="padding:12px">No VST3 plugins in the usual folders (C:\\Program Files\\Common Files\\VST3). Install one, then close and start the bridge again.</p>';
+    list.querySelectorAll('[data-p]').forEach(b => b.onclick = () => choosePlugin(b.dataset.p));
+  };
+  side.querySelector('input').oninput = e => { BR.q = e.target.value; fill(); }; fill();
+  const main = el('div', 'brmain'); box.append(side, main);
+  const cur = BR.bs?.plugin && BR.bs.plugin.path === BR.sel ? BR.bs.plugin : null;
+  if (!BR.sel) { main.innerHTML = '<p class="muted brnote">Choose a plugin: an instrument (a synth, a piano, Kontakt…).</p>'; return; }
+  if (BR.err) { main.innerHTML = `<p class="brnote"><b class="warn">${esc(BR.err)}</b></p>`; return; }
+  if (!cur) { main.innerHTML = `<p class="muted brnote">${esc(bridgeBusy() || 'opening it…')}</p>`; return; }
+  if (!cur.instrument) { main.innerHTML = `<p class="brnote"><b>${esc(cur.name)}</b> is an effect: it changes a sound rather than making one. Choose an instrument.</p>`; return; }
+  const sp = BR.spec, opt = (v, t) => `<option value="${v}"${String(sp.step) === String(v) ? ' selected' : ''}>${t}</option>`;
+  main.innerHTML = `<div class="brhead"><b>${esc(cur.name)}</b><span class="muted small">instrument</span><span class="grow"></span><button class="b s" type="button" data-a="window">Show its window</button></div>
+    <p class="small muted">Choose its sound (a preset) in its own window, on your desktop, and close the window; what it plays then is what is sampled.</p>
+    <div class="brform">
+      <label class="wide"><span>Name</span><input data-k="name" maxlength="60" value="${esc(sp.name)}"></label>
+      <label><span>Goes to</span><select data-k="family">${FAMILIES.map(f => `<option${f === sp.family ? ' selected' : ''}>${f}</option>`).join('')}</select></label>
+      <label><span>From</span><input data-k="from" value="${esc(sp.from)}" maxlength="4"></label><label><span>To</span><input data-k="to" value="${esc(sp.to)}" maxlength="4"></label>
+      <label><span>A note every</span><select data-k="step">${opt(1, 'semitone')}${opt(2, '2 semitones')}${opt(3, '3 semitones')}${opt(4, '4 semitones')}${opt(6, '6 semitones')}${opt(12, 'octave')}</select></label>
+      <label><span>Velocity</span><input data-k="velocity" type="number" min="1" max="127" value="${sp.velocity}"></label>
+      <label><span>Held for (s)</span><input data-k="hold" type="number" min=".05" max="10" step=".1" value="${sp.hold}"></label>
+      <label><span>Then its release (s)</span><input data-k="tail" type="number" min="0" max="10" step=".1" value="${sp.tail}"></label>
+    </div>
+    <p class="small muted" id="brEst"></p>
+    <div class="btnrow"><button class="b dark" type="button" data-a="sample">Sample it</button><span class="small muted" id="brBusy">${esc(bridgeBusy())}</span></div>
+    <div id="brDone"></div>`;
+  const est = () => {
+    const lo = noteOf(sp.from), hi = noteOf(sp.to), n = lo !== null && hi !== null && hi >= lo ? Math.floor((hi - lo) / +sp.step) + 1 : 0;
+    $('#brEst').textContent = n ? `${n} notes, about ${Math.round(n * (+sp.hold + +sp.tail))} s of sound, into ${folderOk() ? '' : 'the library folder\'s '}Instruments/${sp.family}/${sp.name || '…'}` : 'From and To are notes, like C1 and C7 (C4 is middle C)';
+    main.querySelector('[data-a="sample"]').disabled = !n || BR.busy || !folderOk() || !sp.name.trim();
+  };
+  main.querySelectorAll('[data-k]').forEach(i => i.oninput = () => { sp[i.dataset.k] = i.value; est(); });
+  main.querySelector('[data-a="window"]').onclick = async () => { try { await bridgePost('/editor', {}); } catch (e) { showSaved(e.message); } };
+  main.querySelector('[data-a="sample"]').onclick = sampleWithBridge;
+  est();
+  const done = $('#brDone');
+  if (!folderOk()) {
+    done.append(el('p', 'small', '<b class="warn">The notes are saved in your library folder: connect it first.</b>'));
+    const c = el('button', 'b s'); c.type = 'button'; c.textContent = 'Connect library folder…'; c.onclick = async () => { await connectFolder(); renderBridge(); }; done.append(c);
+  } else if (BR.done) {
+    const d = BR.done;
+    done.append(el('p', 'brok', `<b>${d.n} notes saved</b> in ${esc(d.dir.split('/').join(' / '))}${d.silent.length ? `<br><span class="small muted">No sound at ${esc(d.silent.join(', '))}: left out</span>` : ''}`));
+    const row = el('div', 'btnrow'), mk = el('button', 'b dark'), sh = el('button', 'b');
+    mk.type = sh.type = 'button'; mk.dataset.a = 'instrument'; mk.textContent = 'Make an instrument from it…'; sh.textContent = 'Show it in the Library';
+    mk.onclick = () => makeInstrument(d.dir); sh.onclick = () => { $('#bridgeDlg').close(); FOLD.dir = d.dir; FOLD.q = ''; showView('library'); };
+    row.append(mk, sh); done.append(row);
+  }
+}
+async function sampleWithBridge() {
+  const sp = BR.spec, base = `Instruments/${sp.family}/${sp.name.replace(/[<>:"/\\|?*]/g, '').trim().slice(0, 60)}`;
+  BR.busy = true; BR.done = null; renderBridge();
+  try {
+    const r = await bridgePost('/sample', { name: sp.name, from: sp.from, to: sp.to, step: +sp.step, velocity: +sp.velocity, hold: +sp.hold, tail: +sp.tail });
+    let dir = base; for (let k = 2; await existsAt(dir); k++) dir = `${base} ${k}`;   // (sampled again: a folder of its own, not mixed in)
+    for (const f of r.files) await writeAt(`${dir}/${f.file}`, Uint8Array.from(atob(f.wav), c => c.charCodeAt(0)));
+    await folderDirs(); await scanFolder();
+    BR.done = { dir, n: r.files.length, silent: r.silent };
+  } catch (e) { showSaved(`sampling failed: ${e.message}`); }
+  BR.busy = false; renderBridge();
+}
+$('#brClose').onclick = () => $('#bridgeDlg').close();
+$('#bridgeDlg').addEventListener('close', () => clearTimeout(BR.timer));
 
 // ---------- SAMPLES: the song's samples and multisamples ----------
 // a sample taken out of the song: the multisamples that used it lose that zone, and the tracks that played it go back to the piano
@@ -2940,4 +3108,4 @@ document.addEventListener('pointerdown', () => { if (!S.ctx) audio(); }, { once:
   restoreFolder();
 })();
 requestAnimationFrame(frame);
-window.studio = { st, S, A, R, useFolder: h => connectFolder(h), FOLD };   // for tests and curious hands in the console
+window.studio = { st, S, A, R, useFolder: h => connectFolder(h), FOLD, bridgeCommand };   // for tests and curious hands in the console

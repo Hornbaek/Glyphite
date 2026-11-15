@@ -23,7 +23,7 @@ jobs:
   test:
     # pinned: ubuntu-latest moved to 26.04 (November 2026), where the pinned Playwright cannot install Chromium
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,15 +40,17 @@ jobs:
           python-version: '3.12'
       - name: Install Playwright
         run: |
-          pip install playwright==1.56.0 pillow numpy
+          pip install playwright==1.56.0 pillow numpy pedalboard==0.9.26
           python -m playwright install --with-deps chromium
+          # a VST3 instrument for the sound studio's plugin bridge (tests/bridge.py): DISTRHO's Kars
+          sudo apt-get install -y --no-install-recommends dpf-plugins-vst3
       - name: Smoke-test every game in both renderers
         run: python3 tests/smoke.py --all
       - name: Smoke-test every game on a phone-sized touch screen
         run: python3 tests/smoke.py --all --renderers 2d --phone
       # The editor's LEVELS tab end to end, and every Space Mouse sector can still be finished (a map edit that walls off
       # a goal or leaves a crumb out of reach fails here).
-      - name: Level editor, Space Mouse levels, the pixel lab, the sound studio and the art gallery
+      - name: Level editor, Space Mouse levels, the pixel lab, the sound studio (and its plugin bridge) and the art gallery
         run: |
           python3 tests/editor_levels.py
           python3 games/spacemouse/tests/reach.py --res 1
@@ -62,6 +64,7 @@ jobs:
           python3 tests/engine_look.py
           python3 tests/lab.py
           python3 tests/studio.py
+          python3 tests/bridge.py
           python3 tests/art_gallery.py
       - uses: actions/upload-artifact@v4
         if: always()

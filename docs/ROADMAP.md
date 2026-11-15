@@ -52,6 +52,9 @@ Done: the engine's 16-bit Sampler, the studio at /studio/, songs saved on the si
 - ~~**Sound libraries and pad variations**~~ (HISTORY 68): zips, folders, SFZ, Decent Sampler and SoundFont 2 into kits; a card picker; round robin and random variations
   in the engine. Next: velocity layers on a pad (a sample per velocity range), a melodic library (SFZ, Decent Sampler, SoundFont presets) as a multisample, Ableton drum racks
   (gzipped XML: readable), the library's sounds in the SAMPLES view too.
+- ~~**Plugins sampled through the bridge**~~ (HISTORY 70): `tools/pixelite_bridge.py`, Sample a plugin…, Make an instrument from it…. Next: velocity layers (a
+  layer per velocity, once pads and multisamples have them), sampling effects (a sound through a plugin, kept), loop points found for sustained sounds, a
+  plugin's preset saved beside its samples, and a real installer (an .exe) if the PowerShell command proves awkward.
 - ~~**A library folder on the computer**~~ (HISTORY 69): connect, set up, the Library view, Sort the Inbox, `tools/library.mjs`. Next: tags and favourites kept in the folder
   (a small JSON beside the README), a kit saved back into `Drum kits/` as SFZ, waveforms on the cards, and sorting by listening (a sound's kind from its sound when its name says nothing).
 - ~~**MIDI files**~~ (HISTORY 51, 52): import a .mid into tracks, export the song as .mid (`tools/midi.mjs` too); pitch bend and the volume and

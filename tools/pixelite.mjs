@@ -190,6 +190,8 @@ function build(only, { minify = false } = {}) {
   // the portal: static pages and the shared assembler
   if (existsSync(join(ROOT, 'portal'))) cpSync(join(ROOT, 'portal'), DIST, { recursive: true });
   write(join(DIST, 'assets/assemble.mjs'), read('tools/assemble.mjs'));
+  // the SOUND STUDIO's plugin bridge: the studio puts it into the PowerShell command that starts it
+  write(join(DIST, 'studio/pixelite_bridge.py'), read('tools/pixelite_bridge.py'));
   // the idea bank's data (the page and the Worker's API both read it)
   write(join(DIST, 'ideas/ideas.json'), read('docs/ideas.json'));
   // engine sources for the editor

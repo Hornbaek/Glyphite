@@ -29,14 +29,14 @@ portal/                 the website: game list (index.html), editor (edit/: tune
                         vendor/ (codemirror, pixel-snapper)
 worker/                 the Cloudflare Worker: Access login check + static site + idea bank API (ideas.js) + songs API (songs.js)
                         wrangler.jsonc: its config (incl. the D1 binding)     migrations/: the D1 schema
-tools/                  pixelite.mjs (CLI: build, new, list, serve), library.mjs (sort sound files into the studio's library layout), assemble.mjs (page assembler, shared with the
+tools/                  pixelite.mjs (CLI: build, new, list, serve), library.mjs (sort sound files into the studio's library layout), pixelite_bridge.py (the studio's plugin bridge: VST3s and SoundFonts sampled into WAVs), assemble.mjs (page assembler, shared with the
                         editor), ideas.mjs (docs/ideas.json → docs/IDEAS.md), changes.mjs (HISTORY.md → What's new), thumbnail.py
                         (--auto picks the best frame), pixelsprite.py (pixel art → sprites), snap.mjs (Pixel Snapper: AI art
                         → its true grid; build-snapper.sh rebuilds it), normalmap.mjs (sprite normal maps), pixelfont.py
                         (the HUD font), sheetcheck.py (check an AI art sheet before cutting it), song.mjs (studio songs → a game's songs.js), midi.mjs (MIDI files ↔ songs),
                         art.mjs (the art pipeline: versions, palette, sprites with normals → a game's pipeline.js),
                         art_capture.py (a picture of the running game at one pixel per cell: style references, map seeds)
-tests/                  smoke.py (any game, both renderers), lab.py (the PIXEL LAB), studio.py (the SOUND STUDIO and its sound),
+tests/                  smoke.py (any game, both renderers), lab.py (the PIXEL LAB), studio.py (the SOUND STUDIO and its sound), bridge.py (its plugin bridge),
                         node/ (unit tests: build, editor patches, Access, pixel tools, songs)
 docs/                   ARCHITECTURE (how it works), HISTORY, LESSONS, ROADMAP (the plan), ENGINE_PLAN (STATUS at its top: what is done, what is next), IDEAS (the idea bank),
                         TESTING, DEPLOY
@@ -120,6 +120,10 @@ title, game = the project, data = the song as JSON, updated_at, updated_by). A s
 - **The library folder** (Library view, Chrome or Edge): the owner's sounds in a folder on their computer, laid out by `LAYOUT` (Inbox, Drum kits, One-shots/<kind>, Instruments/<family>,
   SoundFonts, Recordings, README.txt); **Sort the Inbox** places what is dropped there (`planSort` in `library-core.mjs`). When the owner hands a session files to sort, run
   `node tools/library.mjs plan <files>` to show where each goes, then `sort <files> --out sorted.zip` and give them the zip to unzip into the folder. Plugins (VST3, AU) cannot be used: say so.
+- **Plugins** (VST3, Kontakt…) cannot run in a page or a game, so they are **sampled**: `tools/pixelite_bridge.py` plays one note by note into WAVs (`sample`, with
+  pedalboard; a `.sf2` through FluidSynth), and `serve` is what the studio's Library ▸ Sample a plugin… talks to on the owner's computer (its Copy the start command
+  holds the script). Notes named `<name> C4.wav` in `Instruments/<family>/<name>/` become a multisample with Make an instrument from it…. To sample something for the
+  owner in a session: `python3 tools/pixelite_bridge.py sample <source> --name "…" --out <dir>`, then `node tools/library.mjs sort <dir> --out x.zip`.
 - **MIDI files**: the studio's File menu opens a .mid as a new song (you choose which instruments) and exports the song as one; `node tools/midi.mjs list|import <file.mid>`
   / `export <file.song.json>` do the same from a session (notes, instruments, tempo, loop; not effects, automation or samples).
 - A session may also write a song itself: use the **`pixelite-song`** skill (it plans the song, writes it as code, checks its levels
