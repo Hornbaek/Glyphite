@@ -4,6 +4,7 @@
   "name": "Pip walks",
   "asset": "pip",
   "base": "002",
+  "brief": "Pip, a small grey mouse astronaut: a round glass space helmet around a grey mouse head with one big pink ear, a stubby orange-and-white spacesuit, short legs with small boots, a long thin pink tail curling behind; walking to the right, full body",
   "note": "Pip's walk cycle for the animation bake-off (docs/ANIMATION.md). The rig is fitted by hand to pip/002 (idle, 28 x 32, facing right). Two key poses, a contact and a passing pose; the other two are their mirrors (near and far limbs swapped).",
   "rig": {
     "version": 1,

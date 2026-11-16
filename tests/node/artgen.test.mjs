@@ -128,6 +128,20 @@ test('make --pose --align: the base frame goes first as "the same character", th
   await assert.rejects(make('g', 'barrel', { root, brief: 'b', align: '009', generate }), /version 009 of barrel has no recorded lattice/);
 });
 
+test('make --guide: the pose guide goes second, is named as a guide in the prompt, and is recorded with the references', async () => {
+  const root = repo(), seen = [];
+  const generate = async o => { seen.push(o); return { png: modelPicture(BARREL), keyed: null }; };
+  const asset = { id: 'barrel', name: 'Barrel', class: 'prop', target: { w: 10, h: 10 }, k: .5, place: 'floor', char: null, live: null };
+  await make('g', 'barrel', { root, brief: 'a barrel', generate, asset });
+  const guide = join(root, 'guide.png'); writeFileSync(guide, toPNG(sprite(['rr', 'gg'], 8)));
+  await make('g', 'barrel', { root, brief: 'a barrel', from: '001', align: '001', pose: 'tipped over', guide, generate });
+  assert.deepEqual(seen[1].refs.slice(0, 2).map(r => r.name), ['base.png', 'guide.png']);
+  assert.ok(seen[1].prompt.includes('Image 2 is a POSE GUIDE, not art') && seen[1].prompt.includes('New pose: tipped over. The pose guide shows it exactly'));
+  assert.deepEqual(loadAssets('g', root)[0].versions[1].meta.refs.slice(0, 2), [{ path: 'assets/barrel/001/raw.png', role: 'base' }, { path: 'guide.png', role: 'guide' }]);
+  await assert.rejects(make('g', 'barrel', { root, brief: 'b', from: '001', guide, generate }), /--guide needs --pose/);
+  await assert.rejects(make('g', 'barrel', { root, brief: 'b', from: '001', pose: 'x', guide: join(root, 'nope.png'), generate }), /no pose guide at/);
+});
+
 test('make: a brief becomes draft versions with the prompt, references, API and snap recorded; nothing goes live', async () => {
   const root = repo(), calls = [], log = [];
   const generate = async o => { calls.push(o); return { png: modelPicture(BARREL), model: 'fixture-model', params: { size: '1024x1024' }, requestId: 'req_fixture', keyed: null }; };

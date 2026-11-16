@@ -4,7 +4,7 @@
 // person looks at preview.png and approves with `art.mjs promote`.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { ROOT, artDir, readJSON, loadAssets, loadStyle, loadPalette } from './lib.mjs';
 import { nearest, rgbOf } from './palette.mjs';
 import { blank, toPNG, fromPNG, crop, upscale, bbox, binarize, removeKey, padTo } from './image.mjs';
@@ -19,6 +19,8 @@ const REFS_FOR = { character: ['hero', 'env'], prop: ['props', 'env'], tile: ['e
 const ROLE_TEXT = { hero: 'the main character: its proportions, outline and shading', props: 'the objects of the game: their size, outline and shading',
   base: 'the same character, drawn before: keep its design, proportions, size, colours, outline and its place in the picture exactly, and change only the pose as described below',
   draft: 'the draft to refine: keep its design, proportions, colours and pose, and redraw it cleaner and sharper as pixel art',
+  guide: 'a POSE GUIDE, not art: coloured lines are the bones of the character in its new pose (the near limbs orange-red, the far limbs blue, the body, neck and head green with the head as a green ring, the tail purple, the yellow line points where the face looks) over a grey silhouette, at the very place and size the character must have. Draw the character of the first image in exactly this pose, there; draw nothing of the guide itself (no lines, dots, grey or white)',
+  neighbour: 'an approved frame of the same animation, next to this one: keep the character exactly like it; only the pose moves on',
   env: 'the walls and floors: the surfaces and colours', mood: 'a stretch of the game with its light', seed: 'the place this will stand in: its colours and light' };
 const REF_BG = [40, 40, 48];
 
@@ -51,7 +53,7 @@ export function buildPrompt({ style, cls, brief, target, palette, refs, keyed, m
     `Draw it on a pixel grid of exactly ${target.w} x ${target.h} squares: the whole subject is only ${target.w} squares wide and ${target.h} squares tall, so every square is a big flat block of one colour (no anti-aliasing, no blur, no gradients, no dithering) and the shape must stay simple and readable at that size.${cls === 'character' ? ' Thin parts such as legs, arms and tails are at least two squares wide. The dark outline is one square wide and runs round the whole silhouette only, not between the parts of the body.' : ''}`,
     `Use only these colours, or ones very close: ${palette.join(' ')}.`,
     `Side view, one subject, centred and filling most of the picture, ${keyed ? 'on a flat solid #FF00FF magenta background (exactly that colour, and no magenta or pink in the subject)' : 'on a transparent background'}. No text, no shadow on the ground, no frame, nothing else.`,
-    pose ? `New pose: ${pose.trim()}` : '',
+    pose ? `New pose: ${pose.trim().replace(/([^.!?])$/, '$1.')}${refs.some(r => r.role === 'guide') ? ' The pose guide shows it exactly: follow its bones, where the limbs are and which of them is in front, and keep the character at the place and size of the guide.' : ''}` : '',
     mapNotes ? `The place it belongs to: ${mapNotes}` : '',
     note ? `Change from the version before it: ${note.trim()}` : '',
   ].filter(Boolean).join('\n\n');
@@ -111,7 +113,7 @@ export async function snapToTarget(png, { target, palette, snap = realSnap, anch
 // Make `n` candidate versions of an asset. `generate` and `snap` can be replaced (the tests do); `log` receives progress lines.
 export async function make(game, id, o) {
   const { root = ROOT, n = 1, from: from0 = null, align: align0 = null, frame = null, pose = '', api = 'openai', model, quality, map = null, parent = null, note = '', mood = false, dry = false, keyed = false,
-    maxCalls = null, asset: newAsset = null, generate = null, snap = realSnap, size = 1024, log = () => {} } = o;
+    maxCalls = null, asset: newAsset = null, guide = null, extraRefs = [], generate = null, snap = realSnap, size = 1024, log = () => {} } = o;
   const style = loadStyle(game, root); if (!style || !style.styleParagraph) throw new Error(`games/${game}/art/style/style.json needs a styleParagraph`);
   const cur = loadAssets(game, root).find(a => a.id === id), asset = cur ? cur.asset : newAsset;
   if (!asset) throw new Error(`${id} is a new asset: give --class, --target WxH and --k (and --place, --char, --name)`);
@@ -135,7 +137,10 @@ export async function make(game, id, o) {
   if (!brief || !brief.trim()) throw new Error('a brief is needed: --brief "what to draw"');
   const base = from ? join(artDir(game, root), 'assets', id, from, 'raw.png') : null;
   if (from && !existsSync(base)) throw new Error(`version ${from} of ${id} has no raw.png to refine`);
-  const refs = [...(base ? [{ file: base, role: pose ? 'base' : 'draft' }] : []), ...pickRefs(game, asset.class, { map, mood, root })].slice(0, MAX_REFS), ad = adapter(api), mdl = model || ad.defaultModel;
+  if (guide && !existsSync(guide)) throw new Error(`no pose guide at ${guide}`);
+  if (guide && !pose) throw new Error('--guide needs --pose: say in words what the guide shows (the model reads both)');
+  const refs = [...(base ? [{ file: base, role: pose ? 'base' : 'draft' }] : []), ...(guide ? [{ file: guide, role: 'guide' }] : []), ...extraRefs,
+    ...pickRefs(game, asset.class, { map, mood, root })].slice(0, MAX_REFS), ad = adapter(api), mdl = model || ad.defaultModel;
   const ctx = { style, cls: asset.class, brief, target: asset.target, palette: pal, refs, mapNotes: map ? mapNotesOf(game, map, root) : '', note, pose };
   const done = [];
   let calls = 0, fresh = !cur, useKey = keyed || api === 'flux';
@@ -164,7 +169,7 @@ export async function make(game, id, o) {
     }
     const v = writeVersion(game, id, { sprite: fit.png, raw: res.png, root, asset: fresh ? newAsset : null, meta: {
       kind: 'generated', parent: parent_, frame: frame || undefined, brief, prompt, map: map || undefined, note,
-      refs: refs.map(r => ({ path: r.file.slice(artDir(game, root).length + 1).replaceAll('\\', '/'), role: r.role })),
+      refs: refs.map(r => ({ path: relative(r.file.startsWith(artDir(game, root)) ? artDir(game, root) : root, r.file).replaceAll('\\', '/'), role: r.role })),
       api: { provider: ad.name, model: res.model || mdl, params: res.params || {}, requestId: res.requestId || null, usage: res.usage || null },
       snap: { pixelSize: fit.pixelSize, tries: fit.tries, size: fit.size, palette: map ? `map ${map}` : 'master', colors: pal.length, lattice: fit.lattice, alignedTo: align || undefined, cut: fit.cut || undefined },
       target: { class: asset.class, w: asset.target.w, h: asset.target.h } } });

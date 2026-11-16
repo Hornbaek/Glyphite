@@ -9,7 +9,7 @@
 //   node tools/art.mjs map <game> <map> --seed seed.png [--colors 14]   a map's seed piece, and its sub-palette (inside the master)
 //   node tools/art.mjs promote-ref <game> <asset> <NNN> --role props [--replace refs/props.png]   an approved version becomes a style reference
 //   node tools/art.mjs make <game> <asset> --brief "..." [--n 3] [--map m] [--parent 002] [--api openai|flux] [--model m] [--quality q]
-//        [--from 003 (refine that draft: its picture is sent as the first reference)] [--pose "walking, left foot forward" (the same character, new pose) --align 003 (snap on that version's grid and place: animation frames)] [--frame walk1 (tag it as a candidate for that frame; with --pose it starts from the first frame, aligned)] [--note "what to change"] [--mood] [--key] [--max-calls N] [--dry]   [--class prop --target 12x11 --k .5 --place floor --char j --name ".."]
+//        [--from 003 (refine that draft: its picture is sent as the first reference)] [--pose "walking, left foot forward" (the same character, new pose) --align 003 (snap on that version's grid and place: animation frames)] [--frame walk1 (tag it as a candidate for that frame; with --pose it starts from the first frame, aligned)] [--guide f3.png (a pose guide drawn by the rig, portal/assets/rig-core.mjs, in the base picture's framing: tools/art/bakeoff.mjs writes them)] [--note "what to change"] [--mood] [--key] [--max-calls N] [--dry]   [--class prop --target 12x11 --k .5 --place floor --char j --name ".."]
 //                                                           generate candidates through an image API: drafts with a contact sheet each
 //   node tools/art.mjs resnap <game> <asset> <NNN>          snap a version's raw picture again (free: no API call), recording its lattice
 //   node tools/art.mjs check-keys [--api openai|flux]       one free call per API: does its key work
@@ -25,7 +25,7 @@
 //   node tools/art.mjs check [game]                         what is wrong with an art/ folder (all games that have one)
 //   node tools/art.mjs build <game> [--check]               games/<id>/pipeline.js from the live versions (--check: only compare)
 import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, readdirSync } from 'node:fs';
-import { join, basename } from 'node:path';
+import { join, basename, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ROOT, artDir, readJSON, writeJSON, toHex, fromHex, lum, loadAssets, loadStyle, loadPalette, nextVersion, validate, ID_RE, FRAME_RE, REF_ROLES } from './art/lib.mjs';
 import { spriteFromPNG, pngFromSprite, normalRows, normalsPNG, contactSheet, pipelineJs, emitRows } from './art/sprite.mjs';
@@ -179,7 +179,7 @@ async function main(argv) {
       newAsset = { id, name: o.name || id, class: o.class, target: { w, h }, k: +o.k, place: o.place || 'floor', char: o.char || null, live: null };
     }
     const { make } = await import('./art/make.mjs'), st = loadStyle(game) || {};
-    const res = await make(game, id, { brief: o.brief, n: +(o.n || 1), api, model: o.model || (st.gen && st.gen.model), quality: o.quality || (st.gen && st.gen.quality), map: o.map || null, parent: o.parent || null, from: o.from || null, align: o.align || null, frame: o.frame || null, pose: o.pose || '',
+    const res = await make(game, id, { brief: o.brief, n: +(o.n || 1), api, model: o.model || (st.gen && st.gen.model), quality: o.quality || (st.gen && st.gen.quality), map: o.map || null, parent: o.parent || null, from: o.from || null, align: o.align || null, frame: o.frame || null, pose: o.pose || '', guide: o.guide ? resolve(o.guide) : null,
       note: o.note || '', mood: !!o.mood, dry: !!o.dry, keyed: !!o.key, maxCalls: o['max-calls'] ? +o['max-calls'] : +(o.n || 1) + 1, asset: newAsset, log: m => console.log(m) });
     const ok = res.filter(r => r.ok); if (!o.dry) console.log(`${ok.length} of ${res.length} candidate(s) made as drafts. Look at each preview.png, then: node tools/art.mjs promote ${game} ${id} <NNN>  (or reject)`);
     process.exit(!o.dry && !ok.length ? 1 : 0);
