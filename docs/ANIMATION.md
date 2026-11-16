@@ -110,3 +110,33 @@ Next experiments, cheapest first:
 2. **ToonCrafter per segment** (two keys at a time, at 512 x 512 cells cut from the base framing), to avoid its drift over a long loop.
 3. **Lock what should not move**: paste the base's helmet and head over every frame (registered on the head), recolour the suit to the base's colours.
 4. **PixelLab's skeleton animation**, when its key is there.
+
+## Space Whiskers: Pip at the game's scale (2026-11-16)
+
+The owner made `games/spacewhiskers/` the remake's working folder, with a new SNES sprite sheet of Pip (`ref/pip.png`: idle, a 4-frame walk, a
+4-frame run, slide, crouch, jump, wall slide) and the rule that **its grid is the scale of the whole game**. Measured: one art pixel is 2.86
+picture pixels, so Pip stands 49 game pixels tall (shown 1:1), and the sheet is about a 384 x 216 screen (`games/spacewhiskers/NOTES.md`).
+`tools/art.py` cut every drawing (the checkerboard painted into the sheet flood-filled away up to the outlines), `tools/frames.mjs` snapped
+them all at that one pixel size onto a 32-colour palette and one 57 x 55 canvas (feet on the bottom row, helmet over the idle's) as the 13
+frames of the asset `pip`.
+
+New in the bake-off for this: an animation can name approved drawings as its **keys** (`"keyframes"` in its JSON), and the methods draft only
+the frames between them, keeping the keys as they are: `sheet-keys` (the keys alone), `toon-inbetween` (ToonCrafter through the keys) and
+`wan-segments` (Wan 2.7 with one key as the first frame and the next as the last, one clip per pair). A base without a lattice (the owner's own
+art) is allowed; the methods that draw in a generated base's framing say so.
+
+The walk (`art/anims/pip-walk.json`): the sheet's 4 walk frames as keys on frames 0, 2, 4, 6 of 8; the rig fitted to the idle frame.
+
+| method | calls | head jitter | mean step | seam | what it looks like |
+|---|---|---|---|---|---|
+| sheet-keys | 0 | 0.4 px | | | the owner's 4-frame walk, the reference |
+| keys + ToonCrafter | 1 (68 s) | 0.4 px | 42% | 17% | frames 1 and 3 good; frame 5 loses the scarf and darkens, frame 7 shrinks a little |
+| keys + Wan 2.7 | 4 (25-43 s each) | 0.5 px | 51% | 63% | every in-between is clearly the sheet's Pip; the scarf jumps between flutter shapes |
+| PixelLab from the rig | 3 generations | 1.0 px | 45% | 60% | a full, even stride that follows the rig, Pip intact; the scarf drawn narrower |
+
+(Colour drift is measured against the idle frame, and the sheet's own walk keys already differ from it by 0.32, so it says little here.)
+
+**At 49 pixels the size problem is gone**: PixelLab, whose walk barely moved at 28 x 32, now draws a clear stride from the rig. The keys from the
+owner's sheet are the strongest drawings; the in-betweens are where the methods differ, and the scarf (a big, loose shape) is what drifts most.
+Next: the owner picks a way; then the run, the jump sequence (take-off, rise, apex, fall, land) and an idle with breathing, the same way.
+

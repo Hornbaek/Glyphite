@@ -440,7 +440,7 @@ export function compare(game, anim, { root = ROOT, scale = 4 } = {}) {
     const off = Math.max(...c.frames.filter(f => !f.empty).map(f => f.offPalette || 0));
     report.push(`| ${m} | ${meta.model} | ${meta.calls} | ${got.length}/${n} | ${c.heightRange} | ${c.footRange} | ${c.headJitter.toFixed(1)} | ${(c.meanStep * 100).toFixed(0)}% | ${c.seam == null ? '' : (c.seam * 100).toFixed(0) + '%'} | ${c.meanDrift == null ? '' : c.meanDrift.toFixed(2)} | ${(off * 100).toFixed(1)}% | ${c.warnings.length} |`);
     const tokens = meta.usage.reduce((t, u) => t + ((u.usage && (u.usage.total_tokens || (u.usage.input_tokens || 0) + (u.usage.output_tokens || 0))) || 0), 0);
-    details.push(`## ${m}`, '', `${meta.provider} ${meta.model}, quality ${meta.quality}, ${meta.calls} call(s)${tokens ? `, ${tokens} tokens in all (as the API reported)` : ''}${meta.usage.some(u => u.params && u.params.cost != null) ? `, ${meta.usage.reduce((t, u) => t + (u.params.cost || 0), 0)} credits` : ''}.`, '',
+    details.push(`## ${m}`, '', `${[meta.provider, meta.model].filter(Boolean).join(' ')}${API_OF[m] === 'openai' ? `, quality ${meta.quality}` : ''}, ${meta.calls} call(s)${tokens ? `, ${tokens} tokens in all (as the API reported)` : ''}${meta.usage.some(u => u.params && u.params.cost != null) ? `, ${meta.usage.reduce((t, u) => t + (u.params.cost || 0), 0)} credits` : ''}.`, '',
       ...(c.warnings.length ? c.warnings.map(w => `- ${w}`) : ['- no warnings']), ...meta.frames.filter(f => f.error).map(f => `- frame ${f.i} failed: ${f.error}`), '');
   }
   report.push('', `compare.png: the guides, then ${rows.slice(1).map(r => r.name).join(', then ')} (at ${scale}x, then at game size on the right).`);
