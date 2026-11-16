@@ -1597,6 +1597,8 @@ image-to-video may be tried, and frames are made at game size. All of it is in `
 - The screen: the level picture is a zoomed-out overview ("the actual gameplay should be a smaller frame"), and the screen is a notch bigger than
   the SNES's ("we don't have to follow snes 1:1, but still keep the screen small"): **480 x 270**, exactly 4x on a 1080p monitor, Pip a fifth of its
   height. In `games/spacewhiskers/NOTES.md` and `art/style/style.json`.
+- > "Lets just proceed with the other animations you had in mind" — Pip's run (8 frames), idle (4) and jump (8, once) drawn by PixelLab from rigs
+  that share the walk's (`rigFrom`); the jump drawn twice (the first put the arms over the helmet). 12 generations of the trial in all.
 
 ## Published versions (claude.ai artifact "Regolith Lander")
 

@@ -8,7 +8,7 @@
   "motion": "jump",
   "brief": "Pip, an orange mouse with big pink ears in a round glass space helmet, a white spacesuit with grey boots and gloves, a red-and-silver air tank on his back, a long red scarf flying behind him and a thin orange tail; jumping, facing right, full body",
   "action": "jumping",
-  "note": "Pip's jump, played once: crouch, take-off, rise, top (knees tucked), fall (legs reaching down), landing crouch, back up. The game moves the sprite; the drawing stays on its canvas.",
+  "note": "Pip's jump, played once: crouch, take-off, rise, top (knees tucked), fall (legs reaching down), landing crouch, back up. The game moves the sprite; the drawing stays on its canvas. The arms stay below the helmet (the first draft threw them up in front of the face, and PixelLab turned Pip towards the viewer).",
   "anim": {
     "frames": 8,
     "fps": 12,
@@ -44,7 +44,7 @@
         "frame": 2,
         "label": "rise",
         "ease": "smooth",
-        "action": "taking off and rising: legs stretched straight down and a little behind, arms thrown up and forward",
+        "action": "taking off and rising: legs stretched straight down and a little behind, arms swung forward to shoulder height (below the helmet), the face in profile",
         "pose": {
           "root": {
             "dx": 0,
@@ -58,9 +58,9 @@
             "knee_far": -80,
             "ankle_far": 0,
             "toe_far": -100,
-            "elbow_near": -70,
+            "elbow_near": -20,
             "hand_near": -10,
-            "elbow_far": 110,
+            "elbow_far": 160,
             "hand_far": 10
           }
         }
@@ -69,7 +69,7 @@
         "frame": 4,
         "label": "apex",
         "ease": "smooth",
-        "action": "at the top of the jump: knees tucked up in front, arms out to the sides",
+        "action": "at the top of the jump: knees tucked up in front, arms out to the sides below the helmet, the face in profile",
         "pose": {
           "root": {
             "dx": 0,
@@ -82,9 +82,9 @@
             "knee_far": -150,
             "ankle_far": 100,
             "toe_far": -130,
-            "elbow_near": -20,
+            "elbow_near": 10,
             "hand_near": 0,
-            "elbow_far": 160,
+            "elbow_far": -190,
             "hand_far": 0,
             "tail2": 50
           }
@@ -94,7 +94,7 @@
         "frame": 6,
         "label": "fall",
         "ease": "smooth",
-        "action": "falling: legs reaching down for the floor, arms up above the shoulders",
+        "action": "falling: legs reaching down for the floor, arms out at shoulder height for balance, below the helmet, the face in profile",
         "pose": {
           "root": {
             "dx": 0,
@@ -107,9 +107,9 @@
             "knee_far": -95,
             "ankle_far": 20,
             "toe_far": -95,
-            "elbow_near": -100,
+            "elbow_near": -15,
             "hand_near": 0,
-            "elbow_far": 80,
+            "elbow_far": -160,
             "hand_far": 0,
             "tail2": 0
           }

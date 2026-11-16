@@ -145,5 +145,15 @@ owner's sheet are the strongest drawings; the in-betweens are where the methods 
   outside the outline, and PixelLab, drawing from the idle frame, copied them. `cleanEdges` (`tools/art/image.mjs`) now takes every light, colourless
   pixel off a drawing's edge until the edge is the outline (coloured edges such as the tail and the scarf stay), and loose specks; Pip's frames
   were brought in again with it (`tools/frames.mjs`), and every method's frames go through it.
-PixelLab is the way for Pip's animations. Next: the run, the jump sequence (take-off, rise, apex, fall, land) and an idle with breathing, from rigs.
+PixelLab is the way for Pip's animations.
+
+**Run, idle and jump** (PixelLab from rigs, 3 generations each; `art/anims/pip-run.json`, `pip-idle.json`, `pip-jump.json` take the walk's rig
+with `"rigFrom": "pip-walk"`, and each names its PixelLab motion, `"motion"`):
+- **Run**, 8 frames at 12 fps: a forward lean, long strides, the scarf streaming back; steady throughout.
+- **Idle**, 4 frames at 6 fps: a calm breath (body and helmet a pixel up), the scarf rippling; the steadiest of all (colour drift 0.02).
+- **Jump**, 8 frames at 12 fps, played once: crouch, take-off, rise, top (knees tucked), fall, landing. The first draft threw both arms up
+  over the helmet and PixelLab turned Pip towards the viewer; with the arms kept at shoulder height he stays in profile. Its height and head
+  move by design (crouching and stretching), so animcheck's warnings there are the jump itself.
+Each has a `preview.gif` in its `bakeoff/<anim>/pixellab-skeleton/`. Next: the owner approves them; the approved frames become the asset
+`pip`'s frames (walk1..8, run1..8, idle1..4, jump1..8) and `animFromAsset` plays them in the game.
 
