@@ -1,0 +1,51 @@
+{
+  "format": "pixelite-anim",
+  "asset": "pip",
+  "base": "001",
+  "rigFrom": "pip-walk",
+  "id": "pip-idle",
+  "name": "Pip breathes",
+  "motion": "idle",
+  "brief": "Pip, an orange mouse with big pink ears in a round glass space helmet, a white spacesuit with grey boots and gloves, a red-and-silver air tank on his back, a long red scarf flying behind him and a thin orange tail; standing still facing right, breathing calmly, full body",
+  "action": "standing and breathing",
+  "note": "Pip standing: a slow breath (the body and helmet rise a pixel, the arms ease out a little), 4 frames at 6 fps, looping.",
+  "anim": {
+    "frames": 4,
+    "fps": 6,
+    "loop": true,
+    "keys": [
+      {
+        "frame": 0,
+        "label": "out",
+        "ease": "smooth",
+        "action": "standing at rest, breathed out",
+        "pose": {
+          "root": {
+            "dx": 0,
+            "dy": 0
+          },
+          "angles": {}
+        }
+      },
+      {
+        "frame": 2,
+        "label": "in",
+        "ease": "smooth",
+        "action": "standing, breathed in: the chest and helmet a pixel higher, the arms a little out from the body",
+        "pose": {
+          "root": {
+            "dx": 0,
+            "dy": -0.9
+          },
+          "angles": {
+            "knee_near": 88,
+            "knee_far": -88,
+            "elbow_near": 84,
+            "elbow_far": -84,
+            "tail2": 26
+          }
+        }
+      }
+    ]
+  }
+}

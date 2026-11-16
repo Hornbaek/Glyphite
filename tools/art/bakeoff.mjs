@@ -45,6 +45,8 @@ const STRIP = { cols: 4, cw: 384, ch: 512, size: '1536x1024' };
 // everything a method needs, read once: the rig and its poses, the base version, the style, palette and target
 export function load(game, anim, root = ROOT) {
   const dir = artDir(game, root), A = readJSON(join(dir, 'anims', `${anim}.json`));
+  // one character, one rig: an animation can take its rig (and its PixelLab joint map) from another ("rigFrom": "pip-walk")
+  if (A.rigFrom) { const F = readJSON(join(dir, 'anims', `${A.rigFrom}.json`)); A.rig ??= F.rig; A.pixellab ??= F.pixellab; }
   const errs = R.validateRig(A.rig); if (errs.length) throw new Error(`${anim}: ${errs.join('; ')}`);
   const a = loadAssets(game, root).find(x => x.id === A.asset); if (!a) throw new Error(`${anim} draws asset ${A.asset}, which is not there`);
   const v = a.versions.find(x => x.n === A.base); if (!v) throw new Error(`${A.asset} has no version ${A.base}`);
@@ -377,7 +379,7 @@ async function pixellabSkeleton(L, G, o) {
   const m = 'pixellab-skeleton', res = { model: 'pixellab animate-with-skeleton-v3', frames: [], calls: 0, usage: [], prompts: [] }, dir = join(L.out, m, 'raw'), map = L.A.pixellab;
   if (!map) { res.frames = L.poses.map((_, i) => ({ i, error: `${L.anim}.json has no "pixellab" joint map` })); return res; }
   const description = L.brief.replace(/;.*$/, ''), first = R.full(L.rig, {}), keypoints = L.poses.map(p => pixellabKeypoints(L.rig, map, p));
-  res.prompts.push({ i: 'all', prompt: `${description} | action: walk | ${map.direction || 'east'}, side view | ${keypoints.length} skeletons` });
+  res.prompts.push({ i: 'all', prompt: `${description} | action: ${L.A.motion || 'walk'} | ${map.direction || 'east'}, side view | ${keypoints.length} skeletons` });
   if (o.dry) return res;
   mkdirSync(dir, { recursive: true });
   const saved = L.poses.map((_, i) => join(dir, `f${i}.png`));
@@ -387,7 +389,7 @@ async function pixellabSkeleton(L, G, o) {
     if (o.maxCalls != null && o.calls.n >= o.maxCalls) { res.frames = L.poses.map((_, i) => ({ i, error: 'not made: --max-calls reached' })); return res; }
     o.calls.n++; res.calls++;
     try {
-      const r = await (o.pixellab || pixellab).animateWithSkeleton({ first: toPNG(L.sprite), firstKeypoints: pixellabKeypoints(L.rig, map, first), keypoints, description, action: 'walk', direction: map.direction || 'east', view: 'side', log: msg => o.log(`${m}: ${msg}`) });
+      const r = await (o.pixellab || pixellab).animateWithSkeleton({ first: toPNG(L.sprite), firstKeypoints: pixellabKeypoints(L.rig, map, first), keypoints, description, action: L.A.motion || 'walk', direction: map.direction || 'east', view: 'side', log: msg => o.log(`${m}: ${msg}`) });
       frames = r.frames; res.usage.push({ i: 'all', usage: r.usage, params: { endpoint: 'animate-with-skeleton-v3', frames: keypoints.length }, requestId: r.jobId });
       frames.forEach((f, i) => writeFileSync(saved[i], f));
       o.log(`${m}: ${frames.length} frames (job ${r.jobId})`);
