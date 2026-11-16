@@ -268,7 +268,7 @@ async function wanSegments(L, G, o) {
     try { files = await replicateRun(L, o, m, res.model, { prompt: say, negative_prompt: 'camera movement, zoom, walking out of the picture, scenery, floor, shadow, text, blur, smooth 3D shading', first_frame: replicate.dataURI(A0.png), last_frame: replicate.dataURI(B0.png), duration: 2, resolution: '720p', enable_prompt_expansion: false }, res, [join(dir, `${name}.mp4`)]); }
     catch (e) { for (let j = 1; j < gap; j++) res.frames.push({ i: (a.frame + j) % n, error: e.message }); o.log(`${m} ${name}: ${e.message}`); continue; }
     writeFileSync(join(dir, `${name}.mp4`), files[0]);
-    const all = videoFrames(files[0], join(tmpdir(), `bakeoff-${m}-${name}-${Date.now()}`)), ps = A0.f * all[0].width / 512;
+    const all = (o.videoFrames || videoFrames)(files[0], join(tmpdir(), `bakeoff-${m}-${name}-${Date.now()}`)), ps = A0.f * all[0].width / 512;
     for (let j = 1; j < gap; j++) {
       const i = (a.frame + j) % n, at = Math.round(j * (all.length - 1) / gap);
       try { writeFileSync(join(dir, `f${i}.png`), toPNG(all[at])); const fit = await fromClip(L, o, all[at], ps); res.frames.push({ i, png: fit.png, raw: join(dir, `f${i}.png`), cut: fit.cut, shift: fit.shift }); }
@@ -294,7 +294,7 @@ async function toonInbetween(L, G, o) {
   let files;
   try { files = await replicateRun(L, o, m, res.model, input, res, [join(dir, 'clip.mp4')]); } catch (e) { res.frames = L.poses.map((_, i) => ({ i, error: e.message })); o.log(`${m}: ${e.message}`); return res; }
   const clip = files[files.length - 1]; writeFileSync(join(dir, 'clip.mp4'), clip);
-  const all = videoFrames(clip, join(tmpdir(), `bakeoff-${m}-${Date.now()}`)), at = pick(all.length + (L.animation.loop ? 1 : 0), n);
+  const all = (o.videoFrames || videoFrames)(clip, join(tmpdir(), `bakeoff-${m}-${Date.now()}`)), at = pick(all.length + (L.animation.loop ? 1 : 0), n);
   o.log(`${m}: ${all.length} frames in the clip, taking ${at.join(', ')}`);
   for (let i = 0; i < n; i++) {
     try {
@@ -322,7 +322,7 @@ async function toonBetweenKeys(L, G, o) {
   let files;
   try { files = await replicateRun(L, o, m, res.model, input, res, [join(dir, 'clip.mp4')]); } catch (e) { res.frames.push(...L.poses.map((_, i) => ({ i, error: e.message })).filter(f => !L.keys.some(k => k.frame === f.i))); o.log(`${m}: ${e.message}`); return res; }
   const clip = files[files.length - 1]; writeFileSync(join(dir, 'clip.mp4'), clip);
-  const all = videoFrames(clip, join(tmpdir(), `bakeoff-${m}-${Date.now()}`)), per = all.length / L.keys.length, ps = pics[0].f * all[0].width / 512;
+  const all = (o.videoFrames || videoFrames)(clip, join(tmpdir(), `bakeoff-${m}-${Date.now()}`)), per = all.length / L.keys.length, ps = pics[0].f * all[0].width / 512;
   o.log(`${m}: ${all.length} frames in the clip, ${per.toFixed(1)} per key`);
   // the clip passes through the keys at even steps: key j at j * per; a frame between key j (frame a) and the next (frame b) is that far along
   L.keys.forEach((k, j) => {
@@ -348,7 +348,7 @@ async function wanLoop(L, G, o) {
   let files;
   try { files = await replicateRun(L, o, m, res.model, input, res, [join(dir, 'clip.mp4')]); } catch (e) { res.frames = L.poses.map((_, i) => ({ i, error: e.message })); o.log(`${m}: ${e.message}`); return res; }
   writeFileSync(join(dir, 'clip.mp4'), files[0]);
-  const all = videoFrames(files[0], join(tmpdir(), `bakeoff-${m}-${Date.now()}`)), at = pick(all.length, n);
+  const all = (o.videoFrames || videoFrames)(files[0], join(tmpdir(), `bakeoff-${m}-${Date.now()}`)), at = pick(all.length, n);
   o.log(`${m}: ${all.length} frames in the clip, taking ${at.join(', ')}`);
   const keyed = at.map(k => binarize(removeKey(all[k], GREEN, 120)));
   const bs = frameStats(L.sprite), hs = keyed.map(k => (bbox(k) || { h: 0 }).h).filter(Boolean).sort((a, b) => a - b), ps = hs.length ? hs[hs.length >> 1] / bs.height : 1;
@@ -402,11 +402,11 @@ const RUN = { 'openai-frame': (L, G, o) => perFrame(L, 'openai', G, o), 'flux-fr
 const API_OF = { 'openai-frame': 'openai', 'flux-frame': 'flux', 'openai-strip': 'openai', 'rd-animation': 'replicate', 'toon-inbetween': 'replicate', 'wan-loop': 'replicate', 'pixellab-skeleton': 'pixellab', 'sheet-keys': null, 'wan-segments': 'replicate' };
 
 // run the methods; each method's frames and record go to <out>/<method>/
-export async function bakeoff(game, anim, { methods = METHODS, root = ROOT, dry = false, quality = 'low', model = null, maxCalls = 20, generate = null, replicate: rep = null, pixellab: pl = null, reuse = false, snap = realSnap, log = () => {} } = {}) {
+export async function bakeoff(game, anim, { methods = METHODS, root = ROOT, dry = false, quality = 'low', model = null, maxCalls = 20, generate = null, replicate: rep = null, pixellab: pl = null, videoFrames: vf = null, reuse = false, snap = realSnap, log = () => {} } = {}) {
   const L = load(game, anim, root), G = writeGuides(L), calls = { n: 0 }, done = {};
   for (const m of methods) {
     if (!RUN[m]) throw new Error(`unknown method ${m} (${METHODS.join(', ')})`);
-    const res = await RUN[m](L, G, { dry, quality, model, maxCalls, calls, generate, replicate: rep, pixellab: pl, reuse, snap, log });
+    const res = await RUN[m](L, G, { dry, quality, model, maxCalls, calls, generate, replicate: rep, pixellab: pl, videoFrames: vf, reuse, snap, log });
     if (dry) { for (const p of res.prompts) log(`--- ${m}, frame ${p.i} ---\n${p.prompt}\n`); continue; }
     const d = join(L.out, m); mkdirSync(d, { recursive: true });
     // the frames of an earlier cut go (a frame this cut did not make must not linger); the raw pictures in raw/ stay

@@ -2,7 +2,7 @@
 // or a sheet of it (the strip), so every frame must come back as Pip's sprite, on the same pixels, and the comparison must say so.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, cpSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, cpSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ROOT, readJSON } from '../../tools/art/lib.mjs';
@@ -194,14 +194,10 @@ test('keyPicture: a key blown up by a whole number onto a green square, centred'
 
 test('wan-segments: one clip per pair of neighbouring keys (first and last frame), the in-betweens from its middle, the keys kept', async () => {
   const root = repoSW(), L = load('spacewhiskers', 'pip-walk', root), seen = [];
-  // a fake clip: 9 frames of the first key's picture (ffmpeg makes it from PNGs, so the test needs ffmpeg like the method does)
-  const { execFileSync } = await import('node:child_process'), d = mkdtempSync(join(tmpdir(), 'clip-'));
-  const { keyPicture } = await import('../../tools/art/bakeoff.mjs'), pic = keyPicture(L.keys[0].im);
-  for (let i = 0; i < 9; i++) writeFileSync(join(d, `${String(i).padStart(3, '0')}.png`), pic.png);
-  execFileSync('ffmpeg', ['-v', 'error', '-framerate', '8', '-i', join(d, '%03d.png'), '-c:v', 'libx264', '-qp', '0', '-pix_fmt', 'yuv444p', join(d, 'c.mp4')]);
-  const clip = readFileSync(join(d, 'c.mp4'));
-  const fake = { run: async (model, input) => { seen.push({ model, input }); return { output: 'u', id: `p${seen.length}`, metrics: { predict_time: 1 }, version: 'v' }; }, download: async () => [clip] };
-  const r = await bakeoff('spacewhiskers', 'pip-walk', { root, methods: ['wan-segments'], replicate: fake, maxCalls: 9 });
+  // a fake clip: 9 frames of the first key's picture (the unit tests run where ffmpeg may not be, so its frames are handed over as pictures)
+  const { keyPicture } = await import('../../tools/art/bakeoff.mjs'), pic = fromPNG(keyPicture(L.keys[0].im).png);
+  const fake = { run: async (model, input) => { seen.push({ model, input }); return { output: 'u', id: `p${seen.length}`, metrics: { predict_time: 1 }, version: 'v' }; }, download: async () => [Buffer.from('mp4')] };
+  const r = await bakeoff('spacewhiskers', 'pip-walk', { root, methods: ['wan-segments'], replicate: fake, videoFrames: () => Array.from({ length: 9 }, () => pic), maxCalls: 9 });
   assert.equal(r.calls, 4, 'four pairs round the loop');
   assert.ok(seen.every(s => s.model === 'wan-video/wan-2.7-i2v' && s.input.first_frame && s.input.last_frame));
   const out = join(root, 'games', 'spacewhiskers', 'art', 'bakeoff', 'pip-walk', 'wan-segments'), b = frameStats(L.sprite);
