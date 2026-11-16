@@ -28,7 +28,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { ROOT, artDir, readJSON, writeJSON, loadAssets, loadStyle, loadPalette } from './lib.mjs';
-import { blank, toPNG, fromPNG, crop, bbox, binarize, removeKey, upscale } from './image.mjs';
+import { blank, toPNG, fromPNG, crop, bbox, binarize, removeKey, upscale, cleanEdges } from './image.mjs';
 import * as replicate from './gen/replicate.mjs';
 import * as pixellab from './gen/pixellab.mjs';
 import { rgbOf, nearest } from './palette.mjs';
@@ -114,7 +114,7 @@ async function fitFixed(png, { ps, palette, target, foot, headX, snap }) {
   const sub = crop(im, b.x - 2, b.y - 2, b.w + 4, b.h + 4);
   const out = binarize(fromPNG(await snap(toPNG(sub), { pixelSize: ps, palette: palette.map(h => h.slice(1)).join(',') }))), ob = bbox(out);
   if (!ob) throw new Error('snapping removed everything');
-  const r = register(crop(out, ob.x, ob.y, ob.w, ob.h), { w: target.w, h: target.h, foot, headX });
+  const fig = crop(out, ob.x, ob.y, ob.w, ob.h); cleanEdges(fig); const r = register(fig, { w: target.w, h: target.h, foot, headX });
   return { png: toPNG(onPalette(r.im, palette)), cut: r.cut, shift: r.shift, size: [ob.w, ob.h] };
 }
 
@@ -393,8 +393,8 @@ async function pixellabSkeleton(L, G, o) {
       o.log(`${m}: ${frames.length} frames (job ${r.jobId})`);
     } catch (e) { res.frames = L.poses.map((_, i) => ({ i, error: e.message })); o.log(`${m}: ${e.message}`); return res; }
   }
-  // the frames come back at the sprite's own size and on its pixels: only the palette is made sure of (the placement is the model's, kept as it is)
-  frames.forEach((f, i) => res.frames.push({ i, png: toPNG(onPalette(binarize(fromPNG(f)), L.palette)), raw: saved[i] }));
+  // the frames come back at the sprite's own size and on its pixels: the palette is made sure of and stray edge pixels go (the placement is the model's)
+  frames.forEach((f, i) => { const im = onPalette(binarize(fromPNG(f)), L.palette); cleanEdges(im); res.frames.push({ i, png: toPNG(im), raw: saved[i] }); });
   return res;
 }
 

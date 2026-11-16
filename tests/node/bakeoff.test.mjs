@@ -6,7 +6,7 @@ import { mkdtempSync, mkdirSync, cpSync, readFileSync, existsSync } from 'node:f
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ROOT, readJSON } from '../../tools/art/lib.mjs';
-import { blank, toPNG, fromPNG, upscale, removeKey } from '../../tools/art/image.mjs';
+import { blank, toPNG, fromPNG, upscale, removeKey, cleanEdges } from '../../tools/art/image.mjs';
 import { bakeoff, load, frameActions, baseMap, register } from '../../tools/art/bakeoff.mjs';
 import { frameStats } from '../../tools/art/animcheck.mjs';
 
@@ -204,4 +204,16 @@ test('wan-segments: one clip per pair of neighbouring keys (first and last frame
   for (let i = 0; i < 8; i++) assert.ok(existsSync(join(out, `f${i}.png`)), `f${i}`);
   const mid = frameStats(fromPNG(readFileSync(join(out, 'f1.png'))));
   assert.equal(mid.foot, b.foot); assert.ok(Math.abs(mid.height - frameStats(L.keys[0].im).height) <= 2, 'an in-between back at the game\'s pixel size');
+});
+
+test('cleanEdges: light grey strays outside the outline go, the outline and coloured edges (a tail) stay, loose specks go', () => {
+  const im = blank(12, 10), put = (x, y, c) => im.data.set([...c, 255], (y * 12 + x) * 4);
+  for (let y = 2; y < 8; y++) for (let x = 3; x < 9; x++) put(x, y, (x === 3 || x === 8 || y === 2 || y === 7) ? [10, 10, 14] : [240, 240, 240]);  // white inside a dark outline
+  put(2, 4, [200, 200, 205]); put(1, 4, [228, 228, 228]);   // a grey ring and the checkerboard beyond it, outside the outline
+  put(9, 5, [230, 120, 30]); put(10, 5, [230, 120, 30]);    // an orange tail sticking out
+  put(11, 0, [200, 200, 200]); put(0, 9, [20, 20, 20]);      // loose specks
+  const n = cleanEdges(im), a = (x, y) => im.data[(y * 12 + x) * 4 + 3];
+  assert.equal(a(2, 4), 0); assert.equal(a(1, 4), 0); assert.equal(a(11, 0), 0); assert.equal(a(0, 9), 0);
+  assert.equal(a(3, 4), 255, 'the outline stays'); assert.equal(a(5, 5), 255, 'the white inside stays'); assert.equal(a(10, 5), 255, 'the tail stays');
+  assert.equal(n, 4);
 });

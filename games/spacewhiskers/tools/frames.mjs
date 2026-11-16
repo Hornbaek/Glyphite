@@ -6,7 +6,7 @@
 // The sheet's grid is the game's (the owner: "I want that to be the scale of the whole game"): one art pixel of the sheet, about
 // PIXEL picture pixels, is one game pixel. Every drawing is snapped at that one pixel size (so no frame comes out bigger or smaller
 // than another), a palette is curated from all of them together (art/style/palette.json), each is snapped again on it, and all are put on
-// one canvas: the feet on its bottom row and the helmet over the idle frame's helmet, the way an animator registers drawings. Then they
+// one canvas, stray pixels of the cut taken off its edges: the feet on its bottom row and the helmet over the idle frame's helmet, the way an animator registers drawings. Then they
 // become versions of the asset `pip` (kind "imported": the owner's own art) and its frames, in the sheet's order. Run it once; it refuses
 // to add a second set (delete art/assets/pip to start again).
 import { readFileSync, writeFileSync, existsSync, mkdirSync, mkdtempSync } from 'node:fs';
@@ -15,7 +15,7 @@ import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { snap } from '../../../tools/snap.mjs';
-import { fromPNG, toPNG, blank, crop, bbox, binarize } from '../../../tools/art/image.mjs';
+import { fromPNG, toPNG, blank, crop, bbox, binarize, cleanEdges } from '../../../tools/art/image.mjs';
 import { curate, histogram, nearest, rgbOf } from '../../../tools/art/palette.mjs';
 import { frameStats } from '../../../tools/art/animcheck.mjs';
 import { writeJSON, readJSON } from '../../../tools/art/lib.mjs';
@@ -43,7 +43,9 @@ async function main() {
   const counts = new Map(); for (const im of Object.values(first)) for (const [c, k] of histogram(im.data)) counts.set(c, (counts.get(c) || 0) + k);
   const palette = curate(counts, COLORS);
   // 2. every drawing on that palette, then registered: feet on the bottom row, helmet over the idle frame's helmet
-  const snapped = {}; for (const [n] of FRAMES) snapped[n] = onPalette(await snapAt(src[n], palette), palette);
+  // the cut leaves light grey blends of the sheet's checkerboard outside the outline: they go (cleanEdges), then the frame is trimmed again
+  const snapped = {};
+  for (const [n] of FRAMES) { const im = onPalette(await snapAt(src[n], palette), palette); cleanEdges(im); const b = bbox(im); snapped[n] = crop(im, b.x, b.y, b.w, b.h); }
   const st = Object.fromEntries(Object.entries(snapped).map(([n, im]) => [n, frameStats(im)]));
   const headX = st.idle.head.x, left = Math.max(...FRAMES.map(([n]) => Math.round(headX - st[n].head.x) < 0 ? -Math.round(headX - st[n].head.x) : 0));
   const place = n => ({ dx: Math.round(headX - st[n].head.x) + left, dy: 0 });

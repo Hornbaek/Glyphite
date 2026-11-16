@@ -23,7 +23,7 @@ story/               the story (moved from games/spacemouse/story): STORY_V2.md 
                      Swedish originals, FEEDBACK.md, COVER_PROMPT.md, CHAPTER_COVERS.md
 art/                 the art pipeline (docs/ART_PIPELINE.md)
   style/               style.json (the scale, the classes, the style paragraph), palette.json (32 colours of Pip's drawings)
-  assets/pip/          Pip on the game grid, 57 x 55 canvas, feet on the bottom row: 13 frames from the sheet (idle, walk1-4,
+  assets/pip/          Pip on the game grid, 57 x 54 canvas, feet on the bottom row: 13 frames from the sheet (idle, walk1-4,
                        run1-4, slide, crouch, jump, wall_slide), versions 001-013, kind "imported"
   anims/pip-walk.json  Pip's walk: the rig fitted to the idle frame, PixelLab's joint map, the sheet's 4 walk frames as keys of 8
   bakeoff/pip-walk/    the drafted walks, one folder per method, compare.png, preview.gif, report.md

@@ -69,3 +69,39 @@ export function padTo(im, w, h, anchor = 'centre') {
   }
   return out;
 }
+
+// Stray pixels a cut-out leaves round a drawing: where the ground was taken away, its light grey blends with the outline survive
+// just outside the dark outline. A pixel on the edge of the drawing (touching transparency) that is light and colourless (not the
+// outline, not a coloured part like a tail or a scarf) goes, again and again until the edge is the outline itself; then loose specks
+// smaller than `speck` pixels go too. → the number of pixels removed
+export function cleanEdges(im, { lum = 70, chroma = 40, passes = 4, speck = 4 } = {}) {
+  const { width: W, height: H, data } = im, on = i => data[i * 4 + 3] >= 128; let removed = 0;
+  for (let p = 0; p < passes; p++) {
+    const go = [];
+    for (let i = 0; i < W * H; i++) {
+      if (!on(i)) continue;
+      const x = i % W, y = (i / W) | 0, edge = x === 0 || y === 0 || x === W - 1 || y === H - 1 || !on(i - 1) || !on(i + 1) || !on(i - W) || !on(i + W);
+      if (!edge) continue;
+      const o = i * 4, r = data[o], g = data[o + 1], b = data[o + 2];
+      if (.3 * r + .59 * g + .11 * b > lum && Math.max(r, g, b) - Math.min(r, g, b) < chroma) go.push(i);
+    }
+    if (!go.length) break;
+    for (const i of go) data[i * 4 + 3] = 0;
+    removed += go.length;
+  }
+  // loose specks: 8-connected pieces smaller than `speck`
+  const lab = new Int32Array(W * H); let n = 0;
+  for (let s = 0; s < W * H; s++) {
+    if (!on(s) || lab[s]) continue;
+    const piece = [s]; lab[s] = ++n;
+    for (let k = 0; k < piece.length; k++) {
+      const i = piece[k], x = i % W, y = (i / W) | 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const xx = x + dx, yy = y + dy, j = yy * W + xx;
+        if (xx >= 0 && yy >= 0 && xx < W && yy < H && on(j) && !lab[j]) { lab[j] = n; piece.push(j); }
+      }
+    }
+    if (piece.length < speck) { for (const i of piece) data[i * 4 + 3] = 0; removed += piece.length; }
+  }
+  return removed;
+}

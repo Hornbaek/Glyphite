@@ -117,7 +117,7 @@ The owner made `games/spacewhiskers/` the remake's working folder, with a new SN
 4-frame run, slide, crouch, jump, wall slide) and the rule that **its grid is the scale of the whole game**. Measured: one art pixel is 2.86
 picture pixels, so Pip stands 49 game pixels tall (shown 1:1), and the sheet is about a 384 x 216 screen (`games/spacewhiskers/NOTES.md`).
 `tools/art.py` cut every drawing (the checkerboard painted into the sheet flood-filled away up to the outlines), `tools/frames.mjs` snapped
-them all at that one pixel size onto a 32-colour palette and one 57 x 55 canvas (feet on the bottom row, helmet over the idle's) as the 13
+them all at that one pixel size onto a 32-colour palette and one 57 x 54 canvas (feet on the bottom row, helmet over the idle's) as the 13
 frames of the asset `pip`.
 
 New in the bake-off for this: an animation can name approved drawings as its **keys** (`"keyframes"` in its JSON), and the methods draft only
@@ -138,5 +138,12 @@ The walk (`art/anims/pip-walk.json`): the sheet's 4 walk frames as keys on frame
 
 **At 49 pixels the size problem is gone**: PixelLab, whose walk barely moved at 28 x 32, now draws a clear stride from the rig. The keys from the
 owner's sheet are the strongest drawings; the in-betweens are where the methods differ, and the scarf (a big, loose shape) is what drifts most.
-Next: the owner picks a way; then the run, the jump sequence (take-off, rise, apex, fall, land) and an idle with breathing, the same way.
+**The owner's pick: PixelLab** ("by far the best one ... the animation is very smooth"), with two notes, both fixed the same day:
+- "His leg bends a bit awkward": the rig's passing pose bent the lifted knee hard and kicked the boot back, which on legs about eight pixels long
+  reads as a knee bending the wrong way. The walk now takes short steps (legs 35 degrees apart at contact) and lifts the knee gently.
+- "The edges of the character have a lot of stray pixels from removing the background": light grey blends of the sheet's checkerboard survived just
+  outside the outline, and PixelLab, drawing from the idle frame, copied them. `cleanEdges` (`tools/art/image.mjs`) now takes every light, colourless
+  pixel off a drawing's edge until the edge is the outline (coloured edges such as the tail and the scarf stay), and loose specks; Pip's frames
+  were brought in again with it (`tools/frames.mjs`), and every method's frames go through it.
+PixelLab is the way for Pip's animations. Next: the run, the jump sequence (take-off, rise, apex, fall, land) and an idle with breathing, from rigs.
 

@@ -1585,11 +1585,15 @@ image-to-video may be tried, and frames are made at game size. All of it is in `
   in from `games/spacemouse/story/`; `NOTES.md`. No `game.json` yet, so the build skips the folder; the art tools now work without one.
 - **The scale**: the sprite sheet's grid (2.86 picture pixels per art pixel) is the game's; Pip is 49 pixels tall, shown 1:1, the screen about
   384 x 216 (`art/style/style.json`). The level picture is drawn finer and with a smaller Pip: noted as open.
-- **Pip on the game grid** (`tools/frames.mjs`): 13 frames snapped at one pixel size, one 32-colour palette, one 57 x 55 canvas, registered,
+- **Pip on the game grid** (`tools/frames.mjs`): 13 frames snapped at one pixel size, one 32-colour palette, one 57 x 54 canvas, registered,
   as the asset `pip`.
 - **Drafting from keys** (`tools/art/bakeoff.mjs`): `"keyframes"` in an animation; `sheet-keys`, `toon-inbetween` with keys, `wan-segments`.
   The walk: the sheet's 4 frames as keys, in-betweens by ToonCrafter (1 call) and Wan 2.7 (4 calls), and PixelLab's walk from the rig (3
-  generations), which at 49 pixels now strides properly. Results in `docs/ANIMATION.md`; the owner picks.
+  generations), which at 49 pixels now strides properly. Results in `docs/ANIMATION.md`.
+- > "Pixellab is by far the best one! His leg bends a bit akward, but other than that, the animation is very smooth! The edges of the
+  > character have a lot of stray pixels from "removing the background" that does not look good."
+  Shorter steps and a gentler knee in the rig; `cleanEdges` takes the checkerboard's grey blends off every drawing's edge (Pip's frames brought in
+  again with it); PixelLab ran again (3 generations).
 
 ## Published versions (claude.ai artifact "Regolith Lander")
 

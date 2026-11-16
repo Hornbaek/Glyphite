@@ -17,10 +17,10 @@
   "target": {
     "class": "character",
     "w": 57,
-    "h": 55
+    "h": 54
   },
   "note": "ref/frames/pip_walk4.png on the game grid (tools/frames.mjs)",
-  "created": "2026-11-16T10:34:53.202Z",
+  "created": "2026-11-16T10:48:32.159Z",
   "by": "claude-session",
   "frame": "walk4"
 }
