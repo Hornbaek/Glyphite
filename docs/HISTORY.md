@@ -1594,6 +1594,9 @@ image-to-video may be tried, and frames are made at game size. All of it is in `
   > character have a lot of stray pixels from "removing the background" that does not look good."
   Shorter steps and a gentler knee in the rig; `cleanEdges` takes the checkerboard's grey blends off every drawing's edge (Pip's frames brought in
   again with it); PixelLab ran again (3 generations).
+- The screen: the level picture is a zoomed-out overview ("the actual gameplay should be a smaller frame"), and the screen is a notch bigger than
+  the SNES's ("we don't have to follow snes 1:1, but still keep the screen small"): **480 x 270**, exactly 4x on a 1080p monitor, Pip a fifth of its
+  height. In `games/spacewhiskers/NOTES.md` and `art/style/style.json`.
 
 ## Published versions (claude.ai artifact "Regolith Lander")
 

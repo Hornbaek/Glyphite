@@ -7,11 +7,13 @@ so the build and the site skip the folder); the art and the story come first.
 **The scale (the owner's rule).** "I really want the resolution of the game to be what these images are. I want that to be the scale of the
 whole game." The grid of the sprite sheet `ref/pip.png` is the game's: one of its art pixels (2.86 picture pixels) is one game pixel, for
 every sprite, prop and tile alike. Pip stands **49 game pixels** tall and is drawn and shown 1:1 (k .5, not halved as Space Mouse's Pip is).
-The sheet as a whole is about 380 x 213 game pixels: a **384 x 216** screen (16:9) is the natural size. Written into `art/style/style.json`.
+The **screen is 480 x 270** game pixels (the owner: "a notch bigger. We don't have to follow SNES 1:1, but still keep the screen small"): 16:9,
+a quarter of 1080p each way, so every game pixel is exactly 4 x 4 screen pixels on a 1080p monitor (8 x 8 on 4K); Pip is a fifth of its height
+(5.5 of him tall). The sprite sheet itself is about 380 x 213 game pixels (384 x 216 was the first idea). Written into `art/style/style.json`.
 The level picture `ref/levelinspiration.png` is a **zoomed-out overview** (the owner, 2026-11-16: "the level inspiration should be seen as
-a bit zoomed out. The actual gameplay should be a smaller frame"): Pip is about 70 of its pixels tall, so one game screen of 384 x 216 covers about
-549 x 309 of it, half its width and half its height. On screen Pip is about a fifth of the height (4.4 Pips tall), against about a ninth in the
-picture. Levels are drawn at the sprite sheet's scale; the picture shows what they look like, not how much of them fits on a screen.
+a bit zoomed out. The actual gameplay should be a smaller frame"): Pip is about 70 of its pixels tall, so one 480 x 270 game screen covers about
+686 x 386 of it, about two thirds of its width and height. Levels are drawn at the sprite sheet's scale; the picture shows what they look
+like, not how much of them fits on a screen.
 
 ## What is where
 

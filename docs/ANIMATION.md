@@ -115,7 +115,7 @@ Next experiments, cheapest first:
 
 The owner made `games/spacewhiskers/` the remake's working folder, with a new SNES sprite sheet of Pip (`ref/pip.png`: idle, a 4-frame walk, a
 4-frame run, slide, crouch, jump, wall slide) and the rule that **its grid is the scale of the whole game**. Measured: one art pixel is 2.86
-picture pixels, so Pip stands 49 game pixels tall (shown 1:1), and the sheet is about a 384 x 216 screen (`games/spacewhiskers/NOTES.md`).
+picture pixels, so Pip stands 49 game pixels tall (shown 1:1), and the sheet is about 384 x 216; the game's screen is a notch bigger, 480 x 270 (`games/spacewhiskers/NOTES.md`).
 `tools/art.py` cut every drawing (the checkerboard painted into the sheet flood-filled away up to the outlines), `tools/frames.mjs` snapped
 them all at that one pixel size onto a 32-colour palette and one 57 x 54 canvas (feet on the bottom row, helmet over the idle's) as the 13
 frames of the asset `pip`.

@@ -1,7 +1,7 @@
 {
   "format": "pixelite-art-style",
   "pxPerUnit": 2,
-  "note": "pxPerUnit: art pixels per base unit at the default detail (RES 2): one art pixel = one world pixel, so a sprite's k is 1 / pxPerUnit. THE SCALE OF THE GAME (the owner, 2026-11-16): the grid of the sprite sheet ref/pip.png is the game's, one of its art pixels (about 2.86 picture pixels) is one game pixel, for every sprite, prop and tile alike. Pip stands 49 game pixels tall and is shown 1:1 (k .5: not halved, unlike Space Mouse's Pip); the sheet itself is about 380 x 213 game pixels, a 384 x 216 screen. The level picture ref/levelinspiration.png is a zoomed-out overview: one game screen covers about half its width and half its height.",
+  "note": "pxPerUnit: art pixels per base unit at the default detail (RES 2): one art pixel = one world pixel, so a sprite's k is 1 / pxPerUnit. THE SCALE OF THE GAME (the owner, 2026-11-16): the grid of the sprite sheet ref/pip.png is the game's, one of its art pixels (about 2.86 picture pixels) is one game pixel, for every sprite, prop and tile alike. Pip stands 49 game pixels tall and is shown 1:1 (k .5: not halved, unlike Space Mouse's Pip); the sheet itself is about 380 x 213 game pixels. THE SCREEN is 480 x 270 game pixels (16:9, exactly 4x on a 1080p monitor; the owner: \"a notch bigger ... still keep the screen small\"). The level picture ref/levelinspiration.png is a zoomed-out overview: one game screen covers about two thirds of its width and height.",
   "classes": {
     "character": {
       "h": [44, 56],
