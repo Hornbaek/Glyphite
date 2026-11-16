@@ -74,7 +74,7 @@ test('per frame and as a strip: the base picture back gives Pip on the same pixe
   const meta = readJSON(join(out, 'openai-frame', 'meta.json'));
   assert.equal(meta.calls, 8); assert.equal(meta.usage.length, 8); assert.equal(meta.prompts.length, 8);
   const report = readFileSync(join(out, 'report.md'), 'utf8');
-  assert.match(report, /\| openai-frame \| .* \| 8 \| 8\/8 \| 0 \| 0 \| 0\.0 \| 0% \|/);
+  assert.match(report, /\| openai-frame \| .* \| 8 \| 8\/8 \| 0 \| 0 \| 0\.0 \| 0% \| 0% \|/);
   assert.ok(existsSync(join(out, 'compare.png')));
 });
 

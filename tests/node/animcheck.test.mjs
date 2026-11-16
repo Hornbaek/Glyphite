@@ -19,10 +19,10 @@ function figure({ x = 6, w = 8, h = 16, foot = 23, body = PAL[1], head = PAL[2] 
 test('the stats of one frame: box, feet, head, palette', () => {
   const s = frameStats(figure(), { palette: PAL });
   assert.deepEqual(s.box, { x: 6, y: 8, w: 8, h: 16 });
-  assert.equal(s.foot, 23); assert.equal(s.offPalette, 0); assert.equal(s.colours, 2); assert.equal(s.clipped, false);
+  assert.equal(s.foot, 23); assert.equal(s.offPalette, 0); assert.equal(s.colours, 2); assert.deepEqual(s.edges, { left: false, top: false, right: false });
   assert.equal(s.head.x, 9.5);
   assert.ok(frameStats(blank(4, 4)).empty);
-  assert.equal(frameStats(figure({ x: 0 })).clipped, true, 'touching the left edge is clipped');
+  assert.equal(frameStats(figure({ x: 0 })).edges.left, true, 'it touches the left edge');
 });
 
 test('a steady sequence passes; each kind of fault is named with its frame', () => {
@@ -38,7 +38,9 @@ test('a steady sequence passes; each kind of fault is named with its frame', () 
   has(/frame 2: feet on row 20, the ground is row 23/);
   has(/frame 3: \d+% of its pixels are off the palette/);
   has(/frame 3: its colours drift/);
-  has(/frame 4: touches the edge/);
+  has(/frame 4: touches the left edge/);
+  // an edge the anchor touches too is the canvas cut tight, not a cut-off frame
+  const tall = figure({ h: 24 }); assert.deepEqual(checkAnimation([tall, tall], { anchor: tall }).warnings, []);
   has(/the height changes by/);
   has(/the head jumps/);
 });

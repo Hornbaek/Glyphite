@@ -1,0 +1,81 @@
+{
+  "method": "openai-strip",
+  "provider": "openai",
+  "model": "gpt-image-2.6-sunburst",
+  "quality": "low",
+  "made": "2026-11-16T05:05:13.621Z",
+  "calls": 1,
+  "usage": [
+    {
+      "i": "all",
+      "usage": {
+        "input_tokens": 3786,
+        "input_tokens_details": {
+          "image_tokens": 2560,
+          "text_tokens": 1226
+        },
+        "output_tokens": 664,
+        "output_tokens_details": {
+          "image_tokens": 664,
+          "text_tokens": 0
+        },
+        "total_tokens": 4450
+      },
+      "params": {
+        "size": "1536x1024",
+        "quality": "low",
+        "background": "transparent",
+        "output_format": "png"
+      },
+      "requestId": "req_4118f16cab794f5c87824a9a243ea6f6"
+    }
+  ],
+  "frames": [
+    {
+      "i": 0,
+      "raw": "openai-strip/raw/strip.png",
+      "cut": 6
+    },
+    {
+      "i": 1,
+      "raw": "openai-strip/raw/strip.png",
+      "cut": 0
+    },
+    {
+      "i": 2,
+      "raw": "openai-strip/raw/strip.png",
+      "cut": 0
+    },
+    {
+      "i": 3,
+      "raw": "openai-strip/raw/strip.png",
+      "cut": 0
+    },
+    {
+      "i": 4,
+      "raw": "openai-strip/raw/strip.png",
+      "cut": 6
+    },
+    {
+      "i": 5,
+      "raw": "openai-strip/raw/strip.png",
+      "cut": 0
+    },
+    {
+      "i": 6,
+      "raw": "openai-strip/raw/strip.png",
+      "cut": 6
+    },
+    {
+      "i": 7,
+      "raw": "openai-strip/raw/strip.png",
+      "cut": 0
+    }
+  ],
+  "prompts": [
+    {
+      "i": "all",
+      "prompt": "Pixel art for a small, grimy spaceship cargo bay seen from the side, lit by a few warm lamps against deep shadow. Dark one-pixel outline on characters and props, none on the large hull shapes. Flat colour areas with one highlight pixel and one shadow pixel per surface, light from the upper left, no gradients, no dithering, no anti-aliasing. Muted olive, rust, brown and slate with small bright accents (cheese yellow, lamp orange, screen cyan). Chunky, readable silhouettes with little interior detail: a character is about 14 pixels tall in the game but drawn twice as big (28 to 32 art pixels), a prop 8 to 40.\n\nDraw 8 frames of one looping animation of the character in image 1 (Pip, a small grey mouse astronaut: a round glass space helmet around a grey mouse head with one big pink ear, a stubby orange-and-white spacesuit, short legs with small boots, a long thin pink tail curling behind; walking to the right, full body), all on one picture, in a grid of 4 columns and 2 rows: frame 1 top left, then left to right, then the next row.\n\nImage 1 is the character: keep its design, proportions, size, colours and outline exactly in every frame. Image 2 is a sheet of POSE GUIDES, not art, in the same grid: in each cell, coloured lines are the bones of that frame's pose (the near limbs orange-red, the far limbs blue, the body, neck and head green with the head as a green ring, the tail purple, the yellow line points where the face looks) over a grey silhouette. Draw each frame in its cell, in exactly that cell's pose, at the place and size of its guide, every frame standing on the same ground line. Draw nothing of the guides themselves.\n\nThe frames: 1: contact: the near (front) boot steps forward and touches the floor heel first, the far boot is behind on its toe, the far arm swings forward 2: an in-between, part of the way from one pose to the next. From: contact: the near (front) boot steps forward and touches the floor heel first, the far boot is behind on its toe, the far arm swings forward. Towards: passing: the near leg is straight under the body carrying the weight, the far knee is lifted and the far boot passes forward under the body, the body is at its highest, the arms hang. Follow the guide for exactly how far. 3: passing: the near leg is straight under the body carrying the weight, the far knee is lifted and the far boot passes forward under the body, the body is at its highest, the arms hang 4: an in-between, part of the way from one pose to the next. From: passing: the near leg is straight under the body carrying the weight, the far knee is lifted and the far boot passes forward under the body, the body is at its highest, the arms hang. Towards: contact: the far (front) boot steps forward and touches the floor heel first, the near boot is behind on its toe, the near arm swings forward. Follow the guide for exactly how far. 5: contact: the far (front) boot steps forward and touches the floor heel first, the near boot is behind on its toe, the near arm swings forward 6: an in-between, part of the way from one pose to the next. From: contact: the far (front) boot steps forward and touches the floor heel first, the near boot is behind on its toe, the near arm swings forward. Towards: passing: the far leg is straight under the body carrying the weight, the near knee is lifted and the near boot passes forward under the body, the body is at its highest, the arms hang. Follow the guide for exactly how far. 7: passing: the far leg is straight under the body carrying the weight, the near knee is lifted and the near boot passes forward under the body, the body is at its highest, the arms hang 8: an in-between, part of the way from one pose to the next. From: passing: the far leg is straight under the body carrying the weight, the near knee is lifted and the near boot passes forward under the body, the body is at its highest, the arms hang. Towards: contact: the near (front) boot steps forward and touches the floor heel first, the far boot is behind on its toe, the far arm swings forward. Follow the guide for exactly how far.\n\nEach frame is drawn on a pixel grid of exactly 28 x 32 squares: every square a big flat block of one colour (no anti-aliasing, no blur, no gradients, no dithering), the dark outline one square wide around the silhouette.\n\nUse only these colours, or ones very close: #040305 #25232f #5a1d1c #3d3a31 #4c4751 #98161a #3b543d #704640 #695646 #80501d #635c60 #9b4d42 #98541c #46689c #cc1a19 #878052 #8c7f79 #ac7949 #6a9360 #4e9e9c #ed6a59 #de7c72 #769ed6 #d68e2a #eb9b73 #89c076 #c1b2a4 #f0b936 #c8e2fa #fce75f #ffeabf #f8f7f4.\n\nSide view, on a transparent background. No text, no numbers, no grid lines, no frames around the cells, no shadow on the ground."
+    }
+  ]
+}

@@ -1550,6 +1550,27 @@ The owner had a drum library (BPB Cassette 808: three kits of WAVs and a Kontakt
 - Tests: `tests/bridge.py` (the command carries the script whole; the bridge's guards; the studio finds it, opens Kars, samples three notes into the folder, makes the
   instrument), `tests/node/library.test.mjs` (note names, families, the script pastes safely). CI installs pedalboard and `dpf-plugins-vst3`, and runs up to 30 minutes.
 
+## 71. Animation: a pose rig, pose guides, and a bake-off of drawing methods (Claude Code, 2026-11-16)
+
+> "We shall start a new branch with animation (studio?) for the game engine. I have, together with another tool created a plan for making sure AI generated
+> sprites are smooth and well animated. [...] I'm not 100% sure its the smartest way to go, but in the end, we need a workflow to create great looking
+> animations. Perhaps look at other tools online, how do they do it?"
+
+The spec: a skeleton poses the character, an image model draws the whole character in each pose, a person approves frames, the tool exports aligned sheets.
+Agreed with the owner: generation stays in sessions (a live button later), the drawing method is proven first with a bake-off, PixelLab, Retro Diffusion and
+image-to-video may be tried, and frames are made at game size. All of it is in `docs/ANIMATION.md`.
+- **Research**: PixelLab (skeleton animation by a pixel-art model), Ludo.ai (pose and motion presets, animate from video), Retro Diffusion (pixel animation
+  sheets), image-to-video then frames, and the one-strip-from-an-anchor way the owner's sheets were made.
+- **`portal/assets/rig-core.mjs`**: a forward-kinematics rig in sprite pixels, poses interpolated the short way round with an ease per key, mirrored half cycles,
+  the loop seam, and the pose guide picture (near limbs warm, far limbs cool), the same bytes every time. Pip's walk rig: `games/spacemouse/art/anims/pip-walk.json`.
+- **`tools/art/animcheck.mjs`**: height, feet, head jitter, clipping, palette, colour drift, steps and seam, with warnings by frame.
+- **`make --guide`**: a pose guide as the second picture of an edit call.
+- **`tools/art/bakeoff.mjs`**: the same animation through several methods, a comparison sheet and a report. First run: OpenAI per frame (8 calls) and as one
+  strip (1 call). Both keep Pip in place (no frame grows, shrinks or sinks; the loop has no hitch); per frame the suit details shimmer from frame to frame, the strip
+  walks best but draws at its own, larger scale. FLUX was blocked by its regional status host. The owner picks what to try next from the sheet.
+- PixelLab and Replicate need their keys as network secrets; their documentation hosts and `replicate.delivery` were allowed.
+- Tests: `tests/node/rig.test.mjs`, `animcheck.test.mjs`, `bakeoff.test.mjs`, and `--guide` in `artgen.test.mjs`.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

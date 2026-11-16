@@ -180,21 +180,22 @@ export function compare(game, anim, { root = ROOT, scale = 4 } = {}) {
   const L = load(game, anim, root), n = L.poses.length, T = L.asset.target, methods = existsSync(L.out) ? readdirSync(L.out).filter(m => existsSync(join(L.out, m, 'meta.json'))).sort() : [];
   const rows = [{ name: 'guide', frames: L.poses.map(p => R.renderGuide(L.rig, p, { w: T.w * scale, h: T.h * scale, map: { s: scale, ox: 0, oy: 0 }, bg: [24, 26, 34, 255] })), big: true }];
   const report = [`# Bake-off: ${anim}`, '', `${L.A.name || anim}: ${n} frames at ${L.animation.fps} fps${L.animation.loop ? ', looping' : ''}, drawn from ${L.A.asset}/${L.A.base}. Made with \`node tools/art/bakeoff.mjs ${game} ${anim}\`; the numbers come from tools/art/animcheck.mjs.`, ''];
-  report.push('| method | model | calls | frames made | height range | foot range | head jitter | seam | mean drift | off palette | warnings |', '|---|---|---|---|---|---|---|---|---|---|---|');
+  report.push('| method | model | calls | frames made | height range | foot range | head jitter | mean step | seam | mean drift | off palette | warnings |', '|---|---|---|---|---|---|---|---|---|---|---|---|');
   const details = [];
   for (const m of methods) {
     const meta = readJSON(join(L.out, m, 'meta.json')), ims = Array.from({ length: n }, (_, i) => existsSync(join(L.out, m, `f${i}.png`)) ? fromPNG(readFileSync(join(L.out, m, `f${i}.png`))) : null);
     const got = ims.filter(Boolean);
-    rows.push({ name: m, frames: ims });
-    if (!got.length) { report.push(`| ${m} | ${meta.model} | ${meta.calls} | 0 | | | | | | | |`); continue; }
+    if (ims.some(Boolean)) rows.push({ name: m, frames: ims });
+    if (!got.length) { report.push(`| ${m} | ${meta.model} | ${meta.calls} | 0 | | | | | | | | |`); continue; }
     const c = checkAnimation(ims.map(im => im || blank(T.w, T.h)), { palette: L.palette, anchor: L.sprite, loop: L.animation.loop });
     const off = Math.max(...c.frames.filter(f => !f.empty).map(f => f.offPalette || 0));
-    report.push(`| ${m} | ${meta.model} | ${meta.calls} | ${got.length}/${n} | ${c.heightRange} | ${c.footRange} | ${c.headJitter.toFixed(1)} | ${c.seam == null ? '' : (c.seam * 100).toFixed(0) + '%'} | ${c.meanDrift == null ? '' : c.meanDrift.toFixed(2)} | ${(off * 100).toFixed(1)}% | ${c.warnings.length} |`);
+    report.push(`| ${m} | ${meta.model} | ${meta.calls} | ${got.length}/${n} | ${c.heightRange} | ${c.footRange} | ${c.headJitter.toFixed(1)} | ${(c.meanStep * 100).toFixed(0)}% | ${c.seam == null ? '' : (c.seam * 100).toFixed(0) + '%'} | ${c.meanDrift == null ? '' : c.meanDrift.toFixed(2)} | ${(off * 100).toFixed(1)}% | ${c.warnings.length} |`);
     const tokens = meta.usage.reduce((t, u) => t + ((u.usage && (u.usage.total_tokens || (u.usage.input_tokens || 0) + (u.usage.output_tokens || 0))) || 0), 0);
     details.push(`## ${m}`, '', `${meta.provider} ${meta.model}, quality ${meta.quality}, ${meta.calls} call(s)${tokens ? `, ${tokens} tokens in all (as the API reported)` : ''}${meta.usage.some(u => u.params && u.params.cost != null) ? `, ${meta.usage.reduce((t, u) => t + (u.params.cost || 0), 0)} credits` : ''}.`, '',
       ...(c.warnings.length ? c.warnings.map(w => `- ${w}`) : ['- no warnings']), ...meta.frames.filter(f => f.error).map(f => `- frame ${f.i} failed: ${f.error}`), '');
   }
-  report.push('', 'Height range, foot range and head jitter are pixels at game size; seam is the share of pixels that change from the last frame back to the first; drift is how far a frame\'s colours are from the base\'s (0 the same, 1 nothing shared). Lower is steadier, but only looking at the frames play tells whether it is good.', '', ...details);
+  report.push('', `compare.png: the guides, then ${rows.slice(1).map(r => r.name).join(', then ')} (at ${scale}x, then at game size on the right).`);
+  report.push('', 'Height range, foot range and head jitter are pixels at game size; mean step is the share of pixels that change from one frame to the next, seam the same from the last frame back to the first (a seam well above the mean step is a hitch); drift is how far a frame\'s colours are from the base\'s (0 the same, 1 nothing shared). Lower is steadier, but only looking at the frames play tells whether it is good.', '', ...details);
   writeFileSync(join(L.out, 'report.md'), report.join('\n') + '\n');
   // the sheet
   const gap = 6, label = 0, cellW = T.w * scale, W = gap + n * (cellW + gap) + T.w * n + gap * 2, rowH = T.h * scale + gap, H = gap + rows.length * rowH;

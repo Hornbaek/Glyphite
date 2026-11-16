@@ -2,7 +2,7 @@
 // one after the other, measured, so a bad frame is found before it is looked at and methods can be compared on numbers.
 // A frame is an RGBA picture { width, height, data } (tools/art/image.mjs); all frames of one animation share a canvas.
 //   per frame:  box (alpha bbox), height, foot (lowest drawn row), centroid, head (centroid of the top third of the box),
-//               clipped (touches the canvas edge), offPalette (share of pixels not in the palette), colours, drift (how far
+//               edges it touches (left, top, right), clipped (those the anchor does not touch), offPalette (share of pixels not in the palette), colours, drift (how far
 //               its colours are from the anchor's: half the L1 distance of the two colour histograms, 0 same .. 1 nothing shared)
 //   sequence:   heightRange, footRange, headJitter / centroidJitter (largest jump between neighbours, pixels), steps (share of
 //               pixels that change between neighbours), seam (the same from the last frame back to the first), and warnings
@@ -26,7 +26,7 @@ export function frameStats(im, { palette = null } = {}) {
   for (let y = y0; y < top; y++) for (let x = x0; x <= x1; x++) if (data[(y * W + x) * 4 + 3] >= A) { hx += x; hy += y; hn++; }
   return {
     empty: false, pixels: n, box, height: box.h, width: box.w, foot: y1, centroid: { x: sx / n, y: sy / n }, head: { x: hx / hn, y: hy / hn },
-    clipped: x0 === 0 || y0 === 0 || x1 === W - 1, // the bottom row is where a standing character's feet belong
+    edges: { left: x0 === 0, top: y0 === 0, right: x1 === W - 1 }, // the bottom row is where a standing character's feet belong
     offPalette: pal ? off / n : null, colours: hist.size, hist,
   };
 }
@@ -61,7 +61,9 @@ export function checkAnimation(frames, { palette = null, anchor = null, loop = t
   S.forEach((s, i) => {
     if (s.empty) { warnings.push(`frame ${i}: empty`); return; }
     s.drift = an && !an.empty ? histDistance(s.hist, an.hist) : null;
-    if (s.clipped) warnings.push(`frame ${i}: touches the edge of the canvas (cut off?)`);
+    // an edge counts only where the anchor does not touch it too (a canvas cut tight to the character touches it by design)
+    s.clipped = Object.keys(s.edges).filter(e => s.edges[e] && !(an && !an.empty && an.edges[e]));
+    if (s.clipped.length) warnings.push(`frame ${i}: touches the ${s.clipped.join(' and ')} edge of the canvas (cut off?)`);
     if (g != null && Math.abs(s.foot - g) > L.foot) warnings.push(`frame ${i}: feet on row ${s.foot}, the ground is row ${g}`);
     if (an && !an.empty && Math.abs(s.height - an.height) > L.height) warnings.push(`frame ${i}: ${s.height} pixels tall, the anchor ${an.height}`);
     if (s.offPalette != null && s.offPalette > L.offPalette) warnings.push(`frame ${i}: ${(s.offPalette * 100).toFixed(0)}% of its pixels are off the palette`);
@@ -75,7 +77,7 @@ export function checkAnimation(frames, { palette = null, anchor = null, loop = t
     heightRange: range(ok.map(s => s.height)), footRange: range(ok.map(s => s.foot)),
     headJitter: headJ.length ? Math.max(...headJ) : 0,
     centroidJitter: Math.max(0, ...jumps(ok.map(s => s.centroid.x), loop), ...jumps(ok.map(s => s.centroid.y), loop)),
-    steps, seam, meanDrift: ok.length && ok[0].drift != null ? ok.reduce((t, s) => t + s.drift, 0) / ok.length : null,
+    steps, meanStep: steps.length ? steps.reduce((t, d) => t + d, 0) / steps.length : 0, seam, meanDrift: ok.length && ok[0].drift != null ? ok.reduce((t, s) => t + s.drift, 0) / ok.length : null,
     warnings,
   };
   if (out.heightRange > L.height) warnings.push(`the height changes by ${out.heightRange} pixels across the frames (it pumps)`);
