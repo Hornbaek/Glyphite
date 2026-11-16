@@ -1,0 +1,103 @@
+{
+  "method": "toon-inbetween",
+  "provider": "replicate",
+  "model": "fofr/tooncrafter",
+  "quality": "low",
+  "made": "2026-11-16T07:01:43.563Z",
+  "recut": "2026-11-16T07:06:13.447Z",
+  "calls": 1,
+  "usage": [
+    {
+      "i": "all",
+      "usage": {
+        "predict_time": 69.826068561,
+        "total_time": 96.021272521
+      },
+      "params": {
+        "model": "fofr/tooncrafter",
+        "version": "0486ff07368e816ec3d5c69b9581e7a09b55817f567a0d74caad9395c9295c77"
+      },
+      "requestId": "7q9rgn67pdrna0d1wcktzkhp98"
+    }
+  ],
+  "frames": [
+    {
+      "i": 0,
+      "raw": "toon-inbetween/raw/f0.png",
+      "cut": 0,
+      "shift": {
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "i": 1,
+      "raw": "toon-inbetween/raw/f1.png",
+      "cut": 0,
+      "shift": {
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "i": 2,
+      "raw": "toon-inbetween/raw/f2.png",
+      "cut": 0,
+      "shift": {
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "i": 3,
+      "raw": "toon-inbetween/raw/f3.png",
+      "cut": 0,
+      "shift": {
+        "dx": 1,
+        "dy": 1
+      }
+    },
+    {
+      "i": 4,
+      "raw": "toon-inbetween/raw/f4.png",
+      "cut": 0,
+      "shift": {
+        "dx": 1,
+        "dy": 0
+      }
+    },
+    {
+      "i": 5,
+      "raw": "toon-inbetween/raw/f5.png",
+      "cut": 0,
+      "shift": {
+        "dx": 3,
+        "dy": 0
+      }
+    },
+    {
+      "i": 6,
+      "raw": "toon-inbetween/raw/f6.png",
+      "cut": 0,
+      "shift": {
+        "dx": 3,
+        "dy": 0
+      }
+    },
+    {
+      "i": 7,
+      "raw": "toon-inbetween/raw/f7.png",
+      "cut": 0,
+      "shift": {
+        "dx": 3,
+        "dy": 0
+      }
+    }
+  ],
+  "prompts": [
+    {
+      "i": "all",
+      "prompt": "pixel art mouse astronaut walking, side view, flat green background (keys: openai-frame f0, f2, f4, f6)"
+    }
+  ]
+}

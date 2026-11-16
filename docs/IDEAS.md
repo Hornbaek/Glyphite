@@ -1,6 +1,6 @@
 # Idea bank
 
-Every feature Pixelite could have, from one-glyph polish to moonshots: 1133 ideas in 17 categories.
+Every feature Pixelite could have, from one-glyph polish to moonshots: 1134 ideas in 17 categories.
 Generated 2026-10-15 by a multi-agent brainstorm (14 angles, curated, gap-hunted, then de-duplicated). Nothing here is planned or
 promised: `docs/ROADMAP.md` is the plan. Use this as a quarry: pick an idea, check it against `CLAUDE.md`
 (engine vs game, ASCII only, both renderers), and build it in a session.
@@ -22,7 +22,7 @@ Size: tiny · small · medium · large · moonshot. Wildness: practical · bold 
 - [Audio & music](#audio--music) (87)
 - [AI-first authoring](#ai-first-authoring) (67)
 - [Runtime AI & NPCs](#runtime-ai--npcs) (48)
-- [Editor & tools](#editor--tools) (87)
+- [Editor & tools](#editor--tools) (88)
 - [Testing & debugging](#testing--debugging) (63)
 - [Engine architecture & performance](#engine-architecture--performance) (63)
 - [Multiplayer & social](#multiplayer--social) (40)
@@ -775,6 +775,7 @@ Size: tiny · small · medium · large · moonshot. Wildness: practical · bold 
 - **Shareable draft builds stored in R2** (medium, practical): The editor uploads its in-browser build to R2 under a short code, so /draft/k3x9 plays exactly that unmerged version behind the same Access login. The link can go straight into the Claude prompt.
 - **Sky painter with parallax depth** (medium, practical): A paint tool for the parallax sky layer (planets, star fields, nebulae, distant ridges) with a depth slider per layer. It outputs a sky painter hook instead of hand-written drawing code.
 - **Sprite rig editor for moving parts** (medium, practical): Drag pivots and offsets for sprite parts (like the lander's legs), scrub a test pose and export the part definitions. Joint limits preview how the parts swing under contact.
+- **Animation studio: rig-guided AI frames** (large, practical): Pose a small 2D skeleton over a character, key a few poses, and let an image model draw the whole character in every interpolated pose from a pose guide; review with onion skin and drift checks, approve frame by frame, export aligned sheets. *The rig is data and a guide picture, never the art: the frames stay hand-drawn looking*
 - **Typed API with editor autocomplete** (medium, practical): Emit pixelite.d.ts from JSDoc and the hook contract, and run `tsc --checkJs --noEmit` on every game in CI. The same types give CodeMirror completions, hover docs from API.md and squiggles.
 - **Editor chat that streams patches into the preview** (large, practical): The Worker calls Claude with a context pack and streams the diff back. The editor applies it hunk by hunk to the in-browser rebuild, and hot reload keeps the running game's state, so the change appears while you are still flying. *Builds on the editor's existing in-browser rebuild and hot-reload snapshot.*
 - **Sprite editor with live glyph preview** (large, practical): A pixel canvas on the left and the live best-match glyph rendering on the right, with sliders for rotation and light angle so you see which characters it picks. Onion skinning shows the planned animation frames. *Ports sprite2ascii.py's matcher to JS, so pixel art becomes ASCII in the browser without a Python round trip.*

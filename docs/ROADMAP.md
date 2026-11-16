@@ -88,6 +88,17 @@ From the owner's brainstorm: generate art through an image API, snap it to the g
 Later: the animation asset exists (HISTORY 49); next is a game using one (Pip's own frames) (the legs are solved by drawing characters at twice the size: HISTORY 50), moving Space Mouse's other art (Pip, cat-bots, objects) into the pipeline, the stray one-pixel
 column on the lockers' right edge (a cut artefact the gallery will make visible).
 
+## Animation: rig-guided AI frames and the ANIMATION STUDIO (HISTORY 71; docs/ANIMATION.md)
+
+The owner's spec: pose a 2D skeleton, an image model draws the whole character in each pose, review and approve, export aligned sheets. Plan: prove the drawing
+method first on one Pip walk cycle, then build the studio around the winner.
+1. ~~The rig, the pose guides, the checks, `make --guide`, the bake-off runner~~ (`portal/assets/rig-core.mjs`, `tools/art/animcheck.mjs`, `tools/art/bakeoff.mjs`).
+2. ~~The bake-off~~: OpenAI per frame and strip, Retro Diffusion, OpenAI keys + ToonCrafter, Wan 2.7 loop (FLUX blocked by its regional host; PixelLab needs
+   its key). Proposed: keys from the rig, in-betweens by a video model between approved keys. Next: Wan first-and-last-frame per segment, then the studio.
+3. The studio at `/anim/`: the rig editor over a base frame, the timeline (keys, eases, mirrored halves, loop preview with the seam), guides, a D1 table `anims` (JSON
+   only) and a hand-off prompt to a session; review with frame states, onion skin and the checks; `art.mjs sheet` (PNG frames, a sheet and a manifest for other
+   engines); the Cat's rig and copying a walk to another rig. Later: a live Generate button through a Worker secret.
+
 ## The engine plan (docs/ENGINE_PLAN.md, HISTORY 53-57): what is done, what is open
 
 **The up to date status and the suggested next steps are at the top of `docs/ENGINE_PLAN.md` ("STATUS"); a new session starts there.** The paragraph below is the short version as of engine 0.17.0 and misses the speed work (HISTORY 57) and the look (engine 0.18.0, HISTORY 58: **E1 to E8 are all done**: the sun from either side, layers in front and behind, glowing sprites, lamp-following back-wall shadows, a screen palette and post effects, zoom, weather, wind, fog and the time of day).

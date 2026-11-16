@@ -1,0 +1,53 @@
+{
+  "format": "pixelite-anim",
+  "id": "pip-walk",
+  "name": "Pip walks",
+  "asset": "pip",
+  "base": "002",
+  "brief": "Pip, a small grey mouse astronaut: a round glass space helmet around a grey mouse head with one big pink ear, a stubby orange-and-white spacesuit, short legs with small boots, a long thin pink tail curling behind; walking to the right, full body",
+  "note": "Pip's walk cycle for the animation bake-off (docs/ANIMATION.md). The rig is fitted by hand to pip/002 (idle, 28 x 32, facing right). Two key poses, a contact and a passing pose; the other two are their mirrors (near and far limbs swapped).",
+  "rig": {
+    "version": 1,
+    "size": { "w": 28, "h": 32 },
+    "root": { "x": 15, "y": 31.5 },
+    "joints": [
+      { "id": "root", "parent": null, "angle": 0 },
+      { "id": "pelvis", "parent": "root", "len": 5, "angle": -90, "side": "mid", "w": 0 },
+      { "id": "chest", "parent": "pelvis", "len": 5, "angle": 0, "side": "mid", "w": 4.5 },
+      { "id": "neck", "parent": "chest", "len": 2.5, "angle": 0, "side": "mid", "w": 3 },
+      { "id": "head", "parent": "neck", "len": 9.5, "angle": 0, "side": "mid", "w": 2, "shape": "circle", "r": 9.5 },
+      { "id": "snout", "parent": "head", "len": 8.5, "angle": 90, "side": "mid", "part": "face", "w": 0 },
+      { "id": "shoulder_far", "parent": "neck", "len": 3, "angle": -90, "side": "far", "w": 0 },
+      { "id": "elbow_far", "parent": "shoulder_far", "len": 3, "angle": -90, "side": "far", "w": 1.3 },
+      { "id": "hand_far", "parent": "elbow_far", "len": 2.5, "angle": 0, "side": "far", "w": 1.3 },
+      { "id": "shoulder_near", "parent": "neck", "len": 3, "angle": 90, "side": "near", "w": 0 },
+      { "id": "elbow_near", "parent": "shoulder_near", "len": 3, "angle": 90, "side": "near", "w": 1.3 },
+      { "id": "hand_near", "parent": "elbow_near", "len": 2.5, "angle": 0, "side": "near", "w": 1.3 },
+      { "id": "hip_far", "parent": "pelvis", "len": 2, "angle": -90, "side": "far", "w": 0 },
+      { "id": "knee_far", "parent": "hip_far", "len": 2.5, "angle": -90, "side": "far", "w": 2 },
+      { "id": "ankle_far", "parent": "knee_far", "len": 2.5, "angle": 0, "side": "far", "w": 1.8 },
+      { "id": "toe_far", "parent": "ankle_far", "len": 2.5, "angle": -90, "side": "far", "w": 1.3 },
+      { "id": "hip_near", "parent": "pelvis", "len": 2, "angle": 90, "side": "near", "w": 0 },
+      { "id": "knee_near", "parent": "hip_near", "len": 2.5, "angle": 90, "side": "near", "w": 2 },
+      { "id": "ankle_near", "parent": "knee_near", "len": 2.5, "angle": 0, "side": "near", "w": 1.8 },
+      { "id": "toe_near", "parent": "ankle_near", "len": 2.5, "angle": -90, "side": "near", "w": 1.3 },
+      { "id": "tail0", "parent": "pelvis", "len": 5.5, "angle": -100, "part": "tail", "w": 0.9 },
+      { "id": "tail1", "parent": "tail0", "len": 5.5, "angle": 10, "part": "tail", "w": 0.9 },
+      { "id": "tail2", "parent": "tail1", "len": 6, "angle": 90, "part": "tail", "w": 0.9 },
+      { "id": "tail3", "parent": "tail2", "len": 3, "angle": 60, "part": "tail", "w": 0.9 }
+    ]
+  },
+  "anim": {
+    "frames": 8,
+    "fps": 10,
+    "loop": true,
+    "mirrorHalf": true,
+    "mirrorKeep": ["hip_near", "hip_far", "shoulder_near", "shoulder_far"],
+    "keys": [
+      { "frame": 0, "label": "contact_a", "ease": "linear", "action": "contact: the near (front) boot steps forward and touches the floor heel first, the far boot is behind on its toe, the far arm swings forward",
+        "pose": { "root": { "dx": 0, "dy": 0.5 }, "angles": { "knee_near": 55, "ankle_near": 0, "toe_near": -55, "knee_far": -55, "ankle_far": 0, "toe_far": -100, "elbow_near": 115, "hand_near": -10, "elbow_far": -115, "hand_far": -10, "tail2": 80 } } },
+      { "frame": 2, "label": "passing_a", "ease": "linear", "action": "passing: the near leg is straight under the body carrying the weight, the far knee is lifted and the far boot passes forward under the body, the body is at its highest, the arms hang",
+        "pose": { "root": { "dx": 0, "dy": -0.3 }, "angles": { "knee_near": 90, "ankle_near": 0, "toe_near": -90, "knee_far": -105, "ankle_far": 55, "toe_far": -105, "elbow_near": 95, "elbow_far": -95, "tail2": 100 } } }
+    ]
+  }
+}

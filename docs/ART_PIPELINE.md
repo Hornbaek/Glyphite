@@ -153,6 +153,8 @@ A character is an asset like a prop (`--class character --target 14x16`), and an
     in the generated file, turns it into engine sprites by name (`pipeFrames('pip-test').walk1`, origin at the feet for a floor asset).
   - The gallery shows the asset as one tile (first frame, "N frames", "plays"); its page has the frames in order and a player (loops them at game size and enlarged, pause, 3 to 16 per second);
     every frame's version is marked with its name. The site publishes the raw picture of the first frame only.
+  - `make ... --pose "..." --guide f3.png` adds a **pose guide** (drawn by the pose rig, `portal/assets/rig-core.mjs`, in the base picture's framing) as the second picture, so the
+    model is shown where the limbs go, not only told; `tools/art/bakeoff.mjs` writes the guides of an animation (`art/anims/<anim>.json`). See `docs/ANIMATION.md`.
   Not built: the game's own Pip does not use these frames (it still has `MOUSE_FRAMES`); wiring an animation into a game is `pipeFrames` plus the game's own frame logic.
 **Draw a character at twice the size it is shown** (the owner's own Pip is 26 x 28 art pixels at k .25, shown at 13 x 14): `--class character --target 28x32 --k .25`. At 14 x 16 (k .5) the legs of a
 moving pose turned into dark blobs (an outline one pixel wide eats a leg that thin) and the thin tail came apart; on the 28 x 32 canvas the same prompt keeps legs, boots, belt and face, and the engine's

@@ -1,0 +1,69 @@
+{
+  "method": "rd-animation",
+  "provider": "replicate",
+  "model": "retro-diffusion/rd-animation",
+  "quality": "low",
+  "made": "2026-11-16T06:59:13.376Z",
+  "recut": "2026-11-16T07:01:12.008Z",
+  "calls": 1,
+  "usage": [
+    {
+      "i": "all",
+      "usage": {
+        "image_output_count": 1,
+        "model_variant": "animation",
+        "predict_time": 6.217264994,
+        "total_time": 6.228832176
+      },
+      "params": {
+        "model": "retro-diffusion/rd-animation",
+        "version": "hidden"
+      },
+      "requestId": "gjhfzk806xrmw0d1wckvjdng54"
+    }
+  ],
+  "frames": [
+    {
+      "i": 0,
+      "raw": "rd-animation/raw/sheet.png",
+      "cut": 9
+    },
+    {
+      "i": 1,
+      "error": "this model draws 4 frames per walk: no in-between"
+    },
+    {
+      "i": 2,
+      "raw": "rd-animation/raw/sheet.png",
+      "cut": 18
+    },
+    {
+      "i": 3,
+      "error": "this model draws 4 frames per walk: no in-between"
+    },
+    {
+      "i": 4,
+      "raw": "rd-animation/raw/sheet.png",
+      "cut": 9
+    },
+    {
+      "i": 5,
+      "error": "this model draws 4 frames per walk: no in-between"
+    },
+    {
+      "i": 6,
+      "raw": "rd-animation/raw/sheet.png",
+      "cut": 19
+    },
+    {
+      "i": 7,
+      "error": "this model draws 4 frames per walk: no in-between"
+    }
+  ],
+  "prompts": [
+    {
+      "i": "all",
+      "prompt": "Pip, a small grey mouse astronaut: a round glass space helmet around a grey mouse head with one big pink ear, a stubby orange-and-white spacesuit, short legs with small boots, a long thin pink tail curling behind"
+    }
+  ]
+}

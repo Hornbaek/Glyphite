@@ -18,7 +18,8 @@ async function readError(r) {
 }
 
 export async function generate({ prompt, refs = [], size = 1024, transparent = true, model = defaultModel, quality = 'medium', fetchFn = fetch, retryMs = 3000 }) {
-  const params = { size: `${size}x${size}`, quality, background: transparent ? 'transparent' : 'opaque', output_format: 'png' };
+  // size: 1024 (square) or 'WxH' (1536x1024 for a strip of frames)
+  const params = { size: typeof size === 'number' ? `${size}x${size}` : size, quality, background: transparent ? 'transparent' : 'opaque', output_format: 'png' };
   // a 5xx (the gateway timed out, the upstream failed: the slow sunburst calls at medium and high do it about half the time) comes back before any
   // picture is made, so ask again, up to three times in all
   const post = async (url, init) => { let r = await fetchFn(url, init); for (let i = 1; i < 3 && r.status >= 500 && r.status < 600; i++) { await new Promise(s => setTimeout(s, retryMs * i)); r = await fetchFn(url, init); } return r; };
