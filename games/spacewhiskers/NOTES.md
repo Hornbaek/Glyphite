@@ -8,8 +8,10 @@ so the build and the site skip the folder); the art and the story come first.
 whole game." The grid of the sprite sheet `ref/pip.png` is the game's: one of its art pixels (2.86 picture pixels) is one game pixel, for
 every sprite, prop and tile alike. Pip stands **49 game pixels** tall and is drawn and shown 1:1 (k .5, not halved as Space Mouse's Pip is).
 The sheet as a whole is about 380 x 213 game pixels: a **384 x 216** screen (16:9) is the natural size. Written into `art/style/style.json`.
-Open: the level picture `ref/levelinspiration.png` is drawn finer (about 2.3 picture pixels per art pixel) and with Pip smaller (about 30
-of its pixels tall), so its levels are drawn at half of Pip's scale; levels for the game are made at the sprite sheet's scale.
+The level picture `ref/levelinspiration.png` is a **zoomed-out overview** (the owner, 2026-11-16: "the level inspiration should be seen as
+a bit zoomed out. The actual gameplay should be a smaller frame"): Pip is about 70 of its pixels tall, so one game screen of 384 x 216 covers about
+549 x 309 of it, half its width and half its height. On screen Pip is about a fifth of the height (4.4 Pips tall), against about a ninth in the
+picture. Levels are drawn at the sprite sheet's scale; the picture shows what they look like, not how much of them fits on a screen.
 
 ## What is where
 
