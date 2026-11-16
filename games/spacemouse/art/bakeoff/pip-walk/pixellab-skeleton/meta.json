@@ -1,0 +1,59 @@
+{
+  "method": "pixellab-skeleton",
+  "provider": "pixellab",
+  "model": "pixellab animate-with-skeleton-v3",
+  "quality": "low",
+  "made": "2026-11-16T07:43:10.349Z",
+  "calls": 1,
+  "usage": [
+    {
+      "i": "all",
+      "usage": null,
+      "params": {
+        "endpoint": "animate-with-skeleton-v3",
+        "frames": 8
+      },
+      "requestId": "a502c211-e6ae-4ad9-b61b-275109718672"
+    }
+  ],
+  "frames": [
+    {
+      "i": 0,
+      "raw": "pixellab-skeleton/raw/f0.png"
+    },
+    {
+      "i": 1,
+      "raw": "pixellab-skeleton/raw/f1.png"
+    },
+    {
+      "i": 2,
+      "raw": "pixellab-skeleton/raw/f2.png"
+    },
+    {
+      "i": 3,
+      "raw": "pixellab-skeleton/raw/f3.png"
+    },
+    {
+      "i": 4,
+      "raw": "pixellab-skeleton/raw/f4.png"
+    },
+    {
+      "i": 5,
+      "raw": "pixellab-skeleton/raw/f5.png"
+    },
+    {
+      "i": 6,
+      "raw": "pixellab-skeleton/raw/f6.png"
+    },
+    {
+      "i": 7,
+      "raw": "pixellab-skeleton/raw/f7.png"
+    }
+  ],
+  "prompts": [
+    {
+      "i": "all",
+      "prompt": "Pip, a small grey mouse astronaut: a round glass space helmet around a grey mouse head with one big pink ear, a stubby orange-and-white spacesuit, short legs with small boots, a long thin pink tail curling behind | action: walk | east, side view | 8 skeletons"
+    }
+  ]
+}

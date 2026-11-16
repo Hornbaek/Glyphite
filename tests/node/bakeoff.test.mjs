@@ -144,3 +144,18 @@ test('--reuse cuts a saved output again without a call, keeping the record of th
   const meta = readJSON(join(root, 'games', 'spacemouse', 'art', 'bakeoff', 'pip-walk', 'rd-animation', 'meta.json'));
   assert.equal(meta.calls, 1); assert.equal(meta.usage[0].requestId, 'p1'); assert.ok(meta.recut);
 });
+
+test('PixelLab: the rig as its 18 joints (near = RIGHT, drawn on top), the face following the head; the method sends them and keeps the frames', async () => {
+  const { pixellabKeypoints } = await import('../../tools/art/bakeoff.mjs');
+  const L = load('spacemouse', 'pip-walk'), k = pixellabKeypoints(L.rig, L.A.pixellab, L.poses[0]), at = l => k.find(p => p.label === l);
+  assert.equal(k.length, 18);
+  assert.ok(at('RIGHT LEG').x > at('LEFT LEG').x, 'contact: the near (right) foot is forward');
+  assert.ok(at('RIGHT KNEE').z_index > at('LEFT KNEE').z_index && at('NECK').z_index === 0);
+  assert.ok(k.every(p => p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1));
+  assert.throws(() => pixellabKeypoints(L.rig, { joints: { NECK: 'neck' } }, L.poses[0]), /leaves out/);
+  const root = repo(), seen = [], fake = { animateWithSkeleton: async o => { seen.push(o); return { frames: o.keypoints.map(() => toPNG(L.sprite)), usage: { type: 'usd', usd: 0 }, jobId: 'j1' }; } };
+  const r = await bakeoff('spacemouse', 'pip-walk', { root, methods: ['pixellab-skeleton'], pixellab: fake });
+  assert.equal(r.calls, 1); assert.equal(seen[0].keypoints.length, 8); assert.equal(seen[0].firstKeypoints.length, 18); assert.equal(seen[0].direction, 'east');
+  const report = readFileSync(join(root, 'games', 'spacemouse', 'art', 'bakeoff', 'pip-walk', 'report.md'), 'utf8');
+  assert.match(report, /\| pixellab-skeleton \| .* \| 1 \| 8\/8 \| 0 \| 0 \| 0\.0 \| 0% \| 0% \|/);
+});

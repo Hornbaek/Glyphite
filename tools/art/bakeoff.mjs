@@ -17,6 +17,8 @@
 //                 the key frames); it follows no guide, so this is the "pixel model, no rig" baseline
 //   toon-inbetween  OpenAI draws only the key frames (from openai-frame); ToonCrafter (Replicate), a model made for cartoon in-betweens,
 //                 draws the motion between them as a looping clip; frames are picked from it, snapped at the base's pixel size and registered
+//   pixellab-skeleton  PixelLab's skeleton animation, a pixel-art model that redraws the base sprite in each pose: the rig's poses as its
+//                 18 joints (the animation's "pixellab" map), the sprite at game size in and the frames at game size out
 //   wan-loop      an image-to-video model (Wan 2.7 on Replicate) animates the base picture, which is both the first and the last frame of
 //                 the clip, so it loops; 8 frames are picked from one pass, keyed, snapped at one pixel size and registered
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'node:fs';
@@ -26,6 +28,7 @@ import { spawnSync } from 'node:child_process';
 import { ROOT, artDir, readJSON, writeJSON, loadAssets, loadStyle, loadPalette } from './lib.mjs';
 import { blank, toPNG, fromPNG, crop, bbox, binarize, removeKey, upscale } from './image.mjs';
 import * as replicate from './gen/replicate.mjs';
+import * as pixellab from './gen/pixellab.mjs';
 import { rgbOf, nearest } from './palette.mjs';
 import { buildPrompt, refPicture, snapToTarget } from './make.mjs';
 import { adapter, needsProxyRestart, keyHint } from './gen/index.mjs';
@@ -33,7 +36,7 @@ import { checkAnimation, frameStats } from './animcheck.mjs';
 import { snap as realSnap } from '../snap.mjs';
 import * as R from '../../portal/assets/rig-core.mjs';
 
-export const METHODS = ['openai-frame', 'openai-strip', 'flux-frame', 'rd-animation', 'toon-inbetween', 'wan-loop'];
+export const METHODS = ['openai-frame', 'openai-strip', 'flux-frame', 'rd-animation', 'toon-inbetween', 'wan-loop', 'pixellab-skeleton'];
 const GREEN = [0, 255, 0];   // the ground for the video models: nothing of Pip is green, and a video's compression smears a key colour less than magenta into pink
 const STRIP = { cols: 4, cw: 384, ch: 512, size: '1536x1024' };
 
@@ -266,15 +269,54 @@ async function wanLoop(L, G, o) {
   return res;
 }
 
-const RUN = { 'openai-frame': (L, G, o) => perFrame(L, 'openai', G, o), 'flux-frame': (L, G, o) => perFrame(L, 'flux', G, o), 'openai-strip': strip, 'rd-animation': rdAnimation, 'toon-inbetween': toonInbetween, 'wan-loop': wanLoop };
-const API_OF = { 'openai-frame': 'openai', 'flux-frame': 'flux', 'openai-strip': 'openai', 'rd-animation': 'replicate', 'toon-inbetween': 'replicate', 'wan-loop': 'replicate' };
+// ---- PixelLab ---------------------------------------------------------------------------------------------------------------------
+// A pose of the rig as PixelLab's 18 joints, in fractions of the sprite: mapped joints where the rig solves them, the face points where the
+// sprite has them, moved as far as the joint they follow has moved from the rest pose. Near (RIGHT) is drawn over far (LEFT).
+export function pixellabKeypoints(rig, map, pose) {
+  const P = R.solve(rig, R.full(rig, pose)), rest = R.solve(rig, R.full(rig, {})), W = rig.size.w, H = rig.size.h, out = [];
+  const clamp = v => Math.max(0, Math.min(1, v)), z = l => (l.startsWith('RIGHT') ? 1 : l.startsWith('LEFT') ? -1 : 0);
+  for (const [label, id] of Object.entries(map.joints)) { if (!P[id]) throw new Error(`the PixelLab map names joint ${id}, which the rig has not`); out.push({ label, x: clamp(P[id].x / W), y: clamp(P[id].y / H), z_index: z(label) }); }
+  const f = map.face || { points: {} }, d = f.follow ? { x: P[f.follow].x - rest[f.follow].x, y: P[f.follow].y - rest[f.follow].y } : { x: 0, y: 0 };
+  for (const [label, [x, y]] of Object.entries(f.points)) out.push({ label, x: clamp((x + d.x) / W), y: clamp((y + d.y) / H), z_index: z(label) });
+  const missing = pixellab.LABELS.filter(l => !out.some(k => k.label === l));
+  if (missing.length) throw new Error(`the PixelLab map leaves out ${missing.join(', ')} (all 18 joints are needed)`);
+  return out;
+}
+
+async function pixellabSkeleton(L, G, o) {
+  const m = 'pixellab-skeleton', res = { model: 'pixellab animate-with-skeleton-v3', frames: [], calls: 0, usage: [], prompts: [] }, dir = join(L.out, m, 'raw'), map = L.A.pixellab;
+  if (!map) { res.frames = L.poses.map((_, i) => ({ i, error: `${L.anim}.json has no "pixellab" joint map` })); return res; }
+  const description = L.brief.replace(/;.*$/, ''), first = R.full(L.rig, {}), keypoints = L.poses.map(p => pixellabKeypoints(L.rig, map, p));
+  res.prompts.push({ i: 'all', prompt: `${description} | action: walk | ${map.direction || 'east'}, side view | ${keypoints.length} skeletons` });
+  if (o.dry) return res;
+  mkdirSync(dir, { recursive: true });
+  const saved = L.poses.map((_, i) => join(dir, `f${i}.png`));
+  let frames;
+  if (o.reuse && saved.every(f => existsSync(f))) { frames = saved.map(f => readFileSync(f)); res.reused = true; o.log(`${m}: reusing raw/ (no call)`); }
+  else {
+    if (o.maxCalls != null && o.calls.n >= o.maxCalls) { res.frames = L.poses.map((_, i) => ({ i, error: 'not made: --max-calls reached' })); return res; }
+    o.calls.n++; res.calls++;
+    try {
+      const r = await (o.pixellab || pixellab).animateWithSkeleton({ first: toPNG(L.sprite), firstKeypoints: pixellabKeypoints(L.rig, map, first), keypoints, description, action: 'walk', direction: map.direction || 'east', view: 'side', log: msg => o.log(`${m}: ${msg}`) });
+      frames = r.frames; res.usage.push({ i: 'all', usage: r.usage, params: { endpoint: 'animate-with-skeleton-v3', frames: keypoints.length }, requestId: r.jobId });
+      frames.forEach((f, i) => writeFileSync(saved[i], f));
+      o.log(`${m}: ${frames.length} frames (job ${r.jobId})`);
+    } catch (e) { res.frames = L.poses.map((_, i) => ({ i, error: e.message })); o.log(`${m}: ${e.message}`); return res; }
+  }
+  // the frames come back at the sprite's own size and on its pixels: only the palette is made sure of (the placement is the model's, kept as it is)
+  frames.forEach((f, i) => res.frames.push({ i, png: toPNG(onPalette(binarize(fromPNG(f)), L.palette)), raw: saved[i] }));
+  return res;
+}
+
+const RUN = { 'openai-frame': (L, G, o) => perFrame(L, 'openai', G, o), 'flux-frame': (L, G, o) => perFrame(L, 'flux', G, o), 'openai-strip': strip, 'rd-animation': rdAnimation, 'toon-inbetween': toonInbetween, 'wan-loop': wanLoop, 'pixellab-skeleton': pixellabSkeleton };
+const API_OF = { 'openai-frame': 'openai', 'flux-frame': 'flux', 'openai-strip': 'openai', 'rd-animation': 'replicate', 'toon-inbetween': 'replicate', 'wan-loop': 'replicate', 'pixellab-skeleton': 'pixellab' };
 
 // run the methods; each method's frames and record go to <out>/<method>/
-export async function bakeoff(game, anim, { methods = METHODS, root = ROOT, dry = false, quality = 'low', model = null, maxCalls = 20, generate = null, replicate: rep = null, reuse = false, snap = realSnap, log = () => {} } = {}) {
+export async function bakeoff(game, anim, { methods = METHODS, root = ROOT, dry = false, quality = 'low', model = null, maxCalls = 20, generate = null, replicate: rep = null, pixellab: pl = null, reuse = false, snap = realSnap, log = () => {} } = {}) {
   const L = load(game, anim, root), G = writeGuides(L), calls = { n: 0 }, done = {};
   for (const m of methods) {
     if (!RUN[m]) throw new Error(`unknown method ${m} (${METHODS.join(', ')})`);
-    const res = await RUN[m](L, G, { dry, quality, model, maxCalls, calls, generate, replicate: rep, reuse, snap, log });
+    const res = await RUN[m](L, G, { dry, quality, model, maxCalls, calls, generate, replicate: rep, pixellab: pl, reuse, snap, log });
     if (dry) { for (const p of res.prompts) log(`--- ${m}, frame ${p.i} ---\n${p.prompt}\n`); continue; }
     const d = join(L.out, m); mkdirSync(d, { recursive: true });
     // the frames of an earlier cut go (a frame this cut did not make must not linger); the raw pictures in raw/ stay
