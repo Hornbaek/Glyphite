@@ -41,41 +41,64 @@ checks are kept whatever wins: they are how any method is told the pose and how 
 
 ## The bake-off
 
-Methods run so far (the ones whose keys the environment has):
+**A proof of concept.** Pip's look here is not final (the owner will update him), so the bake-off judges *methods*, not the art: when the new Pip
+exists, his approved base frame replaces `pip/002`, the rig is fitted to it again (`anims/pip-walk.json`), and the chosen method runs from there.
 
 | method | how |
 |---|---|
 | `openai-frame` | one edit call per frame: Pip's base picture (002) + that frame's guide, drawn in the base picture's own framing so the bones sit where Pip stands; snapped on the base's lattice, so no frame jitters by snapping |
 | `openai-strip` | one call: the base picture + a 4 x 2 sheet of all eight guides; cut into cells, snapped at one pixel size, registered (feet on the base's ground row, head over the base's head) |
 | `flux-frame` | as `openai-frame`, through FLUX (magenta ground, keyed out) |
+| `rd-animation` | Retro Diffusion's pixel animation model (Replicate): Pip's sprite as its reference; it makes 4-frame walks in four directions at 48 x 48 and follows no guide (the right-facing row, on the key frames) |
+| `toon-inbetween` | OpenAI's four key frames (from `openai-frame`) go to ToonCrafter (Replicate), a model made for cartoon in-betweens, which draws the motion between them as a looping clip; 8 frames picked, snapped at the base's pixel size, registered |
+| `wan-loop` | Wan 2.7 image-to-video (Replicate): Pip's base picture is both the first and the last frame of a 2-second clip, so it loops; 8 frames picked, keyed off a green ground, snapped, registered |
 
-Not run yet, waiting for keys (the owner adds them in the environment's settings: Network secrets): **PixelLab** (`api.pixellab.ai`), **Retro Diffusion** and an
-**image-to-video** model (both through Replicate, `api.replicate.com`; its downloads come from `replicate.delivery`, already allowed).
+PixelLab is not run: it needs its own key (`api.pixellab.ai`). Replicate's key is a network secret since 2026-11-16 (the account needs credit before a model runs,
+and below $5 of credit it starts one prediction at a time: `tools/art/gen/replicate.mjs` waits out the 429). `--reuse` cuts a Replicate method's saved output
+again without a call.
 
-### Results (2026-11-16, Pip's walk, quality low)
+### Results (2026-11-16, Pip's walk)
 
-`games/spacemouse/art/bakeoff/pip-walk/`: `compare.png`, `preview.gif` (both methods playing next to the guide, 6x), `report.md`.
+`games/spacemouse/art/bakeoff/pip-walk/`: `compare.png`, `preview.gif` (four methods playing next to the guide), `report.md`.
 
-| method | calls | tokens | height range | foot range | head jitter | mean step | seam | colour drift |
+| method | calls | cost reported | height range | foot range | head jitter | mean step | seam | colour drift |
 |---|---|---|---|---|---|---|---|---|
-| openai-frame | 8 | 29 644 | 0 | 0 | 0.6 px | 43% | 35% | 0.11 |
-| openai-strip | 1 | 4 450 | 0 | 0 | 0.7 px | 50% | 45% | 0.18 |
+| openai-frame | 8 | 29 644 tokens (low) | 0 | 0 | 0.6 px | 43% | 35% | 0.11 |
+| openai-strip | 1 | 4 450 tokens (low) | 0 | 0 | 0.7 px | 50% | 45% | 0.18 |
+| rd-animation | 1 | 6 s of GPU | 0 | 0 | 0.9 px | 100% | 100% | 0.71 |
+| toon-inbetween | 1 (+ the 4 keys) | 70 s of GPU | 1 | 0 | 1.1 px | 36% | 68% | 0.09 |
+| wan-loop | 1 | 163 s, a 2 s clip at 720p | 0 | 0 | 0.4 px | 24% | 8% | 0.12 |
+
+(Mean step: the share of pixels that change from one frame to the next; seam: the same from the last frame back to the first. Drift: how far a frame's colours are
+from the base's. The prices of each run are on the owner's Replicate and OpenAI dashboards; the APIs report time and tokens, not money.)
 
 What the numbers and the pictures say:
-- **The rig and the guide do their job.** Drawn in the base picture's own framing, the guide keeps the character where it stands: no frame of either method grows,
-  shrinks or sinks (height and foot range 0), the head moves under a pixel, and the seam is no bigger than an ordinary step, so the loop has no hitch. The contact
-  poses follow the guide's stride; Pip's helmet, ear, suit and tail stay his.
-- **Per frame: steady, but the details shimmer.** Each frame is a separate drawing, so small things are redrawn differently every time (the chest panel, the
-  collar, a teal rim on the helmet in three frames): played at 10 fps the suit flickers. The in-betweens and the passing pose come out close to the contact
-  poses (the lifted knee is lost), so the stride reads weakly.
-- **Strip: the best walk, at the wrong scale.** One call drew a convincing cycle with one character throughout, but on its own grid of about 48 rows instead of
-  the 32 asked for; squeezed to 32 the face loses detail and the tail turns brown in three frames. At its own grid (the snapper finds it) it is clean.
-- **FLUX did not run**: its first two jobs were taken, but their regional status host (`api.<region>.bfl.ai`) is not allowed in the environment, and the rest
-  were refused while those counted as running (the account's low balance allows one task at a time). Allow the regional hosts before trying it again.
+- **The rig and the guide do their job.** Drawn in the base picture's own framing, the guide keeps the character where it stands: no OpenAI frame grows,
+  shrinks or sinks, the head moves under a pixel, and the loop has no hitch. The contact poses follow the guide's stride.
+- **OpenAI per frame: steady, but the details shimmer.** Each frame is a separate drawing, so small things are redrawn differently every time (the chest panel, the
+  collar, a teal rim on the helmet): played at 10 fps the suit flickers. The in-betweens come out close to the contact poses, so the stride reads weakly.
+- **OpenAI strip: the best walk of the drawn ones, at the wrong scale.** One call drew a convincing cycle, but on its own grid of about 48 rows instead of 32;
+  squeezed to 32 the face loses detail and the tail turns brown in three frames.
+- **Retro Diffusion: not Pip.** A generic top-down RPG mouse in an orange suit, 4 frames, its own proportions. A pixel model with fixed styles cannot hold a
+  given character; out of the running.
+- **OpenAI keys + ToonCrafter: the steadiest suit.** The in-betweens carry the keys' details over instead of redrawing them (the lowest colour drift), so the
+  first half of the cycle is the smoothest drawn motion of all. Its last segment drifts: Pip comes out softer and a little bigger, which is the pop at 4 → 5
+  and the big seam.
+- **Wan 2.7 loop: the most Pip, the smoothest loop.** A video model moves the base picture instead of drawing new ones, so Pip stays exactly Pip, pixel blocks
+  included, and first = last makes a seamless loop (seam 8%, the smallest step of all). But it does not follow the rig: its motion is its own (a bouncy march,
+  the tail swinging out of the canvas), and it took the longest.
+- **FLUX did not run**: its regional status host (`api.<region>.bfl.ai`) is not allowed in the environment.
+
+**What this says about the spec's plan.** Drawing every frame separately from a guide (the spec's method) holds the pose but not the details. The two best
+results did the opposite: they *moved* existing drawings (ToonCrafter between keys, Wan from the base). So the workflow that fits is a hybrid:
+1. **Keys from the rig**: the artist poses the key frames on the rig; the image model draws only those (with the guide), and the artist approves them.
+2. **In-betweens by a video model between approved keys**: Wan 2.7's first-and-last-frame mode (or ToonCrafter) gets two approved keys at a time and draws the
+   motion between them, so every in-between is made from approved art and the pose of both ends is fixed by the rig.
+3. **Snap, register, check**: frames at the game's pixel size, feet and helmet registered, animcheck warns about pops and seams; the artist approves frame by frame.
 
 Next experiments, cheapest first:
-1. **Strip at its own scale**: ask for 4 frames per picture (bigger cells) or accept the model's grid and make Pip's frames 42 x 48 (the engine draws any k).
-2. **Lock what should not move**: in a walk the helmet and head barely change, so paste the base's head over every frame (registered on the head) and let only the
-   body and legs come from the model; recolour the suit to the base's colours.
-3. **Per frame with a neighbour**: the approved key next to an in-between as a third picture (`role: neighbour` in `make`), only after a person approved it.
-4. **The pixel-art specialists** (PixelLab's skeleton animation, Retro Diffusion) and an image-to-video model, when their keys are there.
+1. **Wan between keys**: `first_frame` = an approved contact key, `last_frame` = the next key (passing), a 1-second clip per segment; the rig then decides the pose
+   at every key and the video model only the motion between.
+2. **ToonCrafter per segment** (two keys at a time, at 512 x 512 cells cut from the base framing), to avoid its drift over a long loop.
+3. **Lock what should not move**: paste the base's helmet and head over every frame (registered on the head), recolour the suit to the base's colours.
+4. **PixelLab's skeleton animation**, when its key is there.

@@ -5,6 +5,7 @@
 //
 //   node tools/art/bakeoff.mjs <game> <anim> [--methods openai-frame,openai-strip,flux-frame] [--quality low] [--max-calls 20] [--dry]
 //   node tools/art/bakeoff.mjs <game> <anim> --compare        rebuild the comparison sheet and report from what is there (free)
+//   ... --methods wan-loop --reuse                             cut a Replicate method's saved output (raw/) again, without a call
 //
 // Methods (each a function below; more come with their keys, see docs/ANIMATION.md):
 //   openai-frame  one edit call per frame: the base picture + that frame's pose guide (drawn in the base's own framing), snapped
@@ -15,10 +16,10 @@
 //   rd-animation  Retro Diffusion's pixel animation model (Replicate): the base sprite as its reference, its right-facing walk (4 frames, on
 //                 the key frames); it follows no guide, so this is the "pixel model, no rig" baseline
 //   toon-inbetween  OpenAI draws only the key frames (from openai-frame); ToonCrafter (Replicate), a model made for cartoon in-betweens,
-//                 draws the motion between them as a looping clip; frames are picked from it and snapped on the base's lattice
+//                 draws the motion between them as a looping clip; frames are picked from it, snapped at the base's pixel size and registered
 //   wan-loop      an image-to-video model (Wan 2.7 on Replicate) animates the base picture, which is both the first and the last frame of
 //                 the clip, so it loops; 8 frames are picked from one pass, keyed, snapped at one pixel size and registered
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
@@ -179,7 +180,9 @@ export function videoFrames(mp4, dir) {
 // n frames spread evenly over one pass of a clip whose last frame is its first again
 export const pick = (count, n) => Array.from({ length: n }, (_, i) => Math.round(i * (count - 1) / n));
 
-async function replicateRun(L, o, m, model, input, res) {
+async function replicateRun(L, o, m, model, input, res, saved = null) {
+  // --reuse: what the model sent last time is on disk (raw/), so cut it again for free
+  if (o.reuse && saved && saved.every(f => existsSync(f))) { o.log(`${m}: reusing ${saved.map(f => f.slice(L.out.length + 1)).join(', ')} (no call)`); res.reused = true; return saved.map(f => readFileSync(f)); }
   if (o.maxCalls != null && o.calls.n >= o.maxCalls) throw new Error('not made: --max-calls reached');
   o.calls.n++; res.calls++;
   const r = await (o.replicate || replicate).run(model, input, { log: msg => o.log(`${m}: ${msg}`) });
@@ -198,13 +201,14 @@ async function rdAnimation(L, G, o) {
   if (o.dry) return res;
   mkdirSync(dir, { recursive: true });
   let sheet;
-  try { [sheet] = await replicateRun(L, o, m, res.model, input, res); } catch (e) { res.frames = L.poses.map((_, i) => ({ i, error: e.message })); o.log(`${m}: ${e.message}`); return res; }
+  try { [sheet] = await replicateRun(L, o, m, res.model, input, res, [join(dir, 'sheet.png')]); } catch (e) { res.frames = L.poses.map((_, i) => ({ i, error: e.message })); o.log(`${m}: ${e.message}`); return res; }
   writeFileSync(join(dir, 'sheet.png'), sheet);
-  // a 4 x 4 sheet of 48 x 48 cells, one row per direction: up, left, down, right (as the model draws them); the right-facing row is Pip's
+  // a 4 x 4 sheet of 48 x 48 cells, one row per direction (seen November 2026: away from the viewer, facing right, towards the viewer,
+  // facing left); the right-facing row, the second, is Pip's
   const im = fromPNG(sheet), cw = im.width / 4, ch = im.height / 4, bs = frameStats(L.sprite), n = L.poses.length;
   for (let i = 0; i < n; i++) {
     if (i % (n / 4)) { res.frames.push({ i, error: 'this model draws 4 frames per walk: no in-between' }); continue; }
-    const cell = binarize(crop(im, (i / (n / 4)) * cw, 3 * ch, cw, ch)), b = bbox(cell);
+    const cell = binarize(crop(im, (i / (n / 4)) * cw, 1 * ch, cw, ch)), b = bbox(cell);
     if (!b) { res.frames.push({ i, error: 'empty cell' }); continue; }
     const r = register(crop(cell, b.x, b.y, b.w, b.h), { w: L.asset.target.w, h: L.asset.target.h, foot: bs.foot, headX: bs.head.x });
     res.frames.push({ i, png: toPNG(onPalette(r.im, L.palette)), raw: join(dir, 'sheet.png'), cut: r.cut });
@@ -223,7 +227,7 @@ async function toonInbetween(L, G, o) {
   keys.forEach((k, j) => { input[`image_${j + 1}`] = replicate.dataURI(toPNG(half(flat(fromPNG(readFileSync(src(k))), GREEN)))); });
   mkdirSync(dir, { recursive: true });
   let files;
-  try { files = await replicateRun(L, o, m, res.model, input, res); } catch (e) { res.frames = L.poses.map((_, i) => ({ i, error: e.message })); o.log(`${m}: ${e.message}`); return res; }
+  try { files = await replicateRun(L, o, m, res.model, input, res, [join(dir, 'clip.mp4')]); } catch (e) { res.frames = L.poses.map((_, i) => ({ i, error: e.message })); o.log(`${m}: ${e.message}`); return res; }
   const clip = files[files.length - 1]; writeFileSync(join(dir, 'clip.mp4'), clip);
   const all = videoFrames(clip, join(tmpdir(), `bakeoff-${m}-${Date.now()}`)), at = pick(all.length + (L.animation.loop ? 1 : 0), n);
   o.log(`${m}: ${all.length} frames in the clip, taking ${at.join(', ')}`);
@@ -231,8 +235,10 @@ async function toonInbetween(L, G, o) {
     try {
       const f = all[Math.min(at[i], all.length - 1)], big = upscale(f, 1024 / f.width);   // back to the base picture's framing (the keys went in at half size)
       writeFileSync(join(dir, `f${i}.png`), toPNG(f));
-      const fit = await snapToTarget(toPNG(removeKey(big, GREEN, 120)), { target: L.asset.target, palette: L.palette, snap: o.snap, align: L.lattice });
-      res.frames.push({ i, png: fit.png, raw: join(dir, `f${i}.png`), cut: fit.cut || 0 });
+      // the clip drifts by a fraction of an art pixel by its last segment (seen November 2026), so the base's fixed lattice would sample between
+      // the blocks: the snapper finds each frame's own grid at the base's pixel size, and the frame is registered (feet on the ground, helmet over the base's)
+      const bs = frameStats(L.sprite), fit = await fitFixed(toPNG(binarize(removeKey(big, GREEN, 120))), { ps: L.lattice.pixelSize, palette: L.palette, target: L.asset.target, foot: bs.foot, headX: bs.head.x, snap: o.snap });
+      res.frames.push({ i, png: fit.png, raw: join(dir, `f${i}.png`), cut: fit.cut, shift: fit.shift });
     } catch (e) { res.frames.push({ i, error: e.message }); }
   }
   return res;
@@ -247,7 +253,7 @@ async function wanLoop(L, G, o) {
   if (o.dry) return res;
   mkdirSync(dir, { recursive: true });
   let files;
-  try { files = await replicateRun(L, o, m, res.model, input, res); } catch (e) { res.frames = L.poses.map((_, i) => ({ i, error: e.message })); o.log(`${m}: ${e.message}`); return res; }
+  try { files = await replicateRun(L, o, m, res.model, input, res, [join(dir, 'clip.mp4')]); } catch (e) { res.frames = L.poses.map((_, i) => ({ i, error: e.message })); o.log(`${m}: ${e.message}`); return res; }
   writeFileSync(join(dir, 'clip.mp4'), files[0]);
   const all = videoFrames(files[0], join(tmpdir(), `bakeoff-${m}-${Date.now()}`)), at = pick(all.length, n);
   o.log(`${m}: ${all.length} frames in the clip, taking ${at.join(', ')}`);
@@ -264,15 +270,20 @@ const RUN = { 'openai-frame': (L, G, o) => perFrame(L, 'openai', G, o), 'flux-fr
 const API_OF = { 'openai-frame': 'openai', 'flux-frame': 'flux', 'openai-strip': 'openai', 'rd-animation': 'replicate', 'toon-inbetween': 'replicate', 'wan-loop': 'replicate' };
 
 // run the methods; each method's frames and record go to <out>/<method>/
-export async function bakeoff(game, anim, { methods = METHODS, root = ROOT, dry = false, quality = 'low', model = null, maxCalls = 20, generate = null, replicate: rep = null, snap = realSnap, log = () => {} } = {}) {
+export async function bakeoff(game, anim, { methods = METHODS, root = ROOT, dry = false, quality = 'low', model = null, maxCalls = 20, generate = null, replicate: rep = null, reuse = false, snap = realSnap, log = () => {} } = {}) {
   const L = load(game, anim, root), G = writeGuides(L), calls = { n: 0 }, done = {};
   for (const m of methods) {
     if (!RUN[m]) throw new Error(`unknown method ${m} (${METHODS.join(', ')})`);
-    const res = await RUN[m](L, G, { dry, quality, model, maxCalls, calls, generate, replicate: rep, snap, log });
+    const res = await RUN[m](L, G, { dry, quality, model, maxCalls, calls, generate, replicate: rep, reuse, snap, log });
     if (dry) { for (const p of res.prompts) log(`--- ${m}, frame ${p.i} ---\n${p.prompt}\n`); continue; }
     const d = join(L.out, m); mkdirSync(d, { recursive: true });
+    // the frames of an earlier cut go (a frame this cut did not make must not linger); the raw pictures in raw/ stay
+    for (const f of readdirSync(d)) if (/^f\d+\.png$/.test(f)) unlinkSync(join(d, f));
     for (const f of res.frames) if (f.png) writeFileSync(join(d, `f${f.i}.png`), f.png);
-    writeJSON(join(d, 'meta.json'), { method: m, provider: API_OF[m], model: res.model, quality, made: new Date().toISOString(), calls: res.calls, usage: res.usage,
+    // a cut of a saved output keeps the record of the call that made it
+    const prev = res.reused && existsSync(join(d, 'meta.json')) ? readJSON(join(d, 'meta.json')) : null;
+    writeJSON(join(d, 'meta.json'), { method: m, provider: API_OF[m], model: res.model, quality, made: prev ? prev.made : new Date().toISOString(), recut: prev ? new Date().toISOString() : undefined,
+      calls: prev ? prev.calls : res.calls, usage: prev ? prev.usage : res.usage,
       frames: res.frames.map(({ png, ...f }) => ({ ...f, raw: f.raw ? f.raw.slice(L.out.length + 1) : undefined })), prompts: res.prompts });
     done[m] = res;
   }
@@ -328,6 +339,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
   const methods = opt('methods') ? String(opt('methods')).split(',') : METHODS;
   if (!opt('dry')) for (const m of methods) { const h = keyHint(API_OF[m]); if (h) { console.error(`${m}: ${h}`); process.exit(1); } }
-  const r = await bakeoff(game, anim, { methods, dry: !!opt('dry'), quality: opt('quality') || 'low', model: opt('model') || null, maxCalls: opt('max-calls') ? +opt('max-calls') : 20, log: m => console.log(m) });
+  const r = await bakeoff(game, anim, { methods, dry: !!opt('dry'), quality: opt('quality') || 'low', model: opt('model') || null, maxCalls: opt('max-calls') ? +opt('max-calls') : 20, reuse: !!opt('reuse'), log: m => console.log(m) });
   console.log(opt('dry') ? `dry run: ${r.guides.files.length} guides written, no calls` : `${r.calls} call(s). Sheet: ${join('games', game, 'art', 'bakeoff', anim, 'compare.png')}`);
 }

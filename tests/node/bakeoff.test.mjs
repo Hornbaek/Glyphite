@@ -103,9 +103,9 @@ test('a green key comes off with its fringe, and nothing of the subject goes', (
 
 test('rd-animation: the right-facing row of the sheet goes on the key frames, registered on the base', async () => {
   const root = repo(), L = load('spacemouse', 'pip-walk', root);
-  // a fake 4 x 4 sheet of 48 x 48 cells: a 10 x 20 block in each cell, red in the right-facing row (the 4th)
+  // a fake 4 x 4 sheet of 48 x 48 cells: a 10 x 20 block in each cell, red in the right-facing row (the 2nd)
   const sheet = blank(192, 192);
-  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) for (let y = 20; y < 40; y++) for (let x = 19; x < 29; x++) sheet.data.set([r === 3 ? 200 : 40, 50, 50, 255], ((r * 48 + y) * 192 + c * 48 + x) * 4);
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) for (let y = 20; y < 40; y++) for (let x = 19; x < 29; x++) sheet.data.set([r === 1 ? 200 : 40, 50, 50, 255], ((r * 48 + y) * 192 + c * 48 + x) * 4);
   const seen = [], fake = { run: async (model, input) => { seen.push({ model, input }); return { output: 'u', id: 'p1', metrics: { predict_time: 6 }, version: 'v' }; }, download: async () => [toPNG(sheet)] };
   const r = await bakeoff('spacemouse', 'pip-walk', { root, methods: ['rd-animation'], replicate: fake });
   assert.equal(r.calls, 1); assert.equal(seen[0].model, 'retro-diffusion/rd-animation'); assert.equal(seen[0].input.style, 'four_angle_walking');
@@ -132,4 +132,15 @@ test('the Replicate client: community models run by version, official ones by na
   await rep.run('o/m', {}, { fetchFn: fake(true), pollMs: 0, retryMs: 0 });
   assert.equal(calls.find(c => c[0] === 'POST')[1], 'https://api.replicate.com/v1/models/o/m/predictions');
   assert.match(rep.dataURI(Buffer.from('x')), /^data:image\/png;base64,eA==$/);
+});
+
+test('--reuse cuts a saved output again without a call, keeping the record of the call that made it', async () => {
+  const root = repo(), sheet = blank(192, 192);
+  for (let c = 0; c < 4; c++) for (let y = 20; y < 40; y++) for (let x = 19; x < 29; x++) sheet.data.set([200, 50, 50, 255], ((48 + y) * 192 + c * 48 + x) * 4);
+  let n = 0; const fake = { run: async () => { n++; return { output: 'u', id: 'p1', metrics: { predict_time: 6 }, version: 'v' }; }, download: async () => [toPNG(sheet)] };
+  await bakeoff('spacemouse', 'pip-walk', { root, methods: ['rd-animation'], replicate: fake });
+  const r = await bakeoff('spacemouse', 'pip-walk', { root, methods: ['rd-animation'], replicate: fake, reuse: true });
+  assert.equal(n, 1); assert.equal(r.calls, 0);
+  const meta = readJSON(join(root, 'games', 'spacemouse', 'art', 'bakeoff', 'pip-walk', 'rd-animation', 'meta.json'));
+  assert.equal(meta.calls, 1); assert.equal(meta.usage[0].requestId, 'p1'); assert.ok(meta.recut);
 });

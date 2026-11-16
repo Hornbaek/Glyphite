@@ -1,0 +1,73 @@
+{
+  "method": "wan-loop",
+  "provider": "replicate",
+  "model": "wan-video/wan-2.7-i2v",
+  "quality": "low",
+  "made": "2026-11-16T07:04:37.895Z",
+  "calls": 1,
+  "usage": [
+    {
+      "i": "all",
+      "usage": {
+        "predict_time": 162.578961283,
+        "resolution_target": "720p",
+        "total_time": 162.613675962,
+        "video_output_count": 1,
+        "video_output_duration_seconds": 2
+      },
+      "params": {
+        "model": "wan-video/wan-2.7-i2v",
+        "version": "hidden"
+      },
+      "requestId": "tx490ab9xdrmw0d1wcmrh1x83r"
+    }
+  ],
+  "frames": [
+    {
+      "i": 0,
+      "raw": "wan-loop/raw/f0.png",
+      "cut": 0
+    },
+    {
+      "i": 1,
+      "raw": "wan-loop/raw/f1.png",
+      "cut": 0
+    },
+    {
+      "i": 2,
+      "raw": "wan-loop/raw/f2.png",
+      "cut": 9
+    },
+    {
+      "i": 3,
+      "raw": "wan-loop/raw/f3.png",
+      "cut": 16
+    },
+    {
+      "i": 4,
+      "raw": "wan-loop/raw/f4.png",
+      "cut": 7
+    },
+    {
+      "i": 5,
+      "raw": "wan-loop/raw/f5.png",
+      "cut": 21
+    },
+    {
+      "i": 6,
+      "raw": "wan-loop/raw/f6.png",
+      "cut": 2
+    },
+    {
+      "i": 7,
+      "raw": "wan-loop/raw/f7.png",
+      "cut": 0
+    }
+  ],
+  "prompts": [
+    {
+      "i": "all",
+      "prompt": "Pip, a small grey mouse astronaut: a round glass space helmet around a grey mouse head with one big pink ear, a stubby orange-and-white spacesuit, short legs with small boots, a long thin pink tail curling behind, walks in place: a steady, looping walk cycle seen from the side, facing right, the legs stepping, the arms and tail swinging a little. The camera does not move and the character stays in the middle of the picture. Pixel art, flat plain green background, nothing else."
+    }
+  ]
+}

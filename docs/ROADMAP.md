@@ -93,8 +93,8 @@ column on the lockers' right edge (a cut artefact the gallery will make visible)
 The owner's spec: pose a 2D skeleton, an image model draws the whole character in each pose, review and approve, export aligned sheets. Plan: prove the drawing
 method first on one Pip walk cycle, then build the studio around the winner.
 1. ~~The rig, the pose guides, the checks, `make --guide`, the bake-off runner~~ (`portal/assets/rig-core.mjs`, `tools/art/animcheck.mjs`, `tools/art/bakeoff.mjs`).
-2. ~~The bake-off with OpenAI (per frame, strip) and FLUX (per frame)~~. Open: PixelLab, Retro Diffusion and an image-to-video model, once their keys are
-   network secrets (`api.pixellab.ai`, `api.replicate.com`). The owner picks the method from `bakeoff/pip-walk/compare.png`.
+2. ~~The bake-off~~: OpenAI per frame and strip, Retro Diffusion, OpenAI keys + ToonCrafter, Wan 2.7 loop (FLUX blocked by its regional host; PixelLab needs
+   its key). Proposed: keys from the rig, in-betweens by a video model between approved keys. Next: Wan first-and-last-frame per segment, then the studio.
 3. The studio at `/anim/`: the rig editor over a base frame, the timeline (keys, eases, mirrored halves, loop preview with the seam), guides, a D1 table `anims` (JSON
    only) and a hand-off prompt to a session; review with frame states, onion skin and the checks; `art.mjs sheet` (PNG frames, a sheet and a manifest for other
    engines); the Cat's rig and copying a walk to another rig. Later: a live Generate button through a Worker secret.

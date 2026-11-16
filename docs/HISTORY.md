@@ -1568,7 +1568,10 @@ image-to-video may be tried, and frames are made at game size. All of it is in `
 - **`tools/art/bakeoff.mjs`**: the same animation through several methods, a comparison sheet and a report. First run: OpenAI per frame (8 calls) and as one
   strip (1 call). Both keep Pip in place (no frame grows, shrinks or sinks; the loop has no hitch); per frame the suit details shimmer from frame to frame, the strip
   walks best but draws at its own, larger scale. FLUX was blocked by its regional status host. The owner picks what to try next from the sheet.
-- PixelLab and Replicate need their keys as network secrets; their documentation hosts and `replicate.delivery` were allowed.
+- **Replicate methods** (the owner added a Replicate key and credit): Retro Diffusion (not Pip: a generic RPG mouse, out of the running), OpenAI keys + ToonCrafter
+  in-betweens (the steadiest suit; its last segment drifts), and Wan 2.7 with Pip as first and last frame (exactly Pip and a seamless loop, but its own bouncy
+  motion, not the rig's). The best results moved existing drawings instead of redrawing them, so the proposed workflow is keys drawn from the rig and approved,
+  then a video model's in-betweens between approved keys. Pip's current look is a placeholder: the bake-off judges methods. PixelLab still needs its key.
 - Tests: `tests/node/rig.test.mjs`, `animcheck.test.mjs`, `bakeoff.test.mjs`, and `--guide` in `artgen.test.mjs`.
 
 ## Published versions (claude.ai artifact "Regolith Lander")
