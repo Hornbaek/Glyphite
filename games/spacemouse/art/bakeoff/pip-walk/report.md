@@ -7,11 +7,12 @@ Pip walks: 8 frames at 10 fps, looping, drawn from pip/002. Made with `node tool
 | flux-frame | flux-3-image | 8 | 0 | | | | | | | | |
 | openai-frame | gpt-image-2.6-sunburst | 8 | 8/8 | 0 | 0 | 0.6 | 43% | 35% | 0.11 | 0.0% | 0 |
 | openai-strip | gpt-image-2.6-sunburst | 1 | 8/8 | 0 | 0 | 0.7 | 50% | 45% | 0.18 | 0.0% | 0 |
+| pixellab-skeleton | pixellab animate-with-skeleton-v3 | 1 | 8/8 | 0 | 0 | 0.0 | 10% | 14% | 0.04 | 0.0% | 0 |
 | rd-animation | retro-diffusion/rd-animation | 1 | 4/8 | 0 | 0 | 0.9 | 100% | 100% | 0.71 | 0.0% | 18 |
 | toon-inbetween | fofr/tooncrafter | 1 | 8/8 | 1 | 0 | 1.1 | 36% | 68% | 0.09 | 0.0% | 3 |
 | wan-loop | wan-video/wan-2.7-i2v | 1 | 8/8 | 0 | 0 | 0.4 | 24% | 8% | 0.12 | 0.0% | 6 |
 
-compare.png: the guides, then openai-frame, then openai-strip, then rd-animation, then toon-inbetween, then wan-loop (at 4x, then at game size on the right).
+compare.png: the guides, then openai-frame, then openai-strip, then pixellab-skeleton, then rd-animation, then toon-inbetween, then wan-loop (at 4x, then at game size on the right).
 
 Height range, foot range and head jitter are pixels at game size; mean step is the share of pixels that change from one frame to the next, seam the same from the last frame back to the first (a seam well above the mean step is a hitch); drift is how far a frame's colours are from the base's (0 the same, 1 nothing shared). Lower is steadier, but only looking at the frames play tells whether it is good.
 
@@ -24,6 +25,12 @@ openai gpt-image-2.6-sunburst, quality low, 8 call(s), 29644 tokens in all (as t
 ## openai-strip
 
 openai gpt-image-2.6-sunburst, quality low, 1 call(s), 4450 tokens in all (as the API reported).
+
+- no warnings
+
+## pixellab-skeleton
+
+pixellab pixellab animate-with-skeleton-v3, quality low, 1 call(s).
 
 - no warnings
 

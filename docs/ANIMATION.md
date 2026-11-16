@@ -53,7 +53,10 @@ exists, his approved base frame replaces `pip/002`, the rig is fitted to it agai
 | `toon-inbetween` | OpenAI's four key frames (from `openai-frame`) go to ToonCrafter (Replicate), a model made for cartoon in-betweens, which draws the motion between them as a looping clip; 8 frames picked, snapped at the base's pixel size, registered |
 | `wan-loop` | Wan 2.7 image-to-video (Replicate): Pip's base picture is both the first and the last frame of a 2-second clip, so it loops; 8 frames picked, keyed off a green ground, snapped, registered |
 
-PixelLab is not run: it needs its own key (`api.pixellab.ai`). Replicate's key is a network secret since 2026-11-16 (the account needs credit before a model runs,
+| `pixellab-skeleton` | PixelLab's skeleton animation (`animate-with-skeleton-v3`): Pip's sprite at game size + the rig's 8 poses as PixelLab's 18 joints (the `pixellab` map in `anims/pip-walk.json`: near = RIGHT, the face points follow the head); the frames come back at game size, on Pip's own pixels |
+
+PixelLab's key is a network secret since 2026-11-16 (a trial: 40 generations; an 8-frame clip costs 3, a skeleton estimate 0.1). Its own skeleton estimate
+is unreliable on a 28 x 32 sprite (it put the far arm in front), so the rig is mapped by hand. Replicate's key is a network secret since 2026-11-16 (the account needs credit before a model runs,
 and below $5 of credit it starts one prediction at a time: `tools/art/gen/replicate.mjs` waits out the 429). `--reuse` cuts a Replicate method's saved output
 again without a call.
 
@@ -68,6 +71,7 @@ again without a call.
 | rd-animation | 1 | 6 s of GPU | 0 | 0 | 0.9 px | 100% | 100% | 0.71 |
 | toon-inbetween | 1 (+ the 4 keys) | 70 s of GPU | 1 | 0 | 1.1 px | 36% | 68% | 0.09 |
 | wan-loop | 1 | 163 s, a 2 s clip at 720p | 0 | 0 | 0.4 px | 24% | 8% | 0.12 |
+| pixellab-skeleton | 1 | 3 generations | 0 | 0 | 0.0 px | 10% | 14% | 0.04 |
 
 (Mean step: the share of pixels that change from one frame to the next; seam: the same from the last frame back to the first. Drift: how far a frame's colours are
 from the base's. The prices of each run are on the owner's Replicate and OpenAI dashboards; the APIs report time and tokens, not money.)
@@ -87,6 +91,10 @@ What the numbers and the pictures say:
 - **Wan 2.7 loop: the most Pip, the smoothest loop.** A video model moves the base picture instead of drawing new ones, so Pip stays exactly Pip, pixel blocks
   included, and first = last makes a seamless loop (seam 8%, the smallest step of all). But it does not follow the rig: its motion is its own (a bouncy march,
   the tail swinging out of the canvas), and it took the longest.
+- **PixelLab: the most faithful Pip, too little walk.** A pixel-art model that redraws the sprite itself: the helmet, face and suit are Pip's own pixels in every
+  frame (no shimmer at all, colour drift 0.04, head jitter 0). But at 28 x 32 Pip's legs are about four pixels long, and the model barely moves them: one frame
+  has a clear step, the rest stay close to the idle pose. The size a character is drawn at matters as much as the method: a bigger sprite (48 to 64 px tall) gives
+  the legs room to stride, which is the next test, with the new Pip.
 - **FLUX did not run**: its regional status host (`api.<region>.bfl.ai`) is not allowed in the environment.
 
 **What this says about the spec's plan.** Drawing every frame separately from a guide (the spec's method) holds the pose but not the details. The two best

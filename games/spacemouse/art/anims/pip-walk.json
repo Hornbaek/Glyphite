@@ -37,6 +37,15 @@
       { "id": "tail3", "parent": "tail2", "len": 3, "angle": 60, "part": "tail", "w": 0.9 }
     ]
   },
+  "pixellab": {
+    "note": "the rig's joints as PixelLab's 18 (tools/art/gen/pixellab.mjs). Facing east the near side is the character's right, drawn on top; the face points are fixed on the sprite and move with the head.",
+    "direction": "east",
+    "joints": {
+      "NECK": "neck", "RIGHT SHOULDER": "shoulder_near", "RIGHT ELBOW": "elbow_near", "RIGHT ARM": "hand_near", "LEFT SHOULDER": "shoulder_far", "LEFT ELBOW": "elbow_far", "LEFT ARM": "hand_far",
+      "RIGHT HIP": "hip_near", "RIGHT KNEE": "knee_near", "RIGHT LEG": "ankle_near", "LEFT HIP": "hip_far", "LEFT KNEE": "knee_far", "LEFT LEG": "ankle_far"
+    },
+    "face": { "follow": "head", "points": { "NOSE": [22.5, 13.5], "RIGHT EYE": [19.5, 12.5], "LEFT EYE": [21, 12.5], "RIGHT EAR": [11, 10], "LEFT EAR": [13.5, 8] } }
+  },
   "anim": {
     "frames": 8,
     "fps": 10,

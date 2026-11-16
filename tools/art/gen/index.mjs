@@ -12,6 +12,6 @@ export function needsProxyRestart(env = process.env) { return !!(env.HTTPS_PROXY
 
 // is a key available here? (the cloud proxy supplies it, anywhere else it is an environment variable)
 export function keyHint(api, env = process.env) {
-  const v = { openai: 'OPENAI_API_KEY', flux: 'BFL_API_KEY', replicate: 'REPLICATE_API_TOKEN' }[api];
+  const v = { openai: 'OPENAI_API_KEY', flux: 'BFL_API_KEY', replicate: 'REPLICATE_API_TOKEN', pixellab: 'PIXELLAB_API_TOKEN' }[api];
   return env[v] || env.CCR_AGENT_PROXY_ENABLED ? null : `${v} is not set (in a cloud session the key is a network secret: docs/ART_PIPELINE.md, "Keys")`;
 }
