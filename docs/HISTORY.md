@@ -1606,6 +1606,19 @@ image-to-video may be tried, and frames are made at game size. All of it is in `
   methods wait for. Posing by `world` directions and `reach` targets (`resolvePose`, a two-bone IK); the run posed again with them (the boots
   on the floor, the arms swinging against the legs), waiting for the owner's yes.
 
+## 73. Space Whiskers: Pip's animations accepted, and a playable test level (Claude Code, 2026-11-16)
+
+> "I accept all of them for now, maybe we will iterate later. For now, accept them and start building animation and a playable level."
+
+- The four rigs approved (`"rigApproved": true`); `games/spacewhiskers/tools/anims.mjs` brings PixelLab's drawings into the asset `pip` as frames
+  `walk_0-7`, `run_0-7`, `idle_0-3`, `jump_0-7` (versions with their notes, promoted), then builds `pipeline.js`.
+- **The game** (`games/spacewhiskers/`: `game.json`, `world.js`, `pip.js`, `main.js`), unlisted: a corner of the shipyard as a text map of 180 x 40
+  tiles (crates, a deck, a pit, a scaffold tower of one-way catwalks before the big window with a planet in it, a long run to the great cheese).
+  Pip is a `Character` with gravity from jump height and time; walk and run frames step by distance, the jump's by vertical speed.
+- **The 480 x 270 screen**: `fitView` sets the engine's zoom so a cell is a whole number of device pixels, rounded to stay near the agreed size
+  (1920 x 1080: 472 x 270).
+- `games/spacewhiskers/tests/mechanics.py`: the view, every frame shown, every climb, the drop-through and the goal.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

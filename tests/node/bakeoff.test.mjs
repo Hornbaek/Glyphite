@@ -2,7 +2,7 @@
 // or a sheet of it (the strip), so every frame must come back as Pip's sprite, on the same pixels, and the comparison must say so.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, cpSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, cpSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ROOT, readJSON } from '../../tools/art/lib.mjs';
@@ -233,10 +233,12 @@ test('rigFrom: an animation borrows another\'s rig and PixelLab map; its own mot
 
 test('the rig is approved first: rig.gif is written on every run, and a method drawing from an unapproved rig refuses', async () => {
   const root = repoSW(); let calls = 0; const fake = { animateWithSkeleton: async () => { calls++; return { frames: [], usage: null, jobId: 'j' }; } };
+  const runFile = join(root, 'games', 'spacewhiskers', 'art', 'anims', 'pip-run.json'), run = JSON.parse(readFileSync(runFile, 'utf8'));
+  writeFileSync(runFile, JSON.stringify({ ...run, rigApproved: false }));   // the run as it was before the owner said yes
   await assert.rejects(bakeoff('spacewhiskers', 'pip-run', { root, methods: ['pixellab-skeleton'], pixellab: fake }), /rig's motion is not approved yet.*rig\.gif/);
   assert.equal(calls, 0, 'nothing was paid for');
   const gif = readFileSync(join(root, 'games', 'spacewhiskers', 'art', 'bakeoff', 'pip-run', 'guides', 'rig.gif'));
   assert.equal(gif.toString('latin1', 0, 6), 'GIF89a');
   await bakeoff('spacewhiskers', 'pip-run', { root, methods: ['sheet-keys'] });   // a method that does not draw from the rig is not held back
-  assert.ok(load('spacewhiskers', 'pip-walk', root).A.rigApproved, 'the walk the owner picked is approved');
+  for (const a of ['pip-walk', 'pip-run', 'pip-idle', 'pip-jump']) assert.ok(load('spacewhiskers', a, ROOT).A.rigApproved, `${a}: the owner approved it`);
 });

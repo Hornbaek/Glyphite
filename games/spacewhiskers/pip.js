@@ -30,10 +30,10 @@ function pipUpdate(dt) {
   if (c.landed > 40 * PX) { p.land = .1; Sfx.thud(c.landed / PX * .004); }
   p.takeoff = Math.max(0, p.takeoff - dt); p.land = Math.max(0, p.land - dt);
   p.frame = pipFrame(p, running);
-  for (const ch of CHEESE) if (!ch.got && Math.abs(ch.x - c.x) < 12 * PX && ch.y > c.y - 50 * PX && ch.y < c.y + 6 * PX) {
+  for (const ch of SW_CHEESE) if (!ch.got && Math.abs(ch.x - c.x) < 12 * PX && ch.y > c.y - 50 * PX && ch.y < c.y + 6 * PX) {
     ch.got = true; p.cheese++; Sfx.pickup(); addText(ch.x, ch.y - 10 * PX, 'CHEESE!', [255, 214, 80], 1);
   }
-  if (GOAL && !GOAL.got && Math.abs(GOAL.x - c.x) < 18 * PX && Math.abs(GOAL.y - c.y) < 20 * PX) { GOAL.got = true; say(`THE GREAT CHEESE! ${p.cheese} OF ${CHEESE.length} CRUMBS FOUND`, { time: 5 }); }
+  if (SW_GOAL && !SW_GOAL.got && Math.abs(SW_GOAL.x - c.x) < 18 * PX && Math.abs(SW_GOAL.y - c.y) < 20 * PX) { SW_GOAL.got = true; say(`THE GREAT CHEESE! ${p.cheese} OF ${SW_CHEESE.length} CRUMBS FOUND`, { time: 5 }); }
 }
 
 // which drawing: in the air by vertical speed (rise, top, fall), a take-off and a landing frame, then idle, walk or run on the ground

@@ -9,7 +9,7 @@ const PX = RES / 2;   // one game pixel (a pixel of the sprite sheet) in cells; 
 const pal = (...c) => c;
 const HULL = defineMaterial('hull plating', { albedo: [.36, .4, .5], palette: pal([24, 28, 42], [40, 48, 66], [62, 72, 94], [92, 104, 128], [128, 142, 166]), tough: 99, anchor: true, brittle: false, style: 'deck' });
 const DECK = defineMaterial('deck', { albedo: [.5, .54, .62], palette: pal([38, 44, 60], [66, 76, 98], [106, 118, 142], [152, 164, 184]), tough: 99, anchor: true, brittle: false, style: 'deck' });
-const CATWALK = defineMaterial('catwalk', { albedo: [.8, .5, .16], palette: pal([108, 56, 18], [172, 102, 30], [222, 156, 50], [248, 204, 94]), tough: 99, anchor: true, brittle: false, oneWay: true, style: 'mast' });
+const CATWALK = defineMaterial('catwalk', { albedo: [.8, .5, .16], palette: pal([108, 56, 18], [172, 102, 30], [222, 156, 50], [248, 204, 94]), tough: 99, anchor: true, brittle: false, oneWay: true, style: 'terrain' });
 const CRATE = defineMaterial('cargo crate', { albedo: [.7, .38, .14], palette: pal([88, 40, 16], [150, 74, 26], [200, 114, 40], [234, 158, 70]), tough: 99, anchor: true, brittle: false, style: 'terrain' });
 // the back wall (never solid): panels, a rib every few rows, the scaffold's uprights, the frame round the big window
 const PANEL = defineMaterial('wall panel', { albedo: [.22, .26, .36], palette: pal([20, 24, 38], [30, 36, 54], [42, 50, 72]), style: 'flat' });
@@ -29,6 +29,7 @@ function levelRows() {
   const fill = (c0, r0, c1, r1, ch) => { for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) put(c, r, ch); };
   fill(0, FLOOR, COLS - 1, ROWS - 1, '#');
   fill(0, 0, 0, FLOOR, '#'); fill(COLS - 1, 0, COLS - 1, FLOOR, '#');        // the shipyard's end walls
+  fill(0, 0, COLS - 1, 0, '#');                                                 // and its roof: space shows only through the window
   // A: the start, crates to hop on, a first catwalk
   put(5, FLOOR - 1, 'P');
   fill(14, 31, 15, 32, 'C'); fill(19, 29, 21, 32, 'C'); fill(22, 31, 23, 32, 'C');
@@ -43,7 +44,7 @@ function levelRows() {
   // D: a long run (two crates to jump), the end wall and the great cheese
   fill(136, 31, 137, 32, 'C'); fill(152, 31, 153, 32, 'C'); fill(154, 30, 155, 32, 'C');
   put(170, FLOOR - 1, 'G');
-  for (const c of [10, 40, 70, 100, 130, 160]) put(c, 3, 'L');
+  for (const c of [10, 46, 128, 160]) put(c, 17, 'L');                        // lamps on cables from the roof, low enough to see
   return g.map(r => r.join(''));
 }
 const LEGEND = {
@@ -68,6 +69,7 @@ const GOAL_SPR = defineSprite({ w: 24, h: 18, pal: [[110, 66, 8, 0], [232, 170, 
   rows: ['..............00........', '...........0033200......', '........003322222100....', '.....0033222222222210...', '..0033222222222222221...', '00322222222222222222210.',
     '012222222222222222222210', '012222442222222244222210', '012224444222222444422210', '012222442222222244222210', '012222222222222222222210', '012222222224422222222210',
     '012222222244442222222210', '012222222224422222222210', '011222222222222222222110', '011111111111111111111110', '044444444444444444444440', '000000000000000000000000'] }, { k: .5, ox: 12, oy: 18 });
+const CABLE_SPR = defineSprite({ w: 1, h: 8, pal: [[34, 38, 52, 1], [52, 58, 76, 1]], rows: ['0', '0', '1', '0', '0', '0', '1', '0'] }, { k: .5, ox: .5, oy: 0 });
 const LAMP_SPR = defineSprite({ w: 9, h: 7, pal: [[30, 32, 40, 0], [80, 86, 100, 1], [255, 226, 150, 1]],
   rows: ['....0....', '....0....', '...000...', '..01110..', '.0111110.', '022222220', '.2222222.'],
   emit: ['.........', '.........', '.........', '.........', '.........', '.9999999.', '.9999999.'] }, { k: .5, ox: 4.5, oy: 0, glow: 0 });
