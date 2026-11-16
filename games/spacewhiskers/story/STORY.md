@@ -1,6 +1,6 @@
 # Space Mice: The Holy Cow
 
-![Star Whiskers: The Holy Cow](../ref/cover_star_whiskers.png)
+![Star Whiskers: The Holy Cow](../../spacemouse/ref/cover_star_whiskers.png)
 
 *The main story for a full remake of Space Mouse. Working document for story, characters, world and structure.*
 

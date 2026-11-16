@@ -4,7 +4,7 @@ One picture per chapter of [STORY_V2.md](STORY_V2.md), plus the opening and the 
 as cards from the same set.
 
 **How to use them.** In one ChatGPT conversation, attach the main cover (the updated one from
-[COVER_PROMPT.md](COVER_PROMPT.md) once you have it; the current `../ref/cover_star_whiskers.png` until then). Paste the
+[COVER_PROMPT.md](COVER_PROMPT.md) once you have it; the current `../../spacemouse/ref/cover_star_whiskers.png` until then). Paste the
 **style block** first, then one chapter prompt at a time. If a picture drifts (a hero loses the suit or scarf, a cat
 guard turns into a robot), say so and ask for a redo with the cast block again. Save each picture you keep in `../ref/`.
 

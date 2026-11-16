@@ -1,0 +1,275 @@
+{
+ "title": "Space Whiskers: The Holy Cow",
+ "made_by": "games/spacewhiskers/tools/art.py",
+ "sheets": [
+  {
+   "file": "pip.png",
+   "title": "SNES sprites: the mouse, side view (idle, walking, running, sliding, crouching, jumping, wall sliding)",
+   "source": "the owner (an image model)",
+   "size": [
+    1088,
+    608
+   ],
+   "frames": [
+    {
+     "file": "frames/pip_idle.png",
+     "name": "pip idle",
+     "box": [
+      25,
+      184,
+      142,
+      325
+     ],
+     "size": [
+      117,
+      141
+     ],
+     "use": "Pip idle: snapped to the game grid in art/ (the animations)",
+     "used": true
+    },
+    {
+     "file": "frames/pip_walk1.png",
+     "name": "pip walk1",
+     "box": [
+      181,
+      186,
+      285,
+      327
+     ],
+     "size": [
+      104,
+      141
+     ],
+     "use": "Pip walking, frame 1 of 4: snapped to the game grid in art/ (the animations)",
+     "used": true
+    },
+    {
+     "file": "frames/pip_walk2.png",
+     "name": "pip walk2",
+     "box": [
+      285,
+      186,
+      385,
+      326
+     ],
+     "size": [
+      100,
+      140
+     ],
+     "use": "Pip walking, frame 2 of 4: snapped to the game grid in art/ (the animations)",
+     "used": true
+    },
+    {
+     "file": "frames/pip_walk3.png",
+     "name": "pip walk3",
+     "box": [
+      389,
+      185,
+      493,
+      326
+     ],
+     "size": [
+      104,
+      141
+     ],
+     "use": "Pip walking, frame 3 of 4: snapped to the game grid in art/ (the animations)",
+     "used": true
+    },
+    {
+     "file": "frames/pip_walk4.png",
+     "name": "pip walk4",
+     "box": [
+      493,
+      184,
+      597,
+      325
+     ],
+     "size": [
+      104,
+      141
+     ],
+     "use": "Pip walking, frame 4 of 4: snapped to the game grid in art/ (the animations)",
+     "used": true
+    },
+    {
+     "file": "frames/pip_run1.png",
+     "name": "pip run1",
+     "box": [
+      620,
+      190,
+      747,
+      322
+     ],
+     "size": [
+      127,
+      132
+     ],
+     "use": "Pip running, frame 1 of 4: snapped to the game grid in art/ (the animations)",
+     "used": true
+    },
+    {
+     "file": "frames/pip_run2.png",
+     "name": "pip run2",
+     "box": [
+      733,
+      189,
+      852,
+      325
+     ],
+     "size": [
+      119,
+      136
+     ],
+     "use": "Pip running, frame 2 of 4: snapped to the game grid in art/ (the animations)",
+     "used": true
+    },
+    {
+     "file": "frames/pip_run3.png",
+     "name": "pip run3",
+     "box": [
+      846,
+      190,
+      957,
+      323
+     ],
+     "size": [
+      111,
+      133
+     ],
+     "use": "Pip running, frame 3 of 4: snapped to the game grid in art/ (the animations)",
+     "used": true
+    },
+    {
+     "file": "frames/pip_run4.png",
+     "name": "pip run4",
+     "box": [
+      943,
+      190,
+      1064,
+      325
+     ],
+     "size": [
+      121,
+      135
+     ],
+     "use": "Pip running, frame 4 of 4: snapped to the game grid in art/ (the animations)",
+     "used": true
+    },
+    {
+     "file": "frames/pip_slide.png",
+     "name": "pip slide",
+     "box": [
+      110,
+      460,
+      272,
+      553
+     ],
+     "size": [
+      162,
+      93
+     ],
+     "use": "Pip sliding: snapped to the game grid in art/ (the animations)",
+     "used": true
+    },
+    {
+     "file": "frames/pip_slide_dust.png",
+     "name": "pip slide dust",
+     "box": [
+      38,
+      505,
+      107,
+      553
+     ],
+     "size": [
+      69,
+      48
+     ],
+     "use": "Pip sliding: the dust behind him: snapped to the game grid in art/ (the animations)",
+     "used": true
+    },
+    {
+     "file": "frames/pip_crouch.png",
+     "name": "pip crouch",
+     "box": [
+      345,
+      448,
+      476,
+      554
+     ],
+     "size": [
+      131,
+      106
+     ],
+     "use": "Pip crouching: snapped to the game grid in art/ (the animations)",
+     "used": true
+    },
+    {
+     "file": "frames/pip_jump.png",
+     "name": "pip jump",
+     "box": [
+      571,
+      397,
+      699,
+      542
+     ],
+     "size": [
+      128,
+      145
+     ],
+     "use": "Pip jumping: snapped to the game grid in art/ (the animations)",
+     "used": true
+    },
+    {
+     "file": "frames/pip_wall_slide.png",
+     "name": "pip wall slide",
+     "box": [
+      930,
+      392,
+      1031,
+      551
+     ],
+     "size": [
+      101,
+      159
+     ],
+     "use": "Pip wall sliding (the wall left out): snapped to the game grid in art/ (the animations)",
+     "used": true
+    }
+   ],
+   "note": "Its pixel grid sets the scale of the whole game: one art pixel of this sheet is one game pixel (about 2.86 picture pixels; Pip stands about 49 game pixels tall)."
+  },
+  {
+   "file": "levelinspiration.png",
+   "title": "Level inspiration: the Whiskerworks shipyard with the SS Mewoh-1",
+   "source": "the owner (an image model)",
+   "size": [
+    1088,
+    608
+   ],
+   "frames": [],
+   "use": "the look of a level: platforms, scaffolding, signs, sleeping cats, cheese (not cut yet)"
+  },
+  {
+   "file": "levelinspirationprops.png",
+   "title": "Level props: platforms, girders, pipes, machines, crates, signs, cats and ship parts",
+   "source": "the owner (an image model)",
+   "size": [
+    3840,
+    2160
+   ],
+   "frames": [],
+   "use": "props for the levels, on a green ground (not cut yet)"
+  },
+  {
+   "file": "StarWhiskers-theholycow_cover.png",
+   "title": "Cover: Pip, the cat, the Holy Cow and MEGA-MJAU's fortress (title art still reads \"Star Whiskers\")",
+   "source": "the owner (an image model)",
+   "size": [
+    1088,
+    608
+   ],
+   "frames": [],
+   "use": "the cover and title screen; the look of the cast"
+  }
+ ]
+}

@@ -19,6 +19,8 @@ engine/                 the engine (shared by every game)
   shell.html            page template                 01_core … 21_weather.js   the parts (banner says what each does; 21 is the time of day, weather, wind and fog)
 games/notfound/         the 404 game: unlisted, served by the Worker for any missing page (worker/index.js)
 games/showcase/         the live engine demo on the public landing page: unlisted, public
+games/spacewhiskers/    Space Whiskers: The Holy Cow, the Space Mouse remake: art (ref/, art/: Pip at the game's scale) and story only so far, no game.json
+                        (so the build skips it; the art tools work on it). Start from its NOTES.md
 games/<id>/             one folder per game: game.json (manifest), head.html (optional page HTML), *.js parts,
                         thumb.png, plus the game's own tools/, tests/, ref/ (reference art: see the rules), music/, NOTES.md
 templates/starter/      the game `new` copies: small, uses every engine feature once (Cave Drone)

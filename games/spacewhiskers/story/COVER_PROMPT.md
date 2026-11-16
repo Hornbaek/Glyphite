@@ -1,6 +1,6 @@
 # Cover update: prompt for ChatGPT
 
-Attach `../ref/cover_star_whiskers.png` and paste the prompt below. It brings the cover in line with the story decisions
+Attach `../../spacemouse/ref/cover_star_whiskers.png` and paste the prompt below. It brings the cover in line with the story decisions
 in FEEDBACK.md (the owner agreed to all of them on 2026-11-12). Keep the new cover in `ref/` next to the old one.
 
 ---

@@ -1,6 +1,6 @@
 # Star Whiskers: The Holy Cow — story, version 2
 
-![Star Whiskers: The Holy Cow](../ref/cover_star_whiskers.png)
+![Star Whiskers: The Holy Cow](../../spacemouse/ref/cover_star_whiskers.png)
 
 *Version 2 of the main story for the Space Mouse remake. Built on version 1 ([STORY.md](STORY.md), the owner's story in
 English) with every suggestion from [FEEDBACK.md](FEEDBACK.md) the owner agreed to on 2026-11-12, and the names they
