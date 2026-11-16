@@ -44,11 +44,16 @@ export function removeKey(im, key = [255, 0, 255], tol = 90) {
   for (let x = 0; x < W; x++) { push(x); push((H - 1) * W + x); }
   for (let y = 0; y < H; y++) { push(y * W); push(y * W + W - 1); }
   while (stack.length) { const i = stack.pop(), x = i % W, y = (i / W) | 0; if (x > 0) push(i - 1); if (x < W - 1) push(i + 1); if (y > 0) push(i - W); if (y < H - 1) push(i + W); }
+  // a fringe pixel leans towards the key colour: for magenta, red and blue well above green; for any other key (a video's green ground),
+  // its colour away from grey points the way the key's does
+  const km = (key[0] + key[1] + key[2]) / 3, kd = key.map(v => v - km), kl = Math.hypot(...kd) || 1, magenta = key[0] === 255 && key[1] === 0 && key[2] === 255;
+  const keyish = o => magenta ? data[o] > data[o + 1] + 50 && data[o + 2] > data[o + 1] + 50
+    : (() => { const m = (data[o] + data[o + 1] + data[o + 2]) / 3; return ((data[o] - m) * kd[0] + (data[o + 1] - m) * kd[1] + (data[o + 2] - m) * kd[2]) / kl > 40; })();
   const fringe = [];
   for (let i = 0; i < W * H; i++) if (!gone[i]) {
     const x = i % W, y = (i / W) | 0, o = i * 4;
     const touches = (x > 0 && gone[i - 1]) || (x < W - 1 && gone[i + 1]) || (y > 0 && gone[i - W]) || (y < H - 1 && gone[i + W]);
-    if (touches && data[o] > data[o + 1] + 50 && data[o + 2] > data[o + 1] + 50) fringe.push(i);
+    if (touches && keyish(o)) fringe.push(i);
   }
   for (const i of fringe) gone[i] = 1;
   for (let i = 0; i < W * H; i++) if (gone[i]) data[i * 4 + 3] = 0;

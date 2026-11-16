@@ -25,11 +25,19 @@ export async function modelInfo(model, { fetchFn = fetch } = {}) {
 }
 
 // Run one prediction to the end: → { output, id, metrics, model, version }. `maxWaitMs` bounds a slow video model.
-export async function run(model, input, { fetchFn = fetch, pollMs = 3000, maxWaitMs = 600000, log = () => {} } = {}) {
+export async function run(model, input, { fetchFn = fetch, pollMs = 3000, maxWaitMs = 600000, retryMs = null, log = () => {} } = {}) {
   const info = await modelInfo(model, { fetchFn });
   const url = info.version && !info.official ? `${BASE}/predictions` : `${BASE}/models/${model}/predictions`;
   const body = info.version && !info.official ? { version: info.version, input } : { input };
-  let p = await json(await fetchFn(url, { method: 'POST', headers: { ...hdr(), Prefer: 'wait=60' }, body: JSON.stringify(body) }), `run ${model}`);
+  // a new account (or one with little credit) may start one prediction at a time: a 429 says when to ask again, so wait that long (a few times)
+  let r;
+  for (let t = 0; ; t++) {
+    r = await fetchFn(url, { method: 'POST', headers: { ...hdr(), Prefer: 'wait=60' }, body: JSON.stringify(body) });
+    if (r.status !== 429 || t >= 4) break;
+    const m = /resets in ~?(\d+)s/.exec(await r.clone().text()), wait = ((m ? +m[1] : 10) + 1) * 1000 * (t + 1);
+    log(`${model}: throttled, asking again in ${wait / 1000} s`); await new Promise(res => setTimeout(res, retryMs ?? wait));
+  }
+  let p = await json(r, `run ${model}`);
   const t0 = Date.now();
   while (!DONE.has(p.status)) {
     if (Date.now() - t0 > maxWaitMs) throw new Error(`Replicate ${model} prediction ${p.id} was still ${p.status} after ${maxWaitMs / 1000} s (it keeps running on Replicate: cancel it there if it is not wanted)`);

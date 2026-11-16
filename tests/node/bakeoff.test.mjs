@@ -6,7 +6,7 @@ import { mkdtempSync, mkdirSync, cpSync, readFileSync, existsSync } from 'node:f
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ROOT, readJSON } from '../../tools/art/lib.mjs';
-import { blank, toPNG, fromPNG, upscale } from '../../tools/art/image.mjs';
+import { blank, toPNG, fromPNG, upscale, removeKey } from '../../tools/art/image.mjs';
 import { bakeoff, load, frameActions, baseMap, register } from '../../tools/art/bakeoff.mjs';
 import { frameStats } from '../../tools/art/animcheck.mjs';
 
@@ -84,4 +84,52 @@ test('--max-calls stops the run and says which frames were not made', async () =
   assert.equal(r.calls, 3);
   const meta = readJSON(join(root, 'games', 'spacemouse', 'art', 'bakeoff', 'pip-walk', 'openai-frame', 'meta.json'));
   assert.equal(meta.frames.filter(f => /max-calls/.test(f.error || '')).length, 5);
+});
+
+test('video frames: n picked evenly over one pass of a loop (the last frame is the first again)', async () => {
+  const { pick } = await import('../../tools/art/bakeoff.mjs');
+  assert.deepEqual(pick(33, 8), [0, 4, 8, 12, 16, 20, 24, 28]);
+  assert.deepEqual(pick(9, 8), [0, 1, 2, 3, 4, 5, 6, 7]);
+});
+
+test('a green key comes off with its fringe, and nothing of the subject goes', () => {
+  const im = blank(12, 12);
+  for (let i = 0; i < 144; i++) im.data.set([0, 255, 0, 255], i * 4);
+  for (let y = 3; y < 9; y++) for (let x = 3; x < 9; x++) im.data.set([237, 106, 89, 255], (y * 12 + x) * 4);   // Pip's pink
+  for (let x = 3; x < 9; x++) im.data.set([90, 200, 80, 255], (2 * 12 + x) * 4);                                   // a greenish compression fringe
+  const out = removeKey(im, [0, 255, 0], 120), s = frameStats(out);
+  assert.deepEqual(s.box, { x: 3, y: 3, w: 6, h: 6 });
+});
+
+test('rd-animation: the right-facing row of the sheet goes on the key frames, registered on the base', async () => {
+  const root = repo(), L = load('spacemouse', 'pip-walk', root);
+  // a fake 4 x 4 sheet of 48 x 48 cells: a 10 x 20 block in each cell, red in the right-facing row (the 4th)
+  const sheet = blank(192, 192);
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) for (let y = 20; y < 40; y++) for (let x = 19; x < 29; x++) sheet.data.set([r === 3 ? 200 : 40, 50, 50, 255], ((r * 48 + y) * 192 + c * 48 + x) * 4);
+  const seen = [], fake = { run: async (model, input) => { seen.push({ model, input }); return { output: 'u', id: 'p1', metrics: { predict_time: 6 }, version: 'v' }; }, download: async () => [toPNG(sheet)] };
+  const r = await bakeoff('spacemouse', 'pip-walk', { root, methods: ['rd-animation'], replicate: fake });
+  assert.equal(r.calls, 1); assert.equal(seen[0].model, 'retro-diffusion/rd-animation'); assert.equal(seen[0].input.style, 'four_angle_walking');
+  const out = join(root, 'games', 'spacemouse', 'art', 'bakeoff', 'pip-walk', 'rd-animation'), b = frameStats(L.sprite);
+  for (const i of [0, 2, 4, 6]) { const s = frameStats(fromPNG(readFileSync(join(out, `f${i}.png`)))); assert.equal(s.foot, b.foot); assert.equal(s.height, 20); }
+  assert.ok(!existsSync(join(out, 'f1.png')), 'no in-betweens');
+  assert.match(readJSON(join(out, 'meta.json')).frames[1].error, /4 frames per walk/);
+});
+
+test('the Replicate client: community models run by version, official ones by name; a 429 is waited out', async () => {
+  const rep = await import('../../tools/art/gen/replicate.mjs'), calls = [];
+  const res = (status, body) => ({ ok: status < 300, status, text: async () => JSON.stringify(body), json: async () => body, clone() { return this; } });
+  const fake = official => async (url, init = {}) => {
+    calls.push([init.method || 'GET', url]);
+    if (url.endsWith('/models/o/m')) return res(200, { is_official: official, latest_version: { id: 'v9' } });
+    if (init.method === 'POST' && calls.filter(c => c[0] === 'POST').length === 1) return res(429, { detail: 'Request was throttled. Your rate limit resets in ~0s.' });
+    if (init.method === 'POST') return res(201, { id: 'p', status: 'processing', urls: { get: 'https://api.replicate.com/v1/predictions/p' } });
+    return res(200, { id: 'p', status: 'succeeded', output: ['https://replicate.delivery/x.png'], metrics: { predict_time: 1 } });
+  };
+  const a = await rep.run('o/m', { a: 1 }, { fetchFn: fake(false), pollMs: 0, retryMs: 0 });
+  assert.deepEqual(a.output, ['https://replicate.delivery/x.png']);
+  assert.deepEqual(calls.filter(c => c[0] === 'POST').map(c => c[1]), ['https://api.replicate.com/v1/predictions', 'https://api.replicate.com/v1/predictions'], 'by version, asked again after the 429');
+  calls.length = 0;
+  await rep.run('o/m', {}, { fetchFn: fake(true), pollMs: 0, retryMs: 0 });
+  assert.equal(calls.find(c => c[0] === 'POST')[1], 'https://api.replicate.com/v1/models/o/m/predictions');
+  assert.match(rep.dataURI(Buffer.from('x')), /^data:image\/png;base64,eA==$/);
 });
