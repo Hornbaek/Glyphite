@@ -157,3 +157,19 @@ with `"rigFrom": "pip-walk"`, and each names its PixelLab motion, `"motion"`):
 Each has a `preview.gif` in its `bakeoff/<anim>/pixellab-skeleton/`. Next: the owner approves them; the approved frames become the asset
 `pip`'s frames (walk1..8, run1..8, idle1..4, jump1..8) and `animFromAsset` plays them in the game.
 
+## The workflow: approve the motion on the rig first (2026-11-16)
+
+The owner, after the first run: "it does not fully loop. And looks wierd. Should I maybe first approve the rig animation ... before we send for AI
+generation?" Yes: the rig costs nothing to change, a drawing does. So:
+1. **Pose the keys** in `art/anims/<anim>.json`. Besides local angles, a key may now say `world` (a bone's direction on screen, 0 right, 90 down)
+   and `reach` (`{ ankle_near: { at: [x, y], bend: 'front', foot: 0 } }`: put a joint on an exact spot, the two bones above it bend to get
+   there, the toe lies at `foot` degrees); `resolvePose` in `rig-core.mjs` turns both into angles. A boot on the floor is `reach` with the floor's y.
+2. **Look at it playing**: every run of the bake-off (`--dry` too) writes `bakeoff/<anim>/guides/rig.gif`, the rig at the animation's speed over
+   the floor line (`tools/art/gif.mjs`, a small GIF writer). The owner says yes, or what to change.
+3. **Approve**: `"rigApproved": true` in the animation's JSON. The methods that draw from the rig (`pixellab-skeleton`, `openai-frame`,
+   `openai-strip`, `flux-frame`) refuse until then (`--unapproved` overrides, for tests and experiments).
+4. **Draw** it (PixelLab), look at the frames playing, approve them.
+
+The run was posed again this way: per half cycle contact (the front boot lands, placed on the floor), down, push (off the toe behind) and flight
+(both boots up), the arms swinging against the legs by their direction on screen. The first rig floated the front boot at contact and kept
+both hands in front of the body. It waits for the owner's approval of `pip-run/guides/rig.gif`.

@@ -54,6 +54,10 @@ How they are drafted, and why, is in `docs/ANIMATION.md`. In short: the owner's 
 between them (Wan 2.7 between two keys, ToonCrafter through all of them) or redraw the base sprite from the rig (PixelLab); the tools snap
 every frame to the game grid and palette, register it (feet on the ground, helmet over the idle's) and measure it; the owner picks.
 
+**The workflow for each animation**: pose the keys (`art/anims/<anim>.json`), look at `bakeoff/<anim>/guides/rig.gif` (written by
+`node tools/art/bakeoff.mjs spacewhiskers <anim> --dry`), the owner approves the motion (`"rigApproved": true`), then PixelLab draws it
+(`--methods pixellab-skeleton`); the drawing methods refuse an unapproved rig. Approved so far: the walk's rig.
+
 ## Names
 
 The game: *Space Whiskers: The Holy Cow* (the owner, 2026-11-16; the story and the cover still say "Star Whiskers" or "Space Mice").

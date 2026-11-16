@@ -8,7 +8,7 @@
   "motion": "run",
   "brief": "Pip, an orange mouse with big pink ears in a round glass space helmet, a white spacesuit with grey boots and gloves, a red-and-silver air tank on his back, a long red scarf flying behind him and a thin orange tail; running to the right, full body",
   "action": "running forward",
-  "note": "Pip's run, drawn by PixelLab from the walk's rig (rigFrom): a forward lean, long strides, bent arms pumping, a moment in the air at the passing pose. Half a cycle is keyed, the other half mirrored.",
+  "note": "Pip's run, drawn from the walk's rig (rigFrom): a forward lean; per half cycle contact (the front boot lands), down (that leg bends under the body), push (it pushes off behind while the other knee drives forward) and flight (both boots off the floor); the arms swing against the legs with bent elbows. The feet are placed with reach (exact spots on the floor), the arms by their direction on screen. The second half is mirrored. Redone after the owner: \"it does not fully loop. And looks weird\" (the first rig floated the front boot at contact and kept both hands in front).",
   "anim": {
     "frames": 8,
     "fps": 12,
@@ -20,58 +20,139 @@
         "frame": 0,
         "label": "contact_a",
         "ease": "linear",
-        "action": "run contact: leaning forward, the near (front) boot reaches forward to the floor, the far leg stretched far behind pushing off from its toe, the far arm pumps forward bent, the near arm back",
+        "action": "run contact: leaning forward, the near (front) boot lands on the floor ahead, the far leg trails behind with its boot up, the far arm swings forward and the near arm back, elbows bent",
         "pose": {
           "root": {
             "dx": 0,
-            "dy": 0.6
+            "dy": 1
           },
           "angles": {
-            "chest": 12,
-            "neck": -6,
-            "knee_near": 30,
-            "ankle_near": -5,
-            "toe_near": -25,
-            "knee_far": -50,
-            "ankle_far": 35,
-            "toe_far": -120,
-            "elbow_near": 140,
-            "hand_near": -95,
-            "elbow_far": -45,
-            "hand_far": -85,
-            "tail1": 0,
-            "tail2": 5
+            "chest": 14,
+            "neck": -8
+          },
+          "reach": {
+            "ankle_near": {
+              "at": [44.5, 53.5],
+              "bend": "front",
+              "foot": -10
+            },
+            "ankle_far": {
+              "at": [27.5, 50.5],
+              "bend": "front",
+              "foot": 120
+            }
+          },
+          "world": {
+            "elbow_near": 135,
+            "hand_near": 80,
+            "elbow_far": 60,
+            "hand_far": -40
+          }
+        }
+      },
+      {
+        "frame": 1,
+        "label": "down_a",
+        "ease": "linear",
+        "action": "run down: the near leg bends under the body taking the weight, the body at its lowest, the far leg swings forward",
+        "pose": {
+          "root": {
+            "dx": 0,
+            "dy": 1.8
+          },
+          "angles": {
+            "chest": 14,
+            "neck": -8
+          },
+          "reach": {
+            "ankle_near": {
+              "at": [40.5, 53.5],
+              "bend": "front",
+              "foot": 0
+            },
+            "ankle_far": {
+              "at": [31, 49.5],
+              "bend": "front",
+              "foot": 100
+            }
+          },
+          "world": {
+            "elbow_near": 110,
+            "hand_near": 50,
+            "elbow_far": 75,
+            "hand_far": -20
           }
         }
       },
       {
         "frame": 2,
-        "label": "passing_a",
+        "label": "push_a",
         "ease": "linear",
-        "action": "run passing, in the air: leaning forward, the near leg bent under the body, the far knee driven forward and high with the boot tucked back, both arms bent",
+        "action": "run push: the near leg pushes off behind from its toe, the far knee drives forward and up",
         "pose": {
           "root": {
             "dx": 0,
-            "dy": -1.6
+            "dy": 0.3
           },
           "angles": {
-            "chest": 12,
-            "neck": -6,
-            "knee_near": 100,
-            "ankle_near": 45,
-            "toe_near": -125,
-            "knee_far": -150,
-            "ankle_far": 95,
-            "toe_far": -110,
-            "elbow_near": 100,
-            "hand_near": -90,
-            "elbow_far": -100,
-            "hand_far": -90,
-            "tail1": 0,
-            "tail2": 10
+            "chest": 14,
+            "neck": -8
+          },
+          "reach": {
+            "ankle_near": {
+              "at": [35.5, 53.5],
+              "bend": "front",
+              "foot": 30
+            },
+            "ankle_far": {
+              "at": [37, 48.5],
+              "bend": "front",
+              "foot": 70
+            }
+          },
+          "world": {
+            "elbow_near": 90,
+            "hand_near": 10,
+            "elbow_far": 90,
+            "hand_far": 10
+          }
+        }
+      },
+      {
+        "frame": 3,
+        "label": "flight_a",
+        "ease": "linear",
+        "action": "run flight: both boots off the floor, the near leg stretched behind, the far leg reaching forward for the next step",
+        "pose": {
+          "root": {
+            "dx": 0,
+            "dy": -1.2
+          },
+          "angles": {
+            "chest": 14,
+            "neck": -8
+          },
+          "reach": {
+            "ankle_near": {
+              "at": [31, 51.5],
+              "bend": "front",
+              "foot": 80
+            },
+            "ankle_far": {
+              "at": [40.5, 51],
+              "bend": "front",
+              "foot": 0
+            }
+          },
+          "world": {
+            "elbow_near": 70,
+            "hand_near": -25,
+            "elbow_far": 115,
+            "hand_far": 70
           }
         }
       }
     ]
-  }
+  },
+  "rigApproved": false
 }

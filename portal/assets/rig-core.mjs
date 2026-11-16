@@ -12,6 +12,11 @@
 //          side: 'near' (towards the viewer), 'far' or 'mid'; w: half the thickness of the bone that ends at the joint (for the
 //          silhouette); shape 'circle' with r: a disc at the joint (a head). The root is the joint whose parent is null.
 //   pose = { root: { dx, dy }, angles: { id: local degrees } }   anything left out is the rig's rest value
+//          a key's pose may also say, for easier posing (resolvePose turns them into angles):
+//          world: { id: degrees }     the bone's direction on screen (0 right, 90 down), whatever its parents do
+//          reach: { id: { at: [x, y], bend: 'front' | 'back', foot: degrees } }   put joint `id` (an ankle, a hand) at x, y: its parent
+//                                     and grandparent bend to get there (two-bone IK, the middle joint toward `bend`), and its child
+//                                     (a toe) points `foot` on screen (0: flat on the floor)
 //   anim = { frames, fps, loop, keys: [{ frame, label, pose, ease }] }   ease from this key to the next: linear | smooth | hold
 
 export const EASES = {
@@ -93,10 +98,32 @@ export function mirror(rig, pose, { keep = [] } = {}) {
 // A cycle authored as half of itself: with `anim.mirrorHalf`, every key gets a mirrored copy half the cycle later (a walk's
 // left-foot contact and passing poses give the right-foot ones), labelled with its `_a` turned into `_b`.
 export function expandKeys(rig, anim) {
-  if (!anim.mirrorHalf) return anim;
+  const keys = anim.keys.map(k => ({ ...k, pose: resolvePose(rig, k.pose) }));
+  if (!anim.mirrorHalf) return { ...anim, keys };
   const half = anim.frames / 2, keep = anim.mirrorKeep || [];
-  const extra = anim.keys.map(k => ({ ...k, frame: k.frame + half, label: String(k.label || '').replace(/_a$/, '_b'), mirrorOf: k.label, pose: mirror(rig, k.pose, { keep }) }));
-  return { ...anim, mirrorHalf: false, keys: [...anim.keys, ...extra].sort((a, b) => a.frame - b.frame) };
+  const extra = keys.map(k => ({ ...k, frame: k.frame + half, label: String(k.label || '').replace(/_a$/, '_b'), mirrorOf: k.label, pose: mirror(rig, k.pose, { keep }) }));
+  return { ...anim, mirrorHalf: false, keys: [...keys, ...extra].sort((a, b) => a.frame - b.frame) };
+}
+
+// A key's pose as plain local angles: `world` directions and `reach` targets (see the top of this file) worked out on the rig, parents first.
+export function resolvePose(rig, pose = {}) {
+  if (!pose.world && !pose.reach) return pose;
+  const P = full(rig, pose), ids = byId(rig), world = pose.world || {}, reach = pose.reach || {};
+  for (const j of order(rig)) if (j.parent != null && world[j.id] != null) { const W = solve(rig, P); P.angles[j.id] = wrap(world[j.id] - W[j.parent].a); }
+  for (const [id, r] of Object.entries(reach)) {
+    const J = ids[id], K = J && ids[J.parent], H = K && ids[K.parent];
+    if (!H) throw new Error(`reach: ${id} needs a parent and a grandparent to bend`);
+    const W = solve(rig, P), h = W[H.id], a = K.len, b = J.len, tx = r.at[0] - h.x, ty = r.at[1] - h.y;
+    const d = Math.min(Math.max(Math.hypot(tx, ty), Math.abs(a - b) + 1e-6), a + b - 1e-6), base = Math.atan2(ty, tx) / RAD;
+    const open = Math.acos(Math.max(-1, Math.min(1, (a * a + d * d - b * b) / (2 * a * d)))) / RAD;
+    // the middle joint (knee, elbow) toward the character's front (+x, the way it faces) or back
+    const cands = [base - open, base + open].map(u => ({ u, x: h.x + Math.cos(u * RAD) * a }));
+    const upper = (r.bend === 'back' ? cands.sort((p, q) => p.x - q.x) : cands.sort((p, q) => q.x - p.x))[0].u;
+    const kx = h.x + Math.cos(upper * RAD) * a, ky = h.y + Math.sin(upper * RAD) * a, lower = Math.atan2(r.at[1] - ky, r.at[0] - kx) / RAD;
+    P.angles[K.id] = wrap(upper - h.a); P.angles[J.id] = wrap(lower - upper);
+    if (r.foot != null) { const T = rig.joints.find(c => c.parent === J.id); if (T) P.angles[T.id] = wrap(r.foot - lower); }
+  }
+  return { root: P.root, angles: P.angles };
 }
 
 // The pose at frame f (fractional frames allowed) of an animation: between the key before and the key after, eased by the

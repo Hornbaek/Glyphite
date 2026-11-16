@@ -1599,6 +1599,12 @@ image-to-video may be tried, and frames are made at game size. All of it is in `
   height. In `games/spacewhiskers/NOTES.md` and `art/style/style.json`.
 - > "Lets just proceed with the other animations you had in mind" — Pip's run (8 frames), idle (4) and jump (8, once) drawn by PixelLab from rigs
   that share the walk's (`rigFrom`); the jump drawn twice (the first put the arms over the helmet). 12 generations of the trial in all.
+- > "Lets start with the running animation, it does not fully loop. And looks wierd. Should I maybe first approve the rig animation, if that is
+  > what you start with, before we send for AI generation?"
+
+  Yes: `rig.gif` (the rig playing, `tools/art/gif.mjs`) on every bake-off run, and `"rigApproved"` in each animation, which the drawing
+  methods wait for. Posing by `world` directions and `reach` targets (`resolvePose`, a two-bone IK); the run posed again with them (the boots
+  on the floor, the arms swinging against the legs), waiting for the owner's yes.
 
 ## Published versions (claude.ai artifact "Regolith Lander")
 

@@ -101,3 +101,17 @@ test('the guide is drawn the same every time, in the mode asked for', () => {
   const { im, cells } = R.guideStrip(PIP.rig, [pose, pose, pose], { cols: 3, cw: 64, ch: 80 });
   assert.equal(im.width, 192); assert.equal(im.height, 80); assert.equal(cells[2].x, 128);
 });
+
+test('resolvePose: world directions and reach targets become local angles; the knee bends to the front', () => {
+  const p = R.resolvePose(PIP.rig, { root: { dx: 0, dy: 1 }, reach: { ankle_near: { at: [17.5, 31.5], bend: 'front', foot: 0 } }, world: { elbow_near: 130 } });
+  const P = R.solve(PIP.rig, p);
+  close(Math.round(P.ankle_near.x * 1e6) / 1e6, 17.5, 'the ankle lands on its x'); close(Math.round(P.ankle_near.y * 1e6) / 1e6, 31.5, 'and its y');
+  assert.ok(Math.abs(R.wrap(P.toe_near.a)) < 1e-6, 'the toe flat on the floor');
+  assert.ok(Math.abs(R.wrap(P.elbow_near.a - 130)) < 1e-6, 'the upper arm points where it was told');
+  const hip = P.hip_near, line = (P.ankle_near.x - hip.x) * (P.knee_near.y - hip.y) - (P.ankle_near.y - hip.y) * (P.knee_near.x - hip.x);
+  assert.ok(P.knee_near.x > Math.min(hip.x, P.ankle_near.x), 'the knee in front');
+  const back = R.solve(PIP.rig, R.resolvePose(PIP.rig, { reach: { ankle_near: { at: [17.5, 31], bend: 'back' } } }));
+  assert.ok(back.knee_near.x < P.knee_near.x, 'bend: back puts the knee behind');
+  assert.equal(R.resolvePose(PIP.rig, { angles: { knee_near: 10 } }).angles.knee_near, 10, 'a plain pose stays as it is');
+  assert.ok(line !== 0);
+});
