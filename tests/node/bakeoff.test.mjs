@@ -56,7 +56,7 @@ test('per frame and as a strip: the base picture back gives Pip on the same pixe
     return toPNG(out);
   };
   const generate = async o => { seen.push(o); return { png: o.size === 1024 ? raw : sheet(), keyed: null, usage: { input_tokens: 10, output_tokens: 20 } }; };
-  const r = await bakeoff('spacemouse', 'pip-walk', { root, methods: ['openai-frame', 'openai-strip'], generate, maxCalls: 9 });
+  const r = await bakeoff('spacemouse', 'pip-walk', { root, methods: ['openai-frame', 'openai-strip'], generate, maxCalls: 9, unapproved: true });
   assert.equal(r.calls, 9);
   assert.equal(seen[0].refs.length, 2, 'base picture and pose guide');
   assert.ok(/POSE GUIDE/.test(seen[0].prompt) && /contact/.test(seen[0].prompt), 'the first call is a key pose');
@@ -81,7 +81,7 @@ test('per frame and as a strip: the base picture back gives Pip on the same pixe
 
 test('--max-calls stops the run and says which frames were not made', async () => {
   const root = repo(), raw = readFileSync(load('spacemouse', 'pip-walk', root).raw);
-  const r = await bakeoff('spacemouse', 'pip-walk', { root, methods: ['openai-frame'], maxCalls: 3, generate: async () => ({ png: raw, keyed: null }) });
+  const r = await bakeoff('spacemouse', 'pip-walk', { root, methods: ['openai-frame'], maxCalls: 3, unapproved: true, generate: async () => ({ png: raw, keyed: null }) });
   assert.equal(r.calls, 3);
   const meta = readJSON(join(root, 'games', 'spacemouse', 'art', 'bakeoff', 'pip-walk', 'openai-frame', 'meta.json'));
   assert.equal(meta.frames.filter(f => /max-calls/.test(f.error || '')).length, 5);
@@ -155,7 +155,7 @@ test('PixelLab: the rig as its 18 joints (near = RIGHT, drawn on top), the face 
   assert.ok(k.every(p => p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1));
   assert.throws(() => pixellabKeypoints(L.rig, { joints: { NECK: 'neck' } }, L.poses[0]), /leaves out/);
   const root = repo(), seen = [], fake = { animateWithSkeleton: async o => { seen.push(o); return { frames: o.keypoints.map(() => toPNG(L.sprite)), usage: { type: 'usd', usd: 0 }, jobId: 'j1' }; } };
-  const r = await bakeoff('spacemouse', 'pip-walk', { root, methods: ['pixellab-skeleton'], pixellab: fake });
+  const r = await bakeoff('spacemouse', 'pip-walk', { root, methods: ['pixellab-skeleton'], pixellab: fake, unapproved: true });
   assert.equal(r.calls, 1); assert.equal(seen[0].keypoints.length, 8); assert.equal(seen[0].firstKeypoints.length, 18); assert.equal(seen[0].direction, 'east');
   const report = readFileSync(join(root, 'games', 'spacemouse', 'art', 'bakeoff', 'pip-walk', 'report.md'), 'utf8');
   assert.match(report, /\| pixellab-skeleton \| .* \| 1 \| 8\/8 \| 0 \| 0 \| 0\.0 \| 0% \| 0% \|/);
@@ -224,9 +224,19 @@ test('rigFrom: an animation borrows another\'s rig and PixelLab map; its own mot
   assert.deepEqual(L.rig, W.rig); assert.deepEqual(L.A.pixellab, W.A.pixellab);
   assert.equal(L.poses.length, 8); assert.equal(L.animation.fps, 12);
   const seen = [], fake = { animateWithSkeleton: async o => { seen.push(o); return { frames: o.keypoints.map(() => toPNG(L.sprite)), usage: null, jobId: 'j' }; } };
-  await bakeoff('spacewhiskers', 'pip-jump', { root, methods: ['pixellab-skeleton'], pixellab: fake });
+  await bakeoff('spacewhiskers', 'pip-jump', { root, methods: ['pixellab-skeleton'], pixellab: fake, unapproved: true });
   assert.equal(seen[0].action, 'jump'); assert.equal(seen[0].keypoints.length, 8);
   const J = load('spacewhiskers', 'pip-jump', root);
   assert.equal(J.animation.loop, false);
   assert.ok(R.solve(J.rig, J.poses[0]).pelvis.y > R.solve(J.rig, J.poses[2]).pelvis.y, 'the crouch is lower than the rise');
+});
+
+test('the rig is approved first: rig.gif is written on every run, and a method drawing from an unapproved rig refuses', async () => {
+  const root = repoSW(); let calls = 0; const fake = { animateWithSkeleton: async () => { calls++; return { frames: [], usage: null, jobId: 'j' }; } };
+  await assert.rejects(bakeoff('spacewhiskers', 'pip-run', { root, methods: ['pixellab-skeleton'], pixellab: fake }), /rig's motion is not approved yet.*rig\.gif/);
+  assert.equal(calls, 0, 'nothing was paid for');
+  const gif = readFileSync(join(root, 'games', 'spacewhiskers', 'art', 'bakeoff', 'pip-run', 'guides', 'rig.gif'));
+  assert.equal(gif.toString('latin1', 0, 6), 'GIF89a');
+  await bakeoff('spacewhiskers', 'pip-run', { root, methods: ['sheet-keys'] });   // a method that does not draw from the rig is not held back
+  assert.ok(load('spacewhiskers', 'pip-walk', root).A.rigApproved, 'the walk the owner picked is approved');
 });

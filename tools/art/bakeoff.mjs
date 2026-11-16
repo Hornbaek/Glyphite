@@ -6,6 +6,8 @@
 //   node tools/art/bakeoff.mjs <game> <anim> [--methods openai-frame,openai-strip,flux-frame] [--quality low] [--max-calls 20] [--dry]
 //   node tools/art/bakeoff.mjs <game> <anim> --compare        rebuild the comparison sheet and report from what is there (free)
 //   ... --methods wan-loop --reuse                             cut a Replicate method's saved output (raw/) again, without a call
+// Every run (--dry too) writes guides/rig.gif, the rig playing: the owner approves the motion there first ("rigApproved": true in the
+// animation's JSON); the methods that draw from the rig refuse until then (--unapproved overrides).
 //
 // Methods (each a function below; more come with their keys, see docs/ANIMATION.md):
 //   openai-frame  one edit call per frame: the base picture + that frame's pose guide (drawn in the base's own framing), snapped
@@ -36,6 +38,7 @@ import { buildPrompt, refPicture, snapToTarget } from './make.mjs';
 import { adapter, needsProxyRestart, keyHint } from './gen/index.mjs';
 import { checkAnimation, frameStats } from './animcheck.mjs';
 import { snap as realSnap } from '../snap.mjs';
+import { encodeGIF } from './gif.mjs';
 import * as R from '../../portal/assets/rig-core.mjs';
 
 export const METHODS = ['openai-frame', 'openai-strip', 'flux-frame', 'rd-animation', 'toon-inbetween', 'wan-loop', 'pixellab-skeleton', 'sheet-keys', 'wan-segments'];
@@ -92,6 +95,11 @@ export function writeGuides(L) {
   });
   const { im, cells } = R.guideStrip(L.rig, L.poses, { cols: STRIP.cols, cw: STRIP.cw, ch: STRIP.ch });
   writeFileSync(join(L.out, 'guides', 'strip.png'), toPNG(im));
+  // the rig playing at the animation's speed, for the owner to approve before anything is drawn (a one-shot holds its last pose a moment)
+  const fps = L.animation.fps || 10, step = Math.round(100 / fps), S6 = 6;
+  const frames = L.poses.map(p => R.renderGuide(L.rig, p, { w: L.rig.size.w * S6, h: L.rig.size.h * S6, map: { s: S6, ox: 0, oy: 0 } }));
+  for (const f of frames) for (let x = 0; x < f.width; x++) f.data.set([200, 70, 70, 255], ((f.height - 1) * f.width + x) * 4);   // the floor
+  writeFileSync(join(L.out, 'guides', 'rig.gif'), encodeGIF(frames, { delays: frames.map((_, i) => (!L.animation.loop && i === frames.length - 1 ? 60 : step)) }));
   return { files, strip: join(L.out, 'guides', 'strip.png'), cells };
 }
 
@@ -404,8 +412,13 @@ const RUN = { 'openai-frame': (L, G, o) => perFrame(L, 'openai', G, o), 'flux-fr
 const API_OF = { 'openai-frame': 'openai', 'flux-frame': 'flux', 'openai-strip': 'openai', 'rd-animation': 'replicate', 'toon-inbetween': 'replicate', 'wan-loop': 'replicate', 'pixellab-skeleton': 'pixellab', 'sheet-keys': null, 'wan-segments': 'replicate' };
 
 // run the methods; each method's frames and record go to <out>/<method>/
-export async function bakeoff(game, anim, { methods = METHODS, root = ROOT, dry = false, quality = 'low', model = null, maxCalls = 20, generate = null, replicate: rep = null, pixellab: pl = null, videoFrames: vf = null, reuse = false, snap = realSnap, log = () => {} } = {}) {
+// the methods that draw from the rig: they wait for the owner to approve the rig's motion (guides/rig.gif, "rigApproved": true)
+export const FROM_RIG = ['openai-frame', 'openai-strip', 'flux-frame', 'pixellab-skeleton'];
+export async function bakeoff(game, anim, { methods = METHODS, root = ROOT, dry = false, quality = 'low', model = null, maxCalls = 20, generate = null, replicate: rep = null, pixellab: pl = null, videoFrames: vf = null, reuse = false, unapproved = false, snap = realSnap, log = () => {} } = {}) {
   const L = load(game, anim, root), G = writeGuides(L), calls = { n: 0 }, done = {};
+  const waiting = methods.filter(m => FROM_RIG.includes(m));
+  if (!dry && !reuse && !unapproved && waiting.length && !L.A.rigApproved)
+    throw new Error(`${anim}: the rig's motion is not approved yet (look at ${join('games', game, 'art', 'bakeoff', anim, 'guides', 'rig.gif')}, then set "rigApproved": true in its JSON), so ${waiting.join(', ')} would draw an unapproved motion; --unapproved to draw it anyway`);
   for (const m of methods) {
     if (!RUN[m]) throw new Error(`unknown method ${m} (${METHODS.join(', ')})`);
     const res = await RUN[m](L, G, { dry, quality, model, maxCalls, calls, generate, replicate: rep, pixellab: pl, videoFrames: vf, reuse, snap, log });
@@ -473,6 +486,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   }
   const methods = opt('methods') ? String(opt('methods')).split(',') : METHODS;
   if (!opt('dry')) for (const m of methods) { const h = API_OF[m] && keyHint(API_OF[m]); if (h) { console.error(`${m}: ${h}`); process.exit(1); } }
-  const r = await bakeoff(game, anim, { methods, dry: !!opt('dry'), quality: opt('quality') || 'low', model: opt('model') || null, maxCalls: opt('max-calls') ? +opt('max-calls') : 20, reuse: !!opt('reuse'), log: m => console.log(m) });
+  const r = await bakeoff(game, anim, { methods, dry: !!opt('dry'), quality: opt('quality') || 'low', model: opt('model') || null, maxCalls: opt('max-calls') ? +opt('max-calls') : 20, reuse: !!opt('reuse'), unapproved: !!opt('unapproved'), log: m => console.log(m) });
   console.log(opt('dry') ? `dry run: ${r.guides.files.length} guides written, no calls` : `${r.calls} call(s). Sheet: ${join('games', game, 'art', 'bakeoff', anim, 'compare.png')}`);
 }
