@@ -1,0 +1,36 @@
+{
+  "id": "spacewhiskers",
+  "title": "Space Whiskers: The Holy Cow",
+  "tagline": "Pip, a mouse astronaut, in the cats' shipyard: a test level for his animations",
+  "description": "The first playable piece of the Space Mouse remake: Pip at the game's own scale (49 pixels tall, on a 480 x 270 screen) walks, runs and jumps through a corner of the Whiskerworks shipyard, so his new animations can be judged in motion. Decks, crates, catwalks, a scaffold tower and a long run to the cheese.",
+  "order": 95,
+  "listed": false,
+  "status": "draft",
+  "parts": ["pipeline.js", "world.js", "pip.js", "main.js"],
+  "engine": [],
+  "controls": [
+    ["A D / Left Right", "walk"],
+    ["Shift / X (hold)", "run"],
+    ["Space / W / Up", "jump (hold for height)"],
+    ["S / Down", "drop through a catwalk"],
+    ["P / Esc", "pause"],
+    ["Gamepad", "stick or d-pad, A jump, X or B run"]
+  ],
+  "actions": {
+    "left": ["ArrowLeft", "KeyA", "pad:left", "touch:left"],
+    "right": ["ArrowRight", "KeyD", "pad:right", "touch:right"],
+    "down": ["ArrowDown", "KeyS", "pad:down", "touch:down"],
+    "jump": ["Space", "ArrowUp", "KeyW", "pad:a", "touch:jump"],
+    "run": ["ShiftLeft", "ShiftRight", "KeyX", "pad:x", "pad:b", "touch:run"]
+  },
+  "tunables": {
+    "walkSpeed": { "label": "Walk speed", "unit": "pixels/s", "value": 70, "min": 30, "max": 140, "step": 1, "live": true, "help": "Pip's walking speed in game pixels a second (he is 49 tall; the screen is 480 wide)." },
+    "runSpeed": { "label": "Run speed", "unit": "pixels/s", "value": 165, "min": 80, "max": 320, "step": 1, "live": true, "help": "His top speed while the run button is held." },
+    "jumpHeight": { "label": "Jump height", "unit": "pixels", "value": 74, "min": 30, "max": 140, "step": 1, "live": true, "help": "How high a full jump lifts his feet (hold the button; let go early for a short hop). 74 is about one and a half Pips." },
+    "jumpTime": { "label": "Time to the top", "unit": "s", "value": 0.4, "min": 0.25, "max": 0.7, "step": 0.01, "live": true, "help": "How long a full jump takes to reach its top: lower is snappier (the game works out the gravity from this and the height)." },
+    "walkStride": { "label": "Walk stride", "unit": "pixels a frame", "value": 4.5, "min": 2, "max": 10, "step": 0.25, "live": true, "help": "How far he moves for each frame of the walk: the animation is driven by distance, so his boots keep pace with the floor at any speed." },
+    "runStride": { "label": "Run stride", "unit": "pixels a frame", "value": 9, "min": 4, "max": 18, "step": 0.25, "live": true, "help": "The same for the run." },
+    "screenWidth": { "label": "Screen width", "unit": "game pixels", "value": 480, "min": 320, "max": 640, "step": 16, "live": true, "help": "How many game pixels the view is wide (480 x 270 is the agreed screen); the window is filled in whole device pixels." }
+  },
+  "smoke": { "keys": ["ArrowRight", "ShiftLeft", "Space"] }
+}

@@ -1,0 +1,26 @@
+{
+  "version": "032",
+  "parent": null,
+  "status": "approved",
+  "kind": "generated",
+  "brief": "",
+  "prompt": "",
+  "refs": [],
+  "api": null,
+  "source": null,
+  "snap": null,
+  "normals": {
+    "bevel": 3,
+    "detail": 0.8,
+    "strength": 2.5
+  },
+  "target": {
+    "class": "character",
+    "w": 57,
+    "h": 54
+  },
+  "note": "PixelLab, from the approved rig of art/anims/pip-idle.json, frame 2 (art/bakeoff/pip-idle/pixellab-skeleton/f2.png)",
+  "created": "2026-11-16T12:50:28.747Z",
+  "by": "claude-session",
+  "frame": "idle_2"
+}
