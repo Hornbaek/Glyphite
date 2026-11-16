@@ -9,6 +9,7 @@ import { ROOT, readJSON } from '../../tools/art/lib.mjs';
 import { blank, toPNG, fromPNG, upscale, removeKey, cleanEdges } from '../../tools/art/image.mjs';
 import { bakeoff, load, frameActions, baseMap, register } from '../../tools/art/bakeoff.mjs';
 import { frameStats } from '../../tools/art/animcheck.mjs';
+import * as R from '../../portal/assets/rig-core.mjs';
 
 // a checkout with only what the bake-off reads: Pip's style, palette, base version and walk
 function repo() {
@@ -216,4 +217,16 @@ test('cleanEdges: light grey strays outside the outline go, the outline and colo
   assert.equal(a(2, 4), 0); assert.equal(a(1, 4), 0); assert.equal(a(11, 0), 0); assert.equal(a(0, 9), 0);
   assert.equal(a(3, 4), 255, 'the outline stays'); assert.equal(a(5, 5), 255, 'the white inside stays'); assert.equal(a(10, 5), 255, 'the tail stays');
   assert.equal(n, 4);
+});
+
+test('rigFrom: an animation borrows another\'s rig and PixelLab map; its own motion goes to PixelLab', async () => {
+  const root = repoSW(), L = load('spacewhiskers', 'pip-run', root), W = load('spacewhiskers', 'pip-walk', root);
+  assert.deepEqual(L.rig, W.rig); assert.deepEqual(L.A.pixellab, W.A.pixellab);
+  assert.equal(L.poses.length, 8); assert.equal(L.animation.fps, 12);
+  const seen = [], fake = { animateWithSkeleton: async o => { seen.push(o); return { frames: o.keypoints.map(() => toPNG(L.sprite)), usage: null, jobId: 'j' }; } };
+  await bakeoff('spacewhiskers', 'pip-jump', { root, methods: ['pixellab-skeleton'], pixellab: fake });
+  assert.equal(seen[0].action, 'jump'); assert.equal(seen[0].keypoints.length, 8);
+  const J = load('spacewhiskers', 'pip-jump', root);
+  assert.equal(J.animation.loop, false);
+  assert.ok(R.solve(J.rig, J.poses[0]).pelvis.y > R.solve(J.rig, J.poses[2]).pelvis.y, 'the crouch is lower than the rise');
 });

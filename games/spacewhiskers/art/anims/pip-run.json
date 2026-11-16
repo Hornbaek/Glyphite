@@ -1,0 +1,77 @@
+{
+  "format": "pixelite-anim",
+  "asset": "pip",
+  "base": "001",
+  "rigFrom": "pip-walk",
+  "id": "pip-run",
+  "name": "Pip runs",
+  "motion": "run",
+  "brief": "Pip, an orange mouse with big pink ears in a round glass space helmet, a white spacesuit with grey boots and gloves, a red-and-silver air tank on his back, a long red scarf flying behind him and a thin orange tail; running to the right, full body",
+  "action": "running forward",
+  "note": "Pip's run, drawn by PixelLab from the walk's rig (rigFrom): a forward lean, long strides, bent arms pumping, a moment in the air at the passing pose. Half a cycle is keyed, the other half mirrored.",
+  "anim": {
+    "frames": 8,
+    "fps": 12,
+    "loop": true,
+    "mirrorHalf": true,
+    "mirrorKeep": ["hip_near", "hip_far", "shoulder_near", "shoulder_far"],
+    "keys": [
+      {
+        "frame": 0,
+        "label": "contact_a",
+        "ease": "linear",
+        "action": "run contact: leaning forward, the near (front) boot reaches forward to the floor, the far leg stretched far behind pushing off from its toe, the far arm pumps forward bent, the near arm back",
+        "pose": {
+          "root": {
+            "dx": 0,
+            "dy": 0.6
+          },
+          "angles": {
+            "chest": 12,
+            "neck": -6,
+            "knee_near": 30,
+            "ankle_near": -5,
+            "toe_near": -25,
+            "knee_far": -50,
+            "ankle_far": 35,
+            "toe_far": -120,
+            "elbow_near": 140,
+            "hand_near": -95,
+            "elbow_far": -45,
+            "hand_far": -85,
+            "tail1": 0,
+            "tail2": 5
+          }
+        }
+      },
+      {
+        "frame": 2,
+        "label": "passing_a",
+        "ease": "linear",
+        "action": "run passing, in the air: leaning forward, the near leg bent under the body, the far knee driven forward and high with the boot tucked back, both arms bent",
+        "pose": {
+          "root": {
+            "dx": 0,
+            "dy": -1.6
+          },
+          "angles": {
+            "chest": 12,
+            "neck": -6,
+            "knee_near": 100,
+            "ankle_near": 45,
+            "toe_near": -125,
+            "knee_far": -150,
+            "ankle_far": 95,
+            "toe_far": -110,
+            "elbow_near": 100,
+            "hand_near": -90,
+            "elbow_far": -100,
+            "hand_far": -90,
+            "tail1": 0,
+            "tail2": 10
+          }
+        }
+      }
+    ]
+  }
+}
