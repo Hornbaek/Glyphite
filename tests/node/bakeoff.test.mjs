@@ -6,7 +6,7 @@ import { mkdtempSync, mkdirSync, cpSync, readFileSync, existsSync } from 'node:f
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ROOT, readJSON } from '../../tools/art/lib.mjs';
-import { blank, toPNG, fromPNG, upscale, removeKey } from '../../tools/art/image.mjs';
+import { blank, toPNG, fromPNG, upscale, removeKey, cleanEdges } from '../../tools/art/image.mjs';
 import { bakeoff, load, frameActions, baseMap, register } from '../../tools/art/bakeoff.mjs';
 import { frameStats } from '../../tools/art/animcheck.mjs';
 
@@ -158,4 +158,62 @@ test('PixelLab: the rig as its 18 joints (near = RIGHT, drawn on top), the face 
   assert.equal(r.calls, 1); assert.equal(seen[0].keypoints.length, 8); assert.equal(seen[0].firstKeypoints.length, 18); assert.equal(seen[0].direction, 'east');
   const report = readFileSync(join(root, 'games', 'spacemouse', 'art', 'bakeoff', 'pip-walk', 'report.md'), 'utf8');
   assert.match(report, /\| pixellab-skeleton \| .* \| 1 \| 8\/8 \| 0 \| 0 \| 0\.0 \| 0% \| 0% \|/);
+});
+
+// a checkout with Space Whiskers' Pip and walk: an imported base without a lattice, and the sheet's frames as keys
+function repoSW() {
+  const root = mkdtempSync(join(tmpdir(), 'bakeoff-sw-')), src = join(ROOT, 'games', 'spacewhiskers', 'art'), dst = join(root, 'games', 'spacewhiskers', 'art');
+  for (const p of ['style', 'anims']) cpSync(join(src, p), join(dst, p), { recursive: true });
+  for (const v of ['001', '002', '003', '004', '005']) cpSync(join(src, 'assets', 'pip', v), join(dst, 'assets', 'pip', v), { recursive: true });
+  cpSync(join(src, 'assets', 'pip', 'asset.json'), join(dst, 'assets', 'pip', 'asset.json'));
+  return root;
+}
+
+test('keys: an animation names approved drawings as keys; sheet-keys shows them alone; methods that need a lattice say so', async () => {
+  const root = repoSW(), L = load('spacewhiskers', 'pip-walk', root);
+  assert.equal(L.lattice, null);
+  assert.deepEqual(L.keys.map(k => [k.frame, k.version]), [[0, '002'], [2, '003'], [4, '004'], [6, '005']]);
+  const r = await bakeoff('spacewhiskers', 'pip-walk', { root, methods: ['sheet-keys', 'openai-frame'], generate: async () => { throw new Error('no call expected'); } });
+  assert.equal(r.calls, 0);
+  const out = join(root, 'games', 'spacewhiskers', 'art', 'bakeoff', 'pip-walk');
+  for (const [i, v] of [[0, '002'], [2, '003'], [4, '004'], [6, '005']])
+    assert.deepEqual(Array.from(fromPNG(readFileSync(join(out, 'sheet-keys', `f${i}.png`))).data), Array.from(fromPNG(readFileSync(join(root, 'games', 'spacewhiskers', 'art', 'assets', 'pip', v, 'sprite.png'))).data), `key f${i} is pip/${v} as it is`);
+  assert.ok(!existsSync(join(out, 'sheet-keys', 'f1.png')));
+  assert.match(readJSON(join(out, 'openai-frame', 'meta.json')).frames[0].error, /no lattice/);
+  assert.ok(existsSync(join(out, 'guides', 'f7.png')), 'guides at 16x the sprite when the base has no picture of its own');
+});
+
+test('keyPicture: a key blown up by a whole number onto a green square, centred', async () => {
+  const { keyPicture } = await import('../../tools/art/bakeoff.mjs');
+  const im = blank(57, 55); im.data.set([200, 50, 50, 255], 0);
+  const p = keyPicture(im), pic = fromPNG(p.png);
+  assert.equal(p.f, 8); assert.equal(pic.width, 512);
+  assert.deepEqual(Array.from(pic.data.subarray((p.oy * 512 + p.ox) * 4, (p.oy * 512 + p.ox) * 4 + 4)), [200, 50, 50, 255], 'the key\'s first pixel, at its place');
+  assert.deepEqual(Array.from(pic.data.subarray(0, 4)), [0, 255, 0, 255], 'green round it');
+});
+
+test('wan-segments: one clip per pair of neighbouring keys (first and last frame), the in-betweens from its middle, the keys kept', async () => {
+  const root = repoSW(), L = load('spacewhiskers', 'pip-walk', root), seen = [];
+  // a fake clip: 9 frames of the first key's picture (the unit tests run where ffmpeg may not be, so its frames are handed over as pictures)
+  const { keyPicture } = await import('../../tools/art/bakeoff.mjs'), pic = fromPNG(keyPicture(L.keys[0].im).png);
+  const fake = { run: async (model, input) => { seen.push({ model, input }); return { output: 'u', id: `p${seen.length}`, metrics: { predict_time: 1 }, version: 'v' }; }, download: async () => [Buffer.from('mp4')] };
+  const r = await bakeoff('spacewhiskers', 'pip-walk', { root, methods: ['wan-segments'], replicate: fake, videoFrames: () => Array.from({ length: 9 }, () => pic), maxCalls: 9 });
+  assert.equal(r.calls, 4, 'four pairs round the loop');
+  assert.ok(seen.every(s => s.model === 'wan-video/wan-2.7-i2v' && s.input.first_frame && s.input.last_frame));
+  const out = join(root, 'games', 'spacewhiskers', 'art', 'bakeoff', 'pip-walk', 'wan-segments'), b = frameStats(L.sprite);
+  for (let i = 0; i < 8; i++) assert.ok(existsSync(join(out, `f${i}.png`)), `f${i}`);
+  const mid = frameStats(fromPNG(readFileSync(join(out, 'f1.png'))));
+  assert.equal(mid.foot, b.foot); assert.ok(Math.abs(mid.height - frameStats(L.keys[0].im).height) <= 2, 'an in-between back at the game\'s pixel size');
+});
+
+test('cleanEdges: light grey strays outside the outline go, the outline and coloured edges (a tail) stay, loose specks go', () => {
+  const im = blank(12, 10), put = (x, y, c) => im.data.set([...c, 255], (y * 12 + x) * 4);
+  for (let y = 2; y < 8; y++) for (let x = 3; x < 9; x++) put(x, y, (x === 3 || x === 8 || y === 2 || y === 7) ? [10, 10, 14] : [240, 240, 240]);  // white inside a dark outline
+  put(2, 4, [200, 200, 205]); put(1, 4, [228, 228, 228]);   // a grey ring and the checkerboard beyond it, outside the outline
+  put(9, 5, [230, 120, 30]); put(10, 5, [230, 120, 30]);    // an orange tail sticking out
+  put(11, 0, [200, 200, 200]); put(0, 9, [20, 20, 20]);      // loose specks
+  const n = cleanEdges(im), a = (x, y) => im.data[(y * 12 + x) * 4 + 3];
+  assert.equal(a(2, 4), 0); assert.equal(a(1, 4), 0); assert.equal(a(11, 0), 0); assert.equal(a(0, 9), 0);
+  assert.equal(a(3, 4), 255, 'the outline stays'); assert.equal(a(5, 5), 255, 'the white inside stays'); assert.equal(a(10, 5), 255, 'the tail stays');
+  assert.equal(n, 4);
 });

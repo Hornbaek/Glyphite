@@ -1574,6 +1574,27 @@ image-to-video may be tried, and frames are made at game size. All of it is in `
   then a video model's in-betweens between approved keys. Pip's current look is a placeholder: the bake-off judges methods. PixelLab still needs its key.
 - Tests: `tests/node/rig.test.mjs`, `animcheck.test.mjs`, `bakeoff.test.mjs`, and `--guide` in `artgen.test.mjs`.
 
+## 72. Space Whiskers: the remake's folder, the game's scale, and Pip's walk drafted (Claude Code, 2026-11-16)
+
+> "I really want the "resolution" of the game to be what these images are. I want that to be the scale of the whole game." / "I created a new
+> folder with the name of the game (the remake of the space mouse) and will be the working folder from now on. Move, clean and structure that
+> folder as you see fit and proceed with the drafting of the animations." / "The game is called Space Whiskers - The holy cow"
+
+- **`games/spacewhiskers/`**: the owner's four pictures into `ref/` untouched; every drawing of the sprite sheet cut into `ref/frames/` with
+  `ref.json` and `README.md` (`tools/art.py`; the sheet's painted checkerboard is flood-filled away up to the outlines); the remake's story moved
+  in from `games/spacemouse/story/`; `NOTES.md`. No `game.json` yet, so the build skips the folder; the art tools now work without one.
+- **The scale**: the sprite sheet's grid (2.86 picture pixels per art pixel) is the game's; Pip is 49 pixels tall, shown 1:1, the screen about
+  384 x 216 (`art/style/style.json`). The level picture is drawn finer and with a smaller Pip: noted as open.
+- **Pip on the game grid** (`tools/frames.mjs`): 13 frames snapped at one pixel size, one 32-colour palette, one 57 x 54 canvas, registered,
+  as the asset `pip`.
+- **Drafting from keys** (`tools/art/bakeoff.mjs`): `"keyframes"` in an animation; `sheet-keys`, `toon-inbetween` with keys, `wan-segments`.
+  The walk: the sheet's 4 frames as keys, in-betweens by ToonCrafter (1 call) and Wan 2.7 (4 calls), and PixelLab's walk from the rig (3
+  generations), which at 49 pixels now strides properly. Results in `docs/ANIMATION.md`.
+- > "Pixellab is by far the best one! His leg bends a bit akward, but other than that, the animation is very smooth! The edges of the
+  > character have a lot of stray pixels from "removing the background" that does not look good."
+  Shorter steps and a gentler knee in the rig; `cleanEdges` takes the checkerboard's grey blends off every drawing's edge (Pip's frames brought in
+  again with it); PixelLab ran again (3 generations).
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

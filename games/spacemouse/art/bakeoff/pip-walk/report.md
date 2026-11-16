@@ -30,13 +30,13 @@ openai gpt-image-2.6-sunburst, quality low, 1 call(s), 4450 tokens in all (as th
 
 ## pixellab-skeleton
 
-pixellab pixellab animate-with-skeleton-v3, quality low, 1 call(s).
+pixellab pixellab animate-with-skeleton-v3, 1 call(s).
 
 - no warnings
 
 ## rd-animation
 
-replicate retro-diffusion/rd-animation, quality low, 1 call(s).
+replicate retro-diffusion/rd-animation, 1 call(s).
 
 - frame 0: touches the left edge of the canvas (cut off?)
 - frame 0: its colours drift from the anchor's (0.71)
@@ -63,7 +63,7 @@ replicate retro-diffusion/rd-animation, quality low, 1 call(s).
 
 ## toon-inbetween
 
-replicate fofr/tooncrafter, quality low, 1 call(s).
+replicate fofr/tooncrafter, 1 call(s).
 
 - frames 2 → 3: 61% of the pixels change (a pop)
 - frames 4 → 5: 65% of the pixels change (a pop)
@@ -71,7 +71,7 @@ replicate fofr/tooncrafter, quality low, 1 call(s).
 
 ## wan-loop
 
-replicate wan-video/wan-2.7-i2v, quality low, 1 call(s).
+replicate wan-video/wan-2.7-i2v, 1 call(s).
 
 - frame 1: touches the left edge of the canvas (cut off?)
 - frame 2: touches the left edge of the canvas (cut off?)

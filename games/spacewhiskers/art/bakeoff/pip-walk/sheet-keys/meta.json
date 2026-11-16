@@ -1,0 +1,33 @@
+{
+  "method": "sheet-keys",
+  "provider": null,
+  "model": "the approved keys",
+  "quality": "low",
+  "made": "2026-11-16T10:50:05.606Z",
+  "calls": 0,
+  "usage": [],
+  "frames": [
+    {
+      "i": 0,
+      "key": "002"
+    },
+    {
+      "i": 2,
+      "key": "003"
+    },
+    {
+      "i": 4,
+      "key": "004"
+    },
+    {
+      "i": 6,
+      "key": "005"
+    }
+  ],
+  "prompts": [
+    {
+      "i": "all",
+      "prompt": "keys: f0 = pip/002, f2 = pip/003, f4 = pip/004, f6 = pip/005"
+    }
+  ]
+}

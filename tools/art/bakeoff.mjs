@@ -19,6 +19,8 @@
 //                 draws the motion between them as a looping clip; frames are picked from it, snapped at the base's pixel size and registered
 //   pixellab-skeleton  PixelLab's skeleton animation, a pixel-art model that redraws the base sprite in each pose: the rig's poses as its
 //                 18 joints (the animation's "pixellab" map), the sprite at game size in and the frames at game size out
+//   sheet-keys    the animation's approved keys alone ("keyframes" in its JSON: the owner's drawings), no in-betweens
+//   wan-segments  Wan 2.7 between every two neighbouring keys (first frame a key, last frame the next): the keys stay, the clips draw the in-betweens
 //   wan-loop      an image-to-video model (Wan 2.7 on Replicate) animates the base picture, which is both the first and the last frame of
 //                 the clip, so it loops; 8 frames are picked from one pass, keyed, snapped at one pixel size and registered
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'node:fs';
@@ -26,7 +28,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { ROOT, artDir, readJSON, writeJSON, loadAssets, loadStyle, loadPalette } from './lib.mjs';
-import { blank, toPNG, fromPNG, crop, bbox, binarize, removeKey, upscale } from './image.mjs';
+import { blank, toPNG, fromPNG, crop, bbox, binarize, removeKey, upscale, cleanEdges } from './image.mjs';
 import * as replicate from './gen/replicate.mjs';
 import * as pixellab from './gen/pixellab.mjs';
 import { rgbOf, nearest } from './palette.mjs';
@@ -36,7 +38,7 @@ import { checkAnimation, frameStats } from './animcheck.mjs';
 import { snap as realSnap } from '../snap.mjs';
 import * as R from '../../portal/assets/rig-core.mjs';
 
-export const METHODS = ['openai-frame', 'openai-strip', 'flux-frame', 'rd-animation', 'toon-inbetween', 'wan-loop', 'pixellab-skeleton'];
+export const METHODS = ['openai-frame', 'openai-strip', 'flux-frame', 'rd-animation', 'toon-inbetween', 'wan-loop', 'pixellab-skeleton', 'sheet-keys', 'wan-segments'];
 const GREEN = [0, 255, 0];   // the ground for the video models: nothing of Pip is green, and a video's compression smears a key colour less than magenta into pink
 const STRIP = { cols: 4, cw: 384, ch: 512, size: '1536x1024' };
 
@@ -46,9 +48,16 @@ export function load(game, anim, root = ROOT) {
   const errs = R.validateRig(A.rig); if (errs.length) throw new Error(`${anim}: ${errs.join('; ')}`);
   const a = loadAssets(game, root).find(x => x.id === A.asset); if (!a) throw new Error(`${anim} draws asset ${A.asset}, which is not there`);
   const v = a.versions.find(x => x.n === A.base); if (!v) throw new Error(`${A.asset} has no version ${A.base}`);
-  const lattice = v.meta.snap && v.meta.snap.lattice; if (!lattice) throw new Error(`${A.asset}/${A.base} has no lattice (node tools/art.mjs resnap ${game} ${A.asset} ${A.base})`);
+  // a generated base has a lattice (where its pixels sit in the model's picture); one imported from the owner's sheet has none, and the
+  // methods that need it (openai-frame, openai-strip) say so when they are asked for
+  const lattice = (v.meta.snap && v.meta.snap.lattice) || null;
+  // approved drawings as the animation's KEYS ("keyframes": { frame: version }): the methods that draw in-betweens keep them as they are
+  const keys = Object.entries(A.keyframes || {}).map(([f, n]) => {
+    const kv = a.versions.find(x => x.n === n); if (!kv) throw new Error(`${anim}: key frame ${f} is version ${n} of ${A.asset}, which is not there`);
+    return { frame: +f, version: n, im: fromPNG(readFileSync(join(kv.dir, 'sprite.png'))) };
+  }).sort((p, q) => p.frame - q.frame);
   const anm = R.expandKeys(A.rig, A.anim), poses = R.framePoses(A.rig, anm);
-  return { game, anim, root, dir, A, rig: A.rig, animation: anm, poses, asset: a.asset, base: v, lattice, style: loadStyle(game, root), palette: loadPalette(game, root),
+  return { game, anim, root, dir, A, rig: A.rig, animation: anm, poses, asset: a.asset, base: v, lattice, keys, style: loadStyle(game, root), palette: loadPalette(game, root),
     out: join(dir, 'bakeoff', anim), raw: join(v.dir, 'raw.png'), brief: A.brief || v.meta.brief, sprite: fromPNG(readFileSync(join(v.dir, 'sprite.png'))) };
 }
 
@@ -73,9 +82,11 @@ export function baseMap(lattice) {
 }
 export function writeGuides(L) {
   mkdirSync(join(L.out, 'guides'), { recursive: true });
-  const raw = fromPNG(readFileSync(L.raw)), files = L.poses.map((p, i) => {
+  // in the base picture's own framing when it has one (a generated base), else the sprite 16 times bigger
+  const framed = L.lattice && existsSync(L.raw), raw = framed ? fromPNG(readFileSync(L.raw)) : null, S = 16;
+  const files = L.poses.map((p, i) => {
     const f = join(L.out, 'guides', `f${i}.png`);
-    writeFileSync(f, toPNG(R.renderGuide(L.rig, p, { w: raw.width, h: raw.height, map: baseMap(L.lattice) }))); return f;
+    writeFileSync(f, toPNG(framed ? R.renderGuide(L.rig, p, { w: raw.width, h: raw.height, map: baseMap(L.lattice) }) : R.renderGuide(L.rig, p, { w: L.rig.size.w * S, h: L.rig.size.h * S, map: { s: S, ox: 0, oy: 0 } }))); return f;
   });
   const { im, cells } = R.guideStrip(L.rig, L.poses, { cols: STRIP.cols, cw: STRIP.cw, ch: STRIP.ch });
   writeFileSync(join(L.out, 'guides', 'strip.png'), toPNG(im));
@@ -103,7 +114,7 @@ async function fitFixed(png, { ps, palette, target, foot, headX, snap }) {
   const sub = crop(im, b.x - 2, b.y - 2, b.w + 4, b.h + 4);
   const out = binarize(fromPNG(await snap(toPNG(sub), { pixelSize: ps, palette: palette.map(h => h.slice(1)).join(',') }))), ob = bbox(out);
   if (!ob) throw new Error('snapping removed everything');
-  const r = register(crop(out, ob.x, ob.y, ob.w, ob.h), { w: target.w, h: target.h, foot, headX });
+  const fig = crop(out, ob.x, ob.y, ob.w, ob.h); cleanEdges(fig); const r = register(fig, { w: target.w, h: target.h, foot, headX });
   return { png: toPNG(onPalette(r.im, palette)), cut: r.cut, shift: r.shift, size: [ob.w, ob.h] };
 }
 
@@ -111,6 +122,7 @@ async function fitFixed(png, { ps, palette, target, foot, headX, snap }) {
 // Each returns { frames: [{ i, png (game size) | error, raw (the model's own picture, file) }], calls, usage: [...], prompts: [...] }
 
 async function perFrame(L, api, G, o) {
+  if (!L.lattice) return { model: o.model || adapter(api).defaultModel, frames: L.poses.map((_, i) => ({ i, error: `${L.A.asset}/${L.A.base} has no lattice (an imported base): this method draws in a generated base's framing` })), calls: 0, usage: [], prompts: [] };
   const ad = adapter(api), mdl = o.model || ad.defaultModel, acts = frameActions(L.animation), res = { model: mdl, frames: [], calls: 0, usage: [], prompts: [] };
   const keyed = api === 'flux', dir = join(L.out, `${api}-frame`, 'raw'); if (!o.dry) mkdirSync(dir, { recursive: true });
   const order = [...acts.keys()].sort((a, b) => (acts[b].key - acts[a].key) || a - b);   // the keys first: they matter most
@@ -136,6 +148,7 @@ async function perFrame(L, api, G, o) {
 }
 
 async function strip(L, G, o) {
+  if (!L.lattice) return { model: o.model || adapter('openai').defaultModel, frames: L.poses.map((_, i) => ({ i, error: `${L.A.asset}/${L.A.base} has no lattice (an imported base)` })), calls: 0, usage: [], prompts: [] };
   const ad = adapter('openai'), mdl = o.model || ad.defaultModel, n = L.poses.length, acts = frameActions(L.animation), dir = join(L.out, 'openai-strip', 'raw');
   const T = L.asset.target, rows = Math.ceil(n / STRIP.cols);
   const prompt = [
@@ -219,7 +232,56 @@ async function rdAnimation(L, G, o) {
   return res;
 }
 
+// a key drawing as a video model sees it: blown up by a whole number onto a flat green square of `size`, centred → { png, f, ox, oy }
+export function keyPicture(im, size = 512, bg = GREEN) {
+  const f = Math.floor(Math.min(size * .9 / im.width, size * .9 / im.height)), big = upscale(flat(im, bg), f), c = blank(size, size), ox = (size - big.width) >> 1, oy = (size - big.height) >> 1;
+  for (let i = 0; i < size * size; i++) c.data.set([...bg, 255], i * 4);
+  for (let y = 0; y < big.height; y++) c.data.set(big.data.subarray(y * big.width * 4, (y + 1) * big.width * 4), ((y + oy) * size + ox) * 4);
+  return { png: toPNG(c), f, ox, oy };
+}
+// a frame of a clip made from key pictures, back to the game's pixels: green keyed out, snapped at the keys' pixel size, registered on the base
+async function fromClip(L, o, frame, ps) {
+  const bs = frameStats(L.sprite);
+  return fitFixed(toPNG(binarize(removeKey(frame, GREEN, 120))), { ps, palette: L.palette, target: L.asset.target, foot: bs.foot, headX: bs.head.x, snap: o.snap });
+}
+const keyFrames = L => L.keys.map(k => ({ i: k.frame, png: toPNG(k.im), key: k.version }));
+const needKeys = (L, m) => (L.keys.length >= 2 ? null : { model: m, frames: L.poses.map((_, i) => ({ i, error: `${L.anim}.json has no "keyframes" (approved drawings to draw between)` })), calls: 0, usage: [], prompts: [] });
+
+// the keys alone: the owner's approved drawings, no in-betweens (what a 4-frame cycle looks like)
+async function sheetKeys(L) {
+  return needKeys(L, 'the keys') || { model: 'the approved keys', frames: keyFrames(L), calls: 0, usage: [], prompts: [{ i: 'all', prompt: `keys: ${L.keys.map(k => `f${k.frame} = ${L.A.asset}/${k.version}`).join(', ')}` }] };
+}
+
+// Wan 2.7 between every two neighbouring keys (first frame = a key, last frame = the next): the keys stay the owner's, each clip draws the motion between
+async function wanSegments(L, G, o) {
+  const m = 'wan-segments', res = needKeys(L, 'wan-video/wan-2.7-i2v') || { model: 'wan-video/wan-2.7-i2v', frames: keyFrames(L), calls: 0, usage: [], prompts: [] }, dir = join(L.out, m, 'raw'), n = L.poses.length;
+  if (!L.keys.length || res.frames.some(f => f.error)) return res;
+  const segs = L.keys.map((k, j) => [k, L.keys[(j + 1) % L.keys.length]]).filter(([a, b]) => L.animation.loop || b.frame > a.frame);
+  const say = `${L.brief.replace(/;.*$/, '')}: ${L.A.action || 'moving'}, seen from the side, from the pose of the first frame to the pose of the last frame in one smooth step. The camera does not move, the character stays in place in the middle of the picture. Pixel art, flat plain green background, nothing else.`;
+  res.prompts.push({ i: 'all', prompt: say });
+  if (o.dry) return res;
+  mkdirSync(dir, { recursive: true });
+  for (const [a, b] of segs) {
+    const gap = ((b.frame - a.frame) + n) % n || n; if (gap < 2) continue;
+    const A0 = keyPicture(a.im), B0 = keyPicture(b.im), name = `seg${a.frame}-${b.frame}`;
+    let files;
+    try { files = await replicateRun(L, o, m, res.model, { prompt: say, negative_prompt: 'camera movement, zoom, walking out of the picture, scenery, floor, shadow, text, blur, smooth 3D shading', first_frame: replicate.dataURI(A0.png), last_frame: replicate.dataURI(B0.png), duration: 2, resolution: '720p', enable_prompt_expansion: false }, res, [join(dir, `${name}.mp4`)]); }
+    catch (e) { for (let j = 1; j < gap; j++) res.frames.push({ i: (a.frame + j) % n, error: e.message }); o.log(`${m} ${name}: ${e.message}`); continue; }
+    writeFileSync(join(dir, `${name}.mp4`), files[0]);
+    const all = (o.videoFrames || videoFrames)(files[0], join(tmpdir(), `bakeoff-${m}-${name}-${Date.now()}`)), ps = A0.f * all[0].width / 512;
+    for (let j = 1; j < gap; j++) {
+      const i = (a.frame + j) % n, at = Math.round(j * (all.length - 1) / gap);
+      try { writeFileSync(join(dir, `f${i}.png`), toPNG(all[at])); const fit = await fromClip(L, o, all[at], ps); res.frames.push({ i, png: fit.png, raw: join(dir, `f${i}.png`), cut: fit.cut, shift: fit.shift }); }
+      catch (e) { res.frames.push({ i, error: e.message }); }
+    }
+    o.log(`${m} ${name}: ${all.length} frames, ${gap - 1} in-between(s) taken`);
+  }
+  res.frames.sort((p, q) => p.i - q.i);
+  return res;
+}
+
 async function toonInbetween(L, G, o) {
+  if (L.keys.length >= 2) return toonBetweenKeys(L, G, o);
   const m = 'toon-inbetween', res = { model: 'fofr/tooncrafter', frames: [], calls: 0, usage: [], prompts: [] }, dir = join(L.out, m, 'raw'), n = L.poses.length;
   const keys = [...L.animation.keys].sort((a, b) => a.frame - b.frame).map(k => k.frame), src = k => join(L.out, 'openai-frame', 'raw', `f${k}.png`);
   const missing = keys.filter(k => !existsSync(src(k)));
@@ -232,7 +294,7 @@ async function toonInbetween(L, G, o) {
   let files;
   try { files = await replicateRun(L, o, m, res.model, input, res, [join(dir, 'clip.mp4')]); } catch (e) { res.frames = L.poses.map((_, i) => ({ i, error: e.message })); o.log(`${m}: ${e.message}`); return res; }
   const clip = files[files.length - 1]; writeFileSync(join(dir, 'clip.mp4'), clip);
-  const all = videoFrames(clip, join(tmpdir(), `bakeoff-${m}-${Date.now()}`)), at = pick(all.length + (L.animation.loop ? 1 : 0), n);
+  const all = (o.videoFrames || videoFrames)(clip, join(tmpdir(), `bakeoff-${m}-${Date.now()}`)), at = pick(all.length + (L.animation.loop ? 1 : 0), n);
   o.log(`${m}: ${all.length} frames in the clip, taking ${at.join(', ')}`);
   for (let i = 0; i < n; i++) {
     try {
@@ -247,6 +309,34 @@ async function toonInbetween(L, G, o) {
   return res;
 }
 
+// ToonCrafter through the animation's approved keys: they go in as they are (blown up on green), the clip loops through them, and the frames
+// between the keys are taken from it; the keys themselves stay the owner's drawings
+async function toonBetweenKeys(L, G, o) {
+  const m = 'toon-inbetween', res = { model: 'fofr/tooncrafter', frames: keyFrames(L), calls: 0, usage: [], prompts: [] }, dir = join(L.out, m, 'raw'), n = L.poses.length;
+  const pics = L.keys.map(k => keyPicture(k.im));
+  const input = { prompt: `pixel art ${L.brief.replace(/;.*$/, '').toLowerCase()}, ${L.A.action || 'moving'}, side view, flat green background`, negative_prompt: 'blur, smooth shading, camera movement', loop: !!L.animation.loop, max_width: 512, max_height: 512, interpolate: false, color_correction: true };
+  pics.forEach((p, j) => { input[`image_${j + 1}`] = replicate.dataURI(p.png); });
+  res.prompts.push({ i: 'all', prompt: `${input.prompt} (keys: ${L.keys.map(k => `f${k.frame} = ${L.A.asset}/${k.version}`).join(', ')})` });
+  if (o.dry) return res;
+  mkdirSync(dir, { recursive: true });
+  let files;
+  try { files = await replicateRun(L, o, m, res.model, input, res, [join(dir, 'clip.mp4')]); } catch (e) { res.frames.push(...L.poses.map((_, i) => ({ i, error: e.message })).filter(f => !L.keys.some(k => k.frame === f.i))); o.log(`${m}: ${e.message}`); return res; }
+  const clip = files[files.length - 1]; writeFileSync(join(dir, 'clip.mp4'), clip);
+  const all = (o.videoFrames || videoFrames)(clip, join(tmpdir(), `bakeoff-${m}-${Date.now()}`)), per = all.length / L.keys.length, ps = pics[0].f * all[0].width / 512;
+  o.log(`${m}: ${all.length} frames in the clip, ${per.toFixed(1)} per key`);
+  // the clip passes through the keys at even steps: key j at j * per; a frame between key j (frame a) and the next (frame b) is that far along
+  L.keys.forEach((k, j) => {
+    const next = L.keys[(j + 1) % L.keys.length], gap = ((next.frame - k.frame) + n) % n || n;
+    for (let t = 1; t < gap; t++) res.frames.push({ i: (k.frame + t) % n, at: Math.min(all.length - 1, Math.round((j + t / gap) * per)) });
+  });
+  for (const f of res.frames) if (f.at !== undefined) {
+    try { writeFileSync(join(dir, `f${f.i}.png`), toPNG(all[f.at])); const fit = await fromClip(L, o, all[f.at], ps); Object.assign(f, { png: fit.png, raw: join(dir, `f${f.i}.png`), cut: fit.cut, shift: fit.shift }); }
+    catch (e) { f.error = e.message; }
+  }
+  res.frames.sort((p, q) => p.i - q.i);
+  return res;
+}
+
 async function wanLoop(L, G, o) {
   const m = 'wan-loop', res = { model: 'wan-video/wan-2.7-i2v', frames: [], calls: 0, usage: [], prompts: [] }, dir = join(L.out, m, 'raw'), n = L.poses.length;
   const first = replicate.dataURI(toPNG(half(flat(fromPNG(readFileSync(L.raw)), GREEN))));
@@ -258,7 +348,7 @@ async function wanLoop(L, G, o) {
   let files;
   try { files = await replicateRun(L, o, m, res.model, input, res, [join(dir, 'clip.mp4')]); } catch (e) { res.frames = L.poses.map((_, i) => ({ i, error: e.message })); o.log(`${m}: ${e.message}`); return res; }
   writeFileSync(join(dir, 'clip.mp4'), files[0]);
-  const all = videoFrames(files[0], join(tmpdir(), `bakeoff-${m}-${Date.now()}`)), at = pick(all.length, n);
+  const all = (o.videoFrames || videoFrames)(files[0], join(tmpdir(), `bakeoff-${m}-${Date.now()}`)), at = pick(all.length, n);
   o.log(`${m}: ${all.length} frames in the clip, taking ${at.join(', ')}`);
   const keyed = at.map(k => binarize(removeKey(all[k], GREEN, 120)));
   const bs = frameStats(L.sprite), hs = keyed.map(k => (bbox(k) || { h: 0 }).h).filter(Boolean).sort((a, b) => a - b), ps = hs.length ? hs[hs.length >> 1] / bs.height : 1;
@@ -303,20 +393,20 @@ async function pixellabSkeleton(L, G, o) {
       o.log(`${m}: ${frames.length} frames (job ${r.jobId})`);
     } catch (e) { res.frames = L.poses.map((_, i) => ({ i, error: e.message })); o.log(`${m}: ${e.message}`); return res; }
   }
-  // the frames come back at the sprite's own size and on its pixels: only the palette is made sure of (the placement is the model's, kept as it is)
-  frames.forEach((f, i) => res.frames.push({ i, png: toPNG(onPalette(binarize(fromPNG(f)), L.palette)), raw: saved[i] }));
+  // the frames come back at the sprite's own size and on its pixels: the palette is made sure of and stray edge pixels go (the placement is the model's)
+  frames.forEach((f, i) => { const im = onPalette(binarize(fromPNG(f)), L.palette); cleanEdges(im); res.frames.push({ i, png: toPNG(im), raw: saved[i] }); });
   return res;
 }
 
-const RUN = { 'openai-frame': (L, G, o) => perFrame(L, 'openai', G, o), 'flux-frame': (L, G, o) => perFrame(L, 'flux', G, o), 'openai-strip': strip, 'rd-animation': rdAnimation, 'toon-inbetween': toonInbetween, 'wan-loop': wanLoop, 'pixellab-skeleton': pixellabSkeleton };
-const API_OF = { 'openai-frame': 'openai', 'flux-frame': 'flux', 'openai-strip': 'openai', 'rd-animation': 'replicate', 'toon-inbetween': 'replicate', 'wan-loop': 'replicate', 'pixellab-skeleton': 'pixellab' };
+const RUN = { 'openai-frame': (L, G, o) => perFrame(L, 'openai', G, o), 'flux-frame': (L, G, o) => perFrame(L, 'flux', G, o), 'openai-strip': strip, 'rd-animation': rdAnimation, 'toon-inbetween': toonInbetween, 'wan-loop': wanLoop, 'pixellab-skeleton': pixellabSkeleton, 'sheet-keys': sheetKeys, 'wan-segments': wanSegments };
+const API_OF = { 'openai-frame': 'openai', 'flux-frame': 'flux', 'openai-strip': 'openai', 'rd-animation': 'replicate', 'toon-inbetween': 'replicate', 'wan-loop': 'replicate', 'pixellab-skeleton': 'pixellab', 'sheet-keys': null, 'wan-segments': 'replicate' };
 
 // run the methods; each method's frames and record go to <out>/<method>/
-export async function bakeoff(game, anim, { methods = METHODS, root = ROOT, dry = false, quality = 'low', model = null, maxCalls = 20, generate = null, replicate: rep = null, pixellab: pl = null, reuse = false, snap = realSnap, log = () => {} } = {}) {
+export async function bakeoff(game, anim, { methods = METHODS, root = ROOT, dry = false, quality = 'low', model = null, maxCalls = 20, generate = null, replicate: rep = null, pixellab: pl = null, videoFrames: vf = null, reuse = false, snap = realSnap, log = () => {} } = {}) {
   const L = load(game, anim, root), G = writeGuides(L), calls = { n: 0 }, done = {};
   for (const m of methods) {
     if (!RUN[m]) throw new Error(`unknown method ${m} (${METHODS.join(', ')})`);
-    const res = await RUN[m](L, G, { dry, quality, model, maxCalls, calls, generate, replicate: rep, pixellab: pl, reuse, snap, log });
+    const res = await RUN[m](L, G, { dry, quality, model, maxCalls, calls, generate, replicate: rep, pixellab: pl, videoFrames: vf, reuse, snap, log });
     if (dry) { for (const p of res.prompts) log(`--- ${m}, frame ${p.i} ---\n${p.prompt}\n`); continue; }
     const d = join(L.out, m); mkdirSync(d, { recursive: true });
     // the frames of an earlier cut go (a frame this cut did not make must not linger); the raw pictures in raw/ stay
@@ -350,7 +440,7 @@ export function compare(game, anim, { root = ROOT, scale = 4 } = {}) {
     const off = Math.max(...c.frames.filter(f => !f.empty).map(f => f.offPalette || 0));
     report.push(`| ${m} | ${meta.model} | ${meta.calls} | ${got.length}/${n} | ${c.heightRange} | ${c.footRange} | ${c.headJitter.toFixed(1)} | ${(c.meanStep * 100).toFixed(0)}% | ${c.seam == null ? '' : (c.seam * 100).toFixed(0) + '%'} | ${c.meanDrift == null ? '' : c.meanDrift.toFixed(2)} | ${(off * 100).toFixed(1)}% | ${c.warnings.length} |`);
     const tokens = meta.usage.reduce((t, u) => t + ((u.usage && (u.usage.total_tokens || (u.usage.input_tokens || 0) + (u.usage.output_tokens || 0))) || 0), 0);
-    details.push(`## ${m}`, '', `${meta.provider} ${meta.model}, quality ${meta.quality}, ${meta.calls} call(s)${tokens ? `, ${tokens} tokens in all (as the API reported)` : ''}${meta.usage.some(u => u.params && u.params.cost != null) ? `, ${meta.usage.reduce((t, u) => t + (u.params.cost || 0), 0)} credits` : ''}.`, '',
+    details.push(`## ${m}`, '', `${[meta.provider, meta.model].filter(Boolean).join(' ')}${API_OF[m] === 'openai' ? `, quality ${meta.quality}` : ''}, ${meta.calls} call(s)${tokens ? `, ${tokens} tokens in all (as the API reported)` : ''}${meta.usage.some(u => u.params && u.params.cost != null) ? `, ${meta.usage.reduce((t, u) => t + (u.params.cost || 0), 0)} credits` : ''}.`, '',
       ...(c.warnings.length ? c.warnings.map(w => `- ${w}`) : ['- no warnings']), ...meta.frames.filter(f => f.error).map(f => `- frame ${f.i} failed: ${f.error}`), '');
   }
   report.push('', `compare.png: the guides, then ${rows.slice(1).map(r => r.name).join(', then ')} (at ${scale}x, then at game size on the right).`);
@@ -380,7 +470,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(spawnSync(process.execPath, process.argv.slice(1), { stdio: 'inherit', env: { ...process.env, NODE_USE_ENV_PROXY: '1', NODE_NO_WARNINGS: '1' } }).status ?? 1);
   }
   const methods = opt('methods') ? String(opt('methods')).split(',') : METHODS;
-  if (!opt('dry')) for (const m of methods) { const h = keyHint(API_OF[m]); if (h) { console.error(`${m}: ${h}`); process.exit(1); } }
+  if (!opt('dry')) for (const m of methods) { const h = API_OF[m] && keyHint(API_OF[m]); if (h) { console.error(`${m}: ${h}`); process.exit(1); } }
   const r = await bakeoff(game, anim, { methods, dry: !!opt('dry'), quality: opt('quality') || 'low', model: opt('model') || null, maxCalls: opt('max-calls') ? +opt('max-calls') : 20, reuse: !!opt('reuse'), log: m => console.log(m) });
   console.log(opt('dry') ? `dry run: ${r.guides.files.length} guides written, no calls` : `${r.calls} call(s). Sheet: ${join('games', game, 'art', 'bakeoff', anim, 'compare.png')}`);
 }

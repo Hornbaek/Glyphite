@@ -1,0 +1,131 @@
+{
+  "method": "wan-segments",
+  "provider": "replicate",
+  "model": "wan-video/wan-2.7-i2v",
+  "quality": "low",
+  "made": "2026-11-16T10:43:18.768Z",
+  "recut": "2026-11-16T10:50:18.980Z",
+  "calls": 4,
+  "usage": [
+    {
+      "i": "all",
+      "usage": {
+        "predict_time": 24.561739194,
+        "resolution_target": "720p",
+        "total_time": 24.596143219,
+        "video_output_count": 1,
+        "video_output_duration_seconds": 2
+      },
+      "params": {
+        "model": "wan-video/wan-2.7-i2v",
+        "version": "hidden"
+      },
+      "requestId": "r6gb6sqdkdrmt0d1wfrvjgs11r"
+    },
+    {
+      "i": "all",
+      "usage": {
+        "predict_time": 30.094152404,
+        "resolution_target": "720p",
+        "total_time": 30.111416742,
+        "video_output_count": 1,
+        "video_output_duration_seconds": 2
+      },
+      "params": {
+        "model": "wan-video/wan-2.7-i2v",
+        "version": "hidden"
+      },
+      "requestId": "n43t7wtzfsrmt0d1wfs978yfk8"
+    },
+    {
+      "i": "all",
+      "usage": {
+        "predict_time": 42.881857606,
+        "resolution_target": "720p",
+        "total_time": 42.896987921,
+        "video_output_count": 1,
+        "video_output_duration_seconds": 2
+      },
+      "params": {
+        "model": "wan-video/wan-2.7-i2v",
+        "version": "hidden"
+      },
+      "requestId": "dfzp92fbfhrmr0d1wfs83jrxb4"
+    },
+    {
+      "i": "all",
+      "usage": {
+        "predict_time": 36.101173852,
+        "resolution_target": "720p",
+        "total_time": 36.114943394,
+        "video_output_count": 1,
+        "video_output_duration_seconds": 2
+      },
+      "params": {
+        "model": "wan-video/wan-2.7-i2v",
+        "version": "hidden"
+      },
+      "requestId": "hcsgba53q5rmr0d1wfsre3vvzr"
+    }
+  ],
+  "frames": [
+    {
+      "i": 0,
+      "key": "002"
+    },
+    {
+      "i": 1,
+      "raw": "wan-segments/raw/f1.png",
+      "cut": 0,
+      "shift": {
+        "dx": 10,
+        "dy": 5
+      }
+    },
+    {
+      "i": 2,
+      "key": "003"
+    },
+    {
+      "i": 3,
+      "raw": "wan-segments/raw/f3.png",
+      "cut": 0,
+      "shift": {
+        "dx": 9,
+        "dy": 5
+      }
+    },
+    {
+      "i": 4,
+      "key": "004"
+    },
+    {
+      "i": 5,
+      "raw": "wan-segments/raw/f5.png",
+      "cut": 0,
+      "shift": {
+        "dx": 10,
+        "dy": 5
+      }
+    },
+    {
+      "i": 6,
+      "key": "005"
+    },
+    {
+      "i": 7,
+      "raw": "wan-segments/raw/f7.png",
+      "cut": 0,
+      "shift": {
+        "dx": 6,
+        "dy": 6
+      }
+    }
+  ],
+  "prompts": [
+    {
+      "i": "all",
+      "prompt": "Pip, an orange mouse with big pink ears in a round glass space helmet, a white spacesuit with grey boots and gloves, a red-and-silver air tank on his back, a long red scarf flying behind him and a thin orange tail: walking forward, seen from the side, from the pose of the first frame to the pose of the last frame in one smooth step. The camera does not move, the character stays in place in the middle of the picture. Pixel art, flat plain green background, nothing else."
+    }
+  ]
+}

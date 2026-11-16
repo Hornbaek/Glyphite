@@ -94,7 +94,8 @@ async function main(argv) {
   const [cmd, ...rest] = argv, pos = [], o = {};
   for (let i = 0; i < rest.length; i++) { const a = rest[i]; if (a === '--check' || a === '--dry' || a === '--mood' || a === '--key') o[a.slice(2)] = true; else if (a.startsWith('--')) o[a.slice(2)] = rest[++i]; else pos.push(a); }
   const game = pos[0];
-  const need = () => { if (!game || !existsSync(join(ROOT, 'games', game, 'game.json'))) die(`give a game id (games/<id>/game.json), e.g. spacemouse`); };
+  // a game's folder is enough: art can be made before the game's code exists (games/spacewhiskers began that way)
+  const need = () => { if (!game || !existsSync(join(ROOT, 'games', game))) die(`give a game id (a folder in games/), e.g. spacemouse`); };
   if (cmd === 'init') {
     need(); const d = artDir(game);
     if (existsSync(join(d, 'style', 'style.json'))) die(`${game} already has art/style/style.json`);
@@ -256,7 +257,7 @@ async function main(argv) {
     need(); const text = buildText(game), p = join(ROOT, 'games', game, 'pipeline.js');
     if (o.check) { if (!existsSync(p) || readFileSync(p, 'utf8') !== text) die(`pipeline.js is out of date: node tools/art.mjs build ${game}`); console.log('pipeline.js is up to date'); return; }
     writeFileSync(p, text); const n = liveItems(game).length;
-    const parts = readJSON(join(ROOT, 'games', game, 'game.json')).parts;
+    const gj = join(ROOT, 'games', game, 'game.json'), parts = existsSync(gj) ? readJSON(gj).parts : ['pipeline.js'];
     console.log(`wrote games/${game}/pipeline.js: ${n} live asset(s)${parts.includes('pipeline.js') ? '' : `\nadd "pipeline.js" to games/${game}/game.json's parts, before art.js`}`); return;
   }
   die('commands: init, palette, recolor, map, promote-ref, make, resnap, check-keys, models, add, promote, reject, import-sprites, check, build (see the top of tools/art.mjs)');

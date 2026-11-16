@@ -1,0 +1,26 @@
+{
+  "version": "008",
+  "parent": null,
+  "status": "approved",
+  "kind": "imported",
+  "brief": "",
+  "prompt": "",
+  "refs": [],
+  "api": null,
+  "source": null,
+  "snap": null,
+  "normals": {
+    "bevel": 3,
+    "detail": 0.8,
+    "strength": 2.5
+  },
+  "target": {
+    "class": "character",
+    "w": 57,
+    "h": 54
+  },
+  "note": "ref/frames/pip_run3.png on the game grid (tools/frames.mjs)",
+  "created": "2026-11-16T10:48:32.629Z",
+  "by": "claude-session",
+  "frame": "run3"
+}

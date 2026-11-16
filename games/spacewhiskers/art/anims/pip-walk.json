@@ -1,0 +1,307 @@
+{
+  "format": "pixelite-anim",
+  "id": "pip-walk",
+  "name": "Pip walks",
+  "asset": "pip",
+  "base": "001",
+  "brief": "Pip, an orange mouse with big pink ears in a round glass space helmet, a white spacesuit with grey boots and gloves, a red-and-silver air tank on his back, a long red scarf flying behind him and a thin orange tail; walking to the right, full body",
+  "action": "walking forward",
+  "note": "Pip's walk at the game's scale (49 px tall, 1:1). The owner's sheet has a 4-frame walk: those four drawings (pip/002-005) are the approved KEYS, on frames 0, 2, 4 and 6 of an 8-frame cycle, and the methods draft the in-betweens. The rig is fitted by hand to the idle frame (pip/001) on the 57 x 54 canvas; it drives the methods that draw from a skeleton (PixelLab). The rig: short steps (legs 35 degrees apart at contact) and a gentle knee on the lifted leg, because Pip's legs are only about eight pixels long (the owner, after the first PixelLab walk: \"his leg bends a bit awkward\").",
+  "keyframes": {
+    "0": "002",
+    "2": "003",
+    "4": "004",
+    "6": "005"
+  },
+  "rig": {
+    "version": 1,
+    "size": {
+      "w": 57,
+      "h": 54
+    },
+    "root": {
+      "x": 36,
+      "y": 53.5
+    },
+    "joints": [
+      {
+        "id": "root",
+        "parent": null,
+        "angle": 0
+      },
+      {
+        "id": "pelvis",
+        "parent": "root",
+        "len": 8,
+        "angle": -90,
+        "side": "mid",
+        "w": 0
+      },
+      {
+        "id": "chest",
+        "parent": "pelvis",
+        "len": 9,
+        "angle": 0,
+        "side": "mid",
+        "w": 7
+      },
+      {
+        "id": "neck",
+        "parent": "chest",
+        "len": 7,
+        "angle": 0,
+        "side": "mid",
+        "w": 5
+      },
+      {
+        "id": "head",
+        "parent": "neck",
+        "len": 13,
+        "angle": 0,
+        "side": "mid",
+        "w": 3,
+        "shape": "circle",
+        "r": 12.5
+      },
+      {
+        "id": "snout",
+        "parent": "head",
+        "len": 9,
+        "angle": 90,
+        "side": "mid",
+        "part": "face",
+        "w": 0
+      },
+      {
+        "id": "shoulder_far",
+        "parent": "neck",
+        "len": 5,
+        "angle": -90,
+        "side": "far",
+        "w": 0
+      },
+      {
+        "id": "elbow_far",
+        "parent": "shoulder_far",
+        "len": 5,
+        "angle": -90,
+        "side": "far",
+        "w": 2.3
+      },
+      {
+        "id": "hand_far",
+        "parent": "elbow_far",
+        "len": 5,
+        "angle": 0,
+        "side": "far",
+        "w": 2.3
+      },
+      {
+        "id": "shoulder_near",
+        "parent": "neck",
+        "len": 5,
+        "angle": 90,
+        "side": "near",
+        "w": 0
+      },
+      {
+        "id": "elbow_near",
+        "parent": "shoulder_near",
+        "len": 5,
+        "angle": 90,
+        "side": "near",
+        "w": 2.3
+      },
+      {
+        "id": "hand_near",
+        "parent": "elbow_near",
+        "len": 5,
+        "angle": 0,
+        "side": "near",
+        "w": 2.3
+      },
+      {
+        "id": "hip_far",
+        "parent": "pelvis",
+        "len": 3.5,
+        "angle": -90,
+        "side": "far",
+        "w": 0
+      },
+      {
+        "id": "knee_far",
+        "parent": "hip_far",
+        "len": 4,
+        "angle": -90,
+        "side": "far",
+        "w": 3.2
+      },
+      {
+        "id": "ankle_far",
+        "parent": "knee_far",
+        "len": 4,
+        "angle": 0,
+        "side": "far",
+        "w": 3
+      },
+      {
+        "id": "toe_far",
+        "parent": "ankle_far",
+        "len": 4.5,
+        "angle": -90,
+        "side": "far",
+        "w": 2.4
+      },
+      {
+        "id": "hip_near",
+        "parent": "pelvis",
+        "len": 3.5,
+        "angle": 90,
+        "side": "near",
+        "w": 0
+      },
+      {
+        "id": "knee_near",
+        "parent": "hip_near",
+        "len": 4,
+        "angle": 90,
+        "side": "near",
+        "w": 3.2
+      },
+      {
+        "id": "ankle_near",
+        "parent": "knee_near",
+        "len": 4,
+        "angle": 0,
+        "side": "near",
+        "w": 3
+      },
+      {
+        "id": "toe_near",
+        "parent": "ankle_near",
+        "len": 4.5,
+        "angle": -90,
+        "side": "near",
+        "w": 2.4
+      },
+      {
+        "id": "tail0",
+        "parent": "pelvis",
+        "len": 9,
+        "angle": -105,
+        "part": "tail",
+        "w": 1
+      },
+      {
+        "id": "tail1",
+        "parent": "tail0",
+        "len": 9,
+        "angle": 20,
+        "part": "tail",
+        "w": 1
+      },
+      {
+        "id": "tail2",
+        "parent": "tail1",
+        "len": 7,
+        "angle": 20,
+        "part": "tail",
+        "w": 1
+      },
+      {
+        "id": "tail3",
+        "parent": "tail2",
+        "len": 3,
+        "angle": 60,
+        "part": "tail",
+        "w": 1
+      }
+    ]
+  },
+  "pixellab": {
+    "note": "the rig's joints as PixelLab's 18 (tools/art/gen/pixellab.mjs). Facing east the near side is the character's right, drawn on top; the face points are fixed on the idle sprite and move with the head.",
+    "direction": "east",
+    "joints": {
+      "NECK": "neck",
+      "RIGHT SHOULDER": "shoulder_near",
+      "RIGHT ELBOW": "elbow_near",
+      "RIGHT ARM": "hand_near",
+      "LEFT SHOULDER": "shoulder_far",
+      "LEFT ELBOW": "elbow_far",
+      "LEFT ARM": "hand_far",
+      "RIGHT HIP": "hip_near",
+      "RIGHT KNEE": "knee_near",
+      "RIGHT LEG": "ankle_near",
+      "LEFT HIP": "hip_far",
+      "LEFT KNEE": "knee_far",
+      "LEFT LEG": "ankle_far"
+    },
+    "face": {
+      "follow": "head",
+      "points": {
+        "NOSE": [44, 19],
+        "RIGHT EYE": [41, 16],
+        "LEFT EYE": [43, 16],
+        "RIGHT EAR": [27, 14],
+        "LEFT EAR": [31, 9]
+      }
+    }
+  },
+  "anim": {
+    "frames": 8,
+    "fps": 10,
+    "loop": true,
+    "mirrorHalf": true,
+    "mirrorKeep": ["hip_near", "hip_far", "shoulder_near", "shoulder_far"],
+    "keys": [
+      {
+        "frame": 0,
+        "label": "contact_a",
+        "ease": "linear",
+        "action": "contact: a short step: the near (front) boot forward on the floor, the far boot behind on its toe, the far arm swings forward",
+        "pose": {
+          "root": {
+            "dx": 0,
+            "dy": 0.6
+          },
+          "angles": {
+            "knee_near": 35,
+            "ankle_near": 0,
+            "toe_near": -35,
+            "knee_far": -35,
+            "ankle_far": 0,
+            "toe_far": -110,
+            "elbow_near": 110,
+            "hand_near": -10,
+            "elbow_far": -110,
+            "hand_far": -10,
+            "tail2": 10
+          }
+        }
+      },
+      {
+        "frame": 2,
+        "label": "passing_a",
+        "ease": "linear",
+        "action": "passing: the near leg is straight under the body carrying the weight, the far knee is lifted a little and the far boot passes just above the floor under the body, the body is at its highest, the arms hang",
+        "pose": {
+          "root": {
+            "dx": 0,
+            "dy": -0.5
+          },
+          "angles": {
+            "knee_near": 90,
+            "ankle_near": 0,
+            "toe_near": -90,
+            "knee_far": -98,
+            "ankle_far": 28,
+            "toe_far": -100,
+            "elbow_near": 95,
+            "elbow_far": -95,
+            "tail2": 30
+          }
+        }
+      }
+    ]
+  }
+}

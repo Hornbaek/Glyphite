@@ -1,0 +1,87 @@
+{
+  "method": "toon-inbetween",
+  "provider": "replicate",
+  "model": "fofr/tooncrafter",
+  "quality": "low",
+  "made": "2026-11-16T10:40:44.783Z",
+  "recut": "2026-11-16T10:50:07.327Z",
+  "calls": 1,
+  "usage": [
+    {
+      "i": "all",
+      "usage": {
+        "predict_time": 68.394037913,
+        "total_time": 95.160800477
+      },
+      "params": {
+        "model": "fofr/tooncrafter",
+        "version": "0486ff07368e816ec3d5c69b9581e7a09b55817f567a0d74caad9395c9295c77"
+      },
+      "requestId": "97pdvek3qnrn80d1wfrbx7z66g"
+    }
+  ],
+  "frames": [
+    {
+      "i": 0,
+      "key": "002"
+    },
+    {
+      "i": 1,
+      "at": 8,
+      "raw": "toon-inbetween/raw/f1.png",
+      "cut": 0,
+      "shift": {
+        "dx": 12,
+        "dy": 5
+      }
+    },
+    {
+      "i": 2,
+      "key": "003"
+    },
+    {
+      "i": 3,
+      "at": 24,
+      "raw": "toon-inbetween/raw/f3.png",
+      "cut": 0,
+      "shift": {
+        "dx": 12,
+        "dy": 5
+      }
+    },
+    {
+      "i": 4,
+      "key": "004"
+    },
+    {
+      "i": 5,
+      "at": 40,
+      "raw": "toon-inbetween/raw/f5.png",
+      "cut": 0,
+      "shift": {
+        "dx": 11,
+        "dy": 5
+      }
+    },
+    {
+      "i": 6,
+      "key": "005"
+    },
+    {
+      "i": 7,
+      "at": 56,
+      "raw": "toon-inbetween/raw/f7.png",
+      "cut": 0,
+      "shift": {
+        "dx": 12,
+        "dy": 5
+      }
+    }
+  ],
+  "prompts": [
+    {
+      "i": "all",
+      "prompt": "pixel art pip, an orange mouse with big pink ears in a round glass space helmet, a white spacesuit with grey boots and gloves, a red-and-silver air tank on his back, a long red scarf flying behind him and a thin orange tail, walking forward, side view, flat green background (keys: f0 = pip/002, f2 = pip/003, f4 = pip/004, f6 = pip/005)"
+    }
+  ]
+}

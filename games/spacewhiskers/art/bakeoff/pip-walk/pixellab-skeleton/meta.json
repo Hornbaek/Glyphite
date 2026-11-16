@@ -1,0 +1,59 @@
+{
+  "method": "pixellab-skeleton",
+  "provider": "pixellab",
+  "model": "pixellab animate-with-skeleton-v3",
+  "quality": "low",
+  "made": "2026-11-16T10:50:04.472Z",
+  "calls": 1,
+  "usage": [
+    {
+      "i": "all",
+      "usage": null,
+      "params": {
+        "endpoint": "animate-with-skeleton-v3",
+        "frames": 8
+      },
+      "requestId": "ce6cb8a3-e233-4abc-913e-b7d1de28897d"
+    }
+  ],
+  "frames": [
+    {
+      "i": 0,
+      "raw": "pixellab-skeleton/raw/f0.png"
+    },
+    {
+      "i": 1,
+      "raw": "pixellab-skeleton/raw/f1.png"
+    },
+    {
+      "i": 2,
+      "raw": "pixellab-skeleton/raw/f2.png"
+    },
+    {
+      "i": 3,
+      "raw": "pixellab-skeleton/raw/f3.png"
+    },
+    {
+      "i": 4,
+      "raw": "pixellab-skeleton/raw/f4.png"
+    },
+    {
+      "i": 5,
+      "raw": "pixellab-skeleton/raw/f5.png"
+    },
+    {
+      "i": 6,
+      "raw": "pixellab-skeleton/raw/f6.png"
+    },
+    {
+      "i": 7,
+      "raw": "pixellab-skeleton/raw/f7.png"
+    }
+  ],
+  "prompts": [
+    {
+      "i": "all",
+      "prompt": "Pip, an orange mouse with big pink ears in a round glass space helmet, a white spacesuit with grey boots and gloves, a red-and-silver air tank on his back, a long red scarf flying behind him and a thin orange tail | action: walk | east, side view | 8 skeletons"
+    }
+  ]
+}

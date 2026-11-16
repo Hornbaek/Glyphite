@@ -19,6 +19,7 @@ Pipeline: Design Summary"); HISTORY 41 says what is built and what is not.
 
 ## Folder per game: `games/<id>/art/`
 It is separate from `ref/`, which holds the owner's own images and keeps its strict rule (`tests/node/ref.test.mjs`).
+A game's folder is enough: the tools do not need its `game.json`, so art can be made before the game's code exists (Space Whiskers began that way).
 
 ```
 art/style/style.json      pxPerUnit, size classes, the fixed style paragraph, the reference images with a role
@@ -196,6 +197,8 @@ Sprite scale is what has to match (not the whole screen): fix one `pxPerUnit` pe
 Space Mouse: Pip is about 14-16 art pixels tall at the default detail (RES 2), so a prop of 12 x 11 pixels is 6 x 5.5 units. The
 existing sheet-cut props are drawn about three times finer (k about 0.15) and are sampled down by the engine; new art is made at
 the size the game shows it.
+Space Whiskers: the owner's sprite sheet sets the scale of the whole game (one of its art pixels, 2.86 picture pixels, is one game pixel); Pip is
+49 pixels tall and shown 1:1 (k .5), not halved; `games/spacewhiskers/tools/frames.mjs` snaps every drawing of the sheet at that one pixel size.
 
 ## Not yet built (see ROADMAP "Art pipeline")
 Animation sets (Pip walking is nineteen frames today: an asset with `frames` is the natural extension), generation (needs the
