@@ -97,7 +97,8 @@ method first on one Pip walk cycle, then build the studio around the winner.
    its key). Proposed: keys from the rig, in-betweens by a video model between approved keys. Next: Wan first-and-last-frame per segment, then the studio.
    PixelLab ran too (pixel-perfect, but at 28 x 32 the legs barely move). Space Whiskers (HISTORY 72): the owner's sheet sets the game's scale (Pip 49 px);
    the walk drafted from the sheet's 4 keys (ToonCrafter, Wan 2.7 between keys) and from the rig (PixelLab, a clear stride now). The owner picked
-   PixelLab. Next: run, jump (take-off, rise, apex, fall, land) and idle from rigs with PixelLab; then the studio.
+   PixelLab. Run, idle and jump drawn from approved rigs; all four accepted and playing in the Space Whiskers test level (HISTORY 73).
+   Next for the game: the level's art from the props sheet, Pip's slide, crouch and wall slide, the Cat. Next for the tool: the studio.
 3. The studio at `/anim/`: the rig editor over a base frame, the timeline (keys, eases, mirrored halves, loop preview with the seam), guides, a D1 table `anims` (JSON
    only) and a hand-off prompt to a session; review with frame states, onion skin and the checks; `art.mjs sheet` (PNG frames, a sheet and a manifest for other
    engines); the Cat's rig and copying a walk to another rig. Later: a live Generate button through a Worker secret.

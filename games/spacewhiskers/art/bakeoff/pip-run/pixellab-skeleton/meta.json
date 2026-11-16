@@ -3,7 +3,7 @@
   "provider": "pixellab",
   "model": "pixellab animate-with-skeleton-v3",
   "quality": "low",
-  "made": "2026-11-16T11:56:46.270Z",
+  "made": "2026-11-16T12:49:47.897Z",
   "calls": 1,
   "usage": [
     {
@@ -13,7 +13,7 @@
         "endpoint": "animate-with-skeleton-v3",
         "frames": 8
       },
-      "requestId": "e8cdd989-111c-431a-bcf9-f99c2664c7fd"
+      "requestId": "47115c6b-be1e-487e-9a4f-d84ea39f37c1"
     }
   ],
   "frames": [
