@@ -1,0 +1,43 @@
+{
+  "method": "pixellab-skeleton",
+  "provider": "pixellab",
+  "model": "pixellab animate-with-skeleton-v3",
+  "quality": "low",
+  "made": "2026-11-16T11:57:56.170Z",
+  "calls": 1,
+  "usage": [
+    {
+      "i": "all",
+      "usage": null,
+      "params": {
+        "endpoint": "animate-with-skeleton-v3",
+        "frames": 4
+      },
+      "requestId": "e14e6236-77a0-4311-ba13-484b10e8681e"
+    }
+  ],
+  "frames": [
+    {
+      "i": 0,
+      "raw": "pixellab-skeleton/raw/f0.png"
+    },
+    {
+      "i": 1,
+      "raw": "pixellab-skeleton/raw/f1.png"
+    },
+    {
+      "i": 2,
+      "raw": "pixellab-skeleton/raw/f2.png"
+    },
+    {
+      "i": 3,
+      "raw": "pixellab-skeleton/raw/f3.png"
+    }
+  ],
+  "prompts": [
+    {
+      "i": "all",
+      "prompt": "Pip, an orange mouse with big pink ears in a round glass space helmet, a white spacesuit with grey boots and gloves, a red-and-silver air tank on his back, a long red scarf flying behind him and a thin orange tail | action: idle | east, side view | 4 skeletons"
+    }
+  ]
+}
