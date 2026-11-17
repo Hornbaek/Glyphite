@@ -20,7 +20,7 @@ engine/                 the engine (shared by every game)
 games/notfound/         the 404 game: unlisted, served by the Worker for any missing page (worker/index.js)
 games/showcase/         the live engine demo on the public landing page: unlisted, public
 games/spacewhiskers/    Space Whiskers: The Holy Cow, the Space Mouse remake: art (ref/, art/: Pip at the game's scale, his approved animations), the story,
-                        and an unlisted test level (Pip walks, runs, jumps on a 480 x 270 screen). Start from its NOTES.md
+                        and an unlisted test level (Pip runs and jumps on a 480 x 270 screen; test lights to try shadows). Start from its NOTES.md
 games/<id>/             one folder per game: game.json (manifest), head.html (optional page HTML), *.js parts,
                         thumb.png, plus the game's own tools/, tests/, ref/ (reference art: see the rules), music/, NOTES.md
 templates/starter/      the game `new` copies: small, uses every engine feature once (Cave Drone)

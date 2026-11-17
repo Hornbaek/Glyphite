@@ -2,35 +2,224 @@
   "id": "spacewhiskers",
   "title": "Space Whiskers: The Holy Cow",
   "tagline": "Pip, a mouse astronaut, in the cats' shipyard: a test level for his animations",
-  "description": "The first playable piece of the Space Mouse remake: Pip at the game's own scale (49 pixels tall, on a 480 x 270 screen) walks, runs and jumps through a corner of the Whiskerworks shipyard, so his new animations can be judged in motion. Decks, crates, catwalks, a scaffold tower and a long run to the cheese.",
+  "description": "The first playable piece of the Space Whiskers remake: Pip at the game's own scale (49 pixels tall, on a 480 x 270 screen) runs and jumps through a corner of the Whiskerworks shipyard, so his animations, the controls and the light can be judged in motion. Decks, crates, catwalks, a scaffold tower and a long run to the cheese; lamps that cast shadows, and test lights you can drop anywhere.",
   "order": 95,
   "listed": false,
   "status": "draft",
-  "parts": ["pipeline.js", "world.js", "pip.js", "main.js"],
+  "parts": [
+    "pipeline.js",
+    "world.js",
+    "pip.js",
+    "lights.js",
+    "main.js"
+  ],
   "engine": [],
   "controls": [
-    ["A D / Left Right", "walk"],
-    ["Shift / X (hold)", "run"],
-    ["Space / W / Up", "jump (hold for height)"],
-    ["S / Down", "drop through a catwalk"],
-    ["P / Esc", "pause"],
-    ["Gamepad", "stick or d-pad, A jump, X or B run"]
+    [
+      "A D / Left Right",
+      "move"
+    ],
+    [
+      "Shift / X (hold)",
+      "sprint"
+    ],
+    [
+      "C (hold)",
+      "walk slowly"
+    ],
+    [
+      "Space / W / Up",
+      "jump (hold for height)"
+    ],
+    [
+      "S / Down",
+      "drop through a catwalk"
+    ],
+    [
+      "Click",
+      "drop a test light (right click takes the nearest away)"
+    ],
+    [
+      "1 2 3 4",
+      "kind of test light: warm, cold, spot, alarm"
+    ],
+    [
+      "F",
+      "a light that follows the mouse"
+    ],
+    [
+      "H",
+      "Pip's helmet lamp on / off"
+    ],
+    [
+      "K",
+      "clear the test lights"
+    ],
+    [
+      "P / Esc",
+      "pause"
+    ],
+    [
+      "Gamepad",
+      "stick or d-pad, A jump, X or B sprint, Y walk"
+    ]
   ],
   "actions": {
-    "left": ["ArrowLeft", "KeyA", "pad:left", "touch:left"],
-    "right": ["ArrowRight", "KeyD", "pad:right", "touch:right"],
-    "down": ["ArrowDown", "KeyS", "pad:down", "touch:down"],
-    "jump": ["Space", "ArrowUp", "KeyW", "pad:a", "touch:jump"],
-    "run": ["ShiftLeft", "ShiftRight", "KeyX", "pad:x", "pad:b", "touch:run"]
+    "left": [
+      "ArrowLeft",
+      "KeyA",
+      "pad:left",
+      "touch:left"
+    ],
+    "right": [
+      "ArrowRight",
+      "KeyD",
+      "pad:right",
+      "touch:right"
+    ],
+    "down": [
+      "ArrowDown",
+      "KeyS",
+      "pad:down",
+      "touch:down"
+    ],
+    "jump": [
+      "Space",
+      "ArrowUp",
+      "KeyW",
+      "pad:a",
+      "touch:jump"
+    ],
+    "run": [
+      "ShiftLeft",
+      "ShiftRight",
+      "KeyX",
+      "pad:x",
+      "pad:b",
+      "touch:run"
+    ],
+    "walk": [
+      "KeyC",
+      "pad:y"
+    ]
   },
   "tunables": {
-    "walkSpeed": { "label": "Walk speed", "unit": "pixels/s", "value": 70, "min": 30, "max": 140, "step": 1, "live": true, "help": "Pip's walking speed in game pixels a second (he is 49 tall; the screen is 480 wide)." },
-    "runSpeed": { "label": "Run speed", "unit": "pixels/s", "value": 165, "min": 80, "max": 320, "step": 1, "live": true, "help": "His top speed while the run button is held." },
-    "jumpHeight": { "label": "Jump height", "unit": "pixels", "value": 74, "min": 30, "max": 140, "step": 1, "live": true, "help": "How high a full jump lifts his feet (hold the button; let go early for a short hop). 74 is about one and a half Pips." },
-    "jumpTime": { "label": "Time to the top", "unit": "s", "value": 0.4, "min": 0.25, "max": 0.7, "step": 0.01, "live": true, "help": "How long a full jump takes to reach its top: lower is snappier (the game works out the gravity from this and the height)." },
-    "walkStride": { "label": "Walk stride", "unit": "pixels a frame", "value": 4.5, "min": 2, "max": 10, "step": 0.25, "live": true, "help": "How far he moves for each frame of the walk: the animation is driven by distance, so his boots keep pace with the floor at any speed." },
-    "runStride": { "label": "Run stride", "unit": "pixels a frame", "value": 9, "min": 4, "max": 18, "step": 0.25, "live": true, "help": "The same for the run." },
-    "screenWidth": { "label": "Screen width", "unit": "game pixels", "value": 480, "min": 320, "max": 640, "step": 16, "live": true, "help": "How many game pixels the view is wide (480 x 270 is the agreed screen); the window is filled in whole device pixels." }
+    "speed": {
+      "label": "Move speed",
+      "unit": "pixels/s",
+      "value": 150,
+      "min": 60,
+      "max": 260,
+      "step": 1,
+      "live": true,
+      "help": "Pip's normal speed in game pixels a second (he is 49 tall, the screen 480 wide): three Pips a second. His run drawings play at this pace."
+    },
+    "sprintSpeed": {
+      "label": "Sprint speed",
+      "unit": "pixels/s",
+      "value": 215,
+      "min": 100,
+      "max": 360,
+      "step": 1,
+      "live": true,
+      "help": "His top speed while the sprint button is held."
+    },
+    "walkSpeed": {
+      "label": "Walk speed",
+      "unit": "pixels/s",
+      "value": 70,
+      "min": 30,
+      "max": 120,
+      "step": 1,
+      "live": true,
+      "help": "His speed while the walk key (C) is held: the walk drawings, a slow, careful pace. Below about 100 pixels a second the walk is what is drawn."
+    },
+    "accelTime": {
+      "label": "Time to full speed",
+      "unit": "s",
+      "value": 0.07,
+      "min": 0.02,
+      "max": 0.3,
+      "step": 0.01,
+      "live": true,
+      "help": "How long he takes from standing to his top speed: lower is snappier."
+    },
+    "stopTime": {
+      "label": "Time to stop",
+      "unit": "s",
+      "value": 0.05,
+      "min": 0.02,
+      "max": 0.3,
+      "step": 0.01,
+      "live": true,
+      "help": "How long he takes to stop (and to turn round) when you let go."
+    },
+    "jumpHeight": {
+      "label": "Jump height",
+      "unit": "pixels",
+      "value": 80,
+      "min": 30,
+      "max": 140,
+      "step": 1,
+      "live": true,
+      "help": "How high a full jump lifts his feet (hold the button; let go early for a short hop). 80 is about one and two thirds Pips."
+    },
+    "jumpTime": {
+      "label": "Time to the top",
+      "unit": "s",
+      "value": 0.34,
+      "min": 0.22,
+      "max": 0.7,
+      "step": 0.01,
+      "live": true,
+      "help": "How long a full jump takes to reach its top: lower is snappier (the game works out the gravity from this and the height)."
+    },
+    "airControl": {
+      "label": "Air control",
+      "unit": "0-1",
+      "value": 0.9,
+      "min": 0.2,
+      "max": 1,
+      "step": 0.05,
+      "live": true,
+      "help": "How well he steers in the air, as a share of his control on the ground."
+    },
+    "walkStride": {
+      "label": "Walk stride",
+      "unit": "pixels a frame",
+      "value": 4.5,
+      "min": 2,
+      "max": 10,
+      "step": 0.25,
+      "live": true,
+      "help": "How far he moves for each frame of the walk: the animation is driven by distance, so his boots keep pace with the floor at any speed."
+    },
+    "runStride": {
+      "label": "Run stride",
+      "unit": "pixels a frame",
+      "value": 10,
+      "min": 4,
+      "max": 18,
+      "step": 0.25,
+      "live": true,
+      "help": "The same for the run."
+    },
+    "screenWidth": {
+      "label": "Screen width",
+      "unit": "game pixels",
+      "value": 480,
+      "min": 320,
+      "max": 640,
+      "step": 16,
+      "live": true,
+      "help": "How many game pixels the view is wide (480 x 270 is the agreed screen); the window is filled in whole device pixels."
+    }
   },
-  "smoke": { "keys": ["ArrowRight", "ShiftLeft", "Space"] }
+  "smoke": {
+    "keys": [
+      "ArrowRight",
+      "ShiftLeft",
+      "Space"
+    ]
+  }
 }

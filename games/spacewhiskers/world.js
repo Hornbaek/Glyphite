@@ -12,15 +12,15 @@ const DECK = defineMaterial('deck', { albedo: [.5, .54, .62], palette: pal([38, 
 const CATWALK = defineMaterial('catwalk', { albedo: [.8, .5, .16], palette: pal([108, 56, 18], [172, 102, 30], [222, 156, 50], [248, 204, 94]), tough: 99, anchor: true, brittle: false, oneWay: true, style: 'terrain' });
 const CRATE = defineMaterial('cargo crate', { albedo: [.7, .38, .14], palette: pal([88, 40, 16], [150, 74, 26], [200, 114, 40], [234, 158, 70]), tough: 99, anchor: true, brittle: false, style: 'terrain' });
 // the back wall (never solid): panels, a rib every few rows, the scaffold's uprights, the frame round the big window
-const PANEL = defineMaterial('wall panel', { albedo: [.22, .26, .36], palette: pal([20, 24, 38], [30, 36, 54], [42, 50, 72]), style: 'flat' });
-const RIB = defineMaterial('wall rib', { albedo: [.3, .34, .44], palette: pal([38, 44, 62], [56, 64, 86], [78, 88, 114]), style: 'flat' });
-const UPRIGHT = defineMaterial('scaffold upright', { albedo: [.6, .38, .14], palette: pal([84, 48, 18], [134, 80, 28], [176, 116, 42]), style: 'mast' });
+const PANEL = defineMaterial('wall panel', { albedo: [.22, .26, .36], palette: pal([18, 22, 34], [26, 32, 50], [38, 46, 70], [56, 68, 98], [82, 96, 130], [112, 128, 166]), style: 'flat' });
+const RIB = defineMaterial('wall rib', { albedo: [.3, .34, .44], palette: pal([34, 40, 58], [48, 56, 80], [68, 80, 110], [94, 108, 142], [124, 140, 178]), style: 'flat' });
+const UPRIGHT = defineMaterial('scaffold upright', { albedo: [.6, .38, .14], palette: pal([84, 48, 18], [134, 80, 28], [176, 116, 42], [214, 150, 62]), style: 'mast' });
 const WFRAME = defineMaterial('window frame', { albedo: [.42, .46, .56], palette: pal([56, 62, 80], [88, 96, 118], [126, 136, 158]), style: 'flat' });
 worldMaterials({ edge: HULL, rubble: HULL, fill: HULL });
 
 // ---------- the map ----------
 // # hull (the floor), D deck (a solid platform), = catwalk (jump up through it; Down drops through), C crate, | scaffold upright (back wall),
-// P Pip's start, c cheese, L a lamp, G the great cheese. Everything else is open, with the back wall behind it (WINDOW: none, space shows).
+// P Pip's start, c cheese, L a ceiling lamp, A a pulsing red alarm lamp, B a blue lamp, G the great cheese. Everything else is open, with the back wall behind it (WINDOW: none, space shows).
 const COLS = 180, ROWS = 40, FLOOR = 33;
 const WINDOW = [60, 2, 118, 24];   // tile columns and rows of the big window (inclusive)
 function levelRows() {
@@ -45,11 +45,12 @@ function levelRows() {
   fill(136, 31, 137, 32, 'C'); fill(152, 31, 153, 32, 'C'); fill(154, 30, 155, 32, 'C');
   put(170, FLOOR - 1, 'G');
   for (const c of [10, 46, 128, 160]) put(c, 17, 'L');                        // lamps on cables from the roof, low enough to see
+  put(57, 25, 'A'); put(86, 20, 'B');                                          // an alarm lamp over the pit, a blue one in the scaffold: the catwalks cast shadows on the wall
   return g.map(r => r.join(''));
 }
 const LEGEND = {
   '#': HULL, 'D': DECK, '=': CATWALK, 'C': CRATE, '|': { back: UPRIGHT },
-  'P': { spawn: 'pip' }, 'c': { spawn: 'cheese' }, 'L': { spawn: 'lamp' }, 'G': { spawn: 'goal' },
+  'P': { spawn: 'pip' }, 'c': { spawn: 'cheese' }, 'L': { spawn: 'lamp' }, 'A': { spawn: 'alarm' }, 'B': { spawn: 'blue' }, 'G': { spawn: 'goal' },
 };
 // the back wall everywhere the map left it bare: panels with a rib every six rows, the window's frame, nothing in the window (space shows)
 function paintBackWall(map) {
@@ -69,7 +70,13 @@ const GOAL_SPR = defineSprite({ w: 24, h: 18, pal: [[110, 66, 8, 0], [232, 170, 
   rows: ['..............00........', '...........0033200......', '........003322222100....', '.....0033222222222210...', '..0033222222222222221...', '00322222222222222222210.',
     '012222222222222222222210', '012222442222222244222210', '012224444222222444422210', '012222442222222244222210', '012222222222222222222210', '012222222224422222222210',
     '012222222244442222222210', '012222222224422222222210', '011222222222222222222110', '011111111111111111111110', '044444444444444444444440', '000000000000000000000000'] }, { k: .5, ox: 12, oy: 18 });
-const CABLE_SPR = defineSprite({ w: 1, h: 8, pal: [[34, 38, 52, 1], [52, 58, 76, 1]], rows: ['0', '0', '1', '0', '0', '0', '1', '0'] }, { k: .5, ox: .5, oy: 0 });
+// a lamp's cable: one tall thin sprite from the roof (cached by its length), a lighter link every few pixels
+const SW_CABLES = new Map();
+const cableSprite = len => { len = Math.max(1, Math.round(len)); if (!SW_CABLES.has(len)) SW_CABLES.set(len, defineSprite({ w: 1, h: len, pal: [[34, 38, 52, 1], [66, 72, 92, 1]], rows: Array.from({ length: len }, (_, i) => i % 5 === 2 ? '1' : '0') }, { k: .5, ox: .5, oy: 0 })); return SW_CABLES.get(len); };
+// a small glowing bulb in a colour (the wall lamps, and the markers of the test lights): bright centre, dark rim, the centre glows unlit
+const bulbSprite = (c) => defineSprite({ w: 7, h: 7, pal: [[24, 26, 34, 0], c.map(v => Math.round(v * 150)).concat(1), c.map(v => Math.round(v * 255)).concat(1)],
+  rows: ['..000..', '.01110.', '0122210', '0122210', '0122210', '.01110.', '..000..'],
+  emit: ['.......', '.......', '..999..', '..999..', '..999..', '.......', '.......'] }, { k: .5, ox: 3.5, oy: 3.5, glow: 0 });
 const LAMP_SPR = defineSprite({ w: 9, h: 7, pal: [[30, 32, 40, 0], [80, 86, 100, 1], [255, 226, 150, 1]],
   rows: ['....0....', '....0....', '...000...', '..01110..', '.0111110.', '022222220', '.2222222.'],
   emit: ['.........', '.........', '.........', '.........', '.........', '.9999999.', '.9999999.'] }, { k: .5, ox: 4.5, oy: 0, glow: 0 });
