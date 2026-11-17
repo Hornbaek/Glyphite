@@ -1619,6 +1619,24 @@ image-to-video may be tried, and frames are made at game size. All of it is in `
   (1920 x 1080: 472 x 270).
 - `games/spacewhiskers/tests/mechanics.py`: the view, every frame shown, every climb, the drop-through and the goal.
 
+## 74. Space Whiskers: a faster, smoother feel, a cheaper frame, and test lights (Claude Code, 2026-11-17)
+
+> "The movements are quite clumpsy and slow, and the rendering is quite slow. The movement from the "original" spacemouse was a lot smoother and I also want you to add some test lights to see how the shadows etc work, like in the old version."
+
+- **Measured first** (`Pixelite.perf`, a CPU profile, `tests/perf.py` next to Space Mouse): a frame was 8 ms standing and 23 to 30 ms while the view moved with a lamp in it
+  (headless, software GL). Two causes in the game: full-circle lamps of radius 110 to 150 in an open hall (12 ms of `light` on every scrolling frame) and Pip's 3000-pixel sprite drawn
+  uncached (2.2 ms). The rest is the engine's per-cell pass over 127,000 cells, which no look setting moved.
+- **Cheaper**: the lamps are cones with radii 80 to 115; every still sprite is `cache: true`; a lamp's cable is one sprite and lamps off screen are skipped. Moving frames now 16 to 23 ms, the
+  sprite draws about a tenth of what they were (`gameDraw` 3.4 to 0.3 ms). Details and the lamp-cost rule of thumb in `LESSONS.md`.
+- **Movement**: his normal pace is the run drawings at 150 px/s (3 body heights a second; the walk was 1.4), Shift sprints at 215, the walk (C, or a gentle stick) at 70; he reaches speed in
+  0.07 s and stops in 0.05 s; the jump is 80 px in 0.34 s with 0.9 air control; a landing frame no longer interrupts a run. The walk's stride is pinned by its drawings (measured), so
+  the walk was not sped up. Tunables: `speed`, `sprintSpeed`, `walkSpeed`, `accelTime`, `stopTime`, `jumpHeight`, `jumpTime`, `airControl`, the two strides.
+- **Camera**: a `camera` hook locked to Pip on whole cells with a small look-ahead and a floor-settling top edge (no dead zone, no easing of the engine's: `cameraEase: 1000`, `cameraTop: 0`).
+- **Test lights** (`lights.js`): click drops a light (up to 4), 1 to 4 choose warm, cold, spot or pulsing alarm, F a light that follows the mouse, H Pip's helmet lamp (a cone that turns
+  with him), K clears, right click takes the nearest away. Pip blocks lamp light (`markSpriteDyn` with `blocksLamps`), so lamps throw his shadow on the back wall; the level has a
+  pulsing alarm lamp over the pit and a blue lamp inside the scaffold whose catwalks and uprights shade the wall. The wall's palettes gained steps so the pools of light read.
+- `tests/mechanics.py` now also checks the camera (whole cells, locked to Pip, no bob, feet in view in a fall) and the test lights, and tries a range of pushes for each climb.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

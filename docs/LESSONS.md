@@ -370,6 +370,27 @@ way.
 - **Check that the "optimisation" is one, in the same process.** The terrain pass called `getC` for every cell and again for the back wall's shadow search; replacing the second with a read of the lighting's
   occupancy buffer through a function (`occAt`) looked free and was 5 to 20% slower (it does more work per call than `getC`). Reading the cell itself from the array, the thing the plan named, moved the scene stage
   by less than the noise. Timing the P1 `renderScene` against the new one in one page, alternating, and varying the loop found it; the build-to-build numbers (10 to 20% scatter between page loads) could not.
+### A scrolling platformer at 480 x 270 (Space Whiskers, HISTORY 74)
+
+- **A lamp's cost is about r² x the angle it covers, and in an open hall the rays run their whole length.** Space Mouse's lamps end at walls within a few cells; Space Whiskers' hall is
+  open, so two full-circle lamps of radius 110 to 120 cost 12 ms a frame (`light`) whenever the camera moved, because a scrolling frame casts every lamp in view again (the camera moving
+  defeats the lamp cache, above). Cones (a downward half-angle of 1 radian is a third of the circle) and radii of 80 to 115 brought it to 5 to 8 ms. Count `Σ r² x angle / .36` ray steps
+  (about 17 ns each in headless Chrome) before adding a lamp; `Pixelite.perf` says what the stage costs.
+- **`cache: true` on every still sprite.** Pip's 57 x 54 canvas cost 2.2 ms a draw (every cell sampled 4 times, with normals); with `cache: true` the cells are worked out once per frame and flip,
+  and the draw is a fifth of that. The level's cheese, lamps, the great cheese and the cables are cached too, and a lamp's cable is one tall sprite, not sixteen, and culled when off screen.
+- **The camera belongs on the cell grid.** The engine's rig eases the camera to a target with fractional positions, and its dead zone and velocity look-ahead make it move in bursts and trail a
+  running hero by speed / ease cells (165 px/s over 3.2 per second is 50 cells). Space Whiskers sets `cameraEase: 1000` (no easing of the engine's own) and a `camera` hook that gives
+  Pip's whole-cell position minus a small look-ahead (about 30 cells the way he runs, eased in over half a second), and a top edge that settles on the floor he stands on and is clamped so his
+  feet stay between 20% and 86% of the view: he stays within 1 cell of the same screen place while running, the view does not bob on a jump, and the picture scrolls in whole cells.
+- **Speed is felt against the body.** Space Mouse's mouse ran 4.5 of its own heights a second; Pip's first walk (70 px/s) was 1.4 of his. The walk drawings are pinned to 4.5 pixels a frame
+  (measured: the planted boot travels 4 to 4.6 pixels a frame), so the pace cannot be raised without the boots sliding: the normal pace became the run's (150 px/s, 3 heights a second, the
+  run's stride is 9 to 10), the walk is for the C key and gentle sticks. A landing frame must not interrupt a run (it plays only when he stops dead).
+- **A jump test must not fix how long he runs.** Raising the speed made a fixed "walk 30 steps while jumping" overshoot the crates; `tests/mechanics.py` now tries pushes of 4 to 40 steps
+  and passes when any lands on the platform.
+- **What is left is per cell.** A moving frame re-shades the whole view (127,000 cells at 480 x 270, 9 to 14 ms in headless Chrome; Space Mouse's 56,000 cost 5 to 6): the back wall's shadow
+  depth, the lamp-following shadows, the planet and the stars were each measured and move it by less than the noise. A scroll-shifted terrain cache (the "shift and fill the edge" of the roadmap)
+  is the lever; until then `screenWidth` (320 to 640) is the knob, and F3 shows a machine's own numbers.
+
 ## Liquids
 
 - **"Solid" used to mean "not empty", in forty places.** A liquid lives in the grid, so every `cells[i] !== EMPTY` that meant *something stands here* (collision, light occlusion, the sun
