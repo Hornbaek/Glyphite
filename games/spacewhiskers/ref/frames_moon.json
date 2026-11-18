@@ -1,0 +1,4668 @@
+{
+ "bubblingmoon_terrain.png": [
+  {
+   "file": "frames/bubblingmoon_terrain_glossy-crust.png",
+   "name": "terrain glossy crust",
+   "box": [
+    50,
+    111,
+    458,
+    182
+   ],
+   "size": [
+    408,
+    71
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_thin-crust-cracks.png",
+   "name": "terrain thin crust (cracks)",
+   "box": [
+    511,
+    111,
+    928,
+    186
+   ],
+   "size": [
+    417,
+    75
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_matte-crust-safe.png",
+   "name": "terrain matte crust (safe)",
+   "box": [
+    981,
+    103,
+    1371,
+    183
+   ],
+   "size": [
+    390,
+    80
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_crust-with-skin.png",
+   "name": "terrain crust with skin",
+   "box": [
+    1426,
+    74,
+    1774,
+    184
+   ],
+   "size": [
+    348,
+    110
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_floating-chunk-l.png",
+   "name": "terrain floating chunk L",
+   "box": [
+    1862,
+    63,
+    2152,
+    184
+   ],
+   "size": [
+    290,
+    121
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_floating-chunk-m.png",
+   "name": "terrain floating chunk M",
+   "box": [
+    2272,
+    89,
+    2498,
+    184
+   ],
+   "size": [
+    226,
+    95
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_floating-chunk-s.png",
+   "name": "terrain floating chunk S",
+   "box": [
+    2630,
+    103,
+    2843,
+    184
+   ],
+   "size": [
+    213,
+    81
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_swiss-ledge.png",
+   "name": "terrain swiss ledge",
+   "box": [
+    2952,
+    74,
+    3330,
+    184
+   ],
+   "size": [
+    378,
+    110
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_cheese-wedge.png",
+   "name": "terrain cheese wedge",
+   "box": [
+    3457,
+    47,
+    3729,
+    182
+   ],
+   "size": [
+    272,
+    135
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_crust-block.png",
+   "name": "terrain crust block",
+   "box": [
+    73,
+    349,
+    279,
+    537
+   ],
+   "size": [
+    206,
+    188
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_crust-block-crack.png",
+   "name": "terrain crust block (crack)",
+   "box": [
+    401,
+    351,
+    616,
+    538
+   ],
+   "size": [
+    215,
+    187
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_crust-corner-l.png",
+   "name": "terrain crust corner L",
+   "box": [
+    749,
+    347,
+    954,
+    537
+   ],
+   "size": [
+    205,
+    190
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_crust-corner-r.png",
+   "name": "terrain crust corner R",
+   "box": [
+    1157,
+    347,
+    1361,
+    536
+   ],
+   "size": [
+    204,
+    189
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_swiss-block.png",
+   "name": "terrain swiss block",
+   "box": [
+    1495,
+    347,
+    1698,
+    536
+   ],
+   "size": [
+    203,
+    189
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_swiss-block-rind.png",
+   "name": "terrain swiss block (rind)",
+   "box": [
+    1833,
+    345,
+    2039,
+    536
+   ],
+   "size": [
+    206,
+    191
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_swiss-edge-l.png",
+   "name": "terrain swiss edge L",
+   "box": [
+    2180,
+    347,
+    2371,
+    536
+   ],
+   "size": [
+    191,
+    189
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_swiss-edge-r.png",
+   "name": "terrain swiss edge R",
+   "box": [
+    2473,
+    347,
+    2664,
+    536
+   ],
+   "size": [
+    191,
+    189
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_swiss-edge-r-2.png",
+   "name": "terrain swiss edge R 2",
+   "box": [
+    2778,
+    347,
+    2967,
+    536
+   ],
+   "size": [
+    189,
+    189
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_milk-stone.png",
+   "name": "terrain milk stone",
+   "box": [
+    3066,
+    346,
+    3248,
+    537
+   ],
+   "size": [
+    182,
+    191
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_slope-up.png",
+   "name": "terrain slope up",
+   "box": [
+    3329,
+    345,
+    3527,
+    519
+   ],
+   "size": [
+    198,
+    174
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_slope-down.png",
+   "name": "terrain slope down",
+   "box": [
+    3610,
+    345,
+    3798,
+    519
+   ],
+   "size": [
+    188,
+    174
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_pit-s.png",
+   "name": "terrain pit S",
+   "box": [
+    69,
+    704,
+    341,
+    854
+   ],
+   "size": [
+    272,
+    150
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_pit-m.png",
+   "name": "terrain pit M",
+   "box": [
+    450,
+    698,
+    836,
+    861
+   ],
+   "size": [
+    386,
+    163
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_crater-l.png",
+   "name": "terrain crater L",
+   "box": [
+    934,
+    675,
+    1464,
+    865
+   ],
+   "size": [
+    530,
+    190
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_crater-lip.png",
+   "name": "terrain crater lip",
+   "box": [
+    1569,
+    651,
+    2032,
+    865
+   ],
+   "size": [
+    463,
+    214
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_crater-cap-r.png",
+   "name": "terrain crater cap R",
+   "box": [
+    2139,
+    675,
+    2629,
+    861
+   ],
+   "size": [
+    490,
+    186
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_pit-floor.png",
+   "name": "terrain pit floor",
+   "box": [
+    2734,
+    676,
+    3226,
+    861
+   ],
+   "size": [
+    492,
+    185
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_hole-s.png",
+   "name": "terrain hole S",
+   "box": [
+    79,
+    1031,
+    231,
+    1172
+   ],
+   "size": [
+    152,
+    141
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_hole-m.png",
+   "name": "terrain hole M",
+   "box": [
+    417,
+    1017,
+    640,
+    1196
+   ],
+   "size": [
+    223,
+    179
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_hole-l.png",
+   "name": "terrain hole L",
+   "box": [
+    828,
+    988,
+    1126,
+    1209
+   ],
+   "size": [
+    298,
+    221
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_hole-oval.png",
+   "name": "terrain hole oval",
+   "box": [
+    1325,
+    1029,
+    1572,
+    1172
+   ],
+   "size": [
+    247,
+    143
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_hole-drip.png",
+   "name": "terrain hole (drip)",
+   "box": [
+    1776,
+    1029,
+    2031,
+    1209
+   ],
+   "size": [
+    255,
+    180
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_hole-rind-lip.png",
+   "name": "terrain hole (rind lip)",
+   "box": [
+    2222,
+    1014,
+    2518,
+    1209
+   ],
+   "size": [
+    296,
+    195
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_cheese-wall.png",
+   "name": "terrain cheese wall",
+   "box": [
+    2717,
+    966,
+    2994,
+    1210
+   ],
+   "size": [
+    277,
+    244
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_tall-wall.png",
+   "name": "terrain tall wall",
+   "box": [
+    3176,
+    950,
+    3363,
+    1210
+   ],
+   "size": [
+    187,
+    260
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_wall-cap.png",
+   "name": "terrain wall cap",
+   "box": [
+    3521,
+    980,
+    3774,
+    1209
+   ],
+   "size": [
+    253,
+    229
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_boulder-s.png",
+   "name": "terrain boulder S",
+   "box": [
+    59,
+    1338,
+    324,
+    1507
+   ],
+   "size": [
+    265,
+    169
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_boulder-m.png",
+   "name": "terrain boulder M",
+   "box": [
+    397,
+    1327,
+    668,
+    1505
+   ],
+   "size": [
+    271,
+    178
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_boulder-l.png",
+   "name": "terrain boulder L",
+   "box": [
+    741,
+    1306,
+    1030,
+    1504
+   ],
+   "size": [
+    289,
+    198
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_stalagmite-a.png",
+   "name": "terrain stalagmite A",
+   "box": [
+    1133,
+    1312,
+    1373,
+    1508
+   ],
+   "size": [
+    240,
+    196
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_stalagmite-b.png",
+   "name": "terrain stalagmite B",
+   "box": [
+    1477,
+    1306,
+    1751,
+    1508
+   ],
+   "size": [
+    274,
+    202
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_stalactite-a.png",
+   "name": "terrain stalactite A",
+   "box": [
+    1869,
+    1320,
+    2053,
+    1504
+   ],
+   "size": [
+    184,
+    184
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_stalactite-b.png",
+   "name": "terrain stalactite B",
+   "box": [
+    2178,
+    1312,
+    2400,
+    1508
+   ],
+   "size": [
+    222,
+    196
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_stalactite-c.png",
+   "name": "terrain stalactite C",
+   "box": [
+    2543,
+    1312,
+    2737,
+    1504
+   ],
+   "size": [
+    194,
+    192
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_milk-spire.png",
+   "name": "terrain milk spire",
+   "box": [
+    2896,
+    1306,
+    3048,
+    1508
+   ],
+   "size": [
+    152,
+    202
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_rind-arch.png",
+   "name": "terrain rind arch",
+   "box": [
+    3165,
+    1312,
+    3470,
+    1504
+   ],
+   "size": [
+    305,
+    192
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_crystals.png",
+   "name": "terrain crystals",
+   "box": [
+    3565,
+    1312,
+    3784,
+    1504
+   ],
+   "size": [
+    219,
+    192
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_mould-a.png",
+   "name": "terrain mould A",
+   "box": [
+    60,
+    1660,
+    288,
+    1782
+   ],
+   "size": [
+    228,
+    122
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_mould-b.png",
+   "name": "terrain mould B",
+   "box": [
+    371,
+    1641,
+    614,
+    1785
+   ],
+   "size": [
+    243,
+    144
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_mould-c.png",
+   "name": "terrain mould C",
+   "box": [
+    679,
+    1687,
+    934,
+    1780
+   ],
+   "size": [
+    255,
+    93
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_dry-moss-a.png",
+   "name": "terrain dry moss A",
+   "box": [
+    1021,
+    1641,
+    1233,
+    1780
+   ],
+   "size": [
+    212,
+    139
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_dry-moss-b.png",
+   "name": "terrain dry moss B",
+   "box": [
+    1333,
+    1658,
+    1596,
+    1782
+   ],
+   "size": [
+    263,
+    124
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_skin-curl-a.png",
+   "name": "terrain skin curl A",
+   "box": [
+    1696,
+    1671,
+    1934,
+    1780
+   ],
+   "size": [
+    238,
+    109
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_skin-curl-b.png",
+   "name": "terrain skin curl B",
+   "box": [
+    2046,
+    1660,
+    2294,
+    1783
+   ],
+   "size": [
+    248,
+    123
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_buried-wheel.png",
+   "name": "terrain buried wheel",
+   "box": [
+    2399,
+    1660,
+    2677,
+    1783
+   ],
+   "size": [
+    278,
+    123
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_crumbs.png",
+   "name": "terrain crumbs",
+   "box": [
+    2784,
+    1657,
+    3003,
+    1782
+   ],
+   "size": [
+    219,
+    125
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_pebbles.png",
+   "name": "terrain pebbles",
+   "box": [
+    3128,
+    1671,
+    3346,
+    1773
+   ],
+   "size": [
+    218,
+    102
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_bone-white-shell.png",
+   "name": "terrain bone-white shell",
+   "box": [
+    3524,
+    1614,
+    3759,
+    1783
+   ],
+   "size": [
+    235,
+    169
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_crack-a.png",
+   "name": "terrain crack A",
+   "box": [
+    51,
+    1919,
+    335,
+    2034
+   ],
+   "size": [
+    284,
+    115
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_crack-b.png",
+   "name": "terrain crack B",
+   "box": [
+    404,
+    1929,
+    684,
+    2039
+   ],
+   "size": [
+    280,
+    110
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_crack-c.png",
+   "name": "terrain crack C",
+   "box": [
+    758,
+    1921,
+    1037,
+    2025
+   ],
+   "size": [
+    279,
+    104
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_crack-d.png",
+   "name": "terrain crack D",
+   "box": [
+    1110,
+    1929,
+    1350,
+    2034
+   ],
+   "size": [
+    240,
+    105
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_paws-a.png",
+   "name": "terrain paws A",
+   "box": [
+    1448,
+    1913,
+    1665,
+    2040
+   ],
+   "size": [
+    217,
+    127
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_paws-b.png",
+   "name": "terrain paws B",
+   "box": [
+    1769,
+    1913,
+    1988,
+    2046
+   ],
+   "size": [
+    219,
+    133
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_paws-c.png",
+   "name": "terrain paws C",
+   "box": [
+    2089,
+    1928,
+    2321,
+    2026
+   ],
+   "size": [
+    232,
+    98
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_milk-splat.png",
+   "name": "terrain milk splat",
+   "box": [
+    2399,
+    1898,
+    2699,
+    2054
+   ],
+   "size": [
+    300,
+    156
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_mirror-patch.png",
+   "name": "terrain mirror patch",
+   "box": [
+    2761,
+    1899,
+    3108,
+    2047
+   ],
+   "size": [
+    347,
+    148
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_dust.png",
+   "name": "terrain dust",
+   "box": [
+    3168,
+    1943,
+    3407,
+    2047
+   ],
+   "size": [
+    239,
+    104
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_terrain_whey-puddle.png",
+   "name": "terrain whey puddle",
+   "box": [
+    3469,
+    1943,
+    3787,
+    2047
+   ],
+   "size": [
+    318,
+    104
+   ],
+   "use": "Bubbling Moon terrain (ground, platforms, craters, holes, rocks, decals), row 7: not in a game yet",
+   "used": false
+  }
+ ],
+ "bubblingmoon_milk.png": [
+  {
+   "file": "frames/bubblingmoon_milk_bud.png",
+   "name": "milk bud",
+   "box": [
+    58,
+    137,
+    264,
+    276
+   ],
+   "size": [
+    206,
+    139
+   ],
+   "use": "Bubbling Moon milk and movable props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_small.png",
+   "name": "milk small",
+   "box": [
+    380,
+    160,
+    498,
+    277
+   ],
+   "size": [
+    118,
+    117
+   ],
+   "use": "Bubbling Moon milk and movable props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_medium.png",
+   "name": "milk medium",
+   "box": [
+    629,
+    109,
+    805,
+    277
+   ],
+   "size": [
+    176,
+    168
+   ],
+   "use": "Bubbling Moon milk and movable props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_large.png",
+   "name": "milk large",
+   "box": [
+    906,
+    81,
+    1113,
+    277
+   ],
+   "size": [
+    207,
+    196
+   ],
+   "use": "Bubbling Moon milk and movable props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_squash.png",
+   "name": "milk squash",
+   "box": [
+    1191,
+    160,
+    1452,
+    269
+   ],
+   "size": [
+    261,
+    109
+   ],
+   "use": "Bubbling Moon milk and movable props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_pop-1.png",
+   "name": "milk pop 1",
+   "box": [
+    1521,
+    81,
+    1776,
+    277
+   ],
+   "size": [
+    255,
+    196
+   ],
+   "use": "Bubbling Moon milk and movable props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_pop-2.png",
+   "name": "milk pop 2",
+   "box": [
+    1846,
+    96,
+    2086,
+    274
+   ],
+   "size": [
+    240,
+    178
+   ],
+   "use": "Bubbling Moon milk and movable props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_pop-3.png",
+   "name": "milk pop 3",
+   "box": [
+    2154,
+    96,
+    2397,
+    269
+   ],
+   "size": [
+    243,
+    173
+   ],
+   "use": "Bubbling Moon milk and movable props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_puddle.png",
+   "name": "milk puddle",
+   "box": [
+    2467,
+    185,
+    2717,
+    269
+   ],
+   "size": [
+    250,
+    84
+   ],
+   "use": "Bubbling Moon milk and movable props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_crack-and-ooze.png",
+   "name": "milk crack and ooze",
+   "box": [
+    2784,
+    144,
+    3123,
+    273
+   ],
+   "size": [
+    339,
+    129
+   ],
+   "use": "Bubbling Moon milk and movable props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_cluster.png",
+   "name": "milk cluster",
+   "box": [
+    3228,
+    96,
+    3450,
+    277
+   ],
+   "size": [
+    222,
+    181
+   ],
+   "use": "Bubbling Moon milk and movable props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_bubble-with-crumb.png",
+   "name": "milk bubble with crumb",
+   "box": [
+    3586,
+    109,
+    3765,
+    277
+   ],
+   "size": [
+    179,
+    168
+   ],
+   "use": "Bubbling Moon milk and movable props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_curd.png",
+   "name": "milk curd",
+   "box": [
+    86,
+    451,
+    380,
+    662
+   ],
+   "size": [
+    294,
+    211
+   ],
+   "use": "Bubbling Moon milk and movable props, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_curd-squash.png",
+   "name": "milk curd squash",
+   "box": [
+    462,
+    527,
+    790,
+    661
+   ],
+   "size": [
+    328,
+    134
+   ],
+   "use": "Bubbling Moon milk and movable props, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_curd-stretch.png",
+   "name": "milk curd stretch",
+   "box": [
+    895,
+    408,
+    1125,
+    662
+   ],
+   "size": [
+    230,
+    254
+   ],
+   "use": "Bubbling Moon milk and movable props, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_curd-tilt-l.png",
+   "name": "milk curd tilt L",
+   "box": [
+    1237,
+    458,
+    1521,
+    661
+   ],
+   "size": [
+    284,
+    203
+   ],
+   "use": "Bubbling Moon milk and movable props, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_curd-tilt-r.png",
+   "name": "milk curd tilt R",
+   "box": [
+    1617,
+    458,
+    1885,
+    661
+   ],
+   "size": [
+    268,
+    203
+   ],
+   "use": "Bubbling Moon milk and movable props, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_curd-sail.png",
+   "name": "milk curd sail",
+   "box": [
+    1981,
+    392,
+    2263,
+    662
+   ],
+   "size": [
+    282,
+    270
+   ],
+   "use": "Bubbling Moon milk and movable props, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_curd-small.png",
+   "name": "milk curd small",
+   "box": [
+    2365,
+    554,
+    2583,
+    661
+   ],
+   "size": [
+    218,
+    107
+   ],
+   "use": "Bubbling Moon milk and movable props, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_dock-post.png",
+   "name": "milk dock post",
+   "box": [
+    2689,
+    458,
+    2896,
+    662
+   ],
+   "size": [
+    207,
+    204
+   ],
+   "use": "Bubbling Moon milk and movable props, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_whey-film.png",
+   "name": "milk whey film",
+   "box": [
+    2992,
+    580,
+    3487,
+    661
+   ],
+   "size": [
+    495,
+    81
+   ],
+   "use": "Bubbling Moon milk and movable props, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_curd-chunk.png",
+   "name": "milk curd chunk",
+   "box": [
+    3583,
+    547,
+    3749,
+    662
+   ],
+   "size": [
+    166,
+    115
+   ],
+   "use": "Bubbling Moon milk and movable props, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_churn.png",
+   "name": "milk churn",
+   "box": [
+    95,
+    794,
+    272,
+    1063
+   ],
+   "size": [
+    177,
+    269
+   ],
+   "use": "Bubbling Moon milk and movable props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_churn-dented.png",
+   "name": "milk churn dented",
+   "box": [
+    426,
+    794,
+    610,
+    1063
+   ],
+   "size": [
+    184,
+    269
+   ],
+   "use": "Bubbling Moon milk and movable props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_bottle-full.png",
+   "name": "milk bottle full",
+   "box": [
+    786,
+    787,
+    926,
+    1063
+   ],
+   "size": [
+    140,
+    276
+   ],
+   "use": "Bubbling Moon milk and movable props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_bottle-empty.png",
+   "name": "milk bottle empty",
+   "box": [
+    1109,
+    787,
+    1247,
+    1063
+   ],
+   "size": [
+    138,
+    276
+   ],
+   "use": "Bubbling Moon milk and movable props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_bottle-crate.png",
+   "name": "milk bottle crate",
+   "box": [
+    1400,
+    822,
+    1715,
+    1063
+   ],
+   "size": [
+    315,
+    241
+   ],
+   "use": "Bubbling Moon milk and movable props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_bucket.png",
+   "name": "milk bucket",
+   "box": [
+    1823,
+    818,
+    2035,
+    1063
+   ],
+   "size": [
+    212,
+    245
+   ],
+   "use": "Bubbling Moon milk and movable props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_ladle.png",
+   "name": "milk ladle",
+   "box": [
+    2142,
+    770,
+    2355,
+    1063
+   ],
+   "size": [
+    213,
+    293
+   ],
+   "use": "Bubbling Moon milk and movable props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_funnel.png",
+   "name": "milk funnel",
+   "box": [
+    2460,
+    823,
+    2679,
+    1062
+   ],
+   "size": [
+    219,
+    239
+   ],
+   "use": "Bubbling Moon milk and movable props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_drip-1.png",
+   "name": "milk drip 1",
+   "box": [
+    2803,
+    794,
+    2983,
+    1015
+   ],
+   "size": [
+    180,
+    221
+   ],
+   "use": "Bubbling Moon milk and movable props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_drip-2.png",
+   "name": "milk drip 2",
+   "box": [
+    3056,
+    794,
+    3236,
+    1030
+   ],
+   "size": [
+    180,
+    236
+   ],
+   "use": "Bubbling Moon milk and movable props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_drip-3.png",
+   "name": "milk drip 3",
+   "box": [
+    3310,
+    794,
+    3502,
+    1062
+   ],
+   "size": [
+    192,
+    268
+   ],
+   "use": "Bubbling Moon milk and movable props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_pour.png",
+   "name": "milk pour",
+   "box": [
+    3610,
+    794,
+    3767,
+    1062
+   ],
+   "size": [
+    157,
+    268
+   ],
+   "use": "Bubbling Moon milk and movable props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_crumb.png",
+   "name": "milk crumb",
+   "box": [
+    69,
+    1284,
+    177,
+    1356
+   ],
+   "size": [
+    108,
+    72
+   ],
+   "use": "Bubbling Moon milk and movable props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_wedge.png",
+   "name": "milk wedge",
+   "box": [
+    246,
+    1234,
+    432,
+    1363
+   ],
+   "size": [
+    186,
+    129
+   ],
+   "use": "Bubbling Moon milk and movable props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_cube.png",
+   "name": "milk cube",
+   "box": [
+    501,
+    1246,
+    670,
+    1368
+   ],
+   "size": [
+    169,
+    122
+   ],
+   "use": "Bubbling Moon milk and movable props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_wheel-s.png",
+   "name": "milk wheel S",
+   "box": [
+    739,
+    1251,
+    939,
+    1368
+   ],
+   "size": [
+    200,
+    117
+   ],
+   "use": "Bubbling Moon milk and movable props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_wheel-l.png",
+   "name": "milk wheel L",
+   "box": [
+    1008,
+    1175,
+    1281,
+    1375
+   ],
+   "size": [
+    273,
+    200
+   ],
+   "use": "Bubbling Moon milk and movable props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_crate.png",
+   "name": "milk crate",
+   "box": [
+    1353,
+    1200,
+    1586,
+    1373
+   ],
+   "size": [
+    233,
+    173
+   ],
+   "use": "Bubbling Moon milk and movable props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_box-open.png",
+   "name": "milk box open",
+   "box": [
+    1658,
+    1183,
+    1927,
+    1375
+   ],
+   "size": [
+    269,
+    192
+   ],
+   "use": "Bubbling Moon milk and movable props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_box-closed.png",
+   "name": "milk box closed",
+   "box": [
+    2008,
+    1186,
+    2246,
+    1376
+   ],
+   "size": [
+    238,
+    190
+   ],
+   "use": "Bubbling Moon milk and movable props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_cat-bed.png",
+   "name": "milk cat bed",
+   "box": [
+    2312,
+    1227,
+    2557,
+    1375
+   ],
+   "size": [
+    245,
+    148
+   ],
+   "use": "Bubbling Moon milk and movable props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_yarn.png",
+   "name": "milk yarn",
+   "box": [
+    2618,
+    1222,
+    2789,
+    1376
+   ],
+   "size": [
+    171,
+    154
+   ],
+   "use": "Bubbling Moon milk and movable props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_fish-bone.png",
+   "name": "milk fish bone",
+   "box": [
+    2845,
+    1244,
+    3043,
+    1368
+   ],
+   "size": [
+    198,
+    124
+   ],
+   "use": "Bubbling Moon milk and movable props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_toy-mouse.png",
+   "name": "milk toy mouse",
+   "box": [
+    3098,
+    1235,
+    3373,
+    1368
+   ],
+   "size": [
+    275,
+    133
+   ],
+   "use": "Bubbling Moon milk and movable props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_tin-can.png",
+   "name": "milk tin can",
+   "box": [
+    3441,
+    1211,
+    3567,
+    1375
+   ],
+   "size": [
+    126,
+    164
+   ],
+   "use": "Bubbling Moon milk and movable props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_sack.png",
+   "name": "milk sack",
+   "box": [
+    3630,
+    1192,
+    3784,
+    1375
+   ],
+   "size": [
+    154,
+    183
+   ],
+   "use": "Bubbling Moon milk and movable props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_thin-crust.png",
+   "name": "milk thin crust",
+   "box": [
+    58,
+    1473,
+    266,
+    1732
+   ],
+   "size": [
+    208,
+    259
+   ],
+   "use": "Bubbling Moon milk and movable props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_arrow-right.png",
+   "name": "milk arrow right",
+   "box": [
+    339,
+    1503,
+    524,
+    1732
+   ],
+   "size": [
+    185,
+    229
+   ],
+   "use": "Bubbling Moon milk and movable props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_arrow-down.png",
+   "name": "milk arrow down",
+   "box": [
+    617,
+    1488,
+    764,
+    1732
+   ],
+   "size": [
+    147,
+    244
+   ],
+   "use": "Bubbling Moon milk and movable props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_welcome.png",
+   "name": "milk welcome",
+   "box": [
+    883,
+    1466,
+    1219,
+    1731
+   ],
+   "size": [
+    336,
+    265
+   ],
+   "use": "Bubbling Moon milk and movable props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_survey-flag.png",
+   "name": "milk survey flag",
+   "box": [
+    1327,
+    1472,
+    1513,
+    1719
+   ],
+   "size": [
+    186,
+    247
+   ],
+   "use": "Bubbling Moon milk and movable props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_rope-fence.png",
+   "name": "milk rope fence",
+   "box": [
+    1591,
+    1518,
+    1875,
+    1719
+   ],
+   "size": [
+    284,
+    201
+   ],
+   "use": "Bubbling Moon milk and movable props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_pump-this-way.png",
+   "name": "milk pump this way",
+   "box": [
+    1958,
+    1476,
+    2186,
+    1726
+   ],
+   "size": [
+    228,
+    250
+   ],
+   "use": "Bubbling Moon milk and movable props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_mind-the-holes.png",
+   "name": "milk mind the holes",
+   "box": [
+    2273,
+    1488,
+    2461,
+    1719
+   ],
+   "size": [
+    188,
+    231
+   ],
+   "use": "Bubbling Moon milk and movable props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_closed.png",
+   "name": "milk closed",
+   "box": [
+    2545,
+    1466,
+    2850,
+    1719
+   ],
+   "size": [
+    305,
+    253
+   ],
+   "use": "Bubbling Moon milk and movable props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_lamp-post.png",
+   "name": "milk lamp post",
+   "box": [
+    2946,
+    1466,
+    3089,
+    1732
+   ],
+   "size": [
+    143,
+    266
+   ],
+   "use": "Bubbling Moon milk and movable props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_survey-tripod.png",
+   "name": "milk survey tripod",
+   "box": [
+    3222,
+    1466,
+    3450,
+    1725
+   ],
+   "size": [
+    228,
+    259
+   ],
+   "use": "Bubbling Moon milk and movable props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_survey-drone.png",
+   "name": "milk survey drone",
+   "box": [
+    3553,
+    1520,
+    3781,
+    1698
+   ],
+   "size": [
+    228,
+    178
+   ],
+   "use": "Bubbling Moon milk and movable props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_wheelbarrow.png",
+   "name": "milk wheelbarrow",
+   "box": [
+    58,
+    1850,
+    439,
+    2064
+   ],
+   "size": [
+    381,
+    214
+   ],
+   "use": "Bubbling Moon milk and movable props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_short-ladder.png",
+   "name": "milk short ladder",
+   "box": [
+    573,
+    1823,
+    756,
+    2063
+   ],
+   "size": [
+    183,
+    240
+   ],
+   "use": "Bubbling Moon milk and movable props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_toolbox.png",
+   "name": "milk toolbox",
+   "box": [
+    927,
+    1854,
+    1218,
+    2064
+   ],
+   "size": [
+    291,
+    210
+   ],
+   "use": "Bubbling Moon milk and movable props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_hard-hat.png",
+   "name": "milk hard hat",
+   "box": [
+    1318,
+    1854,
+    1569,
+    2063
+   ],
+   "size": [
+    251,
+    209
+   ],
+   "use": "Bubbling Moon milk and movable props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_mug.png",
+   "name": "milk mug",
+   "box": [
+    1689,
+    1893,
+    1875,
+    2064
+   ],
+   "size": [
+    186,
+    171
+   ],
+   "use": "Bubbling Moon milk and movable props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_note.png",
+   "name": "milk note",
+   "box": [
+    2016,
+    1822,
+    2227,
+    2056
+   ],
+   "size": [
+    211,
+    234
+   ],
+   "use": "Bubbling Moon milk and movable props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_broom.png",
+   "name": "milk broom",
+   "box": [
+    2353,
+    1822,
+    2507,
+    2064
+   ],
+   "size": [
+    154,
+    242
+   ],
+   "use": "Bubbling Moon milk and movable props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_tarp-pile.png",
+   "name": "milk tarp pile",
+   "box": [
+    2592,
+    1849,
+    3077,
+    2064
+   ],
+   "size": [
+    485,
+    215
+   ],
+   "use": "Bubbling Moon milk and movable props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_paint-can.png",
+   "name": "milk paint can",
+   "box": [
+    3170,
+    1822,
+    3338,
+    2064
+   ],
+   "size": [
+    168,
+    242
+   ],
+   "use": "Bubbling Moon milk and movable props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_milk_cat-nap.png",
+   "name": "milk cat nap",
+   "box": [
+    3471,
+    1842,
+    3768,
+    2064
+   ],
+   "size": [
+    297,
+    222
+   ],
+   "use": "Bubbling Moon milk and movable props, row 6: not in a game yet",
+   "used": false
+  }
+ ],
+ "bubblingmoon_station.png": [
+  {
+   "file": "frames/bubblingmoon_station_pipe-s.png",
+   "name": "station pipe S",
+   "box": [
+    61,
+    71,
+    244,
+    158
+   ],
+   "size": [
+    183,
+    87
+   ],
+   "use": "Bubbling Moon pumping-station props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_pipe-m.png",
+   "name": "station pipe M",
+   "box": [
+    304,
+    70,
+    534,
+    158
+   ],
+   "size": [
+    230,
+    88
+   ],
+   "use": "Bubbling Moon pumping-station props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_pipe-l.png",
+   "name": "station pipe L",
+   "box": [
+    583,
+    69,
+    924,
+    158
+   ],
+   "size": [
+    341,
+    89
+   ],
+   "use": "Bubbling Moon pumping-station props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_pipe-up-s.png",
+   "name": "station pipe up S",
+   "box": [
+    1053,
+    44,
+    1143,
+    198
+   ],
+   "size": [
+    90,
+    154
+   ],
+   "use": "Bubbling Moon pumping-station props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_pipe-up-l.png",
+   "name": "station pipe up L",
+   "box": [
+    1281,
+    44,
+    1371,
+    199
+   ],
+   "size": [
+    90,
+    155
+   ],
+   "use": "Bubbling Moon pumping-station props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_elbow-ne.png",
+   "name": "station elbow NE",
+   "box": [
+    1493,
+    62,
+    1639,
+    194
+   ],
+   "size": [
+    146,
+    132
+   ],
+   "use": "Bubbling Moon pumping-station props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_elbow-nw.png",
+   "name": "station elbow NW",
+   "box": [
+    1727,
+    61,
+    1878,
+    193
+   ],
+   "size": [
+    151,
+    132
+   ],
+   "use": "Bubbling Moon pumping-station props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_elbow-se.png",
+   "name": "station elbow SE",
+   "box": [
+    1960,
+    61,
+    2104,
+    194
+   ],
+   "size": [
+    144,
+    133
+   ],
+   "use": "Bubbling Moon pumping-station props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_elbow-sw.png",
+   "name": "station elbow SW",
+   "box": [
+    2202,
+    61,
+    2349,
+    194
+   ],
+   "size": [
+    147,
+    133
+   ],
+   "use": "Bubbling Moon pumping-station props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_tee.png",
+   "name": "station tee",
+   "box": [
+    2416,
+    67,
+    2614,
+    194
+   ],
+   "size": [
+    198,
+    127
+   ],
+   "use": "Bubbling Moon pumping-station props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_cross.png",
+   "name": "station cross",
+   "box": [
+    2697,
+    44,
+    2875,
+    195
+   ],
+   "size": [
+    178,
+    151
+   ],
+   "use": "Bubbling Moon pumping-station props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_window-pipe.png",
+   "name": "station window pipe",
+   "box": [
+    2974,
+    64,
+    3286,
+    176
+   ],
+   "size": [
+    312,
+    112
+   ],
+   "use": "Bubbling Moon pumping-station props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_open-end.png",
+   "name": "station open end",
+   "box": [
+    3393,
+    61,
+    3473,
+    177
+   ],
+   "size": [
+    80,
+    116
+   ],
+   "use": "Bubbling Moon pumping-station props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_unfinished.png",
+   "name": "station unfinished",
+   "box": [
+    3576,
+    65,
+    3791,
+    170
+   ],
+   "size": [
+    215,
+    105
+   ],
+   "use": "Bubbling Moon pumping-station props, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_main-l.png",
+   "name": "station main L",
+   "box": [
+    61,
+    319,
+    585,
+    469
+   ],
+   "size": [
+    524,
+    150
+   ],
+   "use": "Bubbling Moon pumping-station props, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_main-m.png",
+   "name": "station main M",
+   "box": [
+    704,
+    319,
+    1110,
+    469
+   ],
+   "size": [
+    406,
+    150
+   ],
+   "use": "Bubbling Moon pumping-station props, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_main-up.png",
+   "name": "station main up",
+   "box": [
+    1192,
+    319,
+    1504,
+    510
+   ],
+   "size": [
+    312,
+    191
+   ],
+   "use": "Bubbling Moon pumping-station props, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_main-down.png",
+   "name": "station main down",
+   "box": [
+    1574,
+    319,
+    1846,
+    509
+   ],
+   "size": [
+    272,
+    190
+   ],
+   "use": "Bubbling Moon pumping-station props, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_main-tee.png",
+   "name": "station main tee",
+   "box": [
+    1918,
+    267,
+    2274,
+    486
+   ],
+   "size": [
+    356,
+    219
+   ],
+   "use": "Bubbling Moon pumping-station props, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_main-end.png",
+   "name": "station main end",
+   "box": [
+    2371,
+    303,
+    2767,
+    517
+   ],
+   "size": [
+    396,
+    214
+   ],
+   "use": "Bubbling Moon pumping-station props, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_main-support.png",
+   "name": "station main support",
+   "box": [
+    2889,
+    268,
+    3346,
+    517
+   ],
+   "size": [
+    457,
+    249
+   ],
+   "use": "Bubbling Moon pumping-station props, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_main-ladder.png",
+   "name": "station main ladder",
+   "box": [
+    3566,
+    267,
+    3718,
+    523
+   ],
+   "size": [
+    152,
+    256
+   ],
+   "use": "Bubbling Moon pumping-station props, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_wheel-red.png",
+   "name": "station wheel red",
+   "box": [
+    46,
+    604,
+    242,
+    777
+   ],
+   "size": [
+    196,
+    173
+   ],
+   "use": "Bubbling Moon pumping-station props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_wheel-blue.png",
+   "name": "station wheel blue",
+   "box": [
+    304,
+    604,
+    495,
+    777
+   ],
+   "size": [
+    191,
+    173
+   ],
+   "use": "Bubbling Moon pumping-station props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_wheel-yellow.png",
+   "name": "station wheel yellow",
+   "box": [
+    559,
+    603,
+    803,
+    777
+   ],
+   "size": [
+    244,
+    174
+   ],
+   "use": "Bubbling Moon pumping-station props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_lever-up.png",
+   "name": "station lever up",
+   "box": [
+    899,
+    587,
+    1061,
+    777
+   ],
+   "size": [
+    162,
+    190
+   ],
+   "use": "Bubbling Moon pumping-station props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_lever-down.png",
+   "name": "station lever down",
+   "box": [
+    1142,
+    649,
+    1316,
+    765
+   ],
+   "size": [
+    174,
+    116
+   ],
+   "use": "Bubbling Moon pumping-station props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_button-off.png",
+   "name": "station button off",
+   "box": [
+    1399,
+    680,
+    1589,
+    783
+   ],
+   "size": [
+    190,
+    103
+   ],
+   "use": "Bubbling Moon pumping-station props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_button-on.png",
+   "name": "station button on",
+   "box": [
+    1656,
+    680,
+    1845,
+    783
+   ],
+   "size": [
+    189,
+    103
+   ],
+   "use": "Bubbling Moon pumping-station props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_plate-up.png",
+   "name": "station plate up",
+   "box": [
+    1913,
+    680,
+    2160,
+    783
+   ],
+   "size": [
+    247,
+    103
+   ],
+   "use": "Bubbling Moon pumping-station props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_plate-down.png",
+   "name": "station plate down",
+   "box": [
+    2208,
+    680,
+    2458,
+    783
+   ],
+   "size": [
+    250,
+    103
+   ],
+   "use": "Bubbling Moon pumping-station props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_switchbox.png",
+   "name": "station switchbox",
+   "box": [
+    2552,
+    635,
+    2717,
+    777
+   ],
+   "size": [
+    165,
+    142
+   ],
+   "use": "Bubbling Moon pumping-station props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_gauge-low.png",
+   "name": "station gauge low",
+   "box": [
+    2799,
+    620,
+    2967,
+    783
+   ],
+   "size": [
+    168,
+    163
+   ],
+   "use": "Bubbling Moon pumping-station props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_gauge-ok.png",
+   "name": "station gauge ok",
+   "box": [
+    3059,
+    620,
+    3229,
+    783
+   ],
+   "size": [
+    170,
+    163
+   ],
+   "use": "Bubbling Moon pumping-station props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_gauge-broken.png",
+   "name": "station gauge broken",
+   "box": [
+    3322,
+    620,
+    3494,
+    783
+   ],
+   "size": [
+    172,
+    163
+   ],
+   "use": "Bubbling Moon pumping-station props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_hiccup-lamp.png",
+   "name": "station hiccup lamp",
+   "box": [
+    3621,
+    624,
+    3790,
+    784
+   ],
+   "size": [
+    169,
+    160
+   ],
+   "use": "Bubbling Moon pumping-station props, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_main-pump.png",
+   "name": "station main pump",
+   "box": [
+    46,
+    860,
+    741,
+    1152
+   ],
+   "size": [
+    695,
+    292
+   ],
+   "use": "Bubbling Moon pumping-station props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_tank-full.png",
+   "name": "station tank full",
+   "box": [
+    874,
+    874,
+    1064,
+    1141
+   ],
+   "size": [
+    190,
+    267
+   ],
+   "use": "Bubbling Moon pumping-station props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_tank-half.png",
+   "name": "station tank half",
+   "box": [
+    1140,
+    874,
+    1325,
+    1140
+   ],
+   "size": [
+    185,
+    266
+   ],
+   "use": "Bubbling Moon pumping-station props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_tank-empty.png",
+   "name": "station tank empty",
+   "box": [
+    1393,
+    874,
+    1573,
+    1140
+   ],
+   "size": [
+    180,
+    266
+   ],
+   "use": "Bubbling Moon pumping-station props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_silo.png",
+   "name": "station silo",
+   "box": [
+    1685,
+    874,
+    1841,
+    1140
+   ],
+   "size": [
+    156,
+    266
+   ],
+   "use": "Bubbling Moon pumping-station props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_piston-1.png",
+   "name": "station piston 1",
+   "box": [
+    1966,
+    883,
+    2103,
+    1140
+   ],
+   "size": [
+    137,
+    257
+   ],
+   "use": "Bubbling Moon pumping-station props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_piston-2.png",
+   "name": "station piston 2",
+   "box": [
+    2231,
+    874,
+    2362,
+    1140
+   ],
+   "size": [
+    131,
+    266
+   ],
+   "use": "Bubbling Moon pumping-station props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_piston-3.png",
+   "name": "station piston 3",
+   "box": [
+    2489,
+    874,
+    2621,
+    1140
+   ],
+   "size": [
+    132,
+    266
+   ],
+   "use": "Bubbling Moon pumping-station props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_bellows.png",
+   "name": "station bellows",
+   "box": [
+    2768,
+    893,
+    2945,
+    1138
+   ],
+   "size": [
+    177,
+    245
+   ],
+   "use": "Bubbling Moon pumping-station props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_bellows-flat.png",
+   "name": "station bellows flat",
+   "box": [
+    3023,
+    946,
+    3285,
+    1135
+   ],
+   "size": [
+    262,
+    189
+   ],
+   "use": "Bubbling Moon pumping-station props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_half-fan.png",
+   "name": "station half fan",
+   "box": [
+    3489,
+    874,
+    3804,
+    1146
+   ],
+   "size": [
+    315,
+    272
+   ],
+   "use": "Bubbling Moon pumping-station props, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_door-shut.png",
+   "name": "station door shut",
+   "box": [
+    46,
+    1249,
+    275,
+    1457
+   ],
+   "size": [
+    229,
+    208
+   ],
+   "use": "Bubbling Moon pumping-station props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_door-open.png",
+   "name": "station door open",
+   "box": [
+    361,
+    1249,
+    585,
+    1456
+   ],
+   "size": [
+    224,
+    207
+   ],
+   "use": "Bubbling Moon pumping-station props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_shutter-shut.png",
+   "name": "station shutter shut",
+   "box": [
+    679,
+    1254,
+    929,
+    1457
+   ],
+   "size": [
+    250,
+    203
+   ],
+   "use": "Bubbling Moon pumping-station props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_shutter-open.png",
+   "name": "station shutter open",
+   "box": [
+    1037,
+    1254,
+    1281,
+    1456
+   ],
+   "size": [
+    244,
+    202
+   ],
+   "use": "Bubbling Moon pumping-station props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_hatch.png",
+   "name": "station hatch",
+   "box": [
+    1377,
+    1262,
+    1589,
+    1452
+   ],
+   "size": [
+    212,
+    190
+   ],
+   "use": "Bubbling Moon pumping-station props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_vent.png",
+   "name": "station vent",
+   "box": [
+    1678,
+    1271,
+    1876,
+    1444
+   ],
+   "size": [
+    198,
+    173
+   ],
+   "use": "Bubbling Moon pumping-station props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_ladder.png",
+   "name": "station ladder",
+   "box": [
+    1997,
+    1231,
+    2081,
+    1459
+   ],
+   "size": [
+    84,
+    228
+   ],
+   "use": "Bubbling Moon pumping-station props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_catwalk.png",
+   "name": "station catwalk",
+   "box": [
+    2183,
+    1279,
+    2578,
+    1452
+   ],
+   "size": [
+    395,
+    173
+   ],
+   "use": "Bubbling Moon pumping-station props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_stairs.png",
+   "name": "station stairs",
+   "box": [
+    2654,
+    1246,
+    2914,
+    1460
+   ],
+   "size": [
+    260,
+    214
+   ],
+   "use": "Bubbling Moon pumping-station props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_porthole.png",
+   "name": "station porthole",
+   "box": [
+    2971,
+    1248,
+    3171,
+    1452
+   ],
+   "size": [
+    200,
+    204
+   ],
+   "use": "Bubbling Moon pumping-station props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_entrance.png",
+   "name": "station entrance",
+   "box": [
+    3250,
+    1230,
+    3487,
+    1468
+   ],
+   "size": [
+    237,
+    238
+   ],
+   "use": "Bubbling Moon pumping-station props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_scaffold.png",
+   "name": "station scaffold",
+   "box": [
+    3575,
+    1230,
+    3804,
+    1468
+   ],
+   "size": [
+    229,
+    238
+   ],
+   "use": "Bubbling Moon pumping-station props, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_control-desk.png",
+   "name": "station control desk",
+   "box": [
+    46,
+    1535,
+    364,
+    1709
+   ],
+   "size": [
+    318,
+    174
+   ],
+   "use": "Bubbling Moon pumping-station props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_drafting-table.png",
+   "name": "station drafting table",
+   "box": [
+    422,
+    1545,
+    713,
+    1706
+   ],
+   "size": [
+    291,
+    161
+   ],
+   "use": "Bubbling Moon pumping-station props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_notice-board.png",
+   "name": "station notice board",
+   "box": [
+    802,
+    1534,
+    1064,
+    1705
+   ],
+   "size": [
+    262,
+    171
+   ],
+   "use": "Bubbling Moon pumping-station props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_pipe-map.png",
+   "name": "station pipe map",
+   "box": [
+    1160,
+    1534,
+    1574,
+    1699
+   ],
+   "size": [
+    414,
+    165
+   ],
+   "use": "Bubbling Moon pumping-station props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_map-piece-1.png",
+   "name": "station map piece 1",
+   "box": [
+    1688,
+    1529,
+    1859,
+    1703
+   ],
+   "size": [
+    171,
+    174
+   ],
+   "use": "Bubbling Moon pumping-station props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_map-piece-3.png",
+   "name": "station map piece 3",
+   "box": [
+    1904,
+    1529,
+    2075,
+    1704
+   ],
+   "size": [
+    171,
+    175
+   ],
+   "use": "Bubbling Moon pumping-station props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_map-piece-4.png",
+   "name": "station map piece 4",
+   "box": [
+    2120,
+    1529,
+    2298,
+    1702
+   ],
+   "size": [
+    178,
+    173
+   ],
+   "use": "Bubbling Moon pumping-station props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_plaque.png",
+   "name": "station plaque",
+   "box": [
+    2495,
+    1529,
+    2742,
+    1705
+   ],
+   "size": [
+    247,
+    176
+   ],
+   "use": "Bubbling Moon pumping-station props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_photo.png",
+   "name": "station photo",
+   "box": [
+    2879,
+    1534,
+    3139,
+    1703
+   ],
+   "size": [
+    260,
+    169
+   ],
+   "use": "Bubbling Moon pumping-station props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_filing-cabinet.png",
+   "name": "station filing cabinet",
+   "box": [
+    3282,
+    1529,
+    3418,
+    1704
+   ],
+   "size": [
+    136,
+    175
+   ],
+   "use": "Bubbling Moon pumping-station props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_stopped-clock.png",
+   "name": "station stopped clock",
+   "box": [
+    3591,
+    1529,
+    3777,
+    1703
+   ],
+   "size": [
+    186,
+    174
+   ],
+   "use": "Bubbling Moon pumping-station props, row 6: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_ceiling-lamp.png",
+   "name": "station ceiling lamp",
+   "box": [
+    61,
+    1776,
+    246,
+    1934
+   ],
+   "size": [
+    185,
+    158
+   ],
+   "use": "Bubbling Moon pumping-station props, row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_work-light.png",
+   "name": "station work light",
+   "box": [
+    398,
+    1782,
+    509,
+    1938
+   ],
+   "size": [
+    111,
+    156
+   ],
+   "use": "Bubbling Moon pumping-station props, row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_siren.png",
+   "name": "station siren",
+   "box": [
+    686,
+    1792,
+    819,
+    1912
+   ],
+   "size": [
+    133,
+    120
+   ],
+   "use": "Bubbling Moon pumping-station props, row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_hazard-stripes.png",
+   "name": "station hazard stripes",
+   "box": [
+    945,
+    1792,
+    1172,
+    1920
+   ],
+   "size": [
+    227,
+    128
+   ],
+   "use": "Bubbling Moon pumping-station props, row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_hazard-sign.png",
+   "name": "station hazard sign",
+   "box": [
+    1297,
+    1775,
+    1470,
+    1935
+   ],
+   "size": [
+    173,
+    160
+   ],
+   "use": "Bubbling Moon pumping-station props, row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_cables-a.png",
+   "name": "station cables A",
+   "box": [
+    1593,
+    1791,
+    1812,
+    1917
+   ],
+   "size": [
+    219,
+    126
+   ],
+   "use": "Bubbling Moon pumping-station props, row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_cables-b.png",
+   "name": "station cables B",
+   "box": [
+    1845,
+    1791,
+    2068,
+    1918
+   ],
+   "size": [
+    223,
+    127
+   ],
+   "use": "Bubbling Moon pumping-station props, row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_steam-vent.png",
+   "name": "station steam vent",
+   "box": [
+    2225,
+    1782,
+    2330,
+    1923
+   ],
+   "size": [
+    105,
+    141
+   ],
+   "use": "Bubbling Moon pumping-station props, row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_cone.png",
+   "name": "station cone",
+   "box": [
+    2525,
+    1781,
+    2659,
+    1935
+   ],
+   "size": [
+    134,
+    154
+   ],
+   "use": "Bubbling Moon pumping-station props, row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_bolts.png",
+   "name": "station bolts",
+   "box": [
+    2813,
+    1797,
+    3024,
+    1934
+   ],
+   "size": [
+    211,
+    137
+   ],
+   "use": "Bubbling Moon pumping-station props, row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_wrench.png",
+   "name": "station wrench",
+   "box": [
+    3159,
+    1790,
+    3324,
+    1935
+   ],
+   "size": [
+    165,
+    145
+   ],
+   "use": "Bubbling Moon pumping-station props, row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_big-wrench.png",
+   "name": "station big wrench",
+   "box": [
+    3383,
+    1782,
+    3557,
+    1935
+   ],
+   "size": [
+    174,
+    153
+   ],
+   "use": "Bubbling Moon pumping-station props, row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_oil-can.png",
+   "name": "station oil can",
+   "box": [
+    3617,
+    1798,
+    3790,
+    1935
+   ],
+   "size": [
+    173,
+    137
+   ],
+   "use": "Bubbling Moon pumping-station props, row 7: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_toolbox.png",
+   "name": "station toolbox",
+   "box": [
+    61,
+    1992,
+    319,
+    2116
+   ],
+   "size": [
+    258,
+    124
+   ],
+   "use": "Bubbling Moon pumping-station props, row 8: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_hose-coil.png",
+   "name": "station hose coil",
+   "box": [
+    502,
+    2002,
+    742,
+    2115
+   ],
+   "size": [
+    240,
+    113
+   ],
+   "use": "Bubbling Moon pumping-station props, row 8: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_spare-wheel.png",
+   "name": "station spare wheel",
+   "box": [
+    920,
+    1985,
+    1084,
+    2116
+   ],
+   "size": [
+    164,
+    131
+   ],
+   "use": "Bubbling Moon pumping-station props, row 8: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_gasket.png",
+   "name": "station gasket",
+   "box": [
+    1296,
+    1988,
+    1472,
+    2115
+   ],
+   "size": [
+    176,
+    127
+   ],
+   "use": "Bubbling Moon pumping-station props, row 8: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_cork.png",
+   "name": "station cork",
+   "box": [
+    1690,
+    1993,
+    1815,
+    2103
+   ],
+   "size": [
+    125,
+    110
+   ],
+   "use": "Bubbling Moon pumping-station props, row 8: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_plunger.png",
+   "name": "station plunger",
+   "box": [
+    2050,
+    1980,
+    2170,
+    2115
+   ],
+   "size": [
+    120,
+    135
+   ],
+   "use": "Bubbling Moon pumping-station props, row 8: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_station_red-yarn.png",
+   "name": "station red yarn",
+   "box": [
+    2393,
+    1992,
+    2593,
+    2114
+   ],
+   "size": [
+    200,
+    122
+   ],
+   "use": "Bubbling Moon pumping-station props, row 8: not in a game yet",
+   "used": false
+  }
+ ],
+ "bubblingmoon_fg_outdoor.png": [
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_stalactite-a.png",
+   "name": "fg_outdoor stalactite A",
+   "box": [
+    155,
+    49,
+    454,
+    429
+   ],
+   "size": [
+    299,
+    380
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_stalactite-b.png",
+   "name": "fg_outdoor stalactite B",
+   "box": [
+    645,
+    49,
+    840,
+    422
+   ],
+   "size": [
+    195,
+    373
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_stalactite-c.png",
+   "name": "fg_outdoor stalactite C",
+   "box": [
+    982,
+    49,
+    1441,
+    422
+   ],
+   "size": [
+    459,
+    373
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_rind-drape.png",
+   "name": "fg_outdoor rind drape",
+   "box": [
+    1534,
+    49,
+    1904,
+    429
+   ],
+   "size": [
+    370,
+    380
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_pipe-end-drip.png",
+   "name": "fg_outdoor pipe end drip",
+   "box": [
+    1994,
+    49,
+    2184,
+    414
+   ],
+   "size": [
+    190,
+    365
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_cables.png",
+   "name": "fg_outdoor cables",
+   "box": [
+    2280,
+    48,
+    2726,
+    414
+   ],
+   "size": [
+    446,
+    366
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_hole-rock-top.png",
+   "name": "fg_outdoor hole rock top",
+   "box": [
+    2814,
+    48,
+    3426,
+    429
+   ],
+   "size": [
+    612,
+    381
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_lamp.png",
+   "name": "fg_outdoor lamp",
+   "box": [
+    3522,
+    49,
+    3762,
+    415
+   ],
+   "size": [
+    240,
+    366
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_corner-rock-l.png",
+   "name": "fg_outdoor corner rock L",
+   "box": [
+    58,
+    535,
+    590,
+    838
+   ],
+   "size": [
+    532,
+    303
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_corner-rock-r.png",
+   "name": "fg_outdoor corner rock R",
+   "box": [
+    679,
+    535,
+    1197,
+    838
+   ],
+   "size": [
+    518,
+    303
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_corner-crust-l.png",
+   "name": "fg_outdoor corner crust L",
+   "box": [
+    1277,
+    588,
+    1872,
+    838
+   ],
+   "size": [
+    595,
+    250
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_corner-crust-r.png",
+   "name": "fg_outdoor corner crust R",
+   "box": [
+    1952,
+    603,
+    2533,
+    838
+   ],
+   "size": [
+    581,
+    235
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_corner-pipes-l.png",
+   "name": "fg_outdoor corner pipes L",
+   "box": [
+    2614,
+    535,
+    3166,
+    838
+   ],
+   "size": [
+    552,
+    303
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_corner-pipes-r.png",
+   "name": "fg_outdoor corner pipes R",
+   "box": [
+    3250,
+    535,
+    3794,
+    838
+   ],
+   "size": [
+    544,
+    303
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_pillar-a.png",
+   "name": "fg_outdoor pillar A",
+   "box": [
+    153,
+    931,
+    501,
+    1400
+   ],
+   "size": [
+    348,
+    469
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_pillar-b.png",
+   "name": "fg_outdoor pillar B",
+   "box": [
+    808,
+    931,
+    1184,
+    1400
+   ],
+   "size": [
+    376,
+    469
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_pipe-up-a.png",
+   "name": "fg_outdoor pipe up A",
+   "box": [
+    1524,
+    931,
+    1743,
+    1400
+   ],
+   "size": [
+    219,
+    469
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_pipe-up-b.png",
+   "name": "fg_outdoor pipe up B",
+   "box": [
+    2078,
+    931,
+    2368,
+    1400
+   ],
+   "size": [
+    290,
+    469
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_pylon.png",
+   "name": "fg_outdoor pylon",
+   "box": [
+    2737,
+    931,
+    3149,
+    1400
+   ],
+   "size": [
+    412,
+    469
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_dead-tree.png",
+   "name": "fg_outdoor dead tree",
+   "box": [
+    3305,
+    931,
+    3729,
+    1400
+   ],
+   "size": [
+    424,
+    469
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_pipe-across.png",
+   "name": "fg_outdoor pipe across",
+   "box": [
+    50,
+    1495,
+    1073,
+    1742
+   ],
+   "size": [
+    1023,
+    247
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_bubble-a.png",
+   "name": "fg_outdoor bubble A",
+   "box": [
+    1169,
+    1510,
+    1425,
+    1742
+   ],
+   "size": [
+    256,
+    232
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_bubble-b.png",
+   "name": "fg_outdoor bubble B",
+   "box": [
+    1551,
+    1569,
+    1735,
+    1742
+   ],
+   "size": [
+    184,
+    173
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_bubble-group.png",
+   "name": "fg_outdoor bubble group",
+   "box": [
+    1853,
+    1495,
+    2335,
+    1727
+   ],
+   "size": [
+    482,
+    232
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_mould-bank.png",
+   "name": "fg_outdoor mould bank",
+   "box": [
+    2376,
+    1564,
+    3082,
+    1742
+   ],
+   "size": [
+    706,
+    178
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_crack-front.png",
+   "name": "fg_outdoor crack front",
+   "box": [
+    3157,
+    1564,
+    3794,
+    1742
+   ],
+   "size": [
+    637,
+    178
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_mist-a.png",
+   "name": "fg_outdoor mist A",
+   "box": [
+    50,
+    1875,
+    1024,
+    2051
+   ],
+   "size": [
+    974,
+    176
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_mist-b.png",
+   "name": "fg_outdoor mist B",
+   "box": [
+    1114,
+    1894,
+    1772,
+    2035
+   ],
+   "size": [
+    658,
+    141
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_milk-fog.png",
+   "name": "fg_outdoor milk fog",
+   "box": [
+    1853,
+    1839,
+    2534,
+    2036
+   ],
+   "size": [
+    681,
+    197
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_dust-drift.png",
+   "name": "fg_outdoor dust drift",
+   "box": [
+    2624,
+    1888,
+    3342,
+    2035
+   ],
+   "size": [
+    718,
+    147
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_outdoor_cobweb.png",
+   "name": "fg_outdoor cobweb",
+   "box": [
+    3478,
+    1840,
+    3795,
+    2048
+   ],
+   "size": [
+    317,
+    208
+   ],
+   "use": "Bubbling Moon foreground, outdoors, row 5: not in a game yet",
+   "used": false
+  }
+ ],
+ "bubblingmoon_fg_station.png": [
+  {
+   "file": "frames/bubblingmoon_fg_station_pipe-bundle.png",
+   "name": "fg_station pipe bundle",
+   "box": [
+    84,
+    55,
+    407,
+    428
+   ],
+   "size": [
+    323,
+    373
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_cables-a.png",
+   "name": "fg_station cables A",
+   "box": [
+    541,
+    55,
+    963,
+    390
+   ],
+   "size": [
+    422,
+    335
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_cables-b.png",
+   "name": "fg_station cables B",
+   "box": [
+    1020,
+    55,
+    1457,
+    423
+   ],
+   "size": [
+    437,
+    368
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_chain.png",
+   "name": "fg_station chain",
+   "box": [
+    1598,
+    55,
+    1714,
+    446
+   ],
+   "size": [
+    116,
+    391
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_lamp-dark.png",
+   "name": "fg_station lamp dark",
+   "box": [
+    1918,
+    55,
+    2181,
+    401
+   ],
+   "size": [
+    263,
+    346
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_duct.png",
+   "name": "fg_station duct",
+   "box": [
+    2346,
+    105,
+    2754,
+    331
+   ],
+   "size": [
+    408,
+    226
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_girder.png",
+   "name": "fg_station girder",
+   "box": [
+    2863,
+    55,
+    3418,
+    301
+   ],
+   "size": [
+    555,
+    246
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_cobweb.png",
+   "name": "fg_station cobweb",
+   "box": [
+    3471,
+    67,
+    3762,
+    390
+   ],
+   "size": [
+    291,
+    323
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 1: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_machine-l.png",
+   "name": "fg_station machine L",
+   "box": [
+    50,
+    531,
+    551,
+    882
+   ],
+   "size": [
+    501,
+    351
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_machine-r.png",
+   "name": "fg_station machine R",
+   "box": [
+    710,
+    531,
+    1181,
+    882
+   ],
+   "size": [
+    471,
+    351
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_tank-l.png",
+   "name": "fg_station tank L",
+   "box": [
+    1296,
+    546,
+    1858,
+    882
+   ],
+   "size": [
+    562,
+    336
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_tank-r.png",
+   "name": "fg_station tank R",
+   "box": [
+    1982,
+    546,
+    2558,
+    882
+   ],
+   "size": [
+    576,
+    336
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_crates-l.png",
+   "name": "fg_station crates L",
+   "box": [
+    2640,
+    536,
+    3128,
+    882
+   ],
+   "size": [
+    488,
+    346
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_crates-r.png",
+   "name": "fg_station crates R",
+   "box": [
+    3250,
+    537,
+    3798,
+    882
+   ],
+   "size": [
+    548,
+    345
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 2: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_beam-a.png",
+   "name": "fg_station beam A",
+   "box": [
+    151,
+    980,
+    367,
+    1443
+   ],
+   "size": [
+    216,
+    463
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_beam-b.png",
+   "name": "fg_station beam B",
+   "box": [
+    720,
+    980,
+    970,
+    1443
+   ],
+   "size": [
+    250,
+    463
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_pipe-up-a.png",
+   "name": "fg_station pipe up A",
+   "box": [
+    1394,
+    991,
+    1622,
+    1442
+   ],
+   "size": [
+    228,
+    451
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_pipe-up-b.png",
+   "name": "fg_station pipe up B",
+   "box": [
+    1989,
+    1002,
+    2265,
+    1443
+   ],
+   "size": [
+    276,
+    441
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_scaffold.png",
+   "name": "fg_station scaffold",
+   "box": [
+    2584,
+    996,
+    3003,
+    1443
+   ],
+   "size": [
+    419,
+    447
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_cable-drum.png",
+   "name": "fg_station cable drum",
+   "box": [
+    3292,
+    1008,
+    3736,
+    1443
+   ],
+   "size": [
+    444,
+    435
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 3: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_railing.png",
+   "name": "fg_station railing",
+   "box": [
+    50,
+    1545,
+    654,
+    1691
+   ],
+   "size": [
+    604,
+    146
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_rail-corner.png",
+   "name": "fg_station rail corner",
+   "box": [
+    750,
+    1525,
+    1036,
+    1701
+   ],
+   "size": [
+    286,
+    176
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_pipe-across.png",
+   "name": "fg_station pipe across",
+   "box": [
+    1166,
+    1524,
+    1972,
+    1694
+   ],
+   "size": [
+    806,
+    170
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_cable-trunk.png",
+   "name": "fg_station cable trunk",
+   "box": [
+    2052,
+    1545,
+    2588,
+    1701
+   ],
+   "size": [
+    536,
+    156
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_hazard-ramp.png",
+   "name": "fg_station hazard ramp",
+   "box": [
+    2649,
+    1536,
+    3168,
+    1701
+   ],
+   "size": [
+    519,
+    165
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_bucket-line.png",
+   "name": "fg_station bucket line",
+   "box": [
+    3241,
+    1534,
+    3790,
+    1701
+   ],
+   "size": [
+    549,
+    167
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 4: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_steam-a.png",
+   "name": "fg_station steam A",
+   "box": [
+    101,
+    1843,
+    625,
+    2040
+   ],
+   "size": [
+    524,
+    197
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_steam-b.png",
+   "name": "fg_station steam B",
+   "box": [
+    777,
+    1844,
+    1324,
+    2040
+   ],
+   "size": [
+    547,
+    196
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_dust-beam.png",
+   "name": "fg_station dust beam",
+   "box": [
+    1511,
+    1827,
+    2048,
+    2051
+   ],
+   "size": [
+    537,
+    224
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_vent-grille.png",
+   "name": "fg_station vent grille",
+   "box": [
+    2239,
+    1864,
+    2745,
+    2052
+   ],
+   "size": [
+    506,
+    188
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 5: not in a game yet",
+   "used": false
+  },
+  {
+   "file": "frames/bubblingmoon_fg_station_milk-haze.png",
+   "name": "fg_station milk haze",
+   "box": [
+    2934,
+    1864,
+    3743,
+    2040
+   ],
+   "size": [
+    809,
+    176
+   ],
+   "use": "Bubbling Moon foreground, inside the station, row 5: not in a game yet",
+   "used": false
+  }
+ ]
+}

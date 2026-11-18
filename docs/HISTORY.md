@@ -1651,7 +1651,15 @@ image-to-video may be tried, and frames are made at game size. All of it is in `
 - **What the first try taught**: the model keeps the layout and the item list well but not the pixel grid: the first terrain sheet (medium, a short style block) had over half a million colours and weak outlines; a stricter
   style block (flat colours on a 4 x 4 grid, a clean 1-pixel outline round everything, about 32 colours) at `high` with the `flare` model was crisper, and the other seven were made that way (the first take was dropped).
   Known gaps (in each sheet's `note`): "crater cap L" and "map piece 2" are missing, some pale items have a pink tint the magenta key would eat, the background seams are not checked.
-- Nothing is cut or snapped yet, and nothing is in a game.
+- > "Its all fine for now, its not the final final version. Can you please create single sprites of all elements as we usually do and add the level descriptions and everything about the level and put it into a zip and give it to me here? (also put the sprites in the folder)."
+
+  **`tools/cut_sheets.py`** cuts the five props and foreground sheets into **291 single transparent sprites** at their original pixels (`ref/frames/bubblingmoon_<sheet>_<name>.png`, listed in `ref/frames_moon.json`, `ref.json` and the README):
+  the magenta ground is found from the magenta there is, taken away where it touches the edge or is enclosed by an outline, and eaten four pixels deep where it is still pinkish; the label lines
+  (white text, many glyphs at one height) give the rows; the pieces of a row more than 22 pixels apart are the items, named in order from `tools/bubblingmoon_names.json` (the sheets' row plan, corrected for what the model
+  left out, doubled or moved). The six background panels are not stored a second time: `cut_sheets.py --panels <folder>` writes them.
+  **`story/BUBBLING_MOON_LAYOUTS.md`** describes the five zones one by one (mood, what happens, a layout sketch, the sprites by name, the layers); **`story/BUBBLING_MOON_DECISIONS.md`** copies what the Review Notes say about this world.
+  **`tools/pack_moon.py`** builds the zip for the owner (level documents, sprites by group with an INDEX, the six background layers, contact sheets, the original sheets and prompts, a manifest).
+- Nothing is snapped to the game grid yet, and nothing is in a game.
 
 ## Published versions (claude.ai artifact "Regolith Lander")
 

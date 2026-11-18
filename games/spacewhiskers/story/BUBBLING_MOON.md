@@ -202,6 +202,11 @@ second, and only the second is kept.
 | the mirror | | the glossy crust shows the sky **upside down** under it (a trick for the `sky` hook: the sky layer drawn mirrored on the cells of a glossy material), which is what makes the reflection photo |
 | light | | the bubbles glow a little (`emit`) and **pulse on the beat** (`setBeatPulse`); the station's lamps are dim; the hiccup lamp is red |
 
+### The sprites and the pack
+The five props and foreground sheets are cut into **single transparent sprites** (`tools/cut_sheets.py`: `ref/frames/bubblingmoon_<sheet>_<name>.png`, 291 of them, named from the sheets' row plan); the background
+panels are cut with `cut_sheets.py --panels <folder>`. `BUBBLING_MOON_LAYOUTS.md` is the zone-by-zone description with the sprites by name, and `tools/pack_moon.py` builds the zip for the owner. What follows is what to
+watch when cutting again or when snapping.
+
 ### Cutting the sheets later
 - The ground is flat magenta (it comes back as about (247, 54, 238), a little noisy): cut it with a wide tolerance (the pixel-art skill says 40 to 60) and look at a
   contact sheet of every cut. The labels are under the items, with a gap; the row plan in `tools/sheets.mjs` is the list of names, left to right, top to bottom.

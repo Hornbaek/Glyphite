@@ -54,7 +54,9 @@ tools/frames.mjs     brings the cut drawings onto the game grid: one pixel size,
 `story/BUBBLING_MOON.md` is the level design proposal: what the review notes decided, a hook (the moon has hiccups: one beat drives bubbles, curd, pipes and lights), the route in five
 zones, ten puzzles to pick from (shiny means thin, bounce on the beat, a pit of bubbles, which hole, the curd ferry, valves in order, the pipe slide, the box with Miss Clou in it, four torn
 map pieces, curing the hiccup), the scrapbook photos, the open questions, and the art plan (which sheet holds what, how the layers scroll). The sheets are in `ref/bubblingmoon_*.png`
-(8 pictures, 3840 x 2160, one art pixel = 4 x 4 picture pixels, so a screen is 1920 x 1080 and Pip 196 tall), flat magenta ground, labels under the items; none is cut or snapped yet.
+(8 pictures, 3840 x 2160, one art pixel = 4 x 4 picture pixels, so a screen is 1920 x 1080 and Pip 196 tall), flat magenta ground, labels under the items. The five props and foreground sheets are **cut into
+291 single sprites** in `ref/frames/bubblingmoon_*` (`tools/cut_sheets.py`; none snapped to the game grid yet); `story/BUBBLING_MOON_LAYOUTS.md` has the five zones with layout sketches and the sprites each uses, and
+`story/BUBBLING_MOON_DECISIONS.md` what the review notes say. `python3 games/spacewhiskers/tools/pack_moon.py out.zip` builds the pack zip.
 
 ## Commands
 
