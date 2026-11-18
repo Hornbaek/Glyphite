@@ -1,0 +1,33 @@
+{
+  "file": "bubblingmoon_bg_outdoor_1.png",
+  "sheet": "bg_outdoor_1",
+  "title": "Bubbling Moon backgrounds, outdoors 1: the sky (top) and the far layer of cheese mountains (bottom)",
+  "date": "2026-11-18T07:41:54.578Z",
+  "model": "gpt-image-2.6-flare",
+  "params": {
+    "size": "3840x2160",
+    "quality": "high",
+    "background": "opaque",
+    "output_format": "png"
+  },
+  "requestId": "req_9469f719eac847ae836409475517dd8e",
+  "usage": {
+    "input_tokens": 3946,
+    "input_tokens_details": {
+      "image_tokens": 2800,
+      "text_tokens": 1146
+    },
+    "output_tokens": 3337,
+    "output_tokens_details": {
+      "image_tokens": 3337,
+      "text_tokens": 0
+    },
+    "total_tokens": 7283
+  },
+  "references": [
+    "levelinspirationprops.png",
+    "levelinspiration.png",
+    "pip.png"
+  ],
+  "prompt": "THE WORLD: the Bubbling Moon, a strange, silly and slightly sad moon in a children's game (never scary). Its milk lakes have dried into cracked, glossy white crust that mirrors the sky. Giant cheese craters full of Swiss-cheese holes are the pits. Bubbles of old milk pop up out of the ground on a slow beat, as if the moon had hiccups, and bounce things that land on them. A big wobbling curd drifts across the dry lake like a slow boat. The cats built an old, half-finished, high-tech milk pumping station here to drain the moon into pipes that run to their fortress. Palette: milk white, cream, butter yellow, cheese orange, pale lavender and blue-grey shadows, a little blue-green mould and a deep violet night sky. The cat machinery is the shipyard's steel grey with orange and yellow trim, rust, paw-print logos and coloured cables, as in the references.\n\nYou are drawing TWO BACKGROUND PANELS for the outdoor parts of the Bubbling Moon level of a side-view platformer, stacked in one picture. The game screen is 480 x 270 art pixels; each panel below is two screens wide (960 x 270 art pixels = 3840 x 1080 image pixels), so it scrolls sideways slowly behind the action. EACH PANEL MUST REPEAT SEAMLESSLY: its left edge continues exactly into its right edge, with no feature cut at the edges.\n\nFORMAT\n- One PNG, 3840 x 2160, landscape: the TOP panel fills the top 1080 rows, a 0-pixel gap, the BOTTOM panel fills the bottom 1080 rows. No labels, no title, no frame.\n\nPANEL 1 (top), THE SKY: a full, opaque night sky, no ground and no horizon objects at all. Deep violet-blue at the top going to a lighter lavender-blue at the bottom, in 6 to 8 flat bands with a hard pixel step between bands (no gradient). Scattered stars of 1 to 2 art pixels in white and pale yellow, a few bigger four-point stars. A thin, faint, BROKEN Milky Way band crossing diagonally: it is fading, patchy, a ghost of what it was. A large pale planet with rings far away on one side and two small moons. A sad, quiet, beautiful sky.\n\nPANEL 2 (bottom), THE FAR LAYER: distant hazy mountains and mesas made of cheese and chalky milk-stone, in soft pale lavender and blue-grey with a little butter yellow on their lit upper-left faces, mostly flat colour with a few Swiss-cheese holes on them; a few long thin pipelines far away running along their feet. Everything above the mountains is flat magenta (#FF00FF) so a program can cut the layer out; the bottom 30 percent of the panel is solid filled mountain colour all the way to the bottom edge. Skyline silhouette top: broken and varied, high peaks and low saddles, never a straight line.\n\nSTYLE (a program cuts this picture into pixel-art sprites for a game, so follow it exactly)\n- TRUE 16-bit (Super Nintendo style) pixel art on a strict fixed grid: every art pixel is a perfectly square, evenly coloured 4 x 4 block of image pixels, so every pixel can be counted by eye. Edges of shapes are clean staircases of whole square pixels: never smooth curves, never soft or noisy shading, never JPEG-like speckle, no anti-aliasing, no gradients, no blur, no glow halos, no dithering noise, no drop shadows, no cast shadows on the ground. Each shade is ONE exact flat colour; use only a small palette of about 32 colours for the whole picture, the same colour every time it is used.\n- A clean, continuous, dark near-black-brown (#1A1410) outline exactly 1 art pixel (4 image pixels) thick round EVERY item, also round white, cream and pale items so they stand out from the magenta; used ONLY for outlines. No fill colour darker than #40382F. Inside the outline shade each material with 2 or 3 flat tones and a few hard-edged pixel highlights, like the references.\n- Match the three attached reference pictures in pixel size, line weight, saturation and level of detail: (1) the game's existing props sheet (its green ground is NOT to be copied: yours is magenta); (2) a finished level scene: the look of the world, with background, platforms and foreground; (3) the hero, Pip the mouse astronaut: he is 49 art pixels tall, which fixes the scale of everything.\n- SCALE: Pip is 49 art pixels (196 image pixels) tall; everything is drawn at that same pixel size. Sizes below are in art pixels (width x height), only roughly.\n- Glass, bubbles and windows are drawn in opaque pale colours with a white highlight: nothing is see-through, and nothing is drawn behind an item.\n- No people, no mice, no cats in the pictures unless a line says so. No text inside the items except where a line gives the words.\n(In this picture the ONLY magenta is the empty space above the far mountains in panel 2. There are no sprites and no items on a ground line here; ignore the lines about labels and items.)"
+}

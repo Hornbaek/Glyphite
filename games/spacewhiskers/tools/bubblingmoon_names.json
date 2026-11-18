@@ -1,0 +1,365 @@
+{
+ "terrain": [
+  [
+   "glossy crust",
+   "thin crust (cracks)",
+   "matte crust (safe)",
+   "crust with skin",
+   "floating chunk L",
+   "floating chunk M",
+   "floating chunk S",
+   "swiss ledge",
+   "cheese wedge"
+  ],
+  [
+   "crust block",
+   "crust block (crack)",
+   "crust corner L",
+   "crust corner R",
+   "swiss block",
+   "swiss block (rind)",
+   "swiss edge L",
+   "swiss edge R",
+   "swiss edge R 2",
+   "milk stone",
+   "slope up",
+   "slope down"
+  ],
+  [
+   "pit S",
+   "pit M",
+   "crater L",
+   "crater lip",
+   "crater cap R",
+   "pit floor"
+  ],
+  [
+   "hole S",
+   "hole M",
+   "hole L",
+   "hole oval",
+   "hole (drip)",
+   "hole (rind lip)",
+   "cheese wall",
+   "tall wall",
+   "wall cap"
+  ],
+  [
+   "boulder S",
+   "boulder M",
+   "boulder L",
+   "stalagmite A",
+   "stalagmite B",
+   "stalactite A",
+   "stalactite B",
+   "stalactite C",
+   "milk spire",
+   "rind arch",
+   "crystals"
+  ],
+  [
+   "mould A",
+   "mould B",
+   "mould C",
+   "dry moss A",
+   "dry moss B",
+   "skin curl A",
+   "skin curl B",
+   "buried wheel",
+   "crumbs",
+   "pebbles",
+   "bone-white shell"
+  ],
+  [
+   "crack A",
+   "crack B",
+   "crack C",
+   "crack D",
+   "paws A",
+   "paws B",
+   "paws C",
+   "milk splat",
+   "mirror patch",
+   "dust",
+   "whey puddle"
+  ]
+ ],
+ "milk": [
+  [
+   "bud",
+   "small",
+   "medium",
+   "large",
+   "squash",
+   "pop 1",
+   "pop 2",
+   "pop 3",
+   "puddle",
+   "crack and ooze",
+   "cluster",
+   "bubble with crumb"
+  ],
+  [
+   "curd",
+   "curd squash",
+   "curd stretch",
+   "curd tilt L",
+   "curd tilt R",
+   "curd sail",
+   "curd small",
+   "dock post",
+   "whey film",
+   "curd chunk"
+  ],
+  [
+   "churn",
+   "churn dented",
+   "bottle full",
+   "bottle empty",
+   "bottle crate",
+   "bucket",
+   "ladle",
+   "funnel",
+   "drip 1",
+   "drip 2",
+   "drip 3",
+   "pour"
+  ],
+  [
+   "crumb",
+   "wedge",
+   "cube",
+   "wheel S",
+   "wheel L",
+   "crate",
+   "box open",
+   "box closed",
+   "cat bed",
+   "yarn",
+   "fish bone",
+   "toy mouse",
+   "tin can",
+   "sack"
+  ],
+  [
+   "thin crust",
+   "arrow right",
+   "arrow down",
+   "welcome",
+   "survey flag",
+   "rope fence",
+   "pump this way",
+   "mind the holes",
+   "closed",
+   "lamp post",
+   "survey tripod",
+   "survey drone"
+  ],
+  [
+   "wheelbarrow",
+   "short ladder",
+   "toolbox",
+   "hard hat",
+   "mug",
+   "note",
+   "broom",
+   "tarp pile",
+   "paint can",
+   "cat nap"
+  ]
+ ],
+ "station": [
+  [
+   "pipe S",
+   "pipe M",
+   "pipe L",
+   "pipe up S",
+   "pipe up L",
+   "elbow NE",
+   "elbow NW",
+   "elbow SE",
+   "elbow SW",
+   "tee",
+   "cross",
+   "window pipe",
+   "open end",
+   "unfinished"
+  ],
+  [
+   "main L",
+   "main M",
+   "main up",
+   "main down",
+   "main tee",
+   "main end",
+   "main support",
+   "main ladder"
+  ],
+  [
+   "wheel red",
+   "wheel blue",
+   "wheel yellow",
+   "lever up",
+   "lever down",
+   "button off",
+   "button on",
+   "plate up",
+   "plate down",
+   "switchbox",
+   "gauge low",
+   "gauge ok",
+   "gauge broken",
+   "hiccup lamp"
+  ],
+  [
+   "main pump",
+   "tank full",
+   "tank half",
+   "tank empty",
+   "silo",
+   "piston 1",
+   "piston 2",
+   "piston 3",
+   "bellows",
+   "bellows flat",
+   "half fan"
+  ],
+  [
+   "door shut",
+   "door open",
+   "shutter shut",
+   "shutter open",
+   "hatch",
+   "vent",
+   "ladder",
+   "catwalk",
+   "stairs",
+   "porthole",
+   "entrance",
+   "scaffold"
+  ],
+  [
+   "control desk",
+   "drafting table",
+   "notice board",
+   "pipe map",
+   "map piece 1",
+   "map piece 3",
+   "map piece 4",
+   "plaque",
+   "photo",
+   "filing cabinet",
+   "stopped clock"
+  ],
+  [
+   "ceiling lamp",
+   "work light",
+   "siren",
+   "hazard stripes",
+   "hazard sign",
+   "cables A",
+   "cables B",
+   "steam vent",
+   "cone",
+   "bolts",
+   "wrench",
+   "big wrench",
+   "oil can"
+  ],
+  [
+   "toolbox",
+   "hose coil",
+   "spare wheel",
+   "gasket",
+   "cork",
+   "plunger",
+   "red yarn"
+  ]
+ ],
+ "fg_outdoor": [
+  [
+   "stalactite A",
+   "stalactite B",
+   "stalactite C",
+   "rind drape",
+   "pipe end drip",
+   "cables",
+   "hole rock top",
+   "lamp"
+  ],
+  [
+   "corner rock L",
+   "corner rock R",
+   "corner crust L",
+   "corner crust R",
+   "corner pipes L",
+   "corner pipes R"
+  ],
+  [
+   "pillar A",
+   "pillar B",
+   "pipe up A",
+   "pipe up B",
+   "pylon",
+   "dead tree"
+  ],
+  [
+   "pipe across",
+   "bubble A",
+   "bubble B",
+   "bubble group",
+   "mould bank",
+   "crack front"
+  ],
+  [
+   "mist A",
+   "mist B",
+   "milk fog",
+   "dust drift",
+   "cobweb"
+  ]
+ ],
+ "fg_station": [
+  [
+   "pipe bundle",
+   "cables A",
+   "cables B",
+   "chain",
+   "lamp dark",
+   "duct",
+   "girder",
+   "cobweb"
+  ],
+  [
+   "machine L",
+   "machine R",
+   "tank L",
+   "tank R",
+   "crates L",
+   "crates R"
+  ],
+  [
+   "beam A",
+   "beam B",
+   "pipe up A",
+   "pipe up B",
+   "scaffold",
+   "cable drum"
+  ],
+  [
+   "railing",
+   "rail corner",
+   "pipe across",
+   "cable trunk",
+   "hazard ramp",
+   "bucket line"
+  ],
+  [
+   "steam A",
+   "steam B",
+   "dust beam",
+   "vent grille",
+   "milk haze"
+  ]
+ ]
+}

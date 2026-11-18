@@ -1,0 +1,33 @@
+{
+  "file": "bubblingmoon_bg_outdoor_2.png",
+  "sheet": "bg_outdoor_2",
+  "title": "Bubbling Moon backgrounds, outdoors 2: the middle layer with the far pumping station (top) and the near rock layer (bottom)",
+  "date": "2026-11-18T07:42:14.942Z",
+  "model": "gpt-image-2.6-flare",
+  "params": {
+    "size": "3840x2160",
+    "quality": "high",
+    "background": "opaque",
+    "output_format": "png"
+  },
+  "requestId": "req_c17f12b1aea14cc2b5f1163a0802eb28",
+  "usage": {
+    "input_tokens": 4038,
+    "input_tokens_details": {
+      "image_tokens": 2800,
+      "text_tokens": 1238
+    },
+    "output_tokens": 3337,
+    "output_tokens_details": {
+      "image_tokens": 3337,
+      "text_tokens": 0
+    },
+    "total_tokens": 7375
+  },
+  "references": [
+    "levelinspirationprops.png",
+    "levelinspiration.png",
+    "pip.png"
+  ],
+  "prompt": "THE WORLD: the Bubbling Moon, a strange, silly and slightly sad moon in a children's game (never scary). Its milk lakes have dried into cracked, glossy white crust that mirrors the sky. Giant cheese craters full of Swiss-cheese holes are the pits. Bubbles of old milk pop up out of the ground on a slow beat, as if the moon had hiccups, and bounce things that land on them. A big wobbling curd drifts across the dry lake like a slow boat. The cats built an old, half-finished, high-tech milk pumping station here to drain the moon into pipes that run to their fortress. Palette: milk white, cream, butter yellow, cheese orange, pale lavender and blue-grey shadows, a little blue-green mould and a deep violet night sky. The cat machinery is the shipyard's steel grey with orange and yellow trim, rust, paw-print logos and coloured cables, as in the references.\n\nYou are drawing TWO BACKGROUND PANELS for the outdoor parts of the Bubbling Moon level of a side-view platformer, stacked in one picture. The game screen is 480 x 270 art pixels; each panel below is two screens wide (960 x 270 art pixels = 3840 x 1080 image pixels), so it scrolls sideways behind the action, slower than the platforms. EACH PANEL MUST REPEAT SEAMLESSLY: its left edge continues exactly into its right edge, with no feature cut at the edges.\n\nFORMAT\n- One PNG, 3840 x 2160, landscape: the TOP panel fills the top 1080 rows, the BOTTOM panel the bottom 1080 rows. No labels, no title, no frame. Everything that is not part of a layer is flat magenta (#FF00FF) so a program can cut the layers out. The only magenta in the layers themselves must be none.\n\nPANEL 1 (top), THE MIDDLE LAYER: a wide plain of rolling cheese hills and Swiss-cheese craters seen from afar, with the dried milk lakes between them as long flat glossy white-blue crust (mirror-like, with a pale reflection of the sky), thin cracks, a few bubbles of milk caught in the act of rising. In the middle distance the old half-finished cat PUMPING STATION as a small silhouette-like building (grey and orange, one scaffold crane, three round tanks, a smoke-free stack) with a thick PIPELINE running from it along the plain to the horizon on tall legs. A few tiny lights. Colours are mid-value and hazier than the foreground: butter yellow, cream, lavender, blue-grey. The layer's top edge is its own skyline (flat magenta above it); the bottom 25 percent is solid filled ground colour down to the bottom edge.\n\nPANEL 2 (bottom), THE NEAR LAYER (just behind the platforms the hero walks on): big dark-ish blue-lavender and butter-yellow cheese cliffs and rock spires on the left and right sides of the panel with large round Swiss-cheese holes (some of them showing the sky through), a cheese arch, stalactites hanging from the top edge of the panel, two enormous pipes crossing diagonally through the rock, a couple of hanging cable loops. The middle of the panel stays more open (so the action is readable). Slightly darker and more saturated than panel 1, with strong 3-shade modelling. Everything not part of the rock and pipes is flat magenta (#FF00FF); the rock at the bottom edge is solid down to the bottom of the panel.\n\nSTYLE (a program cuts this picture into pixel-art sprites for a game, so follow it exactly)\n- TRUE 16-bit (Super Nintendo style) pixel art on a strict fixed grid: every art pixel is a perfectly square, evenly coloured 4 x 4 block of image pixels, so every pixel can be counted by eye. Edges of shapes are clean staircases of whole square pixels: never smooth curves, never soft or noisy shading, never JPEG-like speckle, no anti-aliasing, no gradients, no blur, no glow halos, no dithering noise, no drop shadows, no cast shadows on the ground. Each shade is ONE exact flat colour; use only a small palette of about 32 colours for the whole picture, the same colour every time it is used.\n- A clean, continuous, dark near-black-brown (#1A1410) outline exactly 1 art pixel (4 image pixels) thick round EVERY item, also round white, cream and pale items so they stand out from the magenta; used ONLY for outlines. No fill colour darker than #40382F. Inside the outline shade each material with 2 or 3 flat tones and a few hard-edged pixel highlights, like the references.\n- Match the three attached reference pictures in pixel size, line weight, saturation and level of detail: (1) the game's existing props sheet (its green ground is NOT to be copied: yours is magenta); (2) a finished level scene: the look of the world, with background, platforms and foreground; (3) the hero, Pip the mouse astronaut: he is 49 art pixels tall, which fixes the scale of everything.\n- SCALE: Pip is 49 art pixels (196 image pixels) tall; everything is drawn at that same pixel size. Sizes below are in art pixels (width x height), only roughly.\n- Glass, bubbles and windows are drawn in opaque pale colours with a white highlight: nothing is see-through, and nothing is drawn behind an item.\n- No people, no mice, no cats in the pictures unless a line says so. No text inside the items except where a line gives the words.\n(In this picture there are no sprites and no items on a ground line; ignore the lines about labels and items.)"
+}

@@ -33,6 +33,32 @@ SHEETS = [
          source='the owner (an image model)', use='props for the levels, on a green ground (not cut yet)'),
     dict(file='StarWhiskers-theholycow_cover.png', title='Cover: Pip, the cat, the Holy Cow and MEGA-MJAU\'s fortress (title art still reads "Star Whiskers")',
          source='the owner (an image model)', use='the cover and title screen; the look of the cast'),
+    # ---- the Bubbling Moon (chapter 9): made through the image API by tools/sheets.mjs, one big picture each, to be cut up later ----
+    # (the prompts and what the API answered are in ref/prompts/; the level design that asks for them is story/BUBBLING_MOON.md)
+    dict(file='bubblingmoon_terrain.png', title='Bubbling Moon props 1: ground and platforms (glossy, thin and matte crust, floating chunks, Swiss ledges), craters and holes, rocks, plants, decals',
+         source='Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets.mjs)', use='the level\'s ground, platforms, pits and holes (not cut yet)',
+         note='7 rows, cut into 69 sprites (tools/cut_sheets.py). Missing: "crater cap L" (row 3 has 6 of 7); "swiss edge R" was drawn twice (the second is "swiss edge R 2"); two labels are garbled ("hole oval", "wall cap"). The paw prints came out pink-purple, so the key left only fragments of them. (A first take, made at medium quality with a looser style block, was softer and noisier and is not kept.)'),
+    dict(file='bubblingmoon_milk.png', title='Bubbling Moon props 2: milk bubbles (every state of the pop), the curd boat, milk things, pickups and movables, signs, the builders\' leftovers',
+         source='Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets.mjs)', use='the bubble platforms, the curd, cheese pickups, the pushable wheels, the box and the cat bed, signs (not cut yet)',
+         note='6 rows, every item there, cut into 70 sprites (tools/cut_sheets.py). The curds have a rosy tint in their shading; a few tiny gaps (rope fence, ladder) still keep pink specks. One label reads "nug" for "mug".'),
+    dict(file='bubblingmoon_station.png', title='Bubbling Moon props 3: the pumping station: pipes, the main pipeline, valves and controls, pumps and tanks, doors, the inside, lights, tools',
+         source='Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets.mjs)', use='the pumping station and its puzzles: valve wheels, levers, plates, gauges, pumps and tanks, the pump housing, the pipe map and its torn pieces, the plaque and the old photo (not cut yet)',
+         note='8 rows, cut into 90 sprites (tools/cut_sheets.py). Missing: "map piece 2" (three of the four pieces are there) and the separate "pump housing" (the story\'s fuel tank: the three "tank" canisters are the nearest thing). The model moved "wrench", "big wrench" and "oil can" up to the lights row. The piston caps and the tanks\' sight glass are tinted pink; the ladders keep pink specks between the rungs.'),
+    dict(file='bubblingmoon_bg_outdoor_1.png', title='Bubbling Moon backgrounds, outdoors 1: the sky with the broken Milky Way (top panel) and the far cheese mountains (bottom panel)',
+         source='Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets.mjs)', use='the slowest background layers outdoors: each panel is two screens wide (3840 x 1080), the sky is opaque, the mountains stand on magenta (not cut yet)',
+         note='Two panels of 3840 x 1080 picture pixels (960 x 270 game pixels). Cut as sky.png and far-mountains.png (keyed) by `cut_sheets.py --panels <folder>`, which are not stored twice in the repository. The sky\'s left and right edges almost meet (difference 1.5 of 255); the mountains\' do not (27).'),
+    dict(file='bubblingmoon_bg_outdoor_2.png', title='Bubbling Moon backgrounds, outdoors 2: the middle plain with the far pumping station (top panel) and the near cliffs and pipes (bottom panel)',
+         source='Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets.mjs)', use='the middle and near layers outdoors, on magenta (not cut yet)',
+         note='Two panels of 3840 x 1080 picture pixels: middle-plain.png and near-cliffs.png (`cut_sheets.py --panels <folder>`). The seams do not meet yet (edge difference 16 and 37 of 255), so they need a blend to repeat.'),
+    dict(file='bubblingmoon_bg_station.png', title='Bubbling Moon backgrounds, inside the pumping station: the half-painted back wall (top panel) and the deep machine hall (bottom panel)',
+         source='Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets.mjs)', use='the interior layers of the pumping station: the wall is opaque, the deep hall stands on magenta (not cut yet)',
+         note='Two panels of 3840 x 1080 picture pixels: back-wall.png and deep-hall.png (`cut_sheets.py --panels <folder>`). The seams do not meet yet (edge difference 35 and 45 of 255), so they need a blend to repeat.'),
+    dict(file='bubblingmoon_fg_outdoor.png', title='Bubbling Moon foregrounds, outdoors: hanging stalactites, corner rocks, pillars, big low shapes, mist',
+         source='Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets.mjs)', use='the front pass outdoors: pieces drawn in front of Pip, which fade where he walks behind them (not cut yet)',
+         note='5 rows, all 31 pieces, cut into 31 sprites (tools/cut_sheets.py). The mist banks are pale lavender-pink and are partly eaten by the magenta key: they need a redraw.'),
+    dict(file='bubblingmoon_fg_station.png', title='Bubbling Moon foregrounds, inside the pumping station: hanging pipes and cables, machine edges, beams, railings, steam',
+         source='Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets.mjs)', use='the front pass inside the pumping station: close pipes, cables, machine edges, beams, railings, steam (not cut yet)',
+         note='5 rows, all 31 pieces, cut into 31 sprites (tools/cut_sheets.py). The steam, the dust beam and the milk haze are pink-tinted and partly eaten by the magenta key: they need a redraw.'),
 ]
 
 # the drawings of pip.png: name, what it is for, and where it is (a box that holds exactly one piece, or for the wall slide the
@@ -113,6 +139,8 @@ def cut_pip():
 
 def main():
     frames = {'pip.png': cut_pip()}
+    moon = REF / 'frames_moon.json'   # the Bubbling Moon's sprites, cut by tools/cut_sheets.py (slow: it is not run again here)
+    if moon.exists(): frames.update(json.loads(moon.read_text()))
     ref = dict(title='Space Whiskers: The Holy Cow', made_by='games/spacewhiskers/tools/art.py', sheets=[])
     md = ['# Space Whiskers: reference art', '',
           'The owner\'s sheets, untouched, and every drawing cut from them at its original pixels (`frames/`). Made by `tools/art.py`, which also',
