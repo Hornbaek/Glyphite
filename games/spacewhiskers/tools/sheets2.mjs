@@ -17,6 +17,7 @@ import { fromPNG, toPNG } from '../../../tools/art/image.mjs';
 const GAME = join(dirname(fileURLToPath(import.meta.url)), '..'), REF = join(GAME, 'ref'), PREFIX = 'bubblingmoon2_';
 
 const REFS = [
+  { file: 'misscloue_referencesheet.png', shrink: 1, name: 'miss_clou_design.png', says: 'MISS CLOU\'s official character design sheet (NOT pixel art, and only for her design: copy her face, ears, eyes, tail, the white suit with charcoal panels and orange piping, the cyan chest gauge, gloves, boots and ion-booster pack exactly, but draw her in the pixel-art style of the other pictures and in GAME PROPORTIONS: a big head, about a third of her height)' },
   { file: 'levelinspirationprops.png', shrink: 2, name: 'owner_props_sheet.png', says: 'the game\'s own props sheet (its green ground is the ground to use here too)' },
   { file: 'bubblingmoon_station.png', shrink: 2, name: 'moon_station_sheet.png', says: 'a finished sheet of this level\'s pumping-station props: match its pixel size, line weight, colours and shading exactly' },
   { file: 'frames/bubblingmoon2_pipeslide_straight.png', shrink: 1, name: 'slide_straight_piece.png', says: 'the straight slide piece already drawn: every tube piece you draw must have EXACTLY this outer height and this clear milk-filled inside height (the shaft the same outer WIDTH), the same collars, the same glass, the same colours' },
@@ -33,7 +34,7 @@ const STYLE = (REFS) => `STYLE (a program cuts this picture into pixel-art sprit
 
 const WORLD = `THE WORLD: the Bubbling Moon, a strange, silly and slightly sad moon in a children's game (never scary). Its milk lakes have dried into cracked, glossy white crust that mirrors the sky. Giant cheese craters full of Swiss-cheese holes are the pits. Bubbles of old milk pop up out of the ground on a slow beat, as if the moon had hiccups. A big wobbling curd drifts across the dry lake like a slow boat. The cats built an old, half-finished, high-tech milk pumping station here: steel grey with orange and yellow trim, rust, paw-print logos and coloured cables. Palette: milk white, cream, butter yellow, cheese orange, pale lavender and blue-grey shadows, a deep violet night sky.`;
 
-const MISS_CLOU = `MISS CLOU (use exactly this design): an orange tabby she-cat with big green eyes and a calm, sharp, slightly smug face, a dark brown nose, pointed ears, a long fluffy orange tail. She wears a white space suit with orange and dark-grey trim, black gloves and boots, dark knee and elbow pads, a dark tool belt, a small round glowing CYAN gauge in the middle of the chest, and a round clear glass bubble helmet over her ears. On her back a compact white and orange life-support pack with two small ion boosters (a little cyan flame when they fire). NOT a dark blue suit, NO cape. About 52 art pixels tall standing, a little taller than Pip.`;
+const MISS_CLOU = `MISS CLOU (the first attached picture is her design sheet: draw her exactly like that): an orange tabby she-cat with big green eyes and a calm, sharp, slightly smug face, a dark nose, pointed ears with pink insides, a long fluffy orange tail. She wears a white-and-pale-grey space suit with charcoal-black panels (shoulders, ribs, knees, shins) and thin orange piping, charcoal gloves, charcoal boots with an orange stripe, a dark tool belt with small pouches, a small round glowing CYAN gauge in the middle of the chest, and a round clear glass bubble helmet over her ears. On her back a compact white and charcoal life-support pack with a cyan light strip and two small ion boosters (a cyan flame when they fire). NOT a dark blue suit, NO cape, NO scarf. About 52 art pixels tall standing, a little taller than Pip, in game proportions (a big head, short body).`;
 
 const FORMAT = (w, h) => `FORMAT
 - One PNG, ${w} x ${h}, landscape. Background: ONE flat, solid, bright pure green (#00FF00) everywhere behind the items. No checkerboard, no scenery, no ground strip, no frames or boxes round items, no title, no legend. No bright green inside the items (the green eyes of Miss Clou and any mould are a darker, duller green).
@@ -45,7 +46,7 @@ const PANEL_FORMAT = `FORMAT
 
 // one row: group, what it is, items [name, description]
 // a sheet may name its own reference pictures (by file); the rest use all three
-const refsOf = s => s.refs ? REFS.filter(r => s.refs.includes(r.file)) : REFS;
+const refsOf = s => s.refs ? REFS.filter(r => s.refs.includes(r.file)) : REFS.filter(r => !r.file.startsWith('misscloue') && !r.file.startsWith('frames/'));   // the default: the game's own pictures and Pip
 const R = (group, head, items) => ({ group, head, items });
 
 export const SHEETS2 = {
@@ -98,9 +99,9 @@ export const SHEETS2 = {
   },
 
   missclou: {
-    title: 'Bubbling Moon round 2: Miss Clou (a second try, drawn without the picture of Pip)',
+    title: 'Bubbling Moon round 2: Miss Clou, drawn from her character design sheet',
     use: 'Miss Clou: stand, cool, startled, hover, in the cardboard box (open and closed), seen from the side',
-    refs: ['levelinspirationprops.png', 'bubblingmoon_station.png'],
+    refs: ['misscloue_referencesheet.png', 'levelinspirationprops.png', 'bubblingmoon_station.png'],
     pre: MISS_CLOU + '\nShe is a CAT, not a mouse: a pointed triangular cat ear on each side of the top of her head (clearly pointed, never round), a small pink-nosed muzzle with whiskers, a long fluffy tail. She does NOT look like the hero Pip (a round-eared mouse).',
     rows: [
       R('missclou', 'MISS CLOU, side view facing RIGHT (the design above), about 52 art pixels tall', [['stand', 'standing calmly, arms by her sides, a slight smug smile, tail curled behind'], ['cool', 'arms folded across her chest, one eyebrow raised, smug and mysterious, weight on one leg'], ['startled', 'startled: ears flat back, eyes wide, both arms up, tail puffed up, one foot lifted'], ['hover-1', 'hovering a little above the ground on her boosters, a small cyan flame under the pack, legs dangling, arms folded'], ['hover-2', 'the same hover, the cyan flame flickering a different shape']]),

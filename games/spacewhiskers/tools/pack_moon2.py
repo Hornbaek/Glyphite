@@ -70,6 +70,15 @@ def despill(path):
     Image.fromarray(a.astype(np.uint8)).save(path)
 
 
+def lime_to_orange(path):
+    """a patch of the green ground stayed inside Miss Clou's startled tail: lime pixels (green far above red and blue) become fur orange"""
+    a = np.asarray(Image.open(path).convert('RGBA')).astype(int)
+    m = (a[..., 3] > 0) & (a[..., 1] > a[..., 0] + 30) & (a[..., 1] > a[..., 2] + 60)
+    H, W = m.shape; m[:int(H * .4)] = False; m[:, int(W * .4):] = False   # only the tail (left, lower): her eyes and the helmet's tint are green on purpose
+    a[..., 0] = np.where(m, np.maximum(a[..., 0], 215), a[..., 0]); a[..., 1] = np.where(m, a[..., 1] * 0.5, a[..., 1]).astype(int)
+    Image.fromarray(a.astype(np.uint8)).save(path)
+
+
 def reflected_sky(dst):
     """a glossy crust mirrors the sky: the bottom 108 game pixels of round 1's sky, flipped upside down, washed toward milk white, fading out downwards in steps"""
     sky = Image.open(REF / 'bubblingmoon_bg_outdoor_1.png').convert('RGB').crop((0, 648, 3840, 1080))
@@ -87,11 +96,11 @@ All sizes below are art pixels (one art pixel = a 4 x 4 block of picture pixels)
 
 ## First, three things that apply to everything
 
-1. **The model draws bigger than it is asked to.** I asked for your sizes, but the pictures came out larger (Miss Clou stands about 214 art pixels tall, Pip 49; the round-2 ladder is 49 x 91 where the first one is 21 x 57). I did **not**
+1. **The model draws bigger than it is asked to.** I asked for your sizes, but the pictures came out larger (Miss Clou stands about 240 art pixels tall, Pip 49; the round-2 ladder is 49 x 91 where the first one is 21 x 57). I did **not**
    resample: the pack lists the size drawn, the size asked and the factor for every sprite (`sprites/INDEX.md`, `manifest.json`), so your prep step can snap them and scale them to the size you want. Where a sprite is cut in a family
    (the pipe slide, Miss Clou) its pieces are drawn at the same scale as each other, except where noted.
 2. **The pixels are not on a perfect 4 x 4 grid** (as in the first pack): the Pixel Snapper step still has to put them on the grid and the palette.
-3. **I could not listen to any sound**, and I did not have your Miss Clou sheet as a file (only what I could see of it): see below.
+3. **I could not listen to any sound**: see the end.
 
 ## 1. Missing from the pack: done
 
@@ -112,8 +121,10 @@ All sizes below are art pixels (one art pixel = a 4 x 4 block of picture pixels)
 - **Pipe slide pieces at Pip's size: partly.** `pipeslide/straight` (tiles end to end), `end-left`, `end-right` (spits, with a drip), `tee-up`, `tee-down`: clear inside about **52 art pixels** tall, a little under the 54 you asked for (Pip is 49).
   `pipeslide/shaft` (tiles), `corner-up`, `corner-down` and `flow-1..4` come from a second try and are about **1.2 times bigger** than the straight piece (clear inside 53-56): scale the first set up by 1.1-1.2 or the second down to match.
   The glass is **not see-through**: tube and milk are one opaque picture; to let Pip show inside, draw him over it and draw the glass highlights over him, or tell me and I will draw a glass-only layer.
-- **Miss Clou: done, with a caveat.** `missclou/stand, cool, startled, hover-1, hover-2` (booster flame), `box-open-cat`, `box-closed-cat`, `box-empty`. She is drawn from my reading of your character sheet (orange tabby, white and orange suit,
-  cyan chest gauge, pointed ears, green eyes, ion-booster pack, bubble helmet, no cape), **not from the sheet itself**: it was not on disk. Please put the original in `games/spacewhiskers/ref/` and I will match her to it.
+- **Miss Clou: done.** `missclou/stand, cool, startled, hover-1, hover-2` (booster flame), `box-open-cat`, `box-closed-cat`, `box-empty`. Drawn from **your character sheet** (`misscloue_referencesheet.png`, now in the repository): the orange tabby with
+  pink-lined ears, the white suit with charcoal panels and orange piping, the cyan chest gauge, the pack with its cyan strip and boosters, no cape, in game proportions (a big head). A first take, made from my reading of the sheet
+  before it was in the repository, is kept in `ref/` and not delivered. She is drawn big (about 240 art pixels tall: factor about 0.2 to the 52 asked, see INDEX). The startled frame had a patch of the green ground inside its tail, which I recoloured to fur orange in the pack:
+  look at it. Her face in the box is a front view with her fur spiked up: it reads grumpy, not like the sheet's neat face.
 - **The helmeted cat on the pump trolley: done.** `cat/trolley`, `helmet-asleep-1`, `helmet-asleep-2` (breathing), `helmet` (cracked open), `freed` (sitting up, surprised).
 - **Scrapbook: done.** `scrapbook/polaroid-frame`, the nine photos (`photo-reflection, photo-curd-sail, photo-milkyway-top, photo-missclou-box, photo-plaque, photo-old-ceremony, photo-pipe-map, photo-new-bubble, photo-blank`),
   `camera-icon`, `map-page`, HUD icons `hud-photo-icon, hud-map-icon, hud-camera-icon`. (The cat in `photo-missclou-box` is a ginger tabby in a box: it does not wear the suit, as a photo of her in the box should not.)
@@ -165,6 +176,7 @@ def main(out):
             if group in SKIP: continue
             dst = root / 'sprites' / group / f'{name}.png'; dst.parent.mkdir(parents=True, exist_ok=True); shutil.copy(REF / f['file'], dst)
             if f'{group}/{name}' in DESPILL: despill(dst)
+            if f'{group}/{name}' == 'missclou/startled': lime_to_orange(dst)
             a = asked.get((group, name)); sz = [f['size'][0] // 4, f['size'][1] // 4]
             manifest.append(dict(group=group, name=name, file=f'sprites/{group}/{name}.png', size_px=f['size'], size_game_px=sz, asked_game_px=list(a) if a else None,
                                  factor_to_asked=round(a[1] / sz[1], 2) if a and sz[1] else None, sheet=sheet_file, box_on_sheet=f['box']))

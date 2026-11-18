@@ -2336,14 +2336,14 @@
    "file": "frames/bubblingmoon2_missclou_stand.png",
    "name": "missclou stand",
    "box": [
-    94,
-    145,
-    741,
-    1003
+    101,
+    168,
+    738,
+    1143
    ],
    "size": [
-    647,
-    858
+    637,
+    975
    ],
    "use": "Bubbling Moon round 2, Miss Clou, row 1: not in a game yet",
    "used": false
@@ -2352,14 +2352,14 @@
    "file": "frames/bubblingmoon2_missclou_cool.png",
    "name": "missclou cool",
    "box": [
-    911,
-    131,
-    1475,
-    1003
+    903,
+    167,
+    1490,
+    1143
    ],
    "size": [
-    564,
-    872
+    587,
+    976
    ],
    "use": "Bubbling Moon round 2, Miss Clou, row 1: not in a game yet",
    "used": false
@@ -2368,14 +2368,14 @@
    "file": "frames/bubblingmoon2_missclou_startled.png",
    "name": "missclou startled",
    "box": [
-    1577,
-    137,
-    2256,
-    1004
+    1599,
+    195,
+    2289,
+    1143
    ],
    "size": [
-    679,
-    867
+    690,
+    948
    ],
    "use": "Bubbling Moon round 2, Miss Clou, row 1: not in a game yet",
    "used": false
@@ -2384,14 +2384,14 @@
    "file": "frames/bubblingmoon2_missclou_hover-1.png",
    "name": "missclou hover-1",
    "box": [
-    2348,
-    37,
-    2939,
-    975
+    2487,
+    64,
+    2987,
+    1118
    ],
    "size": [
-    591,
-    938
+    500,
+    1054
    ],
    "use": "Bubbling Moon round 2, Miss Clou, row 1: not in a game yet",
    "used": false
@@ -2400,14 +2400,14 @@
    "file": "frames/bubblingmoon2_missclou_hover-2.png",
    "name": "missclou hover-2",
    "box": [
-    3149,
-    53,
-    3717,
-    1003
+    3229,
+    77,
+    3765,
+    1143
    ],
    "size": [
-    568,
-    950
+    536,
+    1066
    ],
    "use": "Bubbling Moon round 2, Miss Clou, row 1: not in a game yet",
    "used": false
@@ -2416,14 +2416,14 @@
    "file": "frames/bubblingmoon2_missclou_box-open-cat.png",
    "name": "missclou box-open-cat",
    "box": [
-    279,
-    1250,
-    1198,
-    1852
+    386,
+    1322,
+    1265,
+    1917
    ],
    "size": [
-    919,
-    602
+    879,
+    595
    ],
    "use": "Bubbling Moon round 2, Miss Clou, row 2: not in a game yet",
    "used": false
@@ -2432,14 +2432,14 @@
    "file": "frames/bubblingmoon2_missclou_box-closed-cat.png",
    "name": "missclou box-closed-cat",
    "box": [
-    1478,
-    1257,
-    2307,
-    1852
+    1568,
+    1388,
+    2292,
+    1922
    ],
    "size": [
-    829,
-    595
+    724,
+    534
    ],
    "use": "Bubbling Moon round 2, Miss Clou, row 2: not in a game yet",
    "used": false
@@ -2448,14 +2448,14 @@
    "file": "frames/bubblingmoon2_missclou_box-empty.png",
    "name": "missclou box-empty",
    "box": [
-    2675,
-    1264,
-    3428,
-    1852
+    2600,
+    1401,
+    3501,
+    1922
    ],
    "size": [
-    753,
-    588
+    901,
+    521
    ],
    "use": "Bubbling Moon round 2, Miss Clou, row 2: not in a game yet",
    "used": false

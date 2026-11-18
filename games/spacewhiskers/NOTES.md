@@ -63,7 +63,7 @@ map pieces, curing the hiccup), the scrapbook photos, the open questions, and th
 `story/BUBBLING_MOON_DECISIONS.md` what the review notes say. `python3 games/spacewhiskers/tools/pack_moon.py out.zip` builds the pack zip.
 **Round 2** (HISTORY 76): the second list (gaps, pink pieces, the pipe slide, Miss Clou and the cats, scrapbook, ground, pump hall, animation frames, three backgrounds) is 175 more sprites
 (`pack_moon2.py out.zip`, whose `STATUS.md` goes through the list line by line), plus 46 sound effects (`audio/`) and music. The model draws larger than asked: every sprite's size drawn, asked and factor is in the pack's INDEX.
-Known: Miss Clou is drawn from a description (the owner's sheet is not in `ref/` yet: drop it there); the bubble swell has 7 of 8 steps; `dust-beam` is mostly eaten; the slide tubes are 52 art pixels clear inside, the second take 1.2x bigger;
+Miss Clou is drawn from the owner's sheet (`ref/misscloue_referencesheet.png`; the first take, made before it was in the repository, is `bubblingmoon2_missclou_take1.png`). Known: the bubble swell has 7 of 8 steps; `dust-beam` is mostly eaten; the slide tubes are 52 art pixels clear inside, the second take 1.2x bigger;
 the sounds were never heard; 16 planned sounds are missing (Replicate credit).
 
 ## Commands

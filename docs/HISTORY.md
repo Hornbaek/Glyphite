@@ -1667,11 +1667,11 @@ image-to-video may be tried, and frames are made at game size. All of it is in `
 > Miss Clou, the cats, the scrapbook, the ground, the pump hall, animation frames, three more backgrounds) and, in the middle, "With the API keys, can you actually generate some sounds and music for the level too?" and a picture of Miss Clou.
 
 - **`tools/sheets2.mjs`**: the round-2 sheets as data (`SHEETS2`: a row plan each) and prompts, on a **green** ground (the magenta of round 1 ate pale and pink items). A sheet can name its own reference pictures (`refs`), so Miss Clou
-  is drawn without Pip's picture. Twelve sheets in `ref/bubblingmoon2_*.png`: `fixes`, `slide` (+ `slide_take1`, the first take, kept; `slide2`: the shaft, corners and flow frames redrawn at the straight piece's size), `characters`,
+  is drawn without Pip's picture. Twelve sheets (plus the kept first takes) in `ref/bubblingmoon2_*.png`: `fixes`, `slide` (+ `slide_take1`, the first take, kept; `slide2`: the shaft, corners and flow frames redrawn at the straight piece's size), `characters`,
   `missclou`, `scrapbook`, `ground`, `hall`, `anim_a`, `anim_b`, and three backgrounds (`bg_outdoor`, `bg_station_a`, `bg_station_b`, two panels each).
 - **`tools/cut_sheets.py --round2`** cuts them into 182 sprites (`ref/frames/bubblingmoon2_*`, listed in `ref/frames_moon2.json`, then `tools/art.py` puts them into `ref.json` and the README). New: labels up to 120 px apart
   are one row, and `tools/bubblingmoon2_layout.json` says what the model really drew where it left the plan (the geysers and the drain wheels share a row, the cats sit with the box, the pipeline leg with the flow frames).
-  The first Miss Clou came out as a mouse in a cat suit (Pip's picture was a reference): kept as `missclou_old`, not delivered.
+  The first Miss Clou came out as a mouse in a cat suit (Pip's picture was a reference): kept as `missclou_old`, not delivered. The second was drawn from a description (the owner's sheet was not in the repository yet; kept as `missclou_take1`); once the owner added `misscloue_referencesheet.png` she was drawn a third time with it as the design reference (charcoal panels, orange piping, pink ears), and that is the one delivered.
 - **What the pictures taught**: the model draws **larger** than the sizes asked for (Miss Clou 214 art pixels tall against Pip's 49; a ladder twice the first one), so the pack lists the size drawn, the size asked and the
   factor for every sprite, and nothing is resampled. The slide tubes came out 52 art pixels clear inside (Pip is 49); the second take is 1.2 times bigger. The bubble swell has seven of its eight steps. The dust beam was
   mostly eaten by the key.

@@ -44,6 +44,12 @@ writes `ref.json` (the site's ART page reads it). Boxes are x0, y0, x1, y1 on th
 
 ![StarWhiskers-theholycow_cover.png](StarWhiskers-theholycow_cover.png)
 
+## Miss Clou: the character reference sheet (front, side, back, helmet, life support, action poses, faces, palette)
+
+`misscloue_referencesheet.png`, 1088 x 608, from the owner (an image model). Labels are in Danish and English (HJELM = helmet, RYGSAEK = backpack, ANSIGTSUDTRYK = facial expressions, FARVEPALETTE = colour palette, DETALJER = details). Used for: her design for the Bubbling Moon (the box, the booster hover); the second take of tools/sheets2.mjs's missclou sheet draws her from it.
+
+![misscloue_referencesheet.png](misscloue_referencesheet.png)
+
 ## Bubbling Moon props 1: ground and platforms (glossy, thin and matte crust, floating chunks, Swiss ledges), craters and holes, rocks, plants, decals
 
 `bubblingmoon_terrain.png`, 3840 x 2160, from Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets.mjs). 7 rows, cut into 69 sprites (tools/cut_sheets.py). Missing: "crater cap L" (row 3 has 6 of 7); "swiss edge R" was drawn twice (the second is "swiss edge R 2"); two labels are garbled ("hole oval", "wall cap"). The paw prints came out pink-purple, so the key left only fragments of them. (A first take, made at medium quality with a looser style block, was softer and noisier and is not kept.) Used for: the level's ground, platforms, pits and holes (not cut yet).
@@ -615,7 +621,7 @@ writes `ref.json` (the site's ART page reads it). Boxes are x0, y0, x1, y1 on th
 | ![hall exterior-wall](frames/bubblingmoon2_hall_exterior-wall.png) | hall exterior-wall | 251, 1317, 1686, 1922 | Bubbling Moon round 2, the pump hall, row 3: not in a game yet |
 | ![hall entrance-big](frames/bubblingmoon2_hall_entrance-big.png) | hall entrance-big | 1946, 1321, 3044, 1922 | Bubbling Moon round 2, the pump hall, row 3: not in a game yet |
 
-## Bubbling Moon round 2: Miss Clou (a second try, drawn without the picture of Pip)
+## Bubbling Moon round 2: Miss Clou, drawn from her character design sheet
 
 `bubblingmoon2_missclou.png`, 3840 x 2160, from Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets2.mjs). Miss Clou without Pip among the references: pointed ears, white and orange suit, cyan chest gauge, ion boosters, no cape (a text description of the owner's character sheet: the sheet itself was not in the repository). Used for: what the owner's second list of art still needed asks for (the Godot level).
 
@@ -623,14 +629,20 @@ writes `ref.json` (the site's ART page reads it). Boxes are x0, y0, x1, y1 on th
 
 | drawing | name | box | used for |
 |---|---|---|---|
-| ![missclou stand](frames/bubblingmoon2_missclou_stand.png) | missclou stand | 94, 145, 741, 1003 | Bubbling Moon round 2, Miss Clou, row 1: not in a game yet |
-| ![missclou cool](frames/bubblingmoon2_missclou_cool.png) | missclou cool | 911, 131, 1475, 1003 | Bubbling Moon round 2, Miss Clou, row 1: not in a game yet |
-| ![missclou startled](frames/bubblingmoon2_missclou_startled.png) | missclou startled | 1577, 137, 2256, 1004 | Bubbling Moon round 2, Miss Clou, row 1: not in a game yet |
-| ![missclou hover-1](frames/bubblingmoon2_missclou_hover-1.png) | missclou hover-1 | 2348, 37, 2939, 975 | Bubbling Moon round 2, Miss Clou, row 1: not in a game yet |
-| ![missclou hover-2](frames/bubblingmoon2_missclou_hover-2.png) | missclou hover-2 | 3149, 53, 3717, 1003 | Bubbling Moon round 2, Miss Clou, row 1: not in a game yet |
-| ![missclou box-open-cat](frames/bubblingmoon2_missclou_box-open-cat.png) | missclou box-open-cat | 279, 1250, 1198, 1852 | Bubbling Moon round 2, Miss Clou, row 2: not in a game yet |
-| ![missclou box-closed-cat](frames/bubblingmoon2_missclou_box-closed-cat.png) | missclou box-closed-cat | 1478, 1257, 2307, 1852 | Bubbling Moon round 2, Miss Clou, row 2: not in a game yet |
-| ![missclou box-empty](frames/bubblingmoon2_missclou_box-empty.png) | missclou box-empty | 2675, 1264, 3428, 1852 | Bubbling Moon round 2, Miss Clou, row 2: not in a game yet |
+| ![missclou stand](frames/bubblingmoon2_missclou_stand.png) | missclou stand | 101, 168, 738, 1143 | Bubbling Moon round 2, Miss Clou, row 1: not in a game yet |
+| ![missclou cool](frames/bubblingmoon2_missclou_cool.png) | missclou cool | 903, 167, 1490, 1143 | Bubbling Moon round 2, Miss Clou, row 1: not in a game yet |
+| ![missclou startled](frames/bubblingmoon2_missclou_startled.png) | missclou startled | 1599, 195, 2289, 1143 | Bubbling Moon round 2, Miss Clou, row 1: not in a game yet |
+| ![missclou hover-1](frames/bubblingmoon2_missclou_hover-1.png) | missclou hover-1 | 2487, 64, 2987, 1118 | Bubbling Moon round 2, Miss Clou, row 1: not in a game yet |
+| ![missclou hover-2](frames/bubblingmoon2_missclou_hover-2.png) | missclou hover-2 | 3229, 77, 3765, 1143 | Bubbling Moon round 2, Miss Clou, row 1: not in a game yet |
+| ![missclou box-open-cat](frames/bubblingmoon2_missclou_box-open-cat.png) | missclou box-open-cat | 386, 1322, 1265, 1917 | Bubbling Moon round 2, Miss Clou, row 2: not in a game yet |
+| ![missclou box-closed-cat](frames/bubblingmoon2_missclou_box-closed-cat.png) | missclou box-closed-cat | 1568, 1388, 2292, 1922 | Bubbling Moon round 2, Miss Clou, row 2: not in a game yet |
+| ![missclou box-empty](frames/bubblingmoon2_missclou_box-empty.png) | missclou box-empty | 2600, 1401, 3501, 1922 | Bubbling Moon round 2, Miss Clou, row 2: not in a game yet |
+
+## Bubbling Moon round 2: Miss Clou (a second try, drawn without the picture of Pip)
+
+`bubblingmoon2_missclou_take1.png`, 3840 x 2160, from Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets2.mjs). Miss Clou, first take, from a description of her sheet (before it was in the repository): kept as drawn, not cut. Used for: what the owner's second list of art still needed asks for (the Godot level).
+
+![bubblingmoon2_missclou_take1.png](bubblingmoon2_missclou_take1.png)
 
 ## Bubbling Moon round 2: the scrapbook: polaroid frame, the photos, the camera, the map page, HUD icons
 
