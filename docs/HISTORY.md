@@ -1637,6 +1637,22 @@ image-to-video may be tried, and frames are made at game size. All of it is in `
   pulsing alarm lamp over the pit and a blue lamp inside the scaffold whose catwalks and uprights shade the wall. The wall's palettes gained steps so the pools of light read.
 - `tests/mechanics.py` now also checks the camera (whole cells, locked to Pip, no bob, feet in view in a fall) and the test lights, and tries a range of pushes for each climb.
 
+## 75. Space Whiskers: the Bubbling Moon's level design, puzzles and art sheets (Claude Code, 2026-11-18)
+
+> "I want you to create a sheet of props to the chapter about the bubbling moon [the review notes]. While doing so, I want you to come up with some fun puzzles in that level, I give you free hands, I will think about this later. Create it efficiently by generating one or multiple big sheets with a bunch of items and we'll split them up later. I think the levels should have backgrounds as well and foregrounds, so generate those too. Place the results in the spacewhiskers folder in the repo and commit that to main."
+
+- **`games/spacewhiskers/story/BUBBLING_MOON.md`**: what the review notes decided about the world (kept as is), a proposed hook (the moon has hiccups: a half-finished pump nobody switched off coughs on a beat, and
+  the whole level answers it; the finale cures it and one new bubble rises), the route (five zones, about 14 screens), ten puzzles with what each needs drawn and from the engine, the scrapbook photos, Miss Clou's beats, six
+  open questions, and the art plan with a layer table. A menu to pick from, not a decision.
+- **`games/spacewhiskers/tools/sheets.mjs`**: the sheets as prompts (the game's look, the chapter's world, a row plan, a strict pixel-art block) with the owner's props sheet, shipyard scene and Pip's sheet as style
+  references, one call to the image API each at 3840 x 2160 (the API takes it; about 3,300 output tokens at `high`). Never overwrites: a new take gets `_2`. `ref/prompts/` holds each prompt and answer.
+- **Eight sheets in `ref/`**: `terrain`, `milk`, `station` (props: 7 + 6 + 8 rows, about 190 items with labels), `bg_outdoor_1` (sky and far mountains), `bg_outdoor_2` (middle plain with the far pumping station,
+  near cliffs and pipes), `bg_station` (back wall, deep machine hall), `fg_outdoor` and `fg_station` (foregrounds). Listed in `ref/ref.json` and the README by `tools/art.py`, so the site's ART page shows them.
+- **What the first try taught**: the model keeps the layout and the item list well but not the pixel grid: the first terrain sheet (medium, a short style block) had over half a million colours and weak outlines; a stricter
+  style block (flat colours on a 4 x 4 grid, a clean 1-pixel outline round everything, about 32 colours) at `high` with the `flare` model was crisper, and the other seven were made that way (the first take was dropped).
+  Known gaps (in each sheet's `note`): "crater cap L" and "map piece 2" are missing, some pale items have a pink tint the magenta key would eat, the background seams are not checked.
+- Nothing is cut or snapped yet, and nothing is in a game.
+
 ## Published versions (claude.ai artifact "Regolith Lander")
 
 | Version | Content |

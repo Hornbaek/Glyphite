@@ -24,6 +24,8 @@ ref/                 the owner's pictures, untouched, and every drawing cut from
   levelinspiration.png the Whiskerworks shipyard: the look of a level
   levelinspirationprops.png  props on green (platforms, girders, pipes, machines, crates, signs, cats, ship parts): not cut yet
   StarWhiskers-theholycow_cover.png  the cover (its title still reads "Star Whiskers")
+  bubblingmoon_*.png   the Bubbling Moon's art sheets (chapter 9), made through the image API by tools/sheets.mjs: terrain, milk, station (props), bg_outdoor_1, bg_outdoor_2,
+                       bg_station (backgrounds, two panels of 3840 x 1080 each), fg_outdoor, fg_station (foregrounds); ref/prompts/ holds each one's prompt and the API's answer
 story/               the story (moved from games/spacemouse/story): STORY_V2.md is current, STORY.md version 1, sv/ the owner's
                      Swedish originals, FEEDBACK.md, COVER_PROMPT.md, CHAPTER_COVERS.md
 art/                 the art pipeline (docs/ART_PIPELINE.md)
@@ -41,9 +43,18 @@ lights.js            the level's lamps, Pip's helmet lamp, the test lights (clic
 main.js              the level (newLevel), the view (fitView), the camera (swCamera), the planet in the window, the HUD, Pixelite.run
 tests/mechanics.py   the view's size, every frame shown, every climb made, the camera, the test lights, the drop-through, the goal
 tools/anims.mjs      the approved PixelLab frames into the asset pip as walk_0-7, run_0-7, idle_0-3, jump_0-7, then the build
-tools/art.py         cuts ref/pip.png into ref/frames/ and writes ref.json and README.md
+tools/art.py         cuts ref/pip.png into ref/frames/ and writes ref.json and README.md (it also lists the Bubbling Moon sheets)
+tools/sheets.mjs     the Bubbling Moon's art sheets: the prompts (the game's look, the chapter's world, a row plan), the owner's pictures as style references, one image-API call each;
+                     NODE_USE_ENV_PROXY=1 node games/spacewhiskers/tools/sheets.mjs [terrain milk station bg_outdoor_1 bg_outdoor_2 bg_station fg_outdoor fg_station] [--quality high --model gpt-image-2.6-flare] [--dry]
 tools/frames.mjs     brings the cut drawings onto the game grid: one pixel size, one palette, registered, into art/assets/pip
 ```
+
+## The Bubbling Moon (chapter 9): design and art
+
+`story/BUBBLING_MOON.md` is the level design proposal: what the review notes decided, a hook (the moon has hiccups: one beat drives bubbles, curd, pipes and lights), the route in five
+zones, ten puzzles to pick from (shiny means thin, bounce on the beat, a pit of bubbles, which hole, the curd ferry, valves in order, the pipe slide, the box with Miss Clou in it, four torn
+map pieces, curing the hiccup), the scrapbook photos, the open questions, and the art plan (which sheet holds what, how the layers scroll). The sheets are in `ref/bubblingmoon_*.png`
+(8 pictures, 3840 x 2160, one art pixel = 4 x 4 picture pixels, so a screen is 1920 x 1080 and Pip 196 tall), flat magenta ground, labels under the items; none is cut or snapped yet.
 
 ## Commands
 
