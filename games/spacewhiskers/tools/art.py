@@ -33,6 +33,9 @@ SHEETS = [
          source='the owner (an image model)', use='props for the levels, on a green ground (not cut yet)'),
     dict(file='StarWhiskers-theholycow_cover.png', title='Cover: Pip, the cat, the Holy Cow and MEGA-MJAU\'s fortress (title art still reads "Star Whiskers")',
          source='the owner (an image model)', use='the cover and title screen; the look of the cast'),
+    dict(file='misscloue_referencesheet.png', title='Miss Clou: the character reference sheet (front, side, back, helmet, life support, action poses, faces, palette)',
+         source='the owner (an image model)', use='her design for the Bubbling Moon (the box, the booster hover); the second take of tools/sheets2.mjs\'s missclou sheet draws her from it',
+         note='Labels are in Danish and English (HJELM = helmet, RYGSAEK = backpack, ANSIGTSUDTRYK = facial expressions, FARVEPALETTE = colour palette, DETALJER = details).'),
     # ---- the Bubbling Moon (chapter 9): made through the image API by tools/sheets.mjs, one big picture each, to be cut up later ----
     # (the prompts and what the API answered are in ref/prompts/; the level design that asks for them is story/BUBBLING_MOON.md)
     dict(file='bubblingmoon_terrain.png', title='Bubbling Moon props 1: ground and platforms (glossy, thin and matte crust, floating chunks, Swiss ledges), craters and holes, rocks, plants, decals',
@@ -60,6 +63,21 @@ SHEETS = [
          source='Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets.mjs)', use='the front pass inside the pumping station: close pipes, cables, machine edges, beams, railings, steam (not cut yet)',
          note='5 rows, all 31 pieces, cut into 31 sprites (tools/cut_sheets.py). The steam, the dust beam and the milk haze are pink-tinted and partly eaten by the magenta key: they need a redraw.'),
 ]
+
+# ---- the Bubbling Moon, round 2 (tools/sheets2.mjs): the sheets are found in ref/, their titles are in ref/prompts/ ----
+ROUND2_NOTES = {
+    'bubblingmoon2_slide_take1.png': 'The first take of the pipe slide: its tubes came out about 52 art pixels clear inside, the flow strips 39 and the shaft 37 wide, too small for Pip. Kept as drawn; only slide (the second take) and slide2 are cut.',
+    'bubblingmoon2_slide.png': 'The second take of the slide pieces: straight, end-left, end-right, tee-up, tee-down (clear inside about 52 art pixels), the pipeline leg and the giant bubble. Its shaft, corners and flow frames are cut as pipeslide_take1 (too small); slide2 has the good ones.',
+    'bubblingmoon2_slide2.png': 'The shaft, the two corners and the four flow frames redrawn to the straight piece\'s size (clear inside 53-56 art pixels): about 1.2 times the size of the straight piece of slide.',
+    'bubblingmoon2_characters.png': 'The cats, Pip crawling and the rocket. Its first Miss Clou (row 1 and the box, cut as missclou_old) came out as a mouse in a cat suit because Pip\'s picture was one of the references: kept, not used. missclou.png redraws her without it.',
+    'bubblingmoon2_missclou_take1.png': 'Miss Clou, first take, from a description of her sheet (before it was in the repository): kept as drawn, not cut.',
+    'bubblingmoon2_missclou.png': 'Miss Clou without Pip among the references: pointed ears, white and orange suit, cyan chest gauge, ion boosters, no cape (a text description of the owner\'s character sheet: the sheet itself was not in the repository).',
+    'bubblingmoon2_anim_a.png': 'Animation frames: the bubble swell (7 of the 8 steps: step 5 was not drawn), crumb bubbles, glows, fan, gust, curd, crust, rising bubble. The large glow has two tiny white ticks under it.',
+}
+for _f in sorted(REF.glob('bubblingmoon2_*.png')):
+    _meta = REF / 'prompts' / (_f.stem + '.json'); _title = json.loads(_meta.read_text())['title'] if _meta.exists() else _f.stem
+    SHEETS.append(dict(file=_f.name, title=_title, source='Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets2.mjs)',
+                       use='what the owner\'s second list of art still needed asks for (the Godot level)', note=ROUND2_NOTES.get(_f.name, '')))
 
 # the drawings of pip.png: name, what it is for, and where it is (a box that holds exactly one piece, or for the wall slide the
 # box it is cut by); the order is the animations' order
@@ -141,6 +159,8 @@ def main():
     frames = {'pip.png': cut_pip()}
     moon = REF / 'frames_moon.json'   # the Bubbling Moon's sprites, cut by tools/cut_sheets.py (slow: it is not run again here)
     if moon.exists(): frames.update(json.loads(moon.read_text()))
+    moon2 = REF / 'frames_moon2.json'   # round 2, the same way
+    if moon2.exists(): frames.update(json.loads(moon2.read_text()))
     ref = dict(title='Space Whiskers: The Holy Cow', made_by='games/spacewhiskers/tools/art.py', sheets=[])
     md = ['# Space Whiskers: reference art', '',
           'The owner\'s sheets, untouched, and every drawing cut from them at its original pixels (`frames/`). Made by `tools/art.py`, which also',

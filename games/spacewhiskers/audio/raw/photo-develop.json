@@ -1,0 +1,26 @@
+{
+  "id": "photo-develop",
+  "sound": "photo-develop",
+  "group": "sfx",
+  "use": "the photo appears in the book",
+  "loop": false,
+  "bpm": null,
+  "seconds": 3,
+  "model": "stability-ai/stable-audio-2.5",
+  "version": "hidden",
+  "input": {
+    "prompt": "a photograph slowly developing, a soft whirr and a gentle shimmer, magical and quiet, an isolated sound effect, clean and dry, no music, no voice, no background noise",
+    "duration": 3,
+    "steps": 8,
+    "cfg_scale": 1
+  },
+  "metrics": {
+    "audio_output_count": 1,
+    "audio_output_duration_seconds": 3,
+    "model_variant": "stable-audio-2.5",
+    "predict_time": 1.861645813,
+    "total_time": 1.872086215
+  },
+  "predictionId": "wnmzc5hyxhrmr0d1xqmvjn2jp4",
+  "date": "2026-11-18T09:07:31.006Z"
+}

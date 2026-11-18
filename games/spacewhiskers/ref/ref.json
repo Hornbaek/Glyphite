@@ -272,6 +272,18 @@
    "use": "the cover and title screen; the look of the cast"
   },
   {
+   "file": "misscloue_referencesheet.png",
+   "title": "Miss Clou: the character reference sheet (front, side, back, helmet, life support, action poses, faces, palette)",
+   "source": "the owner (an image model)",
+   "size": [
+    1088,
+    608
+   ],
+   "frames": [],
+   "use": "her design for the Bubbling Moon (the box, the booster hover); the second take of tools/sheets2.mjs's missclou sheet draws her from it",
+   "note": "Labels are in Danish and English (HJELM = helmet, RYGSAEK = backpack, ANSIGTSUDTRYK = facial expressions, FARVEPALETTE = colour palette, DETALJER = details)."
+  },
+  {
    "file": "bubblingmoon_terrain.png",
    "title": "Bubbling Moon props 1: ground and platforms (glossy, thin and matte crust, floating chunks, Swiss ledges), craters and holes, rocks, plants, decals",
    "source": "Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets.mjs)",
@@ -5027,6 +5039,3212 @@
    ],
    "use": "the front pass inside the pumping station: close pipes, cables, machine edges, beams, railings, steam (not cut yet)",
    "note": "5 rows, all 31 pieces, cut into 31 sprites (tools/cut_sheets.py). The steam, the dust beam and the milk haze are pink-tinted and partly eaten by the magenta key: they need a redraw."
+  },
+  {
+   "file": "bubblingmoon2_anim_a.png",
+   "title": "Bubbling Moon round 2, animation frames A: bubbles, glow, the fan, the curd, the thin crust, the new bubble",
+   "source": "Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets2.mjs)",
+   "size": [
+    3840,
+    2160
+   ],
+   "frames": [
+    {
+     "file": "frames/bubblingmoon2_anim_bubble-swell-1.png",
+     "name": "anim bubble-swell-1",
+     "box": [
+      101,
+      159,
+      405,
+      235
+     ],
+     "size": [
+      304,
+      76
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_bubble-swell-2.png",
+     "name": "anim bubble-swell-2",
+     "box": [
+      573,
+      126,
+      873,
+      235
+     ],
+     "size": [
+      300,
+      109
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_bubble-swell-3.png",
+     "name": "anim bubble-swell-3",
+     "box": [
+      1044,
+      101,
+      1347,
+      234
+     ],
+     "size": [
+      303,
+      133
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_bubble-swell-4.png",
+     "name": "anim bubble-swell-4",
+     "box": [
+      1529,
+      71,
+      1833,
+      234
+     ],
+     "size": [
+      304,
+      163
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_bubble-swell-5.png",
+     "name": "anim bubble-swell-5",
+     "box": [
+      2013,
+      48,
+      2324,
+      234
+     ],
+     "size": [
+      311,
+      186
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_bubble-swell-6.png",
+     "name": "anim bubble-swell-6",
+     "box": [
+      2513,
+      40,
+      2833,
+      236
+     ],
+     "size": [
+      320,
+      196
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_bubble-swell-7.png",
+     "name": "anim bubble-swell-7",
+     "box": [
+      2998,
+      24,
+      3339,
+      236
+     ],
+     "size": [
+      341,
+      212
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_bubble-crumb-1.png",
+     "name": "anim bubble-crumb-1",
+     "box": [
+      114,
+      398,
+      385,
+      554
+     ],
+     "size": [
+      271,
+      156
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_bubble-crumb-2.png",
+     "name": "anim bubble-crumb-2",
+     "box": [
+      594,
+      372,
+      869,
+      554
+     ],
+     "size": [
+      275,
+      182
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_bubble-crumb-3.png",
+     "name": "anim bubble-crumb-3",
+     "box": [
+      1078,
+      335,
+      1354,
+      554
+     ],
+     "size": [
+      276,
+      219
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_bubble-crumb-pop.png",
+     "name": "anim bubble-crumb-pop",
+     "box": [
+      1567,
+      352,
+      1848,
+      565
+     ],
+     "size": [
+      281,
+      213
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_bubble-glow-s.png",
+     "name": "anim bubble-glow-s",
+     "box": [
+      184,
+      690,
+      347,
+      847
+     ],
+     "size": [
+      163,
+      157
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_bubble-glow-m.png",
+     "name": "anim bubble-glow-m",
+     "box": [
+      639,
+      659,
+      854,
+      864
+     ],
+     "size": [
+      215,
+      205
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_bubble-glow-l.png",
+     "name": "anim bubble-glow-l",
+     "box": [
+      1092,
+      632,
+      1361,
+      905
+     ],
+     "size": [
+      269,
+      273
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_fan-spin-1.png",
+     "name": "anim fan-spin-1",
+     "box": [
+      140,
+      951,
+      404,
+      1199
+     ],
+     "size": [
+      264,
+      248
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 4: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_fan-spin-2.png",
+     "name": "anim fan-spin-2",
+     "box": [
+      639,
+      951,
+      903,
+      1199
+     ],
+     "size": [
+      264,
+      248
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 4: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_fan-spin-3.png",
+     "name": "anim fan-spin-3",
+     "box": [
+      1128,
+      951,
+      1392,
+      1199
+     ],
+     "size": [
+      264,
+      248
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 4: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_fan-spin-4.png",
+     "name": "anim fan-spin-4",
+     "box": [
+      1610,
+      951,
+      1873,
+      1199
+     ],
+     "size": [
+      263,
+      248
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 4: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_gust-1.png",
+     "name": "anim gust-1",
+     "box": [
+      2127,
+      988,
+      2454,
+      1181
+     ],
+     "size": [
+      327,
+      193
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 4: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_gust-2.png",
+     "name": "anim gust-2",
+     "box": [
+      2544,
+      979,
+      3032,
+      1180
+     ],
+     "size": [
+      488,
+      201
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 4: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_gust-3.png",
+     "name": "anim gust-3",
+     "box": [
+      3116,
+      1000,
+      3539,
+      1180
+     ],
+     "size": [
+      423,
+      180
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 4: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_curd-landed-1.png",
+     "name": "anim curd-landed-1",
+     "box": [
+      77,
+      1356,
+      497,
+      1496
+     ],
+     "size": [
+      420,
+      140
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 5: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_curd-landed-2.png",
+     "name": "anim curd-landed-2",
+     "box": [
+      640,
+      1297,
+      1023,
+      1496
+     ],
+     "size": [
+      383,
+      199
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 5: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_curd-landed-3.png",
+     "name": "anim curd-landed-3",
+     "box": [
+      1199,
+      1335,
+      1563,
+      1496
+     ],
+     "size": [
+      364,
+      161
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 5: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_curd-wheel-1.png",
+     "name": "anim curd-wheel-1",
+     "box": [
+      1715,
+      1281,
+      2071,
+      1496
+     ],
+     "size": [
+      356,
+      215
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 5: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_curd-wheel-2.png",
+     "name": "anim curd-wheel-2",
+     "box": [
+      2312,
+      1257,
+      2652,
+      1496
+     ],
+     "size": [
+      340,
+      239
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 5: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_crust-crack-1.png",
+     "name": "anim crust-crack-1",
+     "box": [
+      46,
+      1641,
+      607,
+      1727
+     ],
+     "size": [
+      561,
+      86
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 6: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_crust-crack-2.png",
+     "name": "anim crust-crack-2",
+     "box": [
+      710,
+      1641,
+      1282,
+      1727
+     ],
+     "size": [
+      572,
+      86
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 6: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_crust-crack-3.png",
+     "name": "anim crust-crack-3",
+     "box": [
+      1355,
+      1634,
+      1975,
+      1729
+     ],
+     "size": [
+      620,
+      95
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 6: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_crust-crack-4.png",
+     "name": "anim crust-crack-4",
+     "box": [
+      2040,
+      1629,
+      2654,
+      1727
+     ],
+     "size": [
+      614,
+      98
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 6: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_crust-fall-1.png",
+     "name": "anim crust-fall-1",
+     "box": [
+      2866,
+      1607,
+      3119,
+      1727
+     ],
+     "size": [
+      253,
+      120
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 6: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_crust-fall-2.png",
+     "name": "anim crust-fall-2",
+     "box": [
+      3373,
+      1591,
+      3592,
+      1728
+     ],
+     "size": [
+      219,
+      137
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 6: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_bubble-rise-1.png",
+     "name": "anim bubble-rise-1",
+     "box": [
+      80,
+      1967,
+      424,
+      2025
+     ],
+     "size": [
+      344,
+      58
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 7: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_bubble-rise-2.png",
+     "name": "anim bubble-rise-2",
+     "box": [
+      590,
+      1939,
+      936,
+      2025
+     ],
+     "size": [
+      346,
+      86
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 7: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_bubble-rise-3.png",
+     "name": "anim bubble-rise-3",
+     "box": [
+      1117,
+      1894,
+      1464,
+      2025
+     ],
+     "size": [
+      347,
+      131
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 7: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_bubble-rise-4.png",
+     "name": "anim bubble-rise-4",
+     "box": [
+      1651,
+      1852,
+      2003,
+      2025
+     ],
+     "size": [
+      352,
+      173
+     ],
+     "use": "Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust), row 7: not in a game yet",
+     "used": false
+    }
+   ],
+   "use": "what the owner's second list of art still needed asks for (the Godot level)",
+   "note": "Animation frames: the bubble swell (7 of the 8 steps: step 5 was not drawn), crumb bubbles, glows, fan, gust, curd, crust, rising bubble. The large glow has two tiny white ticks under it."
+  },
+  {
+   "file": "bubblingmoon2_anim_b.png",
+   "title": "Bubbling Moon round 2, animation frames B: valves, the geyser, the pump (hiccup, sigh), the housing coming loose",
+   "source": "Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets2.mjs)",
+   "size": [
+    3840,
+    2160
+   ],
+   "frames": [
+    {
+     "file": "frames/bubblingmoon2_anim_wheel-red-lit.png",
+     "name": "anim wheel-red-lit",
+     "box": [
+      82,
+      39,
+      340,
+      229
+     ],
+     "size": [
+      258,
+      190
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_wheel-blue-lit.png",
+     "name": "anim wheel-blue-lit",
+     "box": [
+      487,
+      39,
+      754,
+      229
+     ],
+     "size": [
+      267,
+      190
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_wheel-yellow-lit.png",
+     "name": "anim wheel-yellow-lit",
+     "box": [
+      896,
+      39,
+      1159,
+      229
+     ],
+     "size": [
+      263,
+      190
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_wheel-red-turn-1.png",
+     "name": "anim wheel-red-turn-1",
+     "box": [
+      79,
+      327,
+      341,
+      532
+     ],
+     "size": [
+      262,
+      205
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_wheel-red-turn-2.png",
+     "name": "anim wheel-red-turn-2",
+     "box": [
+      486,
+      327,
+      756,
+      532
+     ],
+     "size": [
+      270,
+      205
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_wheel-red-turn-3.png",
+     "name": "anim wheel-red-turn-3",
+     "box": [
+      893,
+      326,
+      1161,
+      532
+     ],
+     "size": [
+      268,
+      206
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_wheel-blue-turn-1.png",
+     "name": "anim wheel-blue-turn-1",
+     "box": [
+      1303,
+      326,
+      1576,
+      532
+     ],
+     "size": [
+      273,
+      206
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_wheel-blue-turn-2.png",
+     "name": "anim wheel-blue-turn-2",
+     "box": [
+      1780,
+      327,
+      2062,
+      532
+     ],
+     "size": [
+      282,
+      205
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_wheel-blue-turn-3.png",
+     "name": "anim wheel-blue-turn-3",
+     "box": [
+      2202,
+      327,
+      2478,
+      532
+     ],
+     "size": [
+      276,
+      205
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_wheel-yellow-turn-1.png",
+     "name": "anim wheel-yellow-turn-1",
+     "box": [
+      2642,
+      326,
+      2923,
+      532
+     ],
+     "size": [
+      281,
+      206
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_wheel-yellow-turn-2.png",
+     "name": "anim wheel-yellow-turn-2",
+     "box": [
+      3062,
+      326,
+      3341,
+      532
+     ],
+     "size": [
+      279,
+      206
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_wheel-yellow-turn-3.png",
+     "name": "anim wheel-yellow-turn-3",
+     "box": [
+      3481,
+      327,
+      3765,
+      532
+     ],
+     "size": [
+      284,
+      205
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_geyser-1.png",
+     "name": "anim geyser-1",
+     "box": [
+      168,
+      745,
+      323,
+      947
+     ],
+     "size": [
+      155,
+      202
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_geyser-2.png",
+     "name": "anim geyser-2",
+     "box": [
+      552,
+      655,
+      715,
+      947
+     ],
+     "size": [
+      163,
+      292
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_geyser-3.png",
+     "name": "anim geyser-3",
+     "box": [
+      924,
+      621,
+      1143,
+      947
+     ],
+     "size": [
+      219,
+      326
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_geyser-4.png",
+     "name": "anim geyser-4",
+     "box": [
+      1298,
+      654,
+      1564,
+      947
+     ],
+     "size": [
+      266,
+      293
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_geyser-5.png",
+     "name": "anim geyser-5",
+     "box": [
+      1730,
+      678,
+      1899,
+      947
+     ],
+     "size": [
+      169,
+      269
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_drain-wheel-1.png",
+     "name": "anim drain-wheel-1",
+     "box": [
+      2299,
+      690,
+      2599,
+      954
+     ],
+     "size": [
+      300,
+      264
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_drain-wheel-2.png",
+     "name": "anim drain-wheel-2",
+     "box": [
+      2844,
+      690,
+      3145,
+      954
+     ],
+     "size": [
+      301,
+      264
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_drain-wheel-3.png",
+     "name": "anim drain-wheel-3",
+     "box": [
+      3390,
+      690,
+      3678,
+      954
+     ],
+     "size": [
+      288,
+      264
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_pump-hiccup-1.png",
+     "name": "anim pump-hiccup-1",
+     "box": [
+      66,
+      1049,
+      910,
+      1349
+     ],
+     "size": [
+      844,
+      300
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 4: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_pump-hiccup-2.png",
+     "name": "anim pump-hiccup-2",
+     "box": [
+      1001,
+      1043,
+      1764,
+      1349
+     ],
+     "size": [
+      763,
+      306
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 4: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_pump-hiccup-3.png",
+     "name": "anim pump-hiccup-3",
+     "box": [
+      1877,
+      1060,
+      2686,
+      1356
+     ],
+     "size": [
+      809,
+      296
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 4: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_pump-off.png",
+     "name": "anim pump-off",
+     "box": [
+      2843,
+      1059,
+      3622,
+      1343
+     ],
+     "size": [
+      779,
+      284
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 4: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_pump-sigh-1.png",
+     "name": "anim pump-sigh-1",
+     "box": [
+      180,
+      1465,
+      415,
+      1654
+     ],
+     "size": [
+      235,
+      189
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 5: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_pump-sigh-2.png",
+     "name": "anim pump-sigh-2",
+     "box": [
+      768,
+      1421,
+      1278,
+      1654
+     ],
+     "size": [
+      510,
+      233
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 5: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_pump-sigh-3.png",
+     "name": "anim pump-sigh-3",
+     "box": [
+      1524,
+      1416,
+      2100,
+      1654
+     ],
+     "size": [
+      576,
+      238
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 5: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_pump-sigh-4.png",
+     "name": "anim pump-sigh-4",
+     "box": [
+      2368,
+      1440,
+      2821,
+      1654
+     ],
+     "size": [
+      453,
+      214
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 5: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_pump-sigh-5.png",
+     "name": "anim pump-sigh-5",
+     "box": [
+      3165,
+      1451,
+      3510,
+      1654
+     ],
+     "size": [
+      345,
+      203
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 5: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_housing-loose-1.png",
+     "name": "anim housing-loose-1",
+     "box": [
+      120,
+      1749,
+      469,
+      2046
+     ],
+     "size": [
+      349,
+      297
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 6: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_housing-loose-2.png",
+     "name": "anim housing-loose-2",
+     "box": [
+      731,
+      1760,
+      1112,
+      2039
+     ],
+     "size": [
+      381,
+      279
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 6: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_anim_housing-loose-3.png",
+     "name": "anim housing-loose-3",
+     "box": [
+      1355,
+      1752,
+      1749,
+      2051
+     ],
+     "size": [
+      394,
+      299
+     ],
+     "use": "Bubbling Moon round 2, animation frames B (valves, geyser, the pump), row 6: not in a game yet",
+     "used": false
+    }
+   ],
+   "use": "what the owner's second list of art still needed asks for (the Godot level)"
+  },
+  {
+   "file": "bubblingmoon2_bg_outdoor.png",
+   "title": "Bubbling Moon round 2 backgrounds, outdoors: the middle plain with the LARGE pumping station (top), the near pipeline legs (bottom)",
+   "source": "Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets2.mjs)",
+   "size": [
+    3840,
+    2160
+   ],
+   "frames": [],
+   "use": "what the owner's second list of art still needed asks for (the Godot level)"
+  },
+  {
+   "file": "bubblingmoon2_bg_station_a.png",
+   "title": "Bubbling Moon round 2 backgrounds, inside: the arrival hall wall (top), the tank room wall (bottom)",
+   "source": "Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets2.mjs)",
+   "size": [
+    3840,
+    2160
+   ],
+   "frames": [],
+   "use": "what the owner's second list of art still needed asks for (the Godot level)"
+  },
+  {
+   "file": "bubblingmoon2_bg_station_b.png",
+   "title": "Bubbling Moon round 2 backgrounds, inside: the scaffold hall wall (top), a second deep hall layer (bottom)",
+   "source": "Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets2.mjs)",
+   "size": [
+    3840,
+    2160
+   ],
+   "frames": [],
+   "use": "what the owner's second list of art still needed asks for (the Godot level)"
+  },
+  {
+   "file": "bubblingmoon2_characters.png",
+   "title": "Bubbling Moon round 2: Miss Clou, the helmeted cat and its trolley, Pip crawling, Pip's rocket",
+   "source": "Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets2.mjs)",
+   "size": [
+    3840,
+    2160
+   ],
+   "frames": [
+    {
+     "file": "frames/bubblingmoon2_missclou_old_stand.png",
+     "name": "missclou_old stand",
+     "box": [
+      334,
+      64,
+      696,
+      487
+     ],
+     "size": [
+      362,
+      423
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_missclou_old_cool.png",
+     "name": "missclou_old cool",
+     "box": [
+      1064,
+      64,
+      1411,
+      487
+     ],
+     "size": [
+      347,
+      423
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_missclou_old_startled.png",
+     "name": "missclou_old startled",
+     "box": [
+      1721,
+      72,
+      2182,
+      487
+     ],
+     "size": [
+      461,
+      415
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_missclou_old_hover-1.png",
+     "name": "missclou_old hover-1",
+     "box": [
+      2496,
+      25,
+      2755,
+      462
+     ],
+     "size": [
+      259,
+      437
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_missclou_old_hover-2.png",
+     "name": "missclou_old hover-2",
+     "box": [
+      3207,
+      25,
+      3472,
+      465
+     ],
+     "size": [
+      265,
+      440
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_missclou_old_box-open-cat.png",
+     "name": "missclou_old box-open-cat",
+     "box": [
+      73,
+      634,
+      600,
+      975
+     ],
+     "size": [
+      527,
+      341
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_missclou_old_box-closed-cat.png",
+     "name": "missclou_old box-closed-cat",
+     "box": [
+      733,
+      656,
+      1186,
+      964
+     ],
+     "size": [
+      453,
+      308
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_cat_trolley.png",
+     "name": "cat trolley",
+     "box": [
+      1339,
+      677,
+      1777,
+      970
+     ],
+     "size": [
+      438,
+      293
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_cat_helmet-asleep-1.png",
+     "name": "cat helmet-asleep-1",
+     "box": [
+      1888,
+      638,
+      2347,
+      970
+     ],
+     "size": [
+      459,
+      332
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_cat_helmet-asleep-2.png",
+     "name": "cat helmet-asleep-2",
+     "box": [
+      2457,
+      639,
+      2926,
+      970
+     ],
+     "size": [
+      469,
+      331
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_cat_helmet.png",
+     "name": "cat helmet",
+     "box": [
+      3048,
+      741,
+      3364,
+      963
+     ],
+     "size": [
+      316,
+      222
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_cat_freed.png",
+     "name": "cat freed",
+     "box": [
+      3483,
+      611,
+      3770,
+      975
+     ],
+     "size": [
+      287,
+      364
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pip_crawl-1.png",
+     "name": "pip crawl-1",
+     "box": [
+      120,
+      1150,
+      531,
+      1453
+     ],
+     "size": [
+      411,
+      303
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pip_crawl-2.png",
+     "name": "pip crawl-2",
+     "box": [
+      733,
+      1150,
+      1145,
+      1453
+     ],
+     "size": [
+      412,
+      303
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pip_crawl-3.png",
+     "name": "pip crawl-3",
+     "box": [
+      1327,
+      1154,
+      1771,
+      1455
+     ],
+     "size": [
+      444,
+      301
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pip_crawl-4.png",
+     "name": "pip crawl-4",
+     "box": [
+      1942,
+      1154,
+      2374,
+      1453
+     ],
+     "size": [
+      432,
+      299
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pip_pop-out-1.png",
+     "name": "pip pop-out-1",
+     "box": [
+      2566,
+      1072,
+      3134,
+      1469
+     ],
+     "size": [
+      568,
+      397
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pip_pop-out-2.png",
+     "name": "pip pop-out-2",
+     "box": [
+      3326,
+      1150,
+      3730,
+      1456
+     ],
+     "size": [
+      404,
+      306
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_ending_rocket.png",
+     "name": "ending rocket",
+     "box": [
+      94,
+      1641,
+      790,
+      1949
+     ],
+     "size": [
+      696,
+      308
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 4: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_ending_rocket-tank.png",
+     "name": "ending rocket-tank",
+     "box": [
+      883,
+      1642,
+      1553,
+      1947
+     ],
+     "size": [
+      670,
+      305
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 4: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_ending_bolt-1.png",
+     "name": "ending bolt-1",
+     "box": [
+      1657,
+      1642,
+      2306,
+      1966
+     ],
+     "size": [
+      649,
+      324
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 4: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_ending_bolt-2.png",
+     "name": "ending bolt-2",
+     "box": [
+      2396,
+      1641,
+      3051,
+      1962
+     ],
+     "size": [
+      655,
+      321
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 4: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_ending_bolt-3.png",
+     "name": "ending bolt-3",
+     "box": [
+      3146,
+      1641,
+      3803,
+      1963
+     ],
+     "size": [
+      657,
+      322
+     ],
+     "use": "Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old), row 4: not in a game yet",
+     "used": false
+    }
+   ],
+   "use": "what the owner's second list of art still needed asks for (the Godot level)",
+   "note": "The cats, Pip crawling and the rocket. Its first Miss Clou (row 1 and the box, cut as missclou_old) came out as a mouse in a cat suit because Pip's picture was one of the references: kept, not used. missclou.png redraws her without it."
+  },
+  {
+   "file": "bubblingmoon2_fixes.png",
+   "title": "Bubbling Moon round 2, fixes: the known gaps, the pink or damaged items redrawn, white curds",
+   "source": "Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets2.mjs)",
+   "size": [
+    3840,
+    2160
+   ],
+   "frames": [
+    {
+     "file": "frames/bubblingmoon2_terrain_crater-cap-l.png",
+     "name": "terrain crater-cap-l",
+     "box": [
+      68,
+      64,
+      639,
+      238
+     ],
+     "size": [
+      571,
+      174
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_terrain_crater-cap-r.png",
+     "name": "terrain crater-cap-r",
+     "box": [
+      757,
+      63,
+      1326,
+      238
+     ],
+     "size": [
+      569,
+      175
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_station_map-piece-2.png",
+     "name": "station map-piece-2",
+     "box": [
+      118,
+      344,
+      650,
+      639
+     ],
+     "size": [
+      532,
+      295
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_station_pump-housing.png",
+     "name": "station pump-housing",
+     "box": [
+      869,
+      314,
+      1172,
+      640
+     ],
+     "size": [
+      303,
+      326
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_station_pump-housing-loose.png",
+     "name": "station pump-housing-loose",
+     "box": [
+      1486,
+      280,
+      1942,
+      640
+     ],
+     "size": [
+      456,
+      360
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_station_hiccup-lamp-off.png",
+     "name": "station hiccup-lamp-off",
+     "box": [
+      2114,
+      344,
+      2378,
+      640
+     ],
+     "size": [
+      264,
+      296
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_station_ladder.png",
+     "name": "station ladder",
+     "box": [
+      2682,
+      276,
+      2879,
+      640
+     ],
+     "size": [
+      197,
+      364
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_station_main-ladder.png",
+     "name": "station main-ladder",
+     "box": [
+      3300,
+      276,
+      3526,
+      640
+     ],
+     "size": [
+      226,
+      364
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_milk_short-ladder.png",
+     "name": "milk short-ladder",
+     "box": [
+      194,
+      746,
+      415,
+      981
+     ],
+     "size": [
+      221,
+      235
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_milk_rope-fence.png",
+     "name": "milk rope-fence",
+     "box": [
+      652,
+      768,
+      1250,
+      973
+     ],
+     "size": [
+      598,
+      205
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_terrain_paws-a.png",
+     "name": "terrain paws-a",
+     "box": [
+      144,
+      1093,
+      478,
+      1235
+     ],
+     "size": [
+      334,
+      142
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 4: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_terrain_paws-b.png",
+     "name": "terrain paws-b",
+     "box": [
+      801,
+      1093,
+      1149,
+      1235
+     ],
+     "size": [
+      348,
+      142
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 4: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_terrain_paws-c.png",
+     "name": "terrain paws-c",
+     "box": [
+      1497,
+      1094,
+      1720,
+      1235
+     ],
+     "size": [
+      223,
+      141
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 4: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_fg_outdoor_mist-a.png",
+     "name": "fg_outdoor mist-a",
+     "box": [
+      83,
+      1328,
+      870,
+      1436
+     ],
+     "size": [
+      787,
+      108
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 5: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_fg_outdoor_mist-b.png",
+     "name": "fg_outdoor mist-b",
+     "box": [
+      1069,
+      1344,
+      1616,
+      1436
+     ],
+     "size": [
+      547,
+      92
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 5: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_fg_outdoor_milk-fog.png",
+     "name": "fg_outdoor milk-fog",
+     "box": [
+      1830,
+      1282,
+      2413,
+      1437
+     ],
+     "size": [
+      583,
+      155
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 5: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_fg_outdoor_dust-drift.png",
+     "name": "fg_outdoor dust-drift",
+     "box": [
+      2604,
+      1291,
+      3363,
+      1436
+     ],
+     "size": [
+      759,
+      145
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 5: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_fg_station_steam-a.png",
+     "name": "fg_station steam-a",
+     "box": [
+      107,
+      1544,
+      643,
+      1701
+     ],
+     "size": [
+      536,
+      157
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 6: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_fg_station_steam-b.png",
+     "name": "fg_station steam-b",
+     "box": [
+      905,
+      1501,
+      1221,
+      1701
+     ],
+     "size": [
+      316,
+      200
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 6: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_fg_station_dust-beam.png",
+     "name": "fg_station dust-beam",
+     "box": [
+      1636,
+      1518,
+      1989,
+      1701
+     ],
+     "size": [
+      353,
+      183
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 6: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_fg_station_milk-haze.png",
+     "name": "fg_station milk-haze",
+     "box": [
+      2245,
+      1558,
+      3152,
+      1701
+     ],
+     "size": [
+      907,
+      143
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 6: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_milk_curd-white.png",
+     "name": "milk curd-white",
+     "box": [
+      89,
+      1793,
+      432,
+      2021
+     ],
+     "size": [
+      343,
+      228
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 7: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_milk_curd-squash-white.png",
+     "name": "milk curd-squash-white",
+     "box": [
+      581,
+      1848,
+      943,
+      2018
+     ],
+     "size": [
+      362,
+      170
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 7: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_milk_curd-stretch-white.png",
+     "name": "milk curd-stretch-white",
+     "box": [
+      1150,
+      1766,
+      1406,
+      2021
+     ],
+     "size": [
+      256,
+      255
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 7: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_milk_curd-tilt-l-white.png",
+     "name": "milk curd-tilt-l-white",
+     "box": [
+      1621,
+      1817,
+      1905,
+      2018
+     ],
+     "size": [
+      284,
+      201
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 7: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_milk_curd-tilt-r-white.png",
+     "name": "milk curd-tilt-r-white",
+     "box": [
+      2102,
+      1809,
+      2387,
+      2018
+     ],
+     "size": [
+      285,
+      209
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 7: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_milk_curd-sail-white.png",
+     "name": "milk curd-sail-white",
+     "box": [
+      2594,
+      1737,
+      2879,
+      2018
+     ],
+     "size": [
+      285,
+      281
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 7: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_milk_curd-small-white.png",
+     "name": "milk curd-small-white",
+     "box": [
+      3105,
+      1885,
+      3295,
+      2017
+     ],
+     "size": [
+      190,
+      132
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 7: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_milk_curd-chunk-white.png",
+     "name": "milk curd-chunk-white",
+     "box": [
+      3536,
+      1885,
+      3730,
+      2017
+     ],
+     "size": [
+      194,
+      132
+     ],
+     "use": "Bubbling Moon round 2, fixes (the gaps, the redraws, white curds), row 7: not in a game yet",
+     "used": false
+    }
+   ],
+   "use": "what the owner's second list of art still needed asks for (the Godot level)"
+  },
+  {
+   "file": "bubblingmoon2_ground.png",
+   "title": "Bubbling Moon round 2: the ground: end caps, pit walls, underground fills, the milk pool",
+   "source": "Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets2.mjs)",
+   "size": [
+    3840,
+    2160
+   ],
+   "frames": [
+    {
+     "file": "frames/bubblingmoon2_ground_cap-left.png",
+     "name": "ground cap-left",
+     "box": [
+      112,
+      171,
+      714,
+      609
+     ],
+     "size": [
+      602,
+      438
+     ],
+     "use": "Bubbling Moon round 2, the ground, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_ground_cap-right.png",
+     "name": "ground cap-right",
+     "box": [
+      873,
+      171,
+      1369,
+      609
+     ],
+     "size": [
+      496,
+      438
+     ],
+     "use": "Bubbling Moon round 2, the ground, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_ground_pit-wall-crust-l.png",
+     "name": "ground pit-wall-crust-l",
+     "box": [
+      1559,
+      102,
+      1804,
+      609
+     ],
+     "size": [
+      245,
+      507
+     ],
+     "use": "Bubbling Moon round 2, the ground, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_ground_pit-wall-crust-r.png",
+     "name": "ground pit-wall-crust-r",
+     "box": [
+      2031,
+      102,
+      2277,
+      609
+     ],
+     "size": [
+      246,
+      507
+     ],
+     "use": "Bubbling Moon round 2, the ground, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_ground_pit-wall-cheese-l.png",
+     "name": "ground pit-wall-cheese-l",
+     "box": [
+      2485,
+      115,
+      2820,
+      609
+     ],
+     "size": [
+      335,
+      494
+     ],
+     "use": "Bubbling Moon round 2, the ground, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_ground_pit-wall-cheese-r.png",
+     "name": "ground pit-wall-cheese-r",
+     "box": [
+      3401,
+      115,
+      3722,
+      609
+     ],
+     "size": [
+      321,
+      494
+     ],
+     "use": "Bubbling Moon round 2, the ground, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_ground_fill-a.png",
+     "name": "ground fill-a",
+     "box": [
+      91,
+      836,
+      900,
+      1385
+     ],
+     "size": [
+      809,
+      549
+     ],
+     "use": "Bubbling Moon round 2, the ground, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_ground_fill-b.png",
+     "name": "ground fill-b",
+     "box": [
+      1060,
+      836,
+      1861,
+      1385
+     ],
+     "size": [
+      801,
+      549
+     ],
+     "use": "Bubbling Moon round 2, the ground, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_ground_fill-c.png",
+     "name": "ground fill-c",
+     "box": [
+      2017,
+      836,
+      2832,
+      1385
+     ],
+     "size": [
+      815,
+      549
+     ],
+     "use": "Bubbling Moon round 2, the ground, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_ground_fill-d.png",
+     "name": "ground fill-d",
+     "box": [
+      2987,
+      836,
+      3751,
+      1385
+     ],
+     "size": [
+      764,
+      549
+     ],
+     "use": "Bubbling Moon round 2, the ground, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_ground_milk-pool-1.png",
+     "name": "ground milk-pool-1",
+     "box": [
+      133,
+      1624,
+      1256,
+      1799
+     ],
+     "size": [
+      1123,
+      175
+     ],
+     "use": "Bubbling Moon round 2, the ground, row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_ground_milk-pool-2.png",
+     "name": "ground milk-pool-2",
+     "box": [
+      1367,
+      1609,
+      2471,
+      1799
+     ],
+     "size": [
+      1104,
+      190
+     ],
+     "use": "Bubbling Moon round 2, the ground, row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_ground_milk-pool-3.png",
+     "name": "ground milk-pool-3",
+     "box": [
+      2582,
+      1624,
+      3708,
+      1799
+     ],
+     "size": [
+      1126,
+      175
+     ],
+     "use": "Bubbling Moon round 2, the ground, row 3: not in a game yet",
+     "used": false
+    }
+   ],
+   "use": "what the owner's second list of art still needed asks for (the Godot level)"
+  },
+  {
+   "file": "bubblingmoon2_hall.png",
+   "title": "Bubbling Moon round 2: the pump hall: floor, ceiling, partition, ladder, door frames, exterior wall, the big entrance",
+   "source": "Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets2.mjs)",
+   "size": [
+    3840,
+    2160
+   ],
+   "frames": [
+    {
+     "file": "frames/bubblingmoon2_hall_floor-tile.png",
+     "name": "hall floor-tile",
+     "box": [
+      104,
+      160,
+      736,
+      351
+     ],
+     "size": [
+      632,
+      191
+     ],
+     "use": "Bubbling Moon round 2, the pump hall, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_hall_floor-end-l.png",
+     "name": "hall floor-end-l",
+     "box": [
+      865,
+      159,
+      1471,
+      353
+     ],
+     "size": [
+      606,
+      194
+     ],
+     "use": "Bubbling Moon round 2, the pump hall, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_hall_floor-end-r.png",
+     "name": "hall floor-end-r",
+     "box": [
+      1618,
+      159,
+      2194,
+      353
+     ],
+     "size": [
+      576,
+      194
+     ],
+     "use": "Bubbling Moon round 2, the pump hall, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_hall_ceiling-girder.png",
+     "name": "hall ceiling-girder",
+     "box": [
+      2311,
+      136,
+      3024,
+      363
+     ],
+     "size": [
+      713,
+      227
+     ],
+     "use": "Bubbling Moon round 2, the pump hall, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_hall_ceiling-pipes.png",
+     "name": "hall ceiling-pipes",
+     "box": [
+      3127,
+      133,
+      3787,
+      349
+     ],
+     "size": [
+      660,
+      216
+     ],
+     "use": "Bubbling Moon round 2, the pump hall, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_hall_wall-partition.png",
+     "name": "hall wall-partition",
+     "box": [
+      167,
+      583,
+      671,
+      1124
+     ],
+     "size": [
+      504,
+      541
+     ],
+     "use": "Bubbling Moon round 2, the pump hall, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_hall_wall-partition-top.png",
+     "name": "hall wall-partition-top",
+     "box": [
+      938,
+      665,
+      1427,
+      1124
+     ],
+     "size": [
+      489,
+      459
+     ],
+     "use": "Bubbling Moon round 2, the pump hall, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_hall_ladder.png",
+     "name": "hall ladder",
+     "box": [
+      1769,
+      618,
+      2051,
+      1124
+     ],
+     "size": [
+      282,
+      506
+     ],
+     "use": "Bubbling Moon round 2, the pump hall, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_hall_door-frame.png",
+     "name": "hall door-frame",
+     "box": [
+      2323,
+      661,
+      2919,
+      1124
+     ],
+     "size": [
+      596,
+      463
+     ],
+     "use": "Bubbling Moon round 2, the pump hall, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_hall_door-frame-tall.png",
+     "name": "hall door-frame-tall",
+     "box": [
+      3146,
+      560,
+      3722,
+      1124
+     ],
+     "size": [
+      576,
+      564
+     ],
+     "use": "Bubbling Moon round 2, the pump hall, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_hall_exterior-wall.png",
+     "name": "hall exterior-wall",
+     "box": [
+      251,
+      1317,
+      1686,
+      1922
+     ],
+     "size": [
+      1435,
+      605
+     ],
+     "use": "Bubbling Moon round 2, the pump hall, row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_hall_entrance-big.png",
+     "name": "hall entrance-big",
+     "box": [
+      1946,
+      1321,
+      3044,
+      1922
+     ],
+     "size": [
+      1098,
+      601
+     ],
+     "use": "Bubbling Moon round 2, the pump hall, row 3: not in a game yet",
+     "used": false
+    }
+   ],
+   "use": "what the owner's second list of art still needed asks for (the Godot level)"
+  },
+  {
+   "file": "bubblingmoon2_missclou.png",
+   "title": "Bubbling Moon round 2: Miss Clou, drawn from her character design sheet",
+   "source": "Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets2.mjs)",
+   "size": [
+    3840,
+    2160
+   ],
+   "frames": [
+    {
+     "file": "frames/bubblingmoon2_missclou_stand.png",
+     "name": "missclou stand",
+     "box": [
+      101,
+      168,
+      738,
+      1143
+     ],
+     "size": [
+      637,
+      975
+     ],
+     "use": "Bubbling Moon round 2, Miss Clou, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_missclou_cool.png",
+     "name": "missclou cool",
+     "box": [
+      903,
+      167,
+      1490,
+      1143
+     ],
+     "size": [
+      587,
+      976
+     ],
+     "use": "Bubbling Moon round 2, Miss Clou, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_missclou_startled.png",
+     "name": "missclou startled",
+     "box": [
+      1599,
+      195,
+      2289,
+      1143
+     ],
+     "size": [
+      690,
+      948
+     ],
+     "use": "Bubbling Moon round 2, Miss Clou, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_missclou_hover-1.png",
+     "name": "missclou hover-1",
+     "box": [
+      2487,
+      64,
+      2987,
+      1118
+     ],
+     "size": [
+      500,
+      1054
+     ],
+     "use": "Bubbling Moon round 2, Miss Clou, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_missclou_hover-2.png",
+     "name": "missclou hover-2",
+     "box": [
+      3229,
+      77,
+      3765,
+      1143
+     ],
+     "size": [
+      536,
+      1066
+     ],
+     "use": "Bubbling Moon round 2, Miss Clou, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_missclou_box-open-cat.png",
+     "name": "missclou box-open-cat",
+     "box": [
+      386,
+      1322,
+      1265,
+      1917
+     ],
+     "size": [
+      879,
+      595
+     ],
+     "use": "Bubbling Moon round 2, Miss Clou, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_missclou_box-closed-cat.png",
+     "name": "missclou box-closed-cat",
+     "box": [
+      1568,
+      1388,
+      2292,
+      1922
+     ],
+     "size": [
+      724,
+      534
+     ],
+     "use": "Bubbling Moon round 2, Miss Clou, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_missclou_box-empty.png",
+     "name": "missclou box-empty",
+     "box": [
+      2600,
+      1401,
+      3501,
+      1922
+     ],
+     "size": [
+      901,
+      521
+     ],
+     "use": "Bubbling Moon round 2, Miss Clou, row 2: not in a game yet",
+     "used": false
+    }
+   ],
+   "use": "what the owner's second list of art still needed asks for (the Godot level)",
+   "note": "Miss Clou without Pip among the references: pointed ears, white and orange suit, cyan chest gauge, ion boosters, no cape (a text description of the owner's character sheet: the sheet itself was not in the repository)."
+  },
+  {
+   "file": "bubblingmoon2_missclou_take1.png",
+   "title": "Bubbling Moon round 2: Miss Clou (a second try, drawn without the picture of Pip)",
+   "source": "Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets2.mjs)",
+   "size": [
+    3840,
+    2160
+   ],
+   "frames": [],
+   "use": "what the owner's second list of art still needed asks for (the Godot level)",
+   "note": "Miss Clou, first take, from a description of her sheet (before it was in the repository): kept as drawn, not cut."
+  },
+  {
+   "file": "bubblingmoon2_scrapbook.png",
+   "title": "Bubbling Moon round 2: the scrapbook: polaroid frame, the photos, the camera, the map page, HUD icons",
+   "source": "Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets2.mjs)",
+   "size": [
+    3840,
+    2160
+   ],
+   "frames": [
+    {
+     "file": "frames/bubblingmoon2_scrapbook_polaroid-frame.png",
+     "name": "scrapbook polaroid-frame",
+     "box": [
+      376,
+      48,
+      729,
+      424
+     ],
+     "size": [
+      353,
+      376
+     ],
+     "use": "Bubbling Moon round 2, the scrapbook, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_scrapbook_camera-icon.png",
+     "name": "scrapbook camera-icon",
+     "box": [
+      1098,
+      63,
+      1458,
+      397
+     ],
+     "size": [
+      360,
+      334
+     ],
+     "use": "Bubbling Moon round 2, the scrapbook, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_scrapbook_hud-photo-icon.png",
+     "name": "scrapbook hud-photo-icon",
+     "box": [
+      1788,
+      102,
+      2066,
+      397
+     ],
+     "size": [
+      278,
+      295
+     ],
+     "use": "Bubbling Moon round 2, the scrapbook, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_scrapbook_hud-map-icon.png",
+     "name": "scrapbook hud-map-icon",
+     "box": [
+      2367,
+      109,
+      2778,
+      381
+     ],
+     "size": [
+      411,
+      272
+     ],
+     "use": "Bubbling Moon round 2, the scrapbook, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_scrapbook_hud-camera-icon.png",
+     "name": "scrapbook hud-camera-icon",
+     "box": [
+      3130,
+      124,
+      3455,
+      376
+     ],
+     "size": [
+      325,
+      252
+     ],
+     "use": "Bubbling Moon round 2, the scrapbook, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_scrapbook_photo-reflection.png",
+     "name": "scrapbook photo-reflection",
+     "box": [
+      127,
+      512,
+      764,
+      932
+     ],
+     "size": [
+      637,
+      420
+     ],
+     "use": "Bubbling Moon round 2, the scrapbook, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_scrapbook_photo-curd-sail.png",
+     "name": "scrapbook photo-curd-sail",
+     "box": [
+      868,
+      512,
+      1510,
+      932
+     ],
+     "size": [
+      642,
+      420
+     ],
+     "use": "Bubbling Moon round 2, the scrapbook, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_scrapbook_photo-milkyway-top.png",
+     "name": "scrapbook photo-milkyway-top",
+     "box": [
+      1614,
+      512,
+      2260,
+      935
+     ],
+     "size": [
+      646,
+      423
+     ],
+     "use": "Bubbling Moon round 2, the scrapbook, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_scrapbook_photo-missclou-box.png",
+     "name": "scrapbook photo-missclou-box",
+     "box": [
+      2364,
+      512,
+      3004,
+      935
+     ],
+     "size": [
+      640,
+      423
+     ],
+     "use": "Bubbling Moon round 2, the scrapbook, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_scrapbook_photo-plaque.png",
+     "name": "scrapbook photo-plaque",
+     "box": [
+      3105,
+      512,
+      3729,
+      935
+     ],
+     "size": [
+      624,
+      423
+     ],
+     "use": "Bubbling Moon round 2, the scrapbook, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_scrapbook_photo-old-ceremony.png",
+     "name": "scrapbook photo-old-ceremony",
+     "box": [
+      175,
+      1036,
+      862,
+      1473
+     ],
+     "size": [
+      687,
+      437
+     ],
+     "use": "Bubbling Moon round 2, the scrapbook, row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_scrapbook_photo-pipe-map.png",
+     "name": "scrapbook photo-pipe-map",
+     "box": [
+      1046,
+      1048,
+      1793,
+      1468
+     ],
+     "size": [
+      747,
+      420
+     ],
+     "use": "Bubbling Moon round 2, the scrapbook, row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_scrapbook_photo-new-bubble.png",
+     "name": "scrapbook photo-new-bubble",
+     "box": [
+      2024,
+      1048,
+      2686,
+      1468
+     ],
+     "size": [
+      662,
+      420
+     ],
+     "use": "Bubbling Moon round 2, the scrapbook, row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_scrapbook_photo-blank.png",
+     "name": "scrapbook photo-blank",
+     "box": [
+      2923,
+      1048,
+      3653,
+      1469
+     ],
+     "size": [
+      730,
+      421
+     ],
+     "use": "Bubbling Moon round 2, the scrapbook, row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_scrapbook_map-page.png",
+     "name": "scrapbook map-page",
+     "box": [
+      1418,
+      1556,
+      2412,
+      2054
+     ],
+     "size": [
+      994,
+      498
+     ],
+     "use": "Bubbling Moon round 2, the scrapbook, row 4: not in a game yet",
+     "used": false
+    }
+   ],
+   "use": "what the owner's second list of art still needed asks for (the Godot level)"
+  },
+  {
+   "file": "bubblingmoon2_slide.png",
+   "title": "Bubbling Moon round 2: the pipe slide at Pip's size, flow frames, a tall support leg, the giant bubble",
+   "source": "Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets2.mjs)",
+   "size": [
+    3840,
+    2160
+   ],
+   "frames": [
+    {
+     "file": "frames/bubblingmoon2_pipeslide_straight.png",
+     "name": "pipeslide straight",
+     "box": [
+      74,
+      154,
+      757,
+      406
+     ],
+     "size": [
+      683,
+      252
+     ],
+     "use": "Bubbling Moon round 2, the pipe slide and the giant bubble, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pipeslide_end-left.png",
+     "name": "pipeslide end-left",
+     "box": [
+      942,
+      147,
+      1461,
+      411
+     ],
+     "size": [
+      519,
+      264
+     ],
+     "use": "Bubbling Moon round 2, the pipe slide and the giant bubble, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pipeslide_end-right.png",
+     "name": "pipeslide end-right",
+     "box": [
+      1607,
+      147,
+      2176,
+      450
+     ],
+     "size": [
+      569,
+      303
+     ],
+     "use": "Bubbling Moon round 2, the pipe slide and the giant bubble, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pipeslide_tee-up.png",
+     "name": "pipeslide tee-up",
+     "box": [
+      2366,
+      42,
+      2983,
+      409
+     ],
+     "size": [
+      617,
+      367
+     ],
+     "use": "Bubbling Moon round 2, the pipe slide and the giant bubble, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pipeslide_tee-down.png",
+     "name": "pipeslide tee-down",
+     "box": [
+      3146,
+      148,
+      3755,
+      457
+     ],
+     "size": [
+      609,
+      309
+     ],
+     "use": "Bubbling Moon round 2, the pipe slide and the giant bubble, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pipeslide_take1_shaft.png",
+     "name": "pipeslide_take1 shaft",
+     "box": [
+      330,
+      576,
+      534,
+      996
+     ],
+     "size": [
+      204,
+      420
+     ],
+     "use": "Bubbling Moon round 2, the pipe slide and the giant bubble, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pipeslide_take1_corner-up.png",
+     "name": "pipeslide_take1 corner-up",
+     "box": [
+      1146,
+      576,
+      1625,
+      969
+     ],
+     "size": [
+      479,
+      393
+     ],
+     "use": "Bubbling Moon round 2, the pipe slide and the giant bubble, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pipeslide_take1_corner-down.png",
+     "name": "pipeslide_take1 corner-down",
+     "box": [
+      2007,
+      637,
+      2654,
+      996
+     ],
+     "size": [
+      647,
+      359
+     ],
+     "use": "Bubbling Moon round 2, the pipe slide and the giant bubble, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pipeslide_take1_flow-1.png",
+     "name": "pipeslide_take1 flow-1",
+     "box": [
+      55,
+      1191,
+      699,
+      1405
+     ],
+     "size": [
+      644,
+      214
+     ],
+     "use": "Bubbling Moon round 2, the pipe slide and the giant bubble, row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pipeslide_take1_flow-2.png",
+     "name": "pipeslide_take1 flow-2",
+     "box": [
+      772,
+      1191,
+      1469,
+      1405
+     ],
+     "size": [
+      697,
+      214
+     ],
+     "use": "Bubbling Moon round 2, the pipe slide and the giant bubble, row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pipeslide_take1_flow-3.png",
+     "name": "pipeslide_take1 flow-3",
+     "box": [
+      1558,
+      1191,
+      2249,
+      1405
+     ],
+     "size": [
+      691,
+      214
+     ],
+     "use": "Bubbling Moon round 2, the pipe slide and the giant bubble, row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pipeslide_take1_flow-4.png",
+     "name": "pipeslide_take1 flow-4",
+     "box": [
+      2365,
+      1191,
+      3078,
+      1405
+     ],
+     "size": [
+      713,
+      214
+     ],
+     "use": "Bubbling Moon round 2, the pipe slide and the giant bubble, row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_station_main-support-tall.png",
+     "name": "station main-support-tall",
+     "box": [
+      3231,
+      996,
+      3710,
+      1501
+     ],
+     "size": [
+      479,
+      505
+     ],
+     "use": "Bubbling Moon round 2, the pipe slide and the giant bubble, row 3: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_milk_bubble-giant.png",
+     "name": "milk bubble-giant",
+     "box": [
+      110,
+      1536,
+      623,
+      2034
+     ],
+     "size": [
+      513,
+      498
+     ],
+     "use": "Bubbling Moon round 2, the pipe slide and the giant bubble, row 4: not in a game yet",
+     "used": false
+    }
+   ],
+   "use": "what the owner's second list of art still needed asks for (the Godot level)",
+   "note": "The second take of the slide pieces: straight, end-left, end-right, tee-up, tee-down (clear inside about 52 art pixels), the pipeline leg and the giant bubble. Its shaft, corners and flow frames are cut as pipeslide_take1 (too small); slide2 has the good ones."
+  },
+  {
+   "file": "bubblingmoon2_slide2.png",
+   "title": "Bubbling Moon round 2: the slide pieces redrawn to the size of the straight piece (shaft, corners, flow frames)",
+   "source": "Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets2.mjs)",
+   "size": [
+    3840,
+    2160
+   ],
+   "frames": [
+    {
+     "file": "frames/bubblingmoon2_pipeslide_shaft.png",
+     "name": "pipeslide shaft",
+     "box": [
+      558,
+      149,
+      879,
+      1043
+     ],
+     "size": [
+      321,
+      894
+     ],
+     "use": "Bubbling Moon round 2, the slide pieces redrawn to the straight piece's size, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pipeslide_corner-up.png",
+     "name": "pipeslide corner-up",
+     "box": [
+      1463,
+      172,
+      2283,
+      954
+     ],
+     "size": [
+      820,
+      782
+     ],
+     "use": "Bubbling Moon round 2, the slide pieces redrawn to the straight piece's size, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pipeslide_corner-down.png",
+     "name": "pipeslide corner-down",
+     "box": [
+      2613,
+      386,
+      3346,
+      1008
+     ],
+     "size": [
+      733,
+      622
+     ],
+     "use": "Bubbling Moon round 2, the slide pieces redrawn to the straight piece's size, row 1: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pipeslide_flow-1.png",
+     "name": "pipeslide flow-1",
+     "box": [
+      72,
+      1388,
+      943,
+      1698
+     ],
+     "size": [
+      871,
+      310
+     ],
+     "use": "Bubbling Moon round 2, the slide pieces redrawn to the straight piece's size, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pipeslide_flow-2.png",
+     "name": "pipeslide flow-2",
+     "box": [
+      1017,
+      1387,
+      1885,
+      1696
+     ],
+     "size": [
+      868,
+      309
+     ],
+     "use": "Bubbling Moon round 2, the slide pieces redrawn to the straight piece's size, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pipeslide_flow-3.png",
+     "name": "pipeslide flow-3",
+     "box": [
+      1959,
+      1387,
+      2829,
+      1695
+     ],
+     "size": [
+      870,
+      308
+     ],
+     "use": "Bubbling Moon round 2, the slide pieces redrawn to the straight piece's size, row 2: not in a game yet",
+     "used": false
+    },
+    {
+     "file": "frames/bubblingmoon2_pipeslide_flow-4.png",
+     "name": "pipeslide flow-4",
+     "box": [
+      2902,
+      1387,
+      3771,
+      1695
+     ],
+     "size": [
+      869,
+      308
+     ],
+     "use": "Bubbling Moon round 2, the slide pieces redrawn to the straight piece's size, row 2: not in a game yet",
+     "used": false
+    }
+   ],
+   "use": "what the owner's second list of art still needed asks for (the Godot level)",
+   "note": "The shaft, the two corners and the four flow frames redrawn to the straight piece's size (clear inside 53-56 art pixels): about 1.2 times the size of the straight piece of slide."
+  },
+  {
+   "file": "bubblingmoon2_slide_take1.png",
+   "title": "Bubbling Moon round 2: the pipe slide at Pip's size, flow frames, a tall support leg, the giant bubble",
+   "source": "Claude, through the image API (gpt-image-2.6-flare, high; tools/sheets2.mjs)",
+   "size": [
+    3840,
+    2160
+   ],
+   "frames": [],
+   "use": "what the owner's second list of art still needed asks for (the Godot level)",
+   "note": "The first take of the pipe slide: its tubes came out about 52 art pixels clear inside, the flow strips 39 and the shaft 37 wide, too small for Pip. Kept as drawn; only slide (the second take) and slide2 are cut."
   }
  ]
 }

@@ -1,0 +1,16 @@
+{
+ "id": "quiet-after-hiccup",
+ "sound": "quiet-after-hiccup",
+ "group": "music",
+ "use": "the ending: the pump has sighed, one new bubble rises",
+ "loop": false,
+ "bpm": 72,
+ "seconds": null,
+ "model": "pixelite/sampler-song",
+ "version": null,
+ "input": {
+  "prompt": "Written as a song (audio/songs/quiet-after-hiccup.song.json, the engine's SNES-style Sampler) by tools in .claude/skills/pixelite-song and rendered offline to WAV: The ending: the pump has sighed, the beat is gone, one new bubble rises. The theme's hiccup rhythm is gone and its minor is now major: D major, 72 BPM, 10 bars, no drums, plays once. Never heard by its writer."
+ },
+ "metrics": null,
+ "date": "2026-11-18"
+}

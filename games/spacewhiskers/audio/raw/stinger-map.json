@@ -1,0 +1,16 @@
+{
+ "id": "stinger-map",
+ "sound": "stinger-map",
+ "group": "stinger",
+ "use": "the pipe map is complete",
+ "loop": false,
+ "bpm": null,
+ "seconds": null,
+ "model": "pixelite/sampler-song",
+ "version": null,
+ "input": {
+  "prompt": "Written as a song (audio/songs/stinger-map.song.json, the engine's SNES-style Sampler) by tools in .claude/skills/pixelite-song and rendered offline to WAV: The pipe map is complete: a short, silly fanfare in C."
+ },
+ "metrics": null,
+ "date": "2026-11-18"
+}

@@ -1,0 +1,26 @@
+{
+  "id": "tank-glug",
+  "sound": "tank-glug",
+  "group": "sfx",
+  "use": "fuel into the rocket / a tank filling",
+  "loop": false,
+  "bpm": null,
+  "seconds": 3,
+  "model": "stability-ai/stable-audio-2.5",
+  "version": "hidden",
+  "input": {
+    "prompt": "liquid glugging and gurgling into a metal tank, filling up, an isolated sound effect, clean and dry, no music, no voice, no background noise",
+    "duration": 3,
+    "steps": 8,
+    "cfg_scale": 1
+  },
+  "metrics": {
+    "audio_output_count": 1,
+    "audio_output_duration_seconds": 3,
+    "model_variant": "stable-audio-2.5",
+    "predict_time": 1.986208738,
+    "total_time": 1.997081935
+  },
+  "predictionId": "rr23qp4fadrmt0d1xqmac6pcgr",
+  "date": "2026-11-18T09:06:46.083Z"
+}

@@ -1,0 +1,26 @@
+{
+  "id": "pipe-slide-whoosh",
+  "sound": "pipe-slide-whoosh",
+  "group": "sfx",
+  "use": "riding the pipe slide (P7)",
+  "loop": false,
+  "bpm": null,
+  "seconds": 3,
+  "model": "stability-ai/stable-audio-2.5",
+  "version": "hidden",
+  "input": {
+    "prompt": "a small character whooshing fast through a long hollow tube on a rush of liquid, echoing, cartoon, an isolated sound effect, clean and dry, no music, no voice, no background noise",
+    "duration": 3,
+    "steps": 8,
+    "cfg_scale": 1
+  },
+  "metrics": {
+    "audio_output_count": 1,
+    "audio_output_duration_seconds": 3,
+    "model_variant": "stable-audio-2.5",
+    "predict_time": 1.8647007740000001,
+    "total_time": 1.8747291609999999
+  },
+  "predictionId": "g8tvebf96srmr0d1xqhrb11pb8",
+  "date": "2026-11-18T09:01:41.376Z"
+}

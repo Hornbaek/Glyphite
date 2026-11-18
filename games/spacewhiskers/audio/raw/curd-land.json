@@ -1,0 +1,26 @@
+{
+  "id": "curd-land",
+  "sound": "curd-land",
+  "group": "sfx",
+  "use": "landing on the curd",
+  "loop": false,
+  "bpm": null,
+  "seconds": 1,
+  "model": "stability-ai/stable-audio-2.5",
+  "version": "hidden",
+  "input": {
+    "prompt": "a soft heavy squish and thud of a character landing on a giant jelly, cartoon, an isolated sound effect, clean and dry, no music, no voice, no background noise",
+    "duration": 2,
+    "steps": 8,
+    "cfg_scale": 1
+  },
+  "metrics": {
+    "audio_output_count": 1,
+    "audio_output_duration_seconds": 2,
+    "model_variant": "stable-audio-2.5",
+    "predict_time": 1.97199025,
+    "total_time": 1.984067487
+  },
+  "predictionId": "rwafwb6tn1rmy0d1xqkby285pc",
+  "date": "2026-11-18T09:04:54.347Z"
+}

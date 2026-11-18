@@ -1,0 +1,26 @@
+{
+  "id": "pipe-flow-loop",
+  "sound": "pipe-flow-loop",
+  "group": "sfx",
+  "use": "the slide pipes: the flow",
+  "loop": true,
+  "bpm": null,
+  "seconds": 6,
+  "model": "stability-ai/stable-audio-2.5",
+  "version": "hidden",
+  "input": {
+    "prompt": "thick milk flowing slowly through a hollow metal pipe, soft gurgling with a hollow resonant tube sound, an isolated sound effect, clean and dry, no music, no voice, no background noise",
+    "duration": 6,
+    "steps": 8,
+    "cfg_scale": 1
+  },
+  "metrics": {
+    "audio_output_count": 1,
+    "audio_output_duration_seconds": 6,
+    "model_variant": "stable-audio-2.5",
+    "predict_time": 2.408035257,
+    "total_time": 2.418460209
+  },
+  "predictionId": "c61j2v0gf1rmy0d1xqjbxdz4sc",
+  "date": "2026-11-18T09:01:51.956Z"
+}

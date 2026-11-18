@@ -1,0 +1,26 @@
+{
+  "id": "milk-pour",
+  "sound": "milk-pour",
+  "group": "sfx",
+  "use": "a pipe end spilling; a pour",
+  "loop": true,
+  "bpm": null,
+  "seconds": 4,
+  "model": "stability-ai/stable-audio-2.5",
+  "version": "hidden",
+  "input": {
+    "prompt": "milk pouring steadily from a pipe into a pool, a smooth liquid stream, an isolated sound effect, clean and dry, no music, no voice, no background noise",
+    "duration": 4,
+    "steps": 8,
+    "cfg_scale": 1
+  },
+  "metrics": {
+    "audio_output_count": 1,
+    "audio_output_duration_seconds": 4,
+    "model_variant": "stable-audio-2.5",
+    "predict_time": 2.058119448,
+    "total_time": 2.068528263
+  },
+  "predictionId": "rt08h34mshrmw0d1xqhs940vjw",
+  "date": "2026-11-18T09:01:19.967Z"
+}

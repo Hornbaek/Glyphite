@@ -1,0 +1,26 @@
+{
+  "id": "pump-hiccup",
+  "sound": "pump-hiccup",
+  "group": "sfx",
+  "use": "THE HICCUP: one on the beat (every 3 seconds)",
+  "loop": false,
+  "bpm": null,
+  "seconds": 2,
+  "model": "stability-ai/stable-audio-2.5",
+  "version": "hidden",
+  "input": {
+    "prompt": "a giant industrial pump hiccup: a deep thump, then a rattle of pipes and a wet gulp, big machine, comic, an isolated sound effect, clean and dry, no music, no voice, no background noise",
+    "duration": 2,
+    "steps": 8,
+    "cfg_scale": 1
+  },
+  "metrics": {
+    "audio_output_count": 1,
+    "audio_output_duration_seconds": 2,
+    "model_variant": "stable-audio-2.5",
+    "predict_time": 1.9417369359999999,
+    "total_time": 1.953022807
+  },
+  "predictionId": "d45307c4dnrmr0d1xqktpmpq80",
+  "date": "2026-11-18T09:05:37.745Z"
+}

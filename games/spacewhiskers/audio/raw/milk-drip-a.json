@@ -1,0 +1,26 @@
+{
+  "id": "milk-drip-a",
+  "sound": "milk-drip-a",
+  "group": "sfx",
+  "use": "a drip from a hole (P3)",
+  "loop": false,
+  "bpm": null,
+  "seconds": 1.2,
+  "model": "stability-ai/stable-audio-2.5",
+  "version": "hidden",
+  "input": {
+    "prompt": "a single drop of milk falling into a shallow pool, a soft liquid plink, an isolated sound effect, clean and dry, no music, no voice, no background noise",
+    "duration": 2,
+    "steps": 8,
+    "cfg_scale": 1
+  },
+  "metrics": {
+    "audio_output_count": 1,
+    "audio_output_duration_seconds": 2,
+    "model_variant": "stable-audio-2.5",
+    "predict_time": 2.146743109,
+    "total_time": 2.156503942
+  },
+  "predictionId": "3cxrx18hs1rmy0d1xqhsk9cvkr",
+  "date": "2026-11-18T09:00:46.447Z"
+}
