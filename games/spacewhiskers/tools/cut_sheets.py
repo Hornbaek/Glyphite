@@ -25,6 +25,14 @@ GAME = Path(__file__).resolve().parent.parent
 REF = GAME / 'ref'
 FRAMES = REF / 'frames'
 NAMES = json.loads((Path(__file__).resolve().parent / 'bubblingmoon_names.json').read_text())
+NAMES2 = json.loads((Path(__file__).resolve().parent / 'bubblingmoon2_names.json').read_text())   # round 2: per sheet, per row, "group/name"; the background sheets: [{name, opaque}]
+USE2 = {'fixes': 'Bubbling Moon round 2, fixes (the gaps, the redraws, white curds)', 'slide': 'Bubbling Moon round 2, the pipe slide and the giant bubble', 'characters': 'Bubbling Moon round 2, the cats, Pip crawling, the rocket (its first Miss Clou is kept as missclou_old)', 'missclou': 'Bubbling Moon round 2, Miss Clou', 'slide2': 'Bubbling Moon round 2, the slide pieces redrawn to the straight piece\'s size',
+        'scrapbook': 'Bubbling Moon round 2, the scrapbook', 'ground': 'Bubbling Moon round 2, the ground', 'hall': 'Bubbling Moon round 2, the pump hall',
+        'anim_a': 'Bubbling Moon round 2, animation frames A (bubbles, fan, curd, crust)', 'anim_b': 'Bubbling Moon round 2, animation frames B (valves, geyser, the pump)'}
+# what the model really drew where it left the plan (a row's items in another row, a frame missing): per sheet, the names row by row, as drawn; it replaces the plan
+_lay = Path(__file__).resolve().parent / 'bubblingmoon2_layout.json'
+if _lay.exists(): NAMES2.update(json.loads(_lay.read_text()))
+ROUND2 = set(USE2) | {'bg_outdoor', 'bg_station_a', 'bg_station_b'}
 
 # sheet → what it is, for the "used for" of each drawing
 USE = {
@@ -76,12 +84,15 @@ def label(mask, conn8=True):
     return lab, dict(x0=bx0, x1=bx1, y0=by0, y1=by1, area=area)
 
 
-def ground(rgb, tol=70, eat=150, passes=4):
+def ground(rgb, tol=70, eat=150, passes=4, mode='magenta'):
     """the magenta ground: near the key and connected to the edge, then its edge eaten where it is still pinkish"""
     H, W, _ = rgb.shape
     frame = np.concatenate([rgb[:6].reshape(-1, 3), rgb[-6:].reshape(-1, 3), rgb[:, :6].reshape(-1, 3), rgb[:, -6:].reshape(-1, 3)])
-    mag = (rgb[..., 0] > 215) & (rgb[..., 2] > 215) & (rgb[..., 1] < 100)   # the key is the magenta there is (a panel's edge may be all rock)
-    key = np.median(rgb[mag], axis=0) if mag.sum() > 5000 else np.median(frame, axis=0)
+    # the key is the key colour there is (a panel's edge may be all rock): magenta (round 1), pure green (round 2), or what the frame of the picture is
+    if mode == 'green': hit = (rgb[..., 1] > 215) & (rgb[..., 0] < 90) & (rgb[..., 2] < 90)
+    elif mode == 'magenta': hit = (rgb[..., 0] > 215) & (rgb[..., 2] > 215) & (rgb[..., 1] < 100)
+    else: hit = np.zeros(rgb.shape[:2], bool)
+    key = np.median(rgb[hit], axis=0) if hit.sum() > 5000 else np.median(frame, axis=0)
     dist = np.sqrt(((rgb - key) ** 2).sum(2))
     near = dist < tol
     lab, st = label(near, conn8=False)
@@ -98,7 +109,7 @@ def ground(rgb, tol=70, eat=150, passes=4):
 
 
 # (sheet, row) -> groups of drawings to join: [first, others...], counted from 0 left to right among the pieces more than 22 pixels apart
-JOIN = {('terrain', 7): [[4, 5], [7, 8]],      # the paw prints: two prints a trail
+JOIN = {('fixes', 4): [[4, 5], [2, 3], [0, 1]], ('terrain', 7): [[4, 5], [7, 8]],      # the paw prints: two prints a trail
         ('fg_outdoor', 4): [[3, 4]]}          # the bubble group: three bubbles
 
 
@@ -111,9 +122,10 @@ def slug(s): return re.sub(r'[^a-z0-9]+', '-', s.lower()).strip('-')
 
 
 def cut_props(sheet, write=True):
-    rgb = np.asarray(Image.open(REF / f'bubblingmoon_{sheet}.png').convert('RGB')).astype(np.int16)
+    r2 = sheet in ROUND2; prefix = 'bubblingmoon2_' if r2 else 'bubblingmoon_'
+    rgb = np.asarray(Image.open(REF / f'{prefix}{sheet}.png').convert('RGB')).astype(np.int16)
     H, W, _ = rgb.shape
-    bg, key = ground(rgb)
+    bg, key = ground(rgb, mode='green' if r2 else 'magenta')
     fg = ~bg
     lab, st = label(fg, conn8=True)
     k = len(st['area'])
@@ -127,7 +139,7 @@ def cut_props(sheet, write=True):
     bands, cur = [], None
     for b in range(len(bins)):
         if bins[b] >= 4:
-            if cur and b - cur[1] <= 3: cur[1] = b
+            if cur and b - cur[1] <= (12 if sheet in ROUND2 else 3): cur[1] = b   # round 2: labels of one row may sit up to 120 px apart
             else:
                 if cur: bands.append(cur)
                 cur = [b, b]
@@ -135,7 +147,7 @@ def cut_props(sheet, write=True):
     out = []
     for b0, b1 in bands:
         sel = [i for i in gi if b0 * 10 <= cy[i] < (b1 + 1) * 10]
-        if len(sel) >= 25: out.append((min(st['y0'][i] for i in sel) - 4, max(st['y1'][i] for i in sel) + 4, sel))
+        if len(sel) >= 6: out.append((min(st['y0'][i] for i in sel) - 4, max(st['y1'][i] for i in sel) + 4, sel))
     rows = []
     for top, bot, sel in out:
         sel = sorted(sel, key=lambda i: st['x0'][i]); labels, curl = [], None
@@ -160,7 +172,7 @@ def cut_props(sheet, write=True):
         below = [r for r in rows if r['top'] >= cy[i] - 2]
         if below: min(below, key=lambda r: r['top'])['pieces'].append(i)
     report, frames = [], []
-    want = NAMES[sheet]
+    want = NAMES2[sheet] if r2 else NAMES[sheet]
     if len(rows) != len(want): report.append(f'{sheet}: found {len(rows)} label rows, the plan has {len(want)}')
     for ri, r in enumerate(rows):
         groups = []
@@ -181,46 +193,51 @@ def cut_props(sheet, write=True):
             x0 = int(min(st['x0'][i] for i in ids)); x1 = int(max(st['x1'][i] for i in ids)); y0 = int(min(st['y0'][i] for i in ids)); y1 = int(max(st['y1'][i] for i in ids))
             sub = lab[y0:y1, x0:x1]; keep = np.isin(sub, [i + 1 for i in ids])
             rgba = np.zeros((y1 - y0, x1 - x0, 4), np.uint8); rgba[..., :3] = rgb[y0:y1, x0:x1].clip(0, 255); rgba[..., 3] = np.where(keep, 255, 0)
-            fn = f'bubblingmoon_{sheet}_{slug(name)}.png'
+            grp, nm = name.split('/', 1) if '/' in name else (sheet, name)
+            fn = f'{prefix}{grp}_{slug(nm)}.png'
             if write: FRAMES.mkdir(exist_ok=True); save(rgba, FRAMES / fn)
-            frames.append(dict(file=f'frames/{fn}', name=f'{sheet} {name}', box=[x0, y0, x1, y1], size=[x1 - x0, y1 - y0],
-                               use=f'{USE[sheet]}, row {ri + 1}: not in a game yet', used=False))
+            frames.append(dict(file=f'frames/{fn}', name=f'{grp} {nm}', box=[x0, y0, x1, y1], size=[x1 - x0, y1 - y0],
+                               use=f'{USE2[sheet] if r2 else USE[sheet]}, row {ri + 1}: not in a game yet', used=False))
     return frames, report
 
 
 def cut_panels(sheet, folder):
-    """the two panels of a background sheet (the top and the bottom half) as PNGs in `folder`: an opaque one as it is, one on magenta keyed"""
-    im = Image.open(REF / f'bubblingmoon_{sheet}.png').convert('RGB'); a = np.asarray(im)
+    """the two panels of a background sheet (the top and the bottom half) as PNGs in `folder`: an opaque one as it is, one on its key colour keyed"""
+    r2 = sheet in ROUND2; prefix = 'bubblingmoon2_' if r2 else 'bubblingmoon_'
+    im = Image.open(REF / f'{prefix}{sheet}.png').convert('RGB'); a = np.asarray(im)
+    panels = [(d['name'], d['opaque'], 'the second round') for d in NAMES2[sheet]] if r2 else PANELS[sheet]
     H = a.shape[0] // 2; report = []
-    for k, (name, opaque, what) in enumerate(PANELS[sheet]):
+    for k, (name, opaque, what) in enumerate(panels):
         y0, y1 = k * H, (k + 1) * H; rgb = a[y0:y1].astype(np.int16)
         rgba = np.zeros((H, a.shape[1], 4), np.uint8); rgba[..., :3] = a[y0:y1]
         if opaque: rgba[..., 3] = 255
         else:
-            bg, key = ground(rgb); rgba[..., 3] = np.where(bg, 0, 255)
+            bg, key = ground(rgb, mode='green' if r2 else 'magenta'); rgba[..., 3] = np.where(bg, 0, 255)
         seam = float(np.abs(rgb[:, :8].astype(float).mean(1) - rgb[:, -8:].astype(float).mean(1)).mean())
-        if folder: Path(folder).mkdir(parents=True, exist_ok=True); save(rgba, Path(folder) / f'bubblingmoon_{sheet}_{name}.png')
+        if folder: Path(folder).mkdir(parents=True, exist_ok=True); save(rgba, Path(folder) / f'{prefix}{sheet}_{name}.png')
         report.append(f'{sheet} {name}: {what}; seam difference {seam:.1f} (0 = the left edge continues into the right)')
     return report
 
 
 def main(argv):
-    """cut the props and foregrounds into ref/frames/ and list them in ref/frames_moon.json; --panels DIR also writes the background panels there;
-    --check cuts and reports but writes nothing"""
+    """cut the props and foregrounds into ref/frames/ and list them in ref/frames_moon.json (round 1) or ref/frames_moon2.json (round 2); --panels DIR also writes
+    the background panels there; --check cuts and reports but writes nothing; --round2 means every sheet of the second round"""
     check = '--check' in argv; folder = argv[argv.index('--panels') + 1] if '--panels' in argv else None
     args = [a for i, a in enumerate(argv) if not a.startswith('--') and (i == 0 or argv[i - 1] != '--panels')]
-    sheets = args or list(USE) + list(PANELS)
-    out = {}
+    sheets = args or (sorted(ROUND2) if '--round2' in argv else list(USE) + list(PANELS))
+    out1, out2 = {}, {}
     for s in sheets:
-        if s in USE:
-            frames, report = cut_props(s, write=not check); out[f'bubblingmoon_{s}.png'] = frames
+        if s in USE or (s in ROUND2 and not isinstance(NAMES2[s][0], dict)):
+            frames, report = cut_props(s, write=not check)
+            (out2 if s in ROUND2 else out1)[f"{'bubblingmoon2_' if s in ROUND2 else 'bubblingmoon_'}{s}.png"] = frames
             print(f'{s}: {len(frames)} drawings')
         else:
             report = cut_panels(s, None if check else folder)
         for line in report: print('  ' + line)
-    if not check and out:
-        old = json.loads((REF / 'frames_moon.json').read_text()) if (REF / 'frames_moon.json').exists() else {}
-        old.update(out); (REF / 'frames_moon.json').write_text(json.dumps(old, indent=1) + '\n')
+    for fname, out in (('frames_moon.json', out1), ('frames_moon2.json', out2)):
+        if out and not check:
+            old = json.loads((REF / fname).read_text()) if (REF / fname).exists() else {}
+            old.update(out); (REF / fname).write_text(json.dumps(old, indent=1) + '\n')
 
 
 if __name__ == '__main__':

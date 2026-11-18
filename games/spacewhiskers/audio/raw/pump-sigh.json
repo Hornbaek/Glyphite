@@ -1,0 +1,26 @@
+{
+  "id": "pump-sigh",
+  "sound": "pump-sigh",
+  "group": "sfx",
+  "use": "THE SIGH: the hiccup is cured (P10)",
+  "loop": false,
+  "bpm": null,
+  "seconds": 6,
+  "model": "stability-ai/stable-audio-2.5",
+  "version": "hidden",
+  "input": {
+    "prompt": "a huge machine slowly letting out one long sigh of steam, a long hiss fading to silence, relief, big and gentle, an isolated sound effect, clean and dry, no music, no voice, no background noise",
+    "duration": 6,
+    "steps": 8,
+    "cfg_scale": 1
+  },
+  "metrics": {
+    "audio_output_count": 1,
+    "audio_output_duration_seconds": 6,
+    "model_variant": "stable-audio-2.5",
+    "predict_time": 2.156171054,
+    "total_time": 2.167479656
+  },
+  "predictionId": "zgk4h95je5rmr0d1xqkr1n2f38",
+  "date": "2026-11-18T09:05:49.754Z"
+}

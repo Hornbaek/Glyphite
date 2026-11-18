@@ -1,0 +1,26 @@
+{
+  "id": "pipe-slide-exit",
+  "sound": "pipe-slide-exit",
+  "group": "sfx",
+  "use": "leaving the slide",
+  "loop": false,
+  "bpm": null,
+  "seconds": 1.4,
+  "model": "stability-ai/stable-audio-2.5",
+  "version": "hidden",
+  "input": {
+    "prompt": "a character popping out of a pipe end with a wet splurt, cartoon, an isolated sound effect, clean and dry, no music, no voice, no background noise",
+    "duration": 2,
+    "steps": 8,
+    "cfg_scale": 1
+  },
+  "metrics": {
+    "audio_output_count": 1,
+    "audio_output_duration_seconds": 2,
+    "model_variant": "stable-audio-2.5",
+    "predict_time": 2.118091727,
+    "total_time": 2.127449776
+  },
+  "predictionId": "4gvtdagxdxrmr0d1xqna0wvh94",
+  "date": "2026-11-18T09:08:28.223Z"
+}

@@ -1,0 +1,26 @@
+{
+  "id": "piston-pump-loop",
+  "sound": "piston-pump-loop",
+  "group": "sfx",
+  "use": "the working pump",
+  "loop": true,
+  "bpm": null,
+  "seconds": 4,
+  "model": "stability-ai/stable-audio-2.5",
+  "version": "hidden",
+  "input": {
+    "prompt": "a slow piston pump chugging, a rhythmic clank and hiss, an isolated sound effect, clean and dry, no music, no voice, no background noise",
+    "duration": 4,
+    "steps": 8,
+    "cfg_scale": 1
+  },
+  "metrics": {
+    "audio_output_count": 1,
+    "audio_output_duration_seconds": 4,
+    "model_variant": "stable-audio-2.5",
+    "predict_time": 1.952569102,
+    "total_time": 1.9633752960000002
+  },
+  "predictionId": "xa75z3hp6drmy0d1xqm948b0p8",
+  "date": "2026-11-18T09:06:23.309Z"
+}

@@ -1,0 +1,16 @@
+{
+ "id": "stinger-hope",
+ "sound": "stinger-hope",
+ "group": "stinger",
+ "use": "the moon is quiet at last; one new bubble",
+ "loop": false,
+ "bpm": null,
+ "seconds": null,
+ "model": "pixelite/sampler-song",
+ "version": null,
+ "input": {
+  "prompt": "Written as a song (audio/songs/stinger-hope.song.json, the engine's SNES-style Sampler) by tools in .claude/skills/pixelite-song and rendered offline to WAV: The moon is quiet at last, one new bubble: a single bell and soft strings in D major, fading."
+ },
+ "metrics": null,
+ "date": "2026-11-18"
+}

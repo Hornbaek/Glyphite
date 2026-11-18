@@ -26,6 +26,8 @@ ref/                 the owner's pictures, untouched, and every drawing cut from
   StarWhiskers-theholycow_cover.png  the cover (its title still reads "Star Whiskers")
   bubblingmoon_*.png   the Bubbling Moon's art sheets (chapter 9), made through the image API by tools/sheets.mjs: terrain, milk, station (props), bg_outdoor_1, bg_outdoor_2,
                        bg_station (backgrounds, two panels of 3840 x 1080 each), fg_outdoor, fg_station (foregrounds); ref/prompts/ holds each one's prompt and the API's answer
+  bubblingmoon2_*.png  round 2 of the Bubbling Moon's art (the owner's "art still needed" list), made by tools/sheets2.mjs on a green ground: fixes, slide (+ slide_take1, slide2), characters, missclou,
+                       scrapbook, ground, hall, anim_a, anim_b, bg_outdoor, bg_station_a, bg_station_b; their sprites are ref/frames/bubblingmoon2_*, listed in ref/frames_moon2.json
 story/               the story (moved from games/spacemouse/story): STORY_V2.md is current, STORY.md version 1, sv/ the owner's
                      Swedish originals, FEEDBACK.md, COVER_PROMPT.md, CHAPTER_COVERS.md
 art/                 the art pipeline (docs/ART_PIPELINE.md)
@@ -46,6 +48,8 @@ tools/anims.mjs      the approved PixelLab frames into the asset pip as walk_0-7
 tools/art.py         cuts ref/pip.png into ref/frames/ and writes ref.json and README.md (it also lists the Bubbling Moon sheets)
 tools/sheets.mjs     the Bubbling Moon's art sheets: the prompts (the game's look, the chapter's world, a row plan), the owner's pictures as style references, one image-API call each;
                      NODE_USE_ENV_PROXY=1 node games/spacewhiskers/tools/sheets.mjs [terrain milk station bg_outdoor_1 bg_outdoor_2 bg_station fg_outdoor fg_station] [--quality high --model gpt-image-2.6-flare] [--dry]
+tools/sheets2.mjs    round 2's sheets (SHEETS2, with refs per sheet); cut_sheets.py --round2 cuts them (tools/bubblingmoon2_names.json from `sheets2.mjs --names`, bubblingmoon2_layout.json where the model drew something else);
+                     pack_moon2.py builds the round-2 zip; sounds.mjs makes the sound effects (Replicate) and sounds_prep.py levels them into audio/; audio/songs/*.song.json are songs for the engine's sampler (the moon theme, the ending, three stingers)
 tools/frames.mjs     brings the cut drawings onto the game grid: one pixel size, one palette, registered, into art/assets/pip
 ```
 
@@ -57,6 +61,10 @@ map pieces, curing the hiccup), the scrapbook photos, the open questions, and th
 (8 pictures, 3840 x 2160, one art pixel = 4 x 4 picture pixels, so a screen is 1920 x 1080 and Pip 196 tall), flat magenta ground, labels under the items. The five props and foreground sheets are **cut into
 291 single sprites** in `ref/frames/bubblingmoon_*` (`tools/cut_sheets.py`; none snapped to the game grid yet); `story/BUBBLING_MOON_LAYOUTS.md` has the five zones with layout sketches and the sprites each uses, and
 `story/BUBBLING_MOON_DECISIONS.md` what the review notes say. `python3 games/spacewhiskers/tools/pack_moon.py out.zip` builds the pack zip.
+**Round 2** (HISTORY 76): the second list (gaps, pink pieces, the pipe slide, Miss Clou and the cats, scrapbook, ground, pump hall, animation frames, three backgrounds) is 175 more sprites
+(`pack_moon2.py out.zip`, whose `STATUS.md` goes through the list line by line), plus 46 sound effects (`audio/`) and music. The model draws larger than asked: every sprite's size drawn, asked and factor is in the pack's INDEX.
+Known: Miss Clou is drawn from a description (the owner's sheet is not in `ref/` yet: drop it there); the bubble swell has 7 of 8 steps; `dust-beam` is mostly eaten; the slide tubes are 52 art pixels clear inside, the second take 1.2x bigger;
+the sounds were never heard; 16 planned sounds are missing (Replicate credit).
 
 ## Commands
 

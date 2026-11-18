@@ -1,0 +1,5 @@
+# WAV masters are made by tools/sounds_prep.py from raw/ (and the music from music/*.song.json); they travel in the pack zip, not in git
+*/*.wav
+raw/moon-theme.wav
+raw/quiet-after-hiccup.wav
+raw/stinger-*.wav

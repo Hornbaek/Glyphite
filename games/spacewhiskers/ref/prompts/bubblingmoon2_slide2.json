@@ -1,0 +1,32 @@
+{
+  "file": "bubblingmoon2_slide2.png",
+  "sheet": "slide2",
+  "title": "Bubbling Moon round 2: the slide pieces redrawn to the size of the straight piece (shaft, corners, flow frames)",
+  "date": "2026-11-18T09:13:32.786Z",
+  "model": "gpt-image-2.6-flare",
+  "params": {
+    "size": "3840x2160",
+    "quality": "high",
+    "background": "opaque",
+    "output_format": "png"
+  },
+  "requestId": "req_6c58940d82c44a4aac16854cae837d25",
+  "usage": {
+    "input_tokens": 3132,
+    "input_tokens_details": {
+      "image_tokens": 1892,
+      "text_tokens": 1240
+    },
+    "output_tokens": 3337,
+    "output_tokens_details": {
+      "image_tokens": 3337,
+      "text_tokens": 0
+    },
+    "total_tokens": 6469
+  },
+  "references": [
+    "bubblingmoon_station.png",
+    "frames/bubblingmoon2_pipeslide_straight.png"
+  ],
+  "prompt": "THE WORLD: the Bubbling Moon, a strange, silly and slightly sad moon in a children's game (never scary). Its milk lakes have dried into cracked, glossy white crust that mirrors the sky. Giant cheese craters full of Swiss-cheese holes are the pits. Bubbles of old milk pop up out of the ground on a slow beat, as if the moon had hiccups. A big wobbling curd drifts across the dry lake like a slow boat. The cats built an old, half-finished, high-tech milk pumping station here: steel grey with orange and yellow trim, rust, paw-print logos and coloured cables. Palette: milk white, cream, butter yellow, cheese orange, pale lavender and blue-grey shadows, a deep violet night sky.\n\nYou are drawing a SPRITE SHEET for the Bubbling Moon level of a side-view platformer. Everything is seen strictly from the side (a 2D platformer; not isometric, not top-down).\n\nFORMAT\n- One PNG, 3840 x 2160, landscape. Background: ONE flat, solid, bright pure green (#00FF00) everywhere behind the items. No checkerboard, no scenery, no ground strip, no frames or boxes round items, no title, no legend. No bright green inside the items (the green eyes of Miss Clou and any mould are a darker, duller green).\n- Follow the row plan below, rows from top to bottom, items from left to right, exactly the items listed (one drawing each, nothing extra, nothing missing; the frames of one animation are the same size, side by side, on the same ground line, identical in colours and proportions). Items stand on a common ground line in their row. Leave at least 6 art pixels (24 image pixels) of empty green all round every item; no item may touch another item or the edge.\n- Under each item a short label in small plain white text (catalogue style) with a clear gap between the label and the item above it and the tops of the items in the row below. The label is the item's name exactly as given in quotes. Keep the labels short.\n\nSTYLE (a program cuts this picture into pixel-art sprites for a game, so follow it exactly)\n- TRUE 16-bit (Super Nintendo style) pixel art on a strict fixed grid: every art pixel is a perfectly square, evenly coloured 4 x 4 block of image pixels, so every pixel can be counted by eye. Edges of shapes are clean staircases of whole square pixels: never smooth curves, never soft or noisy shading, never JPEG-like speckle, no anti-aliasing, no gradients, no blur, no glow halos, no dithering noise, no drop shadows, no cast shadows on the ground. Each shade is ONE exact flat colour; use only a small palette of about 32 colours for the whole picture, the same colour every time it is used.\n- A clean, continuous, dark near-black-brown (#1A1410) outline exactly 1 art pixel (4 image pixels) thick round EVERY item (except where a line says \"no outline\", for soft things), also round white, cream and pale items so they stand out from the green; used ONLY for outlines. No fill colour darker than #40382F. Inside the outline shade each material with 2 or 3 flat tones and a few hard-edged pixel highlights, like the references.\n- Match the two attached reference pictures in pixel size, line weight, saturation and level of detail: (1) a finished sheet of this level's pumping-station props: match its pixel size, line weight, colours and shading exactly; (2) the straight slide piece already drawn: every tube piece you draw must have EXACTLY this outer height and this clear milk-filled inside height (the shaft the same outer WIDTH), the same collars, the same glass, the same colours.\n- SCALE: Pip is 49 art pixels (196 image pixels) tall; everything is drawn at that same pixel size. Sizes below are in art pixels (width x height), only roughly.\n- Glass, bubbles and windows are drawn in opaque pale colours with a white highlight: nothing is see-through, and nothing is drawn behind an item.\n- No text inside the items except where a line gives the words. Seen strictly from the side (a 2D platformer), light from the upper left.\n\nROW PLAN (2 rows)\nRow 1, SLIDE PIPES IN THE SIZE OF THE FIRST PICTURE (the tube body is exactly as thick as the reference piece is tall, 63 art pixels, with a clear milk-filled inside of 52 art pixels or more, the same collars, glass and colours; a vertical piece is as wide as the reference is tall; a corner is two such tubes meeting in a rounded steel elbow) (every item in this row belongs to the group \"pipeslide\"), 3 items: 1 \"shaft\" a vertical straight shaft that tiles top to bottom (63 x 140); 2 \"corner-up\" a corner: the tube comes in from the left and turns UP (110 x 110); 3 \"corner-down\" a corner: the tube comes in from the left and turns DOWN (110 x 110).\nRow 2, THE FLOW (a straight piece like the reference, 170 x 63 each, four frames of one loop; only the milk inside differs: cream-white milk with pale blue-white streaks that slide a little to the right in every frame, the last frame continuing into the first) (every item in this row belongs to the group \"pipeslide\"), 4 items: 1 \"flow-1\" frame 1; 2 \"flow-2\" frame 2: the streaks moved right; 3 \"flow-3\" frame 3; 4 \"flow-4\" frame 4."
+}

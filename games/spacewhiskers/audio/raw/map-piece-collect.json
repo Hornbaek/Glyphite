@@ -1,0 +1,26 @@
+{
+  "id": "map-piece-collect",
+  "sound": "map-piece-collect",
+  "group": "sfx",
+  "use": "a torn map piece (P9)",
+  "loop": false,
+  "bpm": null,
+  "seconds": 1.8,
+  "model": "stability-ai/stable-audio-2.5",
+  "version": "hidden",
+  "input": {
+    "prompt": "a paper rustle and a magical little rising jingle, an isolated sound effect, clean and dry, no music, no voice, no background noise",
+    "duration": 2,
+    "steps": 8,
+    "cfg_scale": 1
+  },
+  "metrics": {
+    "audio_output_count": 1,
+    "audio_output_duration_seconds": 2,
+    "model_variant": "stable-audio-2.5",
+    "predict_time": 2.105968771,
+    "total_time": 2.115589965
+  },
+  "predictionId": "rhpe478jvnrmy0d1xqmt7yn5b4",
+  "date": "2026-11-18T09:07:19.987Z"
+}

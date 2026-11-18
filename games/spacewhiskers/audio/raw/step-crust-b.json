@@ -1,0 +1,26 @@
+{
+  "id": "step-crust-b",
+  "sound": "step-crust-b",
+  "group": "sfx",
+  "use": "footstep on matte crust",
+  "loop": false,
+  "bpm": null,
+  "seconds": 0.6,
+  "model": "stability-ai/stable-audio-2.5",
+  "version": "hidden",
+  "input": {
+    "prompt": "a single light footstep on hard chalky stone, a short dull tap, an isolated sound effect, clean and dry, no music, no voice, no background noise",
+    "duration": 2,
+    "steps": 8,
+    "cfg_scale": 1
+  },
+  "metrics": {
+    "audio_output_count": 1,
+    "audio_output_duration_seconds": 2,
+    "model_variant": "stable-audio-2.5",
+    "predict_time": 2.035538723,
+    "total_time": 2.047061424
+  },
+  "predictionId": "gd6dz7zeqxrmw0d1xqj9gfv6kc",
+  "date": "2026-11-18T09:02:48.405Z"
+}

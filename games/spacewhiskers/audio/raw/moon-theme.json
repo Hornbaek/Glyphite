@@ -1,0 +1,16 @@
+{
+ "id": "moon-theme",
+ "sound": "moon-theme",
+ "group": "music",
+ "use": "The Bubbling Moon outdoors: theme, a 16-bar loop (one bar = the 3.0 s hiccup)",
+ "loop": true,
+ "bpm": 80,
+ "seconds": null,
+ "model": "pixelite/sampler-song",
+ "version": null,
+ "input": {
+  "prompt": "Written as a song (audio/songs/moon-theme.song.json, the engine's SNES-style Sampler) by tools in .claude/skills/pixelite-song and rendered offline to WAV: The Bubbling Moon outdoors: a strange, silly, slightly sad moon. D Dorian, 80 BPM: one bar is 3.0 s, the length of the moon's hiccup, and a small bell blip marks it. 16 bars, loops. A bell hints the tune, a flute states it, higher on the second time, then thins out. Never heard by its writer."
+ },
+ "metrics": null,
+ "date": "2026-11-18"
+}

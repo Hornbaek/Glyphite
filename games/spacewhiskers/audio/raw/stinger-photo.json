@@ -1,0 +1,16 @@
+{
+ "id": "stinger-photo",
+ "sound": "stinger-photo",
+ "group": "stinger",
+ "use": "a scrapbook photo is taken",
+ "loop": false,
+ "bpm": null,
+ "seconds": null,
+ "model": "pixelite/sampler-song",
+ "version": null,
+ "input": {
+  "prompt": "Written as a song (audio/songs/stinger-photo.song.json, the engine's SNES-style Sampler) by tools in .claude/skills/pixelite-song and rendered offline to WAV: A scrapbook photo is taken: a camera click and a sparkling rising arpeggio."
+ },
+ "metrics": null,
+ "date": "2026-11-18"
+}

@@ -1,0 +1,26 @@
+{
+  "id": "curd-slide-loop",
+  "sound": "curd-slide-loop",
+  "group": "sfx",
+  "use": "the curd moving",
+  "loop": true,
+  "bpm": null,
+  "seconds": 5,
+  "model": "stability-ai/stable-audio-2.5",
+  "version": "hidden",
+  "input": {
+    "prompt": "a huge blob sliding slowly over a wet surface, a soft squelchy drag, an isolated sound effect, clean and dry, no music, no voice, no background noise",
+    "duration": 5,
+    "steps": 8,
+    "cfg_scale": 1
+  },
+  "metrics": {
+    "audio_output_count": 1,
+    "audio_output_duration_seconds": 5,
+    "model_variant": "stable-audio-2.5",
+    "predict_time": 2.080084381,
+    "total_time": 2.090285924
+  },
+  "predictionId": "65v4bg5hahrmy0d1xqk91r5vg8",
+  "date": "2026-11-18T09:04:43.938Z"
+}

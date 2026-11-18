@@ -1,0 +1,26 @@
+{
+  "id": "crumb-pickup",
+  "sound": "crumb-pickup",
+  "group": "sfx",
+  "use": "a cheese crumb",
+  "loop": false,
+  "bpm": null,
+  "seconds": 0.8,
+  "model": "stability-ai/stable-audio-2.5",
+  "version": "hidden",
+  "input": {
+    "prompt": "a cute bright little pickup chime, a tiny sparkle, a game collectible, an isolated sound effect, clean and dry, no music, no voice, no background noise",
+    "duration": 2,
+    "steps": 8,
+    "cfg_scale": 1
+  },
+  "metrics": {
+    "audio_output_count": 1,
+    "audio_output_duration_seconds": 2,
+    "model_variant": "stable-audio-2.5",
+    "predict_time": 2.014147668,
+    "total_time": 2.025447905
+  },
+  "predictionId": "me9za87475rmy0d1xqm96zynp4",
+  "date": "2026-11-18T09:07:07.830Z"
+}

@@ -1,0 +1,26 @@
+{
+  "id": "valve-right-ding",
+  "sound": "valve-right-ding",
+  "group": "sfx",
+  "use": "the right order: the gauge goes green",
+  "loop": false,
+  "bpm": null,
+  "seconds": 1.8,
+  "model": "stability-ai/stable-audio-2.5",
+  "version": "hidden",
+  "input": {
+    "prompt": "a satisfying pressure gauge click, a friendly bell ding and a soft machine hum rising, an isolated sound effect, clean and dry, no music, no voice, no background noise",
+    "duration": 2,
+    "steps": 8,
+    "cfg_scale": 1
+  },
+  "metrics": {
+    "audio_output_count": 1,
+    "audio_output_duration_seconds": 2,
+    "model_variant": "stable-audio-2.5",
+    "predict_time": 2.669795025,
+    "total_time": 2.6801577659999998
+  },
+  "predictionId": "yt1eh83p6hrmy0d1xqjr964220",
+  "date": "2026-11-18T09:03:23.830Z"
+}

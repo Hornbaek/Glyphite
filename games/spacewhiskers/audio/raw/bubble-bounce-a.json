@@ -1,0 +1,26 @@
+{
+  "id": "bubble-bounce-a",
+  "sound": "bubble-bounce-a",
+  "group": "sfx",
+  "use": "landing on a bubble and bouncing",
+  "loop": false,
+  "bpm": null,
+  "seconds": 1.2,
+  "model": "stability-ai/stable-audio-2.5",
+  "version": "hidden",
+  "input": {
+    "prompt": "a squishy rubbery boing as a small character lands on a big soft bubble and bounces up, cartoon, an isolated sound effect, clean and dry, no music, no voice, no background noise",
+    "duration": 2,
+    "steps": 8,
+    "cfg_scale": 1
+  },
+  "metrics": {
+    "audio_output_count": 1,
+    "audio_output_duration_seconds": 2,
+    "model_variant": "stable-audio-2.5",
+    "predict_time": 2.358467326,
+    "total_time": 2.372610001
+  },
+  "predictionId": "1tv1qjnte9rmt0d1xqhbf0ez9r",
+  "date": "2026-11-18T09:00:24.404Z"
+}

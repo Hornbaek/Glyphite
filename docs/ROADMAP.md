@@ -99,6 +99,8 @@ method first on one Pip walk cycle, then build the studio around the winner.
    the walk drafted from the sheet's 4 keys (ToonCrafter, Wan 2.7 between keys) and from the rig (PixelLab, a clear stride now). The owner picked
    PixelLab. Run, idle and jump drawn from approved rigs; all four accepted and playing in the Space Whiskers test level (HISTORY 73).
    Next for the game: the level's art from the props sheet, Pip's slide, crouch and wall slide, the Cat.
+   Round 2 of the moon's art and sound (HISTORY 76): 175 more sprites, 46 sounds, the moon theme and the ending as sampler songs. Next: the owner's Miss Clou sheet into `games/spacewhiskers/ref/` (she is drawn from a description),
+   Replicate credit for the 16 missing sounds and the API music (`node games/spacewhiskers/tools/sounds.mjs` skips what exists), a redraw of `dust-beam` and the eighth bubble-swell step, lit-paw counts 1 to 3 on the wheels, a glass-only layer for the slide.
    The Bubbling Moon (HISTORY 75): level design and puzzle menu in `games/spacewhiskers/story/BUBBLING_MOON.md`, eight art sheets in `ref/` (props, backgrounds, foregrounds). Next: the owner picks the
    hook and the puzzles; snap the cut sprites (`games/spacewhiskers/ref/frames/bubblingmoon_*`) to the game grid and palette (`pixelite-pixel-art`), ask again for the missing items (crater cap L, map piece 2, the pump housing) and the pink-tinted ones (paw prints, mist, steam); build the moon as a level (bubbles that follow the beat, the curd, the valves). Next for the tool: the studio.
 3. The studio at `/anim/`: the rig editor over a base frame, the timeline (keys, eases, mirrored halves, loop preview with the seam), guides, a D1 table `anims` (JSON

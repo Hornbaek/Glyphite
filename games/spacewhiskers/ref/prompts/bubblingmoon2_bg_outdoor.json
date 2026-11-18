@@ -1,0 +1,33 @@
+{
+  "file": "bubblingmoon2_bg_outdoor.png",
+  "sheet": "bg_outdoor",
+  "title": "Bubbling Moon round 2 backgrounds, outdoors: the middle plain with the LARGE pumping station (top), the near pipeline legs (bottom)",
+  "date": "2026-11-18T09:04:14.517Z",
+  "model": "gpt-image-2.6-flare",
+  "params": {
+    "size": "3840x2160",
+    "quality": "high",
+    "background": "opaque",
+    "output_format": "png"
+  },
+  "requestId": "req_2a8d92d912014b34a594b234530e526f",
+  "usage": {
+    "input_tokens": 4823,
+    "input_tokens_details": {
+      "image_tokens": 3662,
+      "text_tokens": 1161
+    },
+    "output_tokens": 3337,
+    "output_tokens_details": {
+      "image_tokens": 3337,
+      "text_tokens": 0
+    },
+    "total_tokens": 8160
+  },
+  "references": [
+    "levelinspirationprops.png",
+    "bubblingmoon_station.png",
+    "pip.png"
+  ],
+  "prompt": "THE WORLD: the Bubbling Moon, a strange, silly and slightly sad moon in a children's game (never scary). Its milk lakes have dried into cracked, glossy white crust that mirrors the sky. Giant cheese craters full of Swiss-cheese holes are the pits. Bubbles of old milk pop up out of the ground on a slow beat, as if the moon had hiccups. A big wobbling curd drifts across the dry lake like a slow boat. The cats built an old, half-finished, high-tech milk pumping station here: steel grey with orange and yellow trim, rust, paw-print logos and coloured cables. Palette: milk white, cream, butter yellow, cheese orange, pale lavender and blue-grey shadows, a deep violet night sky.\n\nYou are drawing TWO BACKGROUND PANELS for the Bubbling Moon level of a side-view platformer, stacked in one picture.\n\nFORMAT\n- One PNG, 3840 x 2160, landscape: the TOP panel fills the top 1080 rows, the BOTTOM panel the bottom 1080 rows. No labels, no title, no frame. The game screen is 480 x 270 art pixels; each panel is two screens wide (960 x 270 art pixels = 3840 x 1080 image pixels) and scrolls sideways behind the action. EACH PANEL MUST REPEAT SEAMLESSLY: its left edge continues exactly into its right edge, with no feature cut at the edges. Where a panel says \"on green\", everything that is not part of the layer is flat pure green (#00FF00) so a program can cut it out, and the layer is solid down to the bottom edge of its panel; no bright green inside the layers.\n\nPANEL 1 (top), THE MIDDLE LAYER, APPROACH VERSION, on green: the same kind of plain as in the first pack (rolling cheese hills and Swiss-cheese craters, the dried milk lakes between them as long flat glossy white-blue crust that reflects the sky, a few bubbles of milk) but now the half-finished cat PUMPING STATION is NEAR and LARGE in the middle of the panel (it fills a third of the panel's width and half its height): grey and orange steel, a crane, three huge round milk tanks, a stack, a big paw-print logo, scaffolding, and the thick PIPELINE on tall legs running out of it to both edges of the panel. Everything above the hills and the station is flat green. The bottom 25 percent is solid ground colour down to the bottom edge.\nPANEL 2 (bottom), THE NEAR PIPELINE LAYER, on green: the great pipeline marching past in the near distance: three enormous steel pipes with orange bands and flanges running along the whole width of the panel on tall A-frame legs, cables looping between them, the odd valve wheel and a ladder; under them a rocky cheese-and-crust slope at the bottom edge, solid down to the bottom of the panel. The middle of the panel stays open (flat green) so the action is readable; the pipes sit in the lower half.\n\nSTYLE (a program cuts this picture into pixel-art sprites for a game, so follow it exactly)\n- TRUE 16-bit (Super Nintendo style) pixel art on a strict fixed grid: every art pixel is a perfectly square, evenly coloured 4 x 4 block of image pixels, so every pixel can be counted by eye. Edges of shapes are clean staircases of whole square pixels: never smooth curves, never soft or noisy shading, never JPEG-like speckle, no anti-aliasing, no gradients, no blur, no glow halos, no dithering noise, no drop shadows, no cast shadows on the ground. Each shade is ONE exact flat colour; use only a small palette of about 32 colours for the whole picture, the same colour every time it is used.\n- A clean, continuous, dark near-black-brown (#1A1410) outline exactly 1 art pixel (4 image pixels) thick round EVERY item (except where a line says \"no outline\", for soft things), also round white, cream and pale items so they stand out from the green; used ONLY for outlines. No fill colour darker than #40382F. Inside the outline shade each material with 2 or 3 flat tones and a few hard-edged pixel highlights, like the references.\n- Match the three attached reference pictures in pixel size, line weight, saturation and level of detail: (1) the game's own props sheet (its green ground is the ground to use here too); (2) a finished sheet of this level's pumping-station props: match its pixel size, line weight, colours and shading exactly; (3) the hero, Pip the mouse astronaut: he is 49 art pixels tall, which fixes the scale of everything.\n- SCALE: Pip is 49 art pixels (196 image pixels) tall; everything is drawn at that same pixel size. Sizes below are in art pixels (width x height), only roughly.\n- Glass, bubbles and windows are drawn in opaque pale colours with a white highlight: nothing is see-through, and nothing is drawn behind an item.\n- No text inside the items except where a line gives the words. Seen strictly from the side (a 2D platformer), light from the upper left.\n(In this picture there are no sprites and no items on a ground line; ignore the lines about labels and items.)"
+}

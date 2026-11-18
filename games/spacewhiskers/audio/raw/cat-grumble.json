@@ -1,0 +1,26 @@
+{
+  "id": "cat-grumble",
+  "sound": "cat-grumble",
+  "group": "sfx",
+  "use": "Miss Clou sulking in the box",
+  "loop": false,
+  "bpm": null,
+  "seconds": 2,
+  "model": "stability-ai/stable-audio-2.5",
+  "version": "hidden",
+  "input": {
+    "prompt": "a grumpy house cat muttering, a low irritated trill and one short sulky meow, an isolated sound effect, clean and dry, no music, no voice, no background noise",
+    "duration": 2,
+    "steps": 8,
+    "cfg_scale": 1
+  },
+  "metrics": {
+    "audio_output_count": 1,
+    "audio_output_duration_seconds": 2,
+    "model_variant": "stable-audio-2.5",
+    "predict_time": 2.178437711,
+    "total_time": 2.188792063
+  },
+  "predictionId": "6mm2j881s1rmr0d1xqkr7sx00g",
+  "date": "2026-11-18T09:05:04.570Z"
+}
